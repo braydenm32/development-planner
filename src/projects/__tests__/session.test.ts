@@ -45,8 +45,8 @@ describe('a new project’s name', () => {
     expect(nameFromFile('C:\\surveys\\job_204__contours.DXF')).toBe('Job 204 contours')
     expect(nameFromFile('levels.xml')).toBe('Levels')
     expect(nameFromFile('.dxf')).toBeNull()
-    expect(nameFromLot({ label: 'Lot 4 DP12345', address: '12 Example St, Sampletown NSW 2000' })).toBe('12 Example St')
-    expect(nameFromLot({ label: 'Lot 4 DP12345' })).toBe('Lot 4 DP12345')
+    expect(nameFromLot({ label: 'Lot 12 DP34567', address: '12 Example St, Sampletown NSW 2000' })).toBe('12 Example St')
+    expect(nameFromLot({ label: 'Lot 12 DP34567' })).toBe('Lot 12 DP34567')
   })
 
   it('is the one given, made free, or My house / New house without one', async () => {
