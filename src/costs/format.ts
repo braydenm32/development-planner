@@ -1,6 +1,7 @@
 // How costs read: whole dollars with thousands commas, quantities as the panel they come
 // from shows them, and the estimate as a CSV file for a spreadsheet.
 
+import { CAVEAT_LINE } from '../legal/caveat'
 import { areaById } from '../nav/menu'
 import type { CostLine, Estimate } from './estimate'
 import type { Unit } from './rates'
@@ -95,6 +96,7 @@ export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   }
   rows.push(blank)
   rows.push(['', `${name}: ${ob ? 'built by the owner' : 'built by a builder'}. ${e.quoted} of ${e.quotable} lines quoted. Starting rates are rough NSW figures as at ${asAt}, GST included.`])
+  rows.push(['', CAVEAT_LINE])
   return rows.map(r => r.map(field).join(',')).join('\r\n') + '\r\n'
 }
 

@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DesignQuantities } from '../../plan/quantities'
 import { CHOICE_LINES, choiceDeltas, estimate, rateFor, type Estimate } from '../estimate'
+import { CAVEAT_LINE } from '../../legal/caveat'
 import { atName, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText } from '../format'
 import { costsSummary, emptyCosts, normalizeCosts, type CostsData } from '../model'
 import { CHOICES, CONTINGENCY, FINISH_GUIDES, FINISH_LEVELS, finishGuide, MARGIN, RANGE, rateInfo, STARTING_RATES, type RateId } from '../rates'
@@ -346,12 +347,16 @@ describe('the CSV', () => {
     expect(rows).toContain(`,Likely low (−20%),,,,,,,,${Math.round(e.low)}`)
     expect(rows).toContain(`,Per m² of floor (100.00 m²),,,,,,,,${Math.round(e.perM2!)}`)
     expect(rows).toContain(`,"House only, per m² of floor (no site works, outside works, fees or contingency)",,,,,,,,${Math.round(e.housePerM2!)}`)
-    expect(rows.length).toBe(1 + e.lines.length + e.groups.length + 1 + 5 + 1 + 1 + 1)
+    expect(rows.length).toBe(1 + e.lines.length + e.groups.length + 1 + 5 + 1 + 1 + 1 + 1)
   })
 
   it('quotes fields with commas and quote marks, and shows a quote beside its estimate', () => {
     expect(rows).toContain(`Site works,"Site set-up: temporary fence, toilet, skips",Allowance,,,${R('site-setup')},${R('site-setup')},8450,"Fence, Toilet & Co",8450`)
-    expect(rows.at(-2)).toBe(',"My ""house"": built by a builder. 1 of ' + e.quotable + ' lines quoted. Starting rates are rough NSW figures as at November 2026, GST included."')
+    expect(rows.at(-3)).toBe(',"My ""house"": built by a builder. 1 of ' + e.quotable + ' lines quoted. Starting rates are rough NSW figures as at November 2026, GST included."')
+  })
+
+  it('ends with the one caveat, as a field of its own', () => {
+    expect(rows.at(-2)).toBe(`,"${CAVEAT_LINE}"`)
   })
 
   it('adds materials and labour columns for an owner-builder', () => {

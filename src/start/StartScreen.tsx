@@ -6,6 +6,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { CloudStartLink } from '../cloud/CloudCard'
 import { Icon, Logo } from '../nav/icons'
+import { LegalFooter } from '../legal/LegalFooter'
+import '../legal/legal.css'
 import { askSurveyor } from '../safety/files'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
@@ -274,6 +276,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
           </section>
         </div>
       </main>
+      <LegalFooter />
 
       <input
         ref={input}

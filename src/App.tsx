@@ -34,6 +34,7 @@ import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
 import { isSketch } from './start/sketch'
 import { StartScreen } from './start/StartScreen'
+import { LegalPage } from './legal/LegalPage'
 import './App.css'
 
 export default function App() {
@@ -185,6 +186,14 @@ export default function App() {
   // The file actions (src/safety) open projects and read the site the app has built.
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))
 
+  // About, Privacy, Terms and How accurate is this? need no project and no sign-in, so they show first.
+  if (route.kind === 'page')
+    return (
+      <>
+        <LegalPage page={route.page} onBack={() => (history.length > 1 ? history.back() : openedId ? toProject() : toProjects())} />
+        <SafetyLayer />
+      </>
+    )
   if (!projects.ready) return null
   const home = (inShell: boolean) => (
     <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a, true)} onOpen={() => toProject()} onNew={toNewProject} />
