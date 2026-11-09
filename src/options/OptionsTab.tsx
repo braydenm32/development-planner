@@ -271,7 +271,7 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
         )}
         {cols && !tooFew && (
           <p className="muted small opt-foot">
-            “Best” marks the lowest (floor area: the largest). Cost is only compared between options whose estimate is complete. Floor level has no best: it’s a choice.
+            “Best” marks the least cut, fill, depth, wall and cost, and the fewest failed checks. Cost is only compared between options whose estimate is complete. Floor area and floor level have no best: they’re choices.
           </p>
         )}
       </div>
