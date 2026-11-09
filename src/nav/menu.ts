@@ -643,7 +643,7 @@ export const AREAS: Area[] = [
         icon: 'retain',
         subtitle: 'Walls that hold back the ground.',
         shows: ['retaining'],
-        keywords: ['retaining', 'wall height', 'engineer', 'sleepers', 'block wall', 'hold back', 'uphill', 'downhill', 'levels', 'bench', 'section', 'earth side', 'earth behind'],
+        keywords: ['retaining', 'wall height', 'engineer', 'sleepers', 'block wall', 'hold back', 'uphill', 'downhill', 'levels', 'bench', 'section', 'earth side', 'earth behind', 'wall list', 'which wall', 'height tag', 'what it changes'],
         features: [
           'retaining-walls-total',
           'retaining-wall-stats',
@@ -656,6 +656,9 @@ export const AREAS: Area[] = [
           'retaining-bench',
           'retaining-section',
           'retaining-engineer-flag',
+          'retaining-list-named',
+          'retaining-height-tags',
+          'retaining-wall-consequence',
         ],
       },
       {
@@ -700,6 +703,8 @@ export const AREAS: Area[] = [
           'B99',
           'AS 2890',
           'AS/NZS 2890.1',
+          'concrete slab',
+          'make it a driveway',
         ],
         features: [
           'driveway-grade',
@@ -711,6 +716,7 @@ export const AREAS: Area[] = [
           'driveway-kerb-level',
           'driveway-long-section',
           'driveway-crossing-checks',
+          'driveway-from-slab',
         ],
       },
       {

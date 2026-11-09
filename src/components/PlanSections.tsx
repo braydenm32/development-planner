@@ -63,7 +63,7 @@ import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
 import { houseOutline, retainedText } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
-import { DrivewayLevels } from './DrivewayLevels'
+import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
@@ -639,10 +639,13 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       )}
       {kind === 'slab' && <p className="muted small">The ground under a slab is levelled as part of the cut and fill.</p>}
       {kind === 'driveway' && (
-        <>
-          <DrivewayLevels plan={plan} area={a} survey={survey} terrain={terrain} earth={earth} />
-          <DrivewayGrade plan={plan} area={a} survey={survey} terrain={terrain} earth={earth} />
-        </>
+        <p className="muted small">
+          Its levels, grade and street crossing are in{' '}
+          <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'driveway', view: 'plan' })}>
+            Earthworks › Driveway
+          </button>
+          .
+        </p>
       )}
       <p className="muted small">Drag the corner handles to reshape it.</p>
       <div className="row">{del}</div>

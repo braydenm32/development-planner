@@ -16,6 +16,7 @@ import { useChecks } from '../../checks/useChecks'
 import { Caveat } from '../../legal/Caveat'
 import { useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
+import { DriveFromSlab } from '../../components/DriveFromSlab'
 import '../../checks/checks.css'
 
 const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass', 'info']
@@ -82,6 +83,8 @@ function Checks({ d }: { d: Loaded }) {
       {drive.length > 0 && (
         <>
           <h4 className="checks-group">Driveway and street crossing</h4>
+          {/* A driveway drawn as a concrete slab isn't one to these checks: offer to make it one. */}
+          {drive.every(r => r.status === 'incomplete') && <DriveFromSlab plan={d.plan} survey={d.survey} />}
           <ul className="check-list">
             {drive.map(r => (
               <CheckRow key={r.id} r={r} />

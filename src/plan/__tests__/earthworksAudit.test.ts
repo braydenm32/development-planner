@@ -12,7 +12,9 @@ import { balancePreview, balanceRows } from '../../grading/balance'
 import { batterLabel } from '../../grading/words'
 import { clockwiseOf, rotationFromClockwise } from '../../components/placeActions'
 import { firstFloorPlan, levelGrounds, meanGroundUnder } from '../levelGround'
-import { floorRL, type Plan, type Wall } from '../model'
+import { areaKind, floorRL, fromSite, type Area, type Plan, type Wall } from '../model'
+import { asDriveway, driveReason, driveSlabs } from '../driveFromSlab'
+import type { Vec2 } from '../../lib/geom'
 import { retainingProfile } from '../retaining'
 import { answerRunHeight, cancelNewRetaining, extendRun, keepNewRetaining, newRetainingWall, placeRetainingWall, useRetaining } from '../retainingSession'
 import { usePlan } from '../store'
@@ -160,5 +162,36 @@ describe('slopes in words', () => {
     expect(batterLabel(2)).toBe('1 in 2 (27°)')
     expect(batterLabel(1)).toBe('1 in 1 (45°)')
     expect(batterLabel(0)).toBe('Retaining wall (vertical)')
+  })
+})
+
+describe('a driveway drawn as a concrete slab', () => {
+  it('is offered as a driveway by its name, or by reaching the street side', () => {
+    const { plan, survey } = setup()
+    const sq = (x: number, y: number): Vec2[] => [
+      [x, y],
+      [x + 3, y],
+      [x + 3, y + 3],
+      [x, y + 3],
+    ]
+    const named: Area = { id: 'a1', level: 'level_ground', pts: sq(20, 20), name: 'Concrete slab driveway', kind: 'slab' }
+    const patio: Area = { id: 'a2', level: 'level_ground', pts: sq(30, 20), name: 'Patio', kind: 'slab' }
+    // A slab with a corner on the first boundary edge's middle.
+    const b = survey.boundary
+    const mid: Vec2 = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]
+    const m = fromSite(mid, plan.placement, survey.origin)
+    const atStreet: Area = { id: 'a3', level: 'level_ground', pts: sq(m[0], m[1]), name: 'Slab', kind: 'slab' }
+    const p: Plan = { ...plan, areas: [named, patio, atStreet] }
+    expect(driveReason(named, p, survey)).toBe('name')
+    expect(driveReason(patio, p, survey)).toBeNull()
+    // Only once the street side is known.
+    expect(driveReason(atStreet, p, survey)).toBeNull()
+    const withStreet: Plan = { ...p, checks: { ...(p.checks ?? {}), frontEdge: 0 } as Plan['checks'] }
+    expect(driveReason(atStreet, withStreet, survey)).toBe('street')
+    expect(driveSlabs(withStreet, survey).map(x => x.area.id)).toEqual(['a1', 'a3'])
+    const made = asDriveway(withStreet, 'a1')
+    expect(areaKind(made.areas.find(a => a.id === 'a1')!)).toBe('driveway')
+    expect(made.areas.find(a => a.id === 'a1')!.name).toBe('Concrete slab driveway')
+    expect(driveSlabs(made, survey).map(x => x.area.id)).toEqual(['a3'])
   })
 })

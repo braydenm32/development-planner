@@ -7,6 +7,7 @@ import {
   GroundUnderHouse,
 } from '../../components/PlanSections'
 import { FloorLevel, LevelsOnGround, PlaceHouse } from '../../components/PlaceSections'
+import { DriveFromSlab } from '../../components/DriveFromSlab'
 import { DrivewayCrossing } from '../../components/DrivewayCrossing'
 import { DrivewayLevels } from '../../components/DrivewayLevels'
 import { CutFillPanel } from '../../grading/CutFillPanel'
@@ -96,6 +97,7 @@ export function DrivewayTab() {
   ) : (
     <>
       <p className="muted">No driveway yet. Draw one with the Area tool, kind Driveway, and its grade, its footpath crossing and whether a car gets in show here.</p>
+      <DriveFromSlab plan={d.plan} survey={d.survey} />
       <div className="row">
         <button className="secondary" onClick={draw}>
           Draw a driveway
