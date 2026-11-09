@@ -199,6 +199,8 @@ function Placed({ place, outline, view, onView, onMove }: { place: MapPlace; out
   const [step, setStep] = useState(0.25)
   const surveyLonLat = useMemo(() => outline.boundary.map(p => fromMga(gridToMga(place.fit, p), place.zone)), [outline, place.fit, place.zone])
   const fit = fitWords(place)
+  // A survey replaced since it was placed has a new grid, so the old fit no longer lines up.
+  const stale = Math.hypot(place.fit.from[0] - outline.origin[0], place.fit.from[1] - outline.origin[1]) > 0.001 && !place.onGrid
   const handle = place.areaRatio < 0.92 && !fit.loose
   const turn = (deg: number) => adjustPlace(outline, { turn: deg })
   const shift = (e: number, n: number) => adjustPlace(outline, { shift: [e * step, n * step] })
@@ -213,7 +215,16 @@ function Placed({ place, outline, view, onView, onMove }: { place: MapPlace; out
         </button>
       </div>
       <MapPicker view={view} onView={onView} lots={[place.lot]} selected={place.lot.id} onPick={() => {}} outline={surveyLonLat} height={260} />
-      <p className={fit.loose ? 'notice small' : 'muted small'}>{fit.text}</p>
+      {stale ? (
+        <div className="notice small">
+          The survey has changed since it was put on the map.{' '}
+          <button className="link" onClick={() => placeOnLot(outline, place.lot)}>
+            Fit it to {place.lot.label} again
+          </button>
+        </div>
+      ) : (
+        <p className={fit.loose ? 'notice small' : 'muted small'}>{fit.text}</p>
+      )}
       {handle && <p className="muted small">The survey covers {Math.round(place.areaRatio * 100)}% of the lot’s area, so part of the lot isn’t in it. On a battle-axe lot that’s usually the access handle.</p>}
       {north && (
         <p className="muted small">

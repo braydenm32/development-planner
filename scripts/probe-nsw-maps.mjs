@@ -112,3 +112,4 @@ console.log('layer 22:', info?.name, (info?.fields ?? []).map(f => f.name).join(
 await get('imagery tile', `${SIX}/NSW_Imagery/MapServer/tile/20/631199/963796`)
 
 console.log(`\n${failures} failure(s)`)
+process.exitCode = failures ? 1 : 0
