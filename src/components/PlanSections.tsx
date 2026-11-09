@@ -624,7 +624,6 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         )}
         <Num label="Direction" unit="°" value={s.angle} onCommit={angle => set({ angle: ((angle % 360) + 360) % 360 })} />
         <dl className="stats">
-          <FragmentRow label="Risers" value={counts.risers} />
           <FragmentRow label="Treads" value={counts.treads} />
           {length !== null && <FragmentRow label="Length" value={`${length.toFixed(2)} m`} />}
         </dl>
