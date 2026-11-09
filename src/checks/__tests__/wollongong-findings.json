@@ -43,7 +43,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -55,7 +55,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "6 m to the front facade (infill); garages 5.5 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.2.2(1)",
      "confidence": "read",
@@ -148,7 +148,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -275,7 +276,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "The average of the two nearest houses within 40 m, else 4.50 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(1), (3) (table)",
      "confidence": "read",
@@ -286,7 +287,7 @@
     "id": "hc-side",
     "title": "Side setbacks",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -297,7 +298,7 @@
     "id": "hc-rear",
     "title": "Rear setback",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -360,12 +361,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -468,7 +470,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -573,7 +575,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -790,12 +793,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -898,7 +902,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -1003,7 +1007,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -1220,12 +1225,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -1328,7 +1334,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -1434,7 +1440,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -1651,12 +1658,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -1759,7 +1767,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -1864,7 +1872,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -2081,12 +2090,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -2296,7 +2306,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -2525,12 +2536,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -2739,7 +2751,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -2968,12 +2981,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -3076,7 +3090,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.",
+    "note": "Enter the map value here once it’s looked up. The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -3181,7 +3195,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -3321,7 +3336,7 @@
     "title": "Setback from the lot in front",
     "status": "unknown",
     "limit": "3 m from the rear boundary of the lot in front",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(15)",
      "confidence": "read",
@@ -3332,7 +3347,7 @@
     "id": "hc-side",
     "title": "Side setbacks",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -3343,7 +3358,7 @@
     "id": "hc-rear",
     "title": "Rear setback",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -3406,12 +3421,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -3514,7 +3530,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -3619,7 +3635,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -3836,12 +3853,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -3956,7 +3974,7 @@
     "status": "unknown",
     "value": "0.20:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -4061,7 +4079,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -4278,12 +4297,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -4399,7 +4419,7 @@
     "status": "unknown",
     "value": "0.19:1 on 860.0 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -4506,7 +4526,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -4735,12 +4756,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -4842,7 +4864,7 @@
     "title": "Upper floor out of the rear 8 m",
     "status": "unknown",
     "limit": "Single storey only within 8 m of the rear boundary",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.1.2(4)",
      "confidence": "read",
@@ -4855,7 +4877,7 @@
     "status": "unknown",
     "value": "0.20:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -4867,7 +4889,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "6 m to the front facade (infill); garages 5.5 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.2.2(1)",
      "confidence": "read",
@@ -4960,7 +4982,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -5087,7 +5110,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "The average of the two nearest houses within 40 m, else 4.50 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(1), (3) (table)",
      "confidence": "read",
@@ -5098,7 +5121,7 @@
     "id": "hc-side",
     "title": "Side setbacks",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -5109,7 +5132,7 @@
     "id": "hc-rear",
     "title": "Rear setback",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -5172,12 +5195,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -5292,7 +5316,7 @@
     "status": "unknown",
     "value": "0.20:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -5397,7 +5421,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -5614,12 +5639,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -5721,7 +5747,7 @@
     "title": "Upper floor out of the rear 8 m",
     "status": "unknown",
     "limit": "Single storey only within 8 m of the rear boundary",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.1.2(4)",
      "confidence": "read",
@@ -5734,7 +5760,7 @@
     "status": "unknown",
     "value": "0.20:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -5746,7 +5772,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "6 m to the front facade (infill); garages 5.5 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.2.2(1)",
      "confidence": "read",
@@ -5839,7 +5865,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -5966,7 +5993,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "The average of the two nearest houses within 40 m, else 4.50 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(1), (3) (table)",
      "confidence": "read",
@@ -5977,7 +6004,7 @@
     "id": "hc-side",
     "title": "Side setbacks",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -5988,7 +6015,7 @@
     "id": "hc-rear",
     "title": "Rear setback",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -6051,12 +6078,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -6159,7 +6187,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -6266,7 +6294,11 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": [
+     "rw_west",
+     "rw_south"
+    ]
    },
    {
     "id": "da-shadow-diagrams",
@@ -6483,13 +6515,31 @@
     "title": "Retaining walls",
     "status": "warn",
     "value": "Tallest holds back 2.04 m",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "note": "2 walls over 600 mm: allowed with an engineer’s certificate.",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": [
+     "rw_west",
+     "rw_south"
+    ]
+   },
+   {
+    "id": "hc-retaining-gap",
+    "title": "Space between retaining walls",
+    "status": "pass",
+    "value": "Every pair at least 2 m apart, or joined",
+    "limit": "At least 2.00 m apart",
+    "note": "Walls that meet at a corner count as one.",
+    "source": {
+     "clause": "Housing Code cl 3.30",
+     "confidence": "read",
+     "asAt": "NSW legislation, as at 29 Aug 2025"
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -6592,7 +6642,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -6697,7 +6747,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -6747,7 +6798,7 @@
     "tree": "gone-near",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "It’s more than 3 m from the house, so the DA has to make the case for removing it, with an arborist report (E17 13.1).",
     "source": {
      "clause": "Wollongong DCP E17 13.3",
@@ -6761,7 +6812,7 @@
     "tree": "gone-far",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "It’s more than 3 m from the house, so the DA has to make the case for removing it, with an arborist report (E17 13.1).",
     "source": {
      "clause": "Wollongong DCP E17 13.3",
@@ -6985,12 +7036,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "tree:kept-near",
@@ -7027,7 +7079,7 @@
     "tree": "gone-near",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "The CDC doesn’t cover removing it: it’s 5.48 m from the house (the CDC covers trees within 3 m) (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).",
     "source": {
      "clause": "Housing Code cl 3.33(1)",
@@ -7041,7 +7093,7 @@
     "tree": "gone-far",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "The CDC doesn’t cover removing it: it’s 14 m tall (the CDC covers trees under 8 m) and it’s 13.98 m from the house (the CDC covers trees within 3 m) (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).",
     "source": {
      "clause": "Housing Code cl 3.33(1)",
@@ -7164,7 +7216,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -7269,7 +7321,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -7320,7 +7373,7 @@
     "tree": "gone-near",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "It’s more than 3 m from the house, so the DA has to make the case for removing it, with an arborist report (E17 13.1).",
     "source": {
      "clause": "Wollongong DCP E17 13.3",
@@ -7334,7 +7387,7 @@
     "tree": "gone-far",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "It’s more than 3 m from the house, so the DA has to make the case for removing it, with an arborist report (E17 13.1).",
     "source": {
      "clause": "Wollongong DCP E17 13.3",
@@ -7559,12 +7612,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "tree:kept-near",
@@ -7602,7 +7656,7 @@
     "tree": "gone-near",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "The CDC doesn’t cover removing it: it’s 5.48 m from the house (the CDC covers trees within 3 m) (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).",
     "source": {
      "clause": "Housing Code cl 3.33(1)",
@@ -7616,7 +7670,7 @@
     "tree": "gone-far",
     "removable": true,
     "status": "pending",
-    "value": "Marked for removal (pending DA or CDC)",
+    "value": "To remove (needs approval)",
     "note": "The CDC doesn’t cover removing it: it’s 14 m tall (the CDC covers trees under 8 m) and it’s 13.98 m from the house (the CDC covers trees within 3 m) (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).",
     "source": {
      "clause": "Housing Code cl 3.33(1)",
@@ -7740,7 +7794,7 @@
     "status": "unknown",
     "value": "0.00:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -7844,7 +7898,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -8060,12 +8115,13 @@
     "title": "Retaining walls",
     "status": "incomplete",
     "value": "Draw the outside walls as a closed outline to check this.",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -8168,7 +8224,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -8273,7 +8329,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -8490,12 +8547,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -8598,7 +8656,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -8702,7 +8760,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -8919,12 +8978,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -9027,7 +9087,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -9039,7 +9099,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "6 m to the front facade (infill); garages 5.5 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Wollongong DCP B1 4.2.2(1)",
      "confidence": "read",
@@ -9132,7 +9192,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -9259,7 +9320,7 @@
     "title": "Front setback",
     "status": "unknown",
     "limit": "The average of the two nearest houses within 40 m, else 4.50 m",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(1), (3) (table)",
      "confidence": "read",
@@ -9270,7 +9331,7 @@
     "id": "hc-side",
     "title": "Side setbacks",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -9281,7 +9342,7 @@
     "id": "hc-rear",
     "title": "Rear setback",
     "status": "unknown",
-    "note": "Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.",
+    "note": "Pick the side that faces the street (or the lot in front), and this can be checked.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -9344,12 +9405,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -9464,7 +9526,7 @@
     "status": "unknown",
     "value": "0.17:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -9569,7 +9631,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -9786,12 +9849,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -9907,7 +9971,7 @@
     "status": "unknown",
     "value": "0.17:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.",
+    "note": "Enter the map value here once it’s looked up. The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -10013,7 +10077,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -10242,12 +10307,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -10350,7 +10416,7 @@
     "status": "unknown",
     "value": "0.56:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -10455,7 +10521,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -10672,12 +10739,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -10780,7 +10848,7 @@
     "status": "unknown",
     "value": "0.51:1 on 890.0 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -10887,7 +10955,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -11116,12 +11185,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -11331,7 +11401,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -11560,12 +11631,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -11668,7 +11740,7 @@
     "status": "unknown",
     "value": "0.11:1 on 860.0 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -11774,7 +11846,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -11991,12 +12064,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "None",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",
@@ -12099,7 +12173,7 @@
     "status": "unknown",
     "value": "0.11:1 on 810.3 m²",
     "limit": "The Floor Space Ratio Map value for this lot",
-    "note": "Enter the map value under Lot facts once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
+    "note": "Enter the map value here once it’s looked up. Measured against the whole lot, handle included (cl 4.5(3)).",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.4(2), 4.5(3)",
      "confidence": "read",
@@ -12204,7 +12278,8 @@
      "clause": "Wollongong DCP B1 4.17.3",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
-    }
+    },
+    "walls": []
    },
    {
     "id": "da-shadow-diagrams",
@@ -12421,12 +12496,13 @@
     "title": "Retaining walls",
     "status": "pass",
     "value": "Tallest holds back 0.14 m",
-    "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
+    "limit": "Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "walls": []
    },
    {
     "id": "drive-grade",

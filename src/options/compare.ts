@@ -19,6 +19,8 @@ export interface Row {
   best: 'low' | 'high' | 'none'
   /** An option this can't be fairly compared for (an estimate with gaps). */
   skip?: (n: OptionNumbers) => boolean
+  /** A list under the cell's text: the checks to fix, say. */
+  list?: (n: OptionNumbers) => string[]
 }
 
 const m3 = (v: number) => `${v.toFixed(1)} m³`
@@ -27,6 +29,22 @@ const dash = '—'
 export const ROWS: Row[] = [
   { id: 'floor-area', label: 'Floor area', text: n => (n.floorArea === null ? dash : m2(n.floorArea)), value: n => n.floorArea, best: 'none' },
   { id: 'ffl', label: 'Floor level (FFL)', text: n => `RL ${n.ffl.toFixed(2)}`, value: n => n.ffl, best: 'none' },
+  {
+    id: 'height',
+    label: 'Building height',
+    text: n => (n.height === null ? dash : `${n.height.toFixed(2)} m`),
+    note: n => (n.height === null ? null : 'Above natural ground, as the checks measure it'),
+    value: n => n.height,
+    best: 'none',
+  },
+  {
+    id: 'levels',
+    label: 'Levels',
+    text: n => (n.levels ? `${n.levels} level${n.levels === 1 ? '' : 's'}` : dash),
+    note: n => (n.levels ? `${n.storeys} storey${n.storeys === 1 ? '' : 's'} as the rules count them` : null),
+    value: n => n.levels,
+    best: 'none',
+  },
   { id: 'cut', label: 'Cut', text: n => (n.earth ? m3(n.earth.cut) : dash), value: n => n.earth?.cut ?? null, best: 'low' },
   { id: 'fill', label: 'Fill', text: n => (n.earth ? m3(n.earth.fill) : dash), value: n => n.earth?.fill ?? null, best: 'low' },
   {
@@ -59,9 +77,31 @@ export const ROWS: Row[] = [
     value: n => n.checks.counts.fail * 1000 + n.checks.counts.warn * 100 + n.checks.counts.unknown + n.checks.counts.incomplete,
     best: 'low',
   },
+  {
+    id: 'to-fix',
+    label: 'To fix',
+    text: n => (n.checks.fix.length ? '' : 'Nothing'),
+    list: n => n.checks.fix,
+    value: n => n.checks.fix.length,
+    best: 'none',
+  },
+  {
+    id: 'to-confirm',
+    label: 'To confirm',
+    text: n => (n.checks.confirm.length ? '' : 'Nothing'),
+    list: n => n.checks.confirm,
+    value: n => n.checks.confirm.length,
+    best: 'none',
+  },
 ]
 
-/** "1 fail · 2 to check · 1 needs a fact · 2 marked for removal · 9 pass": Design › Checks' own summary. */
+/** Whether a row says something different for any of the options: what "Differences only" keeps. */
+export function differs(row: Row, nums: OptionNumbers[]): boolean {
+  const say = (n: OptionNumbers) => JSON.stringify([row.text(n), row.note?.(n) ?? null, row.list?.(n) ?? null])
+  return nums.some(n => say(n) !== say(nums[0]))
+}
+
+/** "1 to fix · 2 to confirm · 1 fact to add · 2 to remove · 9 OK": Design › Checks' own words. */
 export const checksText = (n: OptionNumbers): string => countsWords(n.checks.counts).join(' · ')
 
 /** What the checks were run against: "DA (Wollongong)", or "CDC (Housing Code)". */

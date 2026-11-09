@@ -188,7 +188,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const against = checkedAgainst(pathway, council)
   if (shown || !loud) {
     // A design that isn't drawn enough to check says so before anything passes.
-    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
+    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
     if (readOnly && !shown)
       return (
         <span className="chip ghost" data-term={term} data-term-note={against}>
@@ -205,7 +205,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
       </button>
     )
   }
-  const parts = [counts.fail && `${counts.fail} fail${counts.fail > 1 ? 's' : ''}`, counts.warn && `${counts.warn} to check`].filter(Boolean).join(' · ')
+  const parts = [counts.fail && `${counts.fail} to fix`, counts.warn && `${counts.warn} to confirm`].filter(Boolean).join(' · ')
   if (readOnly)
     return (
       <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>
