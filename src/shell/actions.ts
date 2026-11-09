@@ -7,7 +7,7 @@ import { downloadPlan, startNewPlan } from '../components/planFile'
 import { save3mf, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
 import { startContourPick } from '../flow/store'
 import type { ActionId } from '../nav/menu'
-import { NEW_PROJECT, PROJECTS } from '../nav/route'
+import { NEW_PROJECT, pageRoute, PROJECTS } from '../nav/route'
 import { navigate } from '../nav/router'
 import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
@@ -63,6 +63,13 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'new-project':
       navigate(NEW_PROJECT)
+      return true
+    // The pages about the app open on their own; Back returns to the project.
+    case 'about':
+    case 'privacy':
+    case 'terms':
+    case 'accuracy':
+      navigate(pageRoute(a))
       return true
     // Sign in, or the account when signed in. A copy of the app with no cloud (GitHub Pages) says so.
     case 'cloud':

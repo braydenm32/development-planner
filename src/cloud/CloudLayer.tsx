@@ -152,6 +152,18 @@ function CreateSheet() {
         )}
         {!works && <p className="cl-problem">{NO_PASSKEYS}</p>}
         <Problem />
+        {/* In tabs of their own, so what's typed here is still here when you come back. */}
+        <p className="cl-agree">
+          By creating an account you agree to the{' '}
+          <a href="#/terms" target="_blank" rel="noopener">
+            Terms
+          </a>{' '}
+          and{' '}
+          <a href="#/privacy" target="_blank" rel="noopener">
+            Privacy policy
+          </a>
+          .
+        </p>
         <div className="cl-actions">
           <button type="submit" className="cl-btn primary big" disabled={busy || !ready || !works}>
             <Icon name="key" size={18} />

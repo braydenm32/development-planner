@@ -56,7 +56,7 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 /** Actions that are harmless to run as soon as a feature that lives on them is chosen. */
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
-  ['view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
+  ['view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -280,7 +280,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
             </header>
             <main className="shell-main projects">{projectsHome}</main>
           </>
-        ) : (
+        ) : route.kind === 'page' ? null /* the pages about the app show alone (src/legal), never in the frame */ : (
           <AreaView
             route={route}
             loaded={loaded}

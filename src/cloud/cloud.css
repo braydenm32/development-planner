@@ -244,6 +244,16 @@
   color: var(--cl-muted);
 }
 
+.cl-agree {
+  margin: 10px 0 0 !important;
+  color: var(--cl-muted);
+  font-size: 12px;
+}
+
+.cl-agree a {
+  color: inherit;
+}
+
 .cl-problem {
   padding: 8px 12px;
   border: 1px solid var(--cl-warn-line);
@@ -748,7 +758,8 @@
   }
 
   .cl-field small,
-  .cl-pick-text span {
+  .cl-pick-text span,
+  .cl-agree {
     font-size: 14px;
   }
 

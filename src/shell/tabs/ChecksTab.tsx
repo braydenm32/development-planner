@@ -11,6 +11,7 @@ import { COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
 import type { CheckResult, CheckSettings, CheckStatus } from '../../checks/types'
 import { useChecks } from '../../checks/useChecks'
+import { Caveat } from '../../legal/Caveat'
 import { useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 import '../../checks/checks.css'
@@ -86,7 +87,8 @@ function Checks({ d }: { d: Loaded }) {
           </p>
         )}
       </details>
-      <p className="muted small">A guide from the research notes, not legal advice. Confirm with council or a certifier before relying on it.</p>
+      <p className="muted small">A guide to the rules as we read them, not legal advice. A pass is not an approval.</p>
+      <Caveat />
     </div>
   )
 }
