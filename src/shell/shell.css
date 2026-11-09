@@ -147,6 +147,87 @@ body:has(.app-shell) {
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  /* Scrolled to a tab's edge, clear of the arrows (src/shell/ScrollCue.tsx). */
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 42px;
+}
+
+.tab-bar > .tab {
+  scroll-snap-align: start;
+}
+
+/* ---- A row with more than fits: the tabs, the strip's chips (src/shell/overflow.ts) ---- */
+
+.scroll-cue {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+}
+
+/* An item that would be cut off steps out of sight, so no name shows half a word. */
+.scroll-cue .cut {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-cue > :first-child > * {
+  transition: opacity 0.12s ease-out;
+}
+
+/* At an end with more: an arrow that pages to it. */
+.scroll-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 28px;
+  padding: 0;
+  border: 0;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scroll-arrow.before {
+  left: 0;
+  box-shadow: 8px 0 8px -6px rgba(255, 255, 255, 0.9);
+}
+
+.scroll-arrow.after {
+  right: 0;
+  border-left: 1px solid var(--line);
+}
+
+.scroll-arrow.before {
+  border-right: 1px solid var(--line);
+}
+
+.scroll-arrow.count {
+  width: 42px;
+}
+
+.scroll-arrow:hover {
+  background: var(--line-soft);
+}
+
+.chips-cue {
+  align-self: stretch;
+  align-items: center;
+}
+
+.chips-cue .scroll-arrow {
+  top: 50%;
+  bottom: auto;
+  height: 24px;
+  transform: translateY(-50%);
 }
 
 .tab-bar::-webkit-scrollbar {
@@ -629,18 +710,19 @@ button.chip:hover .chip-label {
   left: var(--free-left, 16px);
   bottom: var(--gap);
   flex-wrap: nowrap;
-  max-width: calc(100% - var(--free-left, 16px) - 340px);
+  /* Clear of the view bar, whose width CanvasChrome measures into --controls-w. */
+  max-width: calc(100% - var(--free-left, 16px) - var(--controls-w, 390px) - var(--gap) - 12px);
   overflow: hidden;
   border-radius: var(--r-lg);
 }
 
 /* The plan's foot, left to right: the Key pill, the hint (two lines at most, with the ground readout
-   on a line of its own while pointing), then clear of the view bar (zoom, Fit block, Fit house, North
-   up), which is about 390 px wide. */
+   on a line of its own while pointing), then clear of the view bar (zoom, Fit block, Fit house,
+   Picture, North up), whose width CanvasChrome measures into --controls-w. */
 .app-shell .canvas-plan .readout {
   left: calc(var(--free-left, 16px) + 94px);
   flex-wrap: wrap;
-  max-width: calc(100% - var(--free-left, 16px) - 94px - 430px);
+  max-width: calc(100% - var(--free-left, 16px) - 94px - var(--controls-w, 470px) - var(--gap) - 12px);
 }
 
 .app-shell .readout > span {
@@ -700,6 +782,11 @@ button.chip:hover .chip-label {
 
 .app-shell .has-col .level-chip {
   left: calc(var(--free-left, 16px));
+}
+
+/* A hidden panel's pill sits in the chip's corner: the chip goes under it. */
+.app-shell:not(.phone) .has-pill .level-chip {
+  top: calc(var(--gap) + 44px);
 }
 
 .app-shell .has-inspector .plan-compass {
@@ -1310,6 +1397,14 @@ button.chip:hover .chip-label {
   color: var(--text);
 }
 
+/* Open, at the end of each group's heading: a whole finger's worth on a phone. */
+.app-shell.phone .ov-group > h3 > button.link {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
 .ov-problem {
   display: flex;
   align-items: center;
@@ -1480,12 +1575,13 @@ button.chip:hover .chip-label {
 
 /* ---- Toast ---- */
 
-/* Above the canvas's hint bar, which sits along the bottom. */
+/* Above the canvas's hint bar, which sits along the bottom and takes two lines at most; under the
+   dialogs (Keyboard shortcuts, Search, reviews), so a toast never hides what they say. */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 64px;
-  z-index: 60;
+  bottom: 84px;
+  z-index: 35;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1553,19 +1649,8 @@ button.chip:hover .chip-label {
   font-size: 15px;
 }
 
-/* The tabs scroll: the edges fade so a cut-off name reads as "more this way", with room after
-   the last tab so it can scroll clear of the fade. The open tab is scrolled into view (Nav.tsx). */
-.app-shell.phone .tab-bar {
-  mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 26px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 26px), transparent);
-  scroll-padding: 0 26px 0 10px;
-}
-
-.app-shell.phone .tab-bar::after {
-  content: '';
-  flex: none;
-  width: 26px;
-}
+/* The tabs scroll, as on a desktop: a name that would be cut off hides behind an arrow, and the
+   open tab is scrolled into view (Nav.tsx). */
 
 .app-shell.phone .top-actions {
   gap: 0;
@@ -1717,6 +1802,11 @@ button.chip:hover .chip-label {
   width: auto;
   max-height: 48%;
   gap: 0;
+}
+
+/* Pulled up by its handle: the panel takes the canvas's height, under the top bar. */
+.app-shell.phone .float-col.tall {
+  max-height: calc(100% - 8px);
 }
 
 .app-shell.phone .float-card {

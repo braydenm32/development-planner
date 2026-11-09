@@ -762,14 +762,18 @@ button.ph-thumb {
 }
 
 @media (max-width: 760px) {
+  /* Three buttons don't fit a narrow phone in a row: New project takes a row of its own then,
+     rather than running past the screen's edge. */
   .projects-home.in-shell .ph-head .ph-top-actions {
     order: 3;
+    flex-wrap: wrap;
     width: 100%;
     margin-left: 0;
   }
 
   .projects-home.in-shell .ph-head .ph-btn {
-    flex: 1;
+    flex: 1 1 auto;
+    justify-content: center;
   }
 
   .app-shell .bhp-save-problem {

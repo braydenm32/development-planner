@@ -318,10 +318,15 @@ describe('retaining walls', () => {
     placement: null,
   })
 
-  it('asks for an engineer only past 1 m', () => {
-    expect(words(strip(withWall(1.2)))).toContain('Tallest wall 1.20 m Engineer > 1 m')
-    expect(words(strip(withWall(1.0)))).not.toContain('Engineer')
-    expect(words(strip(withWall(0.8)))).not.toContain('Engineer')
+  it('asks for an engineer only past 1 m: a dot on the chip, and the words in its tip', () => {
+    // The strip is short of room, so the chip keeps to its number (B41).
+    expect(words(strip(withWall(1.2)))).toContain('Tallest wall 1.20 m')
+    expect(strip(withWall(1.2))).toContain('Over 1 m: an engineer needs to design it.')
+    expect(strip(withWall(1.2))).toContain('aria-label="Needs an engineer"')
+    for (const h of [1.0, 0.8]) {
+      expect(strip(withWall(h))).not.toContain('engineer')
+      expect(strip(withWall(h))).not.toContain('Needs an engineer')
+    }
   })
 })
 
@@ -359,7 +364,9 @@ describe('roof height above the ground', () => {
     expect(n.roof!.top).toBeCloseTo(top, 9)
     expect(n.roof!.area).toBeCloseTo(13.5 * 10.5, 6)
     expect(Math.abs(n.roof!.height - (top - lowest))).toBeLessThan(0.01)
-    expect(words(strip(n))).toContain(`Roof ${n.roof!.height.toFixed(2)} m above ground`)
+    expect(words(strip(n))).toContain(`Roof ${n.roof!.height.toFixed(2)} m`)
+    // "above ground" is in the chip's tip, which says what the number is.
+    expect(strip(n)).toContain('The most the roof rises above the natural ground under it')
   })
 
   it('has none to show without a roof', () => {

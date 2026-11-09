@@ -9,8 +9,7 @@ import { GroundPin } from '../phone/GroundPin'
 import type { Pin } from '../phone/pin'
 import * as THREE from 'three'
 import { CUT_RGB, elevationColor, FILL_RGB, REFERENCE_POINT, SPOT_LEVEL } from '../lib/colors'
-import { contourText } from '../plan/finishedContours'
-import { Html } from '@react-three/drei'
+import { ContourLabels3D } from './ContourLabels3D'
 import { pointInPolygon } from '../lib/geom'
 import type { ViewSettings } from '../lib/storage'
 import type { Survey, SurveyPoint } from '../lib/survey'
@@ -180,7 +179,7 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
   }, [survey, grid, ground, refZ])
 
   // One RL label on each major contour (its longest run on unchanged ground, at the middle), at most
-  // MAX_CONTOUR_LABELS of them spread over the range. A few DOM labels, so the 3D view stays quick.
+  // MAX_CONTOUR_LABELS of them spread over the range, so the 3D view stays light (ContourLabels3D draws them).
   const contourLabels = useMemo(() => {
     const byZ = new Map<number, { p: [number, number]; len: number }>()
     for (const c of survey.contours) {
@@ -256,11 +255,6 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
             <lineSegments geometry={contourLines.major}>
               <lineBasicMaterial color="#2b211c" transparent opacity={0.85} />
             </lineSegments>
-            {contourLabels.map(l => (
-              <Html key={l.z} position={[l.x, l.rl - refZ + 0.05, -l.y]} center zIndexRange={[0, 0]} style={{ pointerEvents: 'none' }}>
-                <span className="contour-tag">{contourText(l.z)}</span>
-              </Html>
-            ))}
           </>
         )}
         <BoundaryLine survey={survey} ground={ground} refZ={refZ} />
@@ -269,6 +263,8 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
           <House3D plan={plan} origin={survey.origin} refZ={refZ} showLevels={null} showRoof={view.showRoof} showFurniture={view.showFurniture} ground={ground} />
         )}
       </group>
+      {/* Outside the stretched group, so the numbers keep their shape; they place themselves at the stretched height. */}
+      {view.showContours && <ContourLabels3D labels={contourLabels} refZ={refZ} exag={exag} />}
       {view.showLevels && (
         <Markers points={survey.levels} color={SPOT_LEVEL} kind="Spot level" {...{ survey, terrain, refZ, exag, onHover }} />
       )}

@@ -691,7 +691,7 @@ function Inspector() {
       {f.type === 'easement' && (
         <>
           <TextField label="Purpose" value={f.purpose ?? ''} onCommit={purpose => set({ purpose })} />
-          <Num label="Width" unit="mm" value={f.width ?? 0} min={0} max={100} onCommit={width => set({ width })} />
+          {f.width !== undefined && <Num label="Width" unit="mm" value={f.width} min={0} max={100} onCommit={width => set({ width })} />}
         </>
       )}
       {f.type === 'fence' && <Num label="Height" unit="mm" value={f.height ?? 1.8} min={0.2} max={6} onCommit={height => set({ height })} />}

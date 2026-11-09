@@ -3,7 +3,7 @@
 // ("Floor → panel") when the open panel or the plan has it (CALM 5). Out of balance is the one
 // loud chip, with its fix.
 
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { retainedText } from '../components/planNumbers'
 import { Icon } from '../nav/icons'
 import { areaById, type NumberId } from '../nav/menu'
@@ -17,6 +17,7 @@ import type { Council } from '../checks/councils'
 import type { CheckCounts } from '../checks/rules'
 import { checkedAgainst } from '../checks/settings'
 import type { Pathway } from '../checks/types'
+import { ScrollCue } from './ScrollCue'
 
 /** Where each number lives. */
 const HOME: Record<NumberId, [AppRoute['area'], string]> = {
@@ -74,96 +75,112 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   return (
     <div className="summary-strip" role="region" aria-label="Key numbers">
-      <div className="chips">
-        {!n ? (
-          <span className="chip ghost">Key numbers show once the survey and plan load.</span>
-        ) : (
-          <>
-            {n.floorArea !== null && (
-              <Chip id="floor-area" label="Floor" shown={shown['floor-area']} route={route} readOnly={readOnly} title={n.levels.map(l => `${l.name}: ${m2(l.area)}`).join('\n')}>
-                <b>{m2(n.floorArea)}</b>
-              </Chip>
-            )}
-            <Chip id="ffl" label="FFL" shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title="Ground floor level">
-              <b>RL {n.ffl.toFixed(2)}</b>
-            </Chip>
-            {n.earth &&
-              (n.earth.outOfBalance && !shown['cut-fill'] && readOnly ? (
-                <span className="chip attn">
-                  <Icon name="warn" size={14} />
-                  <span className="attn-text" data-term="out-of-balance">
-                    Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
-                  </span>
-                </span>
-              ) : n.earth.outOfBalance && !shown['cut-fill'] ? (
-                <span className="chip attn">
-                  <Icon name="warn" size={14} />
-                  <button className="attn-text" data-term="out-of-balance" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}>
-                    Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
-                  </button>
-                  <button className="act" onClick={onBalance} title={`Move the floor to RL ${n.earth.balancedRL?.toFixed(2)}, where cut and fill are about equal`}>
-                    Balance
-                  </button>
-                </span>
-              ) : (
-                <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill">
-                  <b>
-                    {n.earth.cut.toFixed(1)} · {n.earth.fill.toFixed(1)} m³
-                  </b>
+      <ScrollCue
+        className="chips-cue"
+        label="numbers"
+        count
+        render={ref => (
+          <div className="chips" ref={ref as RefObject<HTMLDivElement | null>}>
+            {!n ? (
+              <span className="chip ghost">Key numbers show once the survey and plan load.</span>
+            ) : (
+              <>
+                {n.floorArea !== null && (
+                  <Chip id="floor-area" label="Floor" shown={shown['floor-area']} route={route} readOnly={readOnly} title={n.levels.map(l => `${l.name}: ${m2(l.area)}`).join('\n')}>
+                    <b>{m2(n.floorArea)}</b>
+                  </Chip>
+                )}
+                <Chip id="ffl" label="FFL" shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title="Ground floor level">
+                  <b>RL {n.ffl.toFixed(2)}</b>
                 </Chip>
-              ))}
-            {n.retaining && (
-              <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} term="retaining-wall" title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
-                <b>{n.retaining.maxHeight.toFixed(2)} m</b>
-                {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_HEIGHT.toFixed(0)} m</span>}
-              </Chip>
+                {n.earth &&
+                  (n.earth.outOfBalance && !shown['cut-fill'] && readOnly ? (
+                    <span className="chip attn">
+                      <Icon name="warn" size={14} />
+                      <span className="attn-text" data-term="out-of-balance">
+                        Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
+                      </span>
+                    </span>
+                  ) : n.earth.outOfBalance && !shown['cut-fill'] ? (
+                    <span className="chip attn">
+                      <Icon name="warn" size={14} />
+                      <button className="attn-text" data-term="out-of-balance" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}>
+                        Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
+                      </button>
+                      <button className="act" onClick={onBalance} title={`Move the floor to RL ${n.earth.balancedRL?.toFixed(2)}, where cut and fill are about equal`}>
+                        Balance
+                      </button>
+                    </span>
+                  ) : (
+                    <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill">
+                      <b>
+                        {n.earth.cut.toFixed(1)} · {n.earth.fill.toFixed(1)} m³
+                      </b>
+                    </Chip>
+                  ))}
+                {n.retaining && (
+                  <Chip
+                    id="retaining"
+                    label="Tallest wall"
+                    shown={shown.retaining}
+                    route={route}
+                    readOnly={readOnly}
+                    term="retaining-wall"
+                    title={`Holds back up to ${retainedText(n.retaining.maxHeight)}${n.retaining.engineer ? `. Over ${ENGINEER_HEIGHT.toFixed(0)} m: an engineer needs to design it.` : ''}`}
+                  >
+                    <b>{n.retaining.maxHeight.toFixed(2)} m</b>
+                    {/* The strip is short of room: the engineer note is in the tip, and the dot says there's one. */}
+                    {n.retaining.engineer && <i className="dot" aria-label="Needs an engineer" />}
+                  </Chip>
+                )}
+                {n.roof && (
+                  <Chip id="roof-height" label="Roof" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The most the roof rises above the natural ground under it">
+                    <b>{n.roof.height.toFixed(2)} m</b>
+                  </Chip>
+                )}
+                {n.batters &&
+                  (readOnly && !shown.warnings ? (
+                    <span className="chip warn" data-term="batter" data-term-note={`The earthworks run past ${n.batters}.`}>
+                      <i className="dot" /> Batters cross {n.batters}
+                    </span>
+                  ) : shown.warnings ? (
+                    <span className="chip ghost" data-term="batter">
+                      Batters <em>{whereShown(shown.warnings)}</em>
+                    </span>
+                  ) : (
+                    <button
+                      className="chip warn"
+                      onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}
+                      data-term="batter"
+                      data-term-note={`The earthworks run past ${n.batters}. Hold them back with a retaining wall, or move the house.`}
+                    >
+                      <i className="dot" /> Batters cross {n.batters}
+                    </button>
+                  ))}
+                {checks && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
+                {siteChecks > 0 &&
+                  (readOnly && !shown['site-checks'] ? (
+                    <span className="chip warn" title="Easements and tree protection zones the house, driveway or cut and fill reach into.">
+                      <i className="dot" /> Site · {siteChecks} to check
+                    </span>
+                  ) : shown['site-checks'] ? (
+                    <span className="chip ghost">
+                      Site checks <em>{whereShown(shown['site-checks'])}</em>
+                    </span>
+                  ) : (
+                    <button
+                      className="chip warn"
+                      onClick={() => navigate(tabRoute(route, 'site', 'features'), { focus: TO_CHECK_ID })}
+                      title="Easements and tree protection zones the house, driveway or cut and fill reach into. Opens Site › Features."
+                    >
+                      <i className="dot" /> Site · {siteChecks} to check
+                    </button>
+                  ))}
+              </>
             )}
-            {n.roof && (
-              <Chip id="roof-height" label="Roof" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The most the roof rises above the natural ground under it">
-                <b>{n.roof.height.toFixed(2)} m</b> above ground
-              </Chip>
-            )}
-            {n.batters &&
-              (readOnly && !shown.warnings ? (
-                <span className="chip warn" data-term="batter" data-term-note={`The earthworks run past ${n.batters}.`}>
-                  <i className="dot" /> Batters cross {n.batters}
-                </span>
-              ) : shown.warnings ? (
-                <span className="chip ghost" data-term="batter">
-                  Batters <em>{whereShown(shown.warnings)}</em>
-                </span>
-              ) : (
-                <button
-                  className="chip warn"
-                  onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}
-                  data-term="batter"
-                  data-term-note={`The earthworks run past ${n.batters}. Hold them back with a retaining wall, or move the house.`}
-                >
-                  <i className="dot" /> Batters cross {n.batters}
-                </button>
-              ))}
-            {checks && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
-            {siteChecks > 0 &&
-              (readOnly && !shown['site-checks'] ? (
-                <span className="chip warn" title="Easements and tree protection zones the house, driveway or cut and fill reach into.">
-                  <i className="dot" /> {siteChecks} to check
-                </span>
-              ) : shown['site-checks'] ? (
-                <span className="chip ghost">
-                  To check <em>{whereShown(shown['site-checks'])}</em>
-                </span>
-              ) : (
-                <button
-                  className="chip warn"
-                  onClick={() => navigate(tabRoute(route, 'site', 'features'), { focus: TO_CHECK_ID })}
-                  title="Easements and tree protection zones the house, driveway or cut and fill reach into. Opens Site › Features."
-                >
-                  <i className="dot" /> {siteChecks} to check
-                </button>
-              ))}
-          </>
+          </div>
         )}
-      </div>
+      />
       <button className={`overview-button${overviewOpen ? ' on' : ''}`} onClick={onOverview} aria-expanded={overviewOpen}>
         Overview <Icon name={overviewOpen ? 'chevU' : 'chevD'} size={14} />
       </button>

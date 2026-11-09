@@ -66,7 +66,8 @@ export function RoomFloorType({ plan, room }: { plan: Plan; room: Room }) {
   const own = room.foundation
   const choices = floorTypeChoices(more, own)
   const name = levelById(plan, room.level)?.name ?? 'the floor'
-  const options: { id: FloorTypeId | ''; label: string }[] = [{ id: '', label: `Same as ${name} (${levelType.short})` }, ...choices.map(c => ({ id: c.id, label: c.label }))]
+  // Until the floor's own type is answered, "same as" says so rather than naming the default.
+  const options: { id: FloorTypeId | ''; label: string }[] = [{ id: '', label: `Same as ${name} (${lt === undefined ? 'not chosen yet' : levelType.short})` }, ...choices.map(c => ({ id: c.id, label: c.label }))]
   const t = roomFloorType(plan, room)
   return (
     <div className="floor-type-field">

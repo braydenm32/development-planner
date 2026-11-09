@@ -2153,7 +2153,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={floorRL} lowest={isLowest} />}
         {site.notice || notice ? (
-          <span className="notice">{site.notice || notice}</span>
+          <span className={`notice${site.notice && site.noticeOk ? ' ok' : ''}`}>{site.notice || notice}</span>
         ) : (
           <span className="muted">{viewOnly ? VIEW_HINT[touch?.phone ? 'phone' : 'desk'] : (sections.hint ?? brush.hint ?? (site.active ? site.hint : tool === 'roof' ? ROOF_HINTS[roofMode] : HINTS[tool]))}</span>
         )}

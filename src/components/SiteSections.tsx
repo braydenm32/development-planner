@@ -135,7 +135,7 @@ export function SurveyLayers({
       {survey && (
         <p className="found-line">Found {foundText(survey)}.</p>
       )}
-      <p className="muted">Tell the planner what each layer in your DXF holds: the ground, or site features such as trees and easements.</p>
+      <p className="muted">Tell the planner what each layer in your survey file holds: the ground, or site features such as trees and easements.</p>
       <ul className="layers">
         {layers.map(l => (
           <li key={l.name}>

@@ -112,6 +112,8 @@ interface SiteStore {
   /** A found group to point out on the plan: where its labels are and what it would add, in drawing units. */
   highlight: { overlay: string; marks: Vec2[]; features: SiteFeature[] } | null
   notice: string | null
+  /** The notice is good news (a feature added), not a warning: it shows in plain ink. */
+  noticeOk: boolean
   /** Site features has the plan: its panel shows in place of the floor plan panels, and Undo works on features. */
   focus: boolean
 
@@ -123,7 +125,7 @@ interface SiteStore {
   redo: () => void
   setTool: (t: SiteTool | null) => void
   select: (id: string | null) => void
-  notify: (msg: string | null) => void
+  notify: (msg: string | null, ok?: boolean) => void
 }
 
 const HISTORY = 100
@@ -145,6 +147,7 @@ export const useSiteStore = create<SiteStore>((setState, getState) => ({
   vectors: {},
   highlight: null,
   notice: null,
+  noticeOk: false,
   focus: false,
 
   commit: fn => {
@@ -168,9 +171,9 @@ export const useSiteStore = create<SiteStore>((setState, getState) => ({
     if (!future.length) return
     setState({ data: future[0], past: [...past, data], future: future.slice(1), selected: null })
   },
-  setTool: tool => setState({ tool, notice: null }),
+  setTool: tool => setState({ tool, notice: null, noticeOk: false }),
   select: selected => setState({ selected }),
-  notify: notice => setState({ notice }),
+  notify: (notice, ok = false) => setState({ notice, noticeOk: ok }),
 }))
 
 // ---------------------------------------------------------------------------
@@ -242,6 +245,7 @@ export function openSite(data: SiteData, files: SiteFiles) {
     tool: null,
     highlight: null,
     notice: null,
+    noticeOk: false,
     images,
     vectors,
     extraDxfText: data.extraDxf ? files.extraDxfText : null,

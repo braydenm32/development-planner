@@ -180,9 +180,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
           </figcaption>
         </figure>
         <p className="st-says">Draw a house on your sloping block and see it in 3D on the real ground, with the cut and fill, the planning checks and a rough cost as you go.</p>
-        <p className="st-step">
-          <i>1</i>Choose how to start
-        </p>
+        <p className="st-step">Choose how to start</p>
         <h1>Start with your block</h1>
         <p className="st-lede">Bring in the survey if you have it. If it hasn’t arrived, sketch the block now and add the survey later. Your plan is kept either way.</p>
         {/* A first visit on a new device: projects saved in the cloud are a sign-in away. */}

@@ -266,14 +266,14 @@
   outline-offset: 2px;
 }
 
-/* A note at the foot of the screen (Undo, what an import found) sits above the hint bar, at 64 px; the card lifts clear of it. */
+/* A note at the foot of the screen (Undo, what an import found) sits above the hint bar, at 84 px; the card lifts clear of it. */
 body:has(.toast, .sf-toast) .flow-card {
-  bottom: 150px;
+  bottom: 170px;
 }
 
 /* Both notes at once: the import's sits above the shell's. */
 body:has(.app-shell .toast):has(.sf-toast) .flow-card {
-  bottom: 204px;
+  bottom: 224px;
 }
 
 /* Phones: a sheet-like card at the bottom, taps of 44 px and text of 14 px. */
