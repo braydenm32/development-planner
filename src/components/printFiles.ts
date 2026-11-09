@@ -15,6 +15,7 @@ import { planSetPdf, type Paper } from '../share/plans'
 import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
+import { stormwaterSheet } from '../drainage/stormwater'
 import { localFeatures, siteForProject } from '../site/store'
 import { siteWarningsNow } from '../site/sync'
 import { keptShadowDiagram, winterDay } from '../sun/facts'
@@ -87,6 +88,8 @@ export function plansPdfFile(p: PdfInput): OutFile {
     site: { features: localFeatures(), warnings: siteWarningsNow() },
     terrain: p.terrain,
     shadows: keptShadowDiagram({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() }),
+    // The street side the plan knows: Lot facts first, then the one picked for Street view on this project.
+    stormwater: stormwaterSheet(p.plan, p.survey, p.terrain),
   })
   return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
 }

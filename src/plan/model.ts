@@ -1,4 +1,6 @@
+import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
+import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
@@ -28,6 +30,10 @@ export interface Plan {
   earthworks?: Earthworks
   /** Facts about the block the checks need and the approval pathway to check; defaults apply when missing. */
   checks?: CheckSettings
+  /** The stormwater concept's tank settings (src/drainage); defaults apply when missing. */
+  stormwater?: Stormwater
+  /** What the person has told the BASIX checklist (src/basix); defaults apply when missing. */
+  basix?: BasixAnswers
   /** Section lines drawn across the plan (Design › Sections). Missing in plans saved before them, which have none. */
   sections?: SectionLine[]
   /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */

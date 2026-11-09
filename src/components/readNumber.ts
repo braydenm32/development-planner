@@ -1,6 +1,6 @@
 // Reading what was typed in a number box (src/components/fields.tsx).
 
-export type NumUnit = 'mm' | 'm' | '°' | 'RL' | 'm²' | ':1'
+export type NumUnit = 'mm' | 'm' | '°' | 'RL' | 'm²' | ':1' | 'L'
 
 /** What a length box made of what was typed: a value in metres, or what to tell the person. */
 export type Reading = { ok: true; value: number; /** Said back while typing ("= 900 mm"), when we read it as something other than plain mm. */ said?: string } | { ok: false; hint: string }

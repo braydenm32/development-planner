@@ -77,6 +77,7 @@ import { StreetAsk } from '../start/StreetAsk'
 import { useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
+import { DrainageLayer } from '../drainage/DrainageLayer'
 import { costsUndoKey } from '../costs/store'
 import './editing.css'
 
@@ -1985,6 +1986,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {sections.over}
         {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
+        <DrainageLayer plan={plan} survey={survey} terrain={terrain} S={S} k={k} />
 
         {/* Drawing in progress */}
         {chain.length > 1 && <path className="chain" d={path(chain, false)} />}
