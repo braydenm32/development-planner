@@ -46,7 +46,7 @@ import { setbackDims } from '../plan/setbacks'
 import { useSitePlan } from '../site/SitePlanLayer'
 import { outlineAround, roofGeometry } from '../plan/roof'
 import { roofAtPoint } from '../plan/roofPick'
-import { newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
+import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
@@ -61,6 +61,7 @@ import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } fro
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
+import { useWallFocus } from '../plan/wallFocus'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
@@ -136,7 +137,7 @@ const VIEW_HINT = {
 const HINTS: Record<Tool, string> = {
   select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
   wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Hold Shift to turn off snapping. For a retaining wall, use the Retaining wall tool (T).',
-  retaining: "Click the retaining wall's start, then its end (or type a length in mm and press Enter). It then asks which side it holds back and how high. Esc cancels.",
+  retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
   opening: 'Click on a wall to add an opening with no door, such as an archway.',
@@ -214,6 +215,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // One thing at a time: the next-step tip waits while the street question is up.
   const askingStreet = useStreetAskOpen(plan, survey.boundary)
   const newRetaining = useRetaining(s => s.newWall)
+  // Earthworks › Retaining walls tags every wall with its height, and its list lights the wall pointed at or zooms to it.
+  const onRetainingTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'retaining-walls')
+  const wallHover = useWallFocus(s => s.hover)
+  const wallChanged = useWallFocus(s => s.changed)
+  const wallZoom = useWallFocus(s => s.zoom)
   const retainingThickness = useRetaining(s => s.thickness)
   const { commit, preview, beginGesture, endGesture, select, toggleSelect, notify } = usePlan.getState()
 
@@ -230,6 +236,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
   /** Points to keep fitted (a drawing being lined up) in place of the plan, until the user moves the view. */
   const [around, setAround] = useState<{ pts: Vec2[]; token: number } | null>(null)
+  useEffect(() => {
+    if (!wallZoom) return
+    setAround({ pts: wallZoom.pts, token: fitToken })
+    setView(null)
+    // Once for each wall asked for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallZoom?.token])
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
@@ -609,18 +622,23 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     else updateDraft(() => ({ chain: [...chain, end], typed: '' }))
   }
 
-  /** The Retaining wall tool draws one straight wall from two clicks, then asks about it. */
+  /**
+   * The Retaining wall tool, as the Wall tool does: click its start, then each corner; double-click
+   * or Esc ends the run. The first piece opens its panel, which asks once (which side, how high) for
+   * the whole run; each piece after it carries on from the last, holding back the same side.
+   */
   const placeRetainingPoint = (p: Vec2) => {
-    // While the wall just drawn asks for its earth side, a click answers that and never starts another wall.
+    // While the wall just drawn asks for its earth side by a click, that click answers it and starts nothing.
     if (waitingForSide()) return
     if (chain.length === 0) {
       setChain([p])
       return
     }
-    const a = chain[0]
+    const a = chain[chain.length - 1]
     if (Math.hypot(p[0] - a[0], p[1] - a[1]) < 0.05) return
-    placeRetainingWall(newRetainingWall(plan, level, a, p, retainingThickness, survey.origin, terrain.grid), { pickSide: true })
-    finishChain()
+    const w = newRetainingWall(plan, level, a, p, retainingThickness, survey.origin, terrain.grid)
+    if (chain.length < 2 || !extendRun(w, survey.origin, terrain.grid)) placeRetainingWall(w, { draft: true })
+    updateDraft(() => ({ chain: [...chain, p], typed: '' }))
     notify(null)
   }
 
@@ -1375,7 +1393,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       site.dblclick()
       return
     }
-    if (tool === 'wall') finishChain()
+    if (tool === 'wall' || tool === 'retaining') finishChain()
     if (tool === 'area') closeArea(areaPts)
     if (tool === 'roof') closeRoof(areaPts)
   }
@@ -2099,6 +2117,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           show={selWall?.id ?? newRetaining}
           toScreen={S}
           k={k}
+          tags={onRetainingTab}
+          hover={wallHover}
+          changed={wallChanged}
         />
 
         {/* Selected wall handles, which only Select drags */}

@@ -99,6 +99,12 @@ export function ToolOptions({ tool: shown }: { tool?: Tool }) {
   return null
 }
 
+/** Draw retaining walls with their own tool, at this thickness. */
+function pickRetainingTool(thickness: number) {
+  useRetaining.setState({ thickness })
+  usePlan.getState().setTool('retaining')
+}
+
 export function WallOptions() {
   const wallStyle = usePlan(s => s.wallStyle)
   const st = usePlan.getState()
@@ -110,7 +116,10 @@ export function WallOptions() {
           value={WALL_PRESETS.findIndex(p => p.thickness === wallStyle.thickness && p.kind === wallStyle.kind)}
           onChange={e => {
             const p = WALL_PRESETS[Number(e.target.value)]
-            if (p) st.setWallStyle({ kind: p.kind, thickness: p.thickness })
+            if (!p) return
+            // One tool draws retaining walls, and asks once what they hold back.
+            if (p.kind === 'retaining') return pickRetainingTool(p.thickness)
+            st.setWallStyle({ kind: p.kind, thickness: p.thickness })
           }}
         >
           {WALL_PRESETS.map((p, i) => (
@@ -127,18 +136,14 @@ export function WallOptions() {
         value={wallStyle.kind}
         options={WALL_KINDS}
         onChange={kind => {
+          if (kind === 'retaining') return pickRetainingTool(WALL_PRESETS.find(p => p.kind === 'retaining')!.thickness)
           // Switch to that kind's usual thickness, unless a custom one was set.
           const preset = WALL_PRESETS.some(p => p.kind === wallStyle.kind && p.thickness === wallStyle.thickness)
           const thickness = preset ? WALL_PRESETS.find(p => p.kind === kind)!.thickness : wallStyle.thickness
           st.setWallStyle({ kind, thickness })
         }}
       />
-      {wallStyle.kind === 'retaining' && (
-        <p className="muted small">
-          Retaining walls hold back earth on the site. Cut and fill stops at them, and their height follows the ground on each side. The
-          Retaining wall tool also asks which side it holds back and how high.
-        </p>
-      )}
+      <p className="muted small">A retaining preset or kind picks the Retaining wall tool (T), which asks once which side a wall holds back and how high.</p>
     </div>
   )
 }
@@ -779,7 +784,7 @@ export function RetainingToolOptions() {
         options={presets.map(p => ({ id: p.thickness, label: p.label.replace('Retaining (', '').replace(')', '') }))}
         onChange={t => useRetaining.setState({ thickness: t })}
       />
-      <p className="muted small">Click its start and its end. It then asks which side it holds back and how high, and cuts or fills the ground to suit.</p>
+      <p className="muted small">Click its start, then each corner; double-click or Esc to finish. Its panel asks once which side it holds back and how high, for every piece, and cuts or fills the ground to suit.</p>
     </div>
   )
 }

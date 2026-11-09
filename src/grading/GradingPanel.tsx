@@ -11,7 +11,7 @@ import { housePadRL } from '../plan/platforms'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { addSuggestion, dismissWall } from './actions'
-import { COUNT_IMPLIED_WALLS, impliedWalls } from './implied'
+import { impliedWalls } from './implied'
 import { areaM2, areaName, BRUSH_MAX, BRUSH_MIN, type BrushMode, type GradeArea } from './model'
 import { ownVolumes } from './ownVolumes'
 import { beginBrush, BRUSH_KEY, setBrushLevel, setBrushMode, setBrushRadius, startLevelPick, stopBrush, stopLevelPick, useBrush } from './store'
@@ -194,7 +194,7 @@ export function ImpliedWalls({ survey, earth }: { survey: Survey; earth: Earth |
     <section className="grade-implied" aria-label="Implied retaining walls">
       <p className="notice small">
         {which} set to Retaining wall, so {walls.length === 1 ? 'one vertical edge is a wall' : `${walls.length} vertical edges are walls`} someone has to build, up to{' '}
-        {tall.toFixed(2)} m high (dashed on the plan).{COUNT_IMPLIED_WALLS ? ' They count in Tallest wall and Costs as implied walls.' : ''}
+        {tall.toFixed(2)} m high (dashed on the plan).{' '}They count in Tallest wall, the engineer count and Costs as implied walls.
       </p>
       <ol className="grade-list">
         {walls.map((s, n) => (
