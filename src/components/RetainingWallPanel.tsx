@@ -26,6 +26,7 @@ import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { Num, Select } from './fields'
 import { holdsBackSentence, SIDE_WORDS } from './retainingWords'
+import { WallsHere } from './WallsHere'
 import './retaining.css'
 
 interface Props {
@@ -160,6 +161,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         <h2>{isNew ? 'New retaining wall' : 'Retaining wall'}</h2>
         <p>{picking ? 'Click the plan on the side the earth is on.' : isNew ? 'Say how high the earth behind it is, then place it.' : `Earth on its ${compass(r.high)} side.`}</p>
       </header>
+      {!isNew && <WallsHere wall={w} plan={plan} />}
 
       <div className="rw-group rw-side">
         <div className="rw-side-head">
