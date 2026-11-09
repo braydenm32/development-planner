@@ -4,8 +4,9 @@
 import { createHash } from 'node:crypto'
 import { expect } from 'vitest'
 import { CSRF_HEADER } from '../src/api'
+import { COMMENTER_HEADER } from '../src/comments'
 import { PART_MAX, partsFor, type RecordRef } from '../src/projects'
-import { SHARE_HEADER } from '../src/shares'
+import { newShareToken, SHARE_HEADER } from '../src/shares'
 import { softPasskey } from './authenticator'
 import { ORIGIN, post, testServer, type TestServer } from './fakes'
 
@@ -21,8 +22,8 @@ export interface Person {
   upload(text: string): Promise<RecordRef>
   /** Save a project at revision 1 with these records. */
   save(id: string, name: string, records: Record<string, RecordRef>): Promise<void>
-  /** Make a share link for one of their projects; the token. */
-  share(id: string): Promise<{ token: string; id: string }>
+  /** Make a share link for one of their projects (with comments as asked, off if not); the token. */
+  share(id: string, options?: Record<string, unknown>): Promise<{ token: string; id: string }>
   signIn(): Promise<Response>
 }
 
@@ -57,8 +58,8 @@ export async function person(s: TestServer, name: string): Promise<Person> {
     async save(id, projectName, records) {
       expect((await f(`/api/projects/${id}/commit`, post({ base: 0, meta: meta(projectName), records }))).status).toBe(200)
     },
-    async share(id) {
-      const made = await f(`/api/projects/${id}/shares`, post({}))
+    async share(id, options = {}) {
+      const made = await f(`/api/projects/${id}/shares`, post(options))
       expect(made.status).toBe(201)
       const body = await made.json()
       return { token: body.token, id: body.link.id }
@@ -89,8 +90,28 @@ export function rowsOf(s: TestServer, user: string) {
     ['blobs', 'user_id'],
     ['share_links', 'user_id'],
     ['email_codes', 'user_id'],
+    ['share_comments', 'user_id'],
   ] as const)
     out[table] = db.prepare(`SELECT * FROM ${table} WHERE ${col} = ? ORDER BY 1, 2`).all(user)
   out.kv = [...s.env.BLOBS.map.keys()].filter(k => k.startsWith(`b:${user}:`)).sort()
   return out
 }
+
+/**
+ * Someone with a link and no account, commenting from one browser: its own commenter token
+ * (as the app keeps one per browser) and address.
+ */
+export function commenter(s: TestServer, link: string, { ip = '203.0.113.20', token = newShareToken() }: { ip?: string; token?: string | null } = {}) {
+  const b = s.browser()
+  const headers = (): Record<string, string> => ({ [SHARE_HEADER]: link, 'cf-connecting-ip': ip, ...(token ? { [COMMENTER_HEADER]: token } : {}) })
+  return {
+    token,
+    list: () => b('/api/shared/comments', { headers: headers() }),
+    add: (body: unknown) => b('/api/shared/comments', { method: 'POST', headers: { ...headers(), 'content-type': 'application/json', [CSRF_HEADER]: '1' }, body: JSON.stringify(body) }),
+    raw: b,
+    headers,
+  }
+}
+
+/** A comment as the app sends one: a spot on the block (easting, northing) on a floor, and the words. */
+export const pin = (text = 'Move this wall back a metre?', extra: Record<string, unknown> = {}) => ({ floor: 'level_ground', x: 1012.5, y: 1008.25, text, ...extra })

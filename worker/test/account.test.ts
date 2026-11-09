@@ -8,13 +8,13 @@ import { CSRF_HEADER } from '../src/api'
 import { INLINE_MAX, QUOTA_MB_DEFAULT } from '../src/projects'
 import worker from '../src/index'
 import { post } from './fakes'
-import { DAY, meta, openLink, person, rowsOf, server, type Person } from './people'
+import { commenter, DAY, meta, openLink, person, pin, rowsOf, server, type Person } from './people'
 
 const askToDelete = (p: Person) => p.fetch('/api/account/delete', post({}))
 const keep = (p: Person) => p.fetch('/api/account/keep', post({}))
 const me = async (f: typeof fetch) => (await (await f('/api/session')).json()).user
 
-/** Ana, with a project (one record in D1, one in KV) and a share link; Ben, who keeps his account. */
+/** Ana, with a project (one record in D1, one in KV) and a share link with a comment on it; Ben, who keeps his account, and his. */
 async function setUp() {
   const s = server()
   const ana = await person(s, 'Ana')
@@ -22,8 +22,11 @@ async function setUp() {
   const plan = await ana.upload(JSON.stringify({ plan: 'Ana’s plan' }))
   const survey = await ana.upload(JSON.stringify({ survey: 'Ana’s', pad: 'x'.repeat(INLINE_MAX) }))
   await ana.save('p_home', 'Ana’s house', { plan, survey })
-  const link = await ana.share('p_home')
+  const link = await ana.share('p_home', { comments: 'own' })
+  expect((await commenter(s, link.token).add(pin('For Ana'))).status).toBe(201)
   await ben.save('p_ben', 'Ben’s house', { plan: await ben.upload('"Ben’s plan"') })
+  const his = await ben.share('p_ben', { comments: 'own' })
+  expect((await commenter(s, his.token, { ip: '203.0.113.21' }).add(pin('For Ben'))).status).toBe(201)
   return { s, ana, ben, plan, survey, link }
 }
 
@@ -43,6 +46,10 @@ describe('asking to delete an account', () => {
     expect(await me(ana.fetch)).toBeNull()
     expect(await me(phone)).toBeNull()
     expect((await openLink(s, link.token)).status).toBe(404)
+    // Its links take no comments either, and show none.
+    const v = commenter(s, link.token, { ip: '203.0.113.40' })
+    expect((await v.add(pin('Too late'))).status).toBe(404)
+    expect((await v.list()).status).toBe(404)
   })
 
   it('needs the session and the app’s header', async () => {
@@ -92,6 +99,7 @@ describe('asking to delete an account', () => {
     expect((await me(ana.fetch)).deleteAfter).toBeNull()
     expect((await ana.fetch('/api/projects/p_home/commit', post({ base: 1, meta: meta('Still here'), records: { plan } }))).status).toBe(200)
     expect((await openLink(s, link.token)).status).toBe(200)
+    expect((await commenter(s, link.token, { ip: '203.0.113.40' }).add(pin('Welcome back'))).status).toBe(201)
     // Nothing is due, so the clean-up leaves it.
     s.clock.now += 2 * DAY
     expect(await purgeAccounts(s.env, s.clock.now)).toEqual([])
@@ -122,7 +130,9 @@ describe('the clean-up of deleted accounts', () => {
     expect(await purgeAccounts(s.env, s.clock.now)).toEqual([ana.id])
 
     const left = rowsOf(s, ana.id)
+    expect(Object.keys(left)).toContain('share_comments')
     for (const [table, rows] of Object.entries(left)) expect(rows, table).toEqual([])
+    expect(bens.share_comments).toHaveLength(1)
     const db = s.env.DB.sqlite
     expect(db.prepare('SELECT COUNT(*) AS n FROM challenges WHERE user_id = ?').get(ana.id)).toEqual({ n: 0 })
     expect(JSON.stringify(db.prepare('SELECT * FROM rate_limits').all())).not.toContain(ana.id)

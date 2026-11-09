@@ -392,13 +392,24 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Above the new layout's own notes and its phone bottom bar. */
+/* Above the canvas's hint bar, the layout's own notes, and on a phone the bottom bar and the peek
+   sheet (its height is --peek-size, set on the body by src/phone/PeekSheet.tsx). With a panel or the
+   inspector open as a sheet, it goes under the top bar instead, clear of the sheet's handle. */
+body:has(.app-shell) .sf-toast {
+  bottom: 64px;
+}
+
 body:has(.app-shell .toast) .sf-toast {
-  bottom: 76px;
+  bottom: 116px;
 }
 
 body:has(.app-shell.phone) .sf-toast {
-  bottom: calc(84px + env(safe-area-inset-bottom));
+  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom));
+}
+
+body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .sf-toast {
+  top: calc(52px + env(safe-area-inset-top) + 66px);
+  bottom: auto;
 }
 
 @keyframes sf-fade {

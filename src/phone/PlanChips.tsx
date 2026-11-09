@@ -1,5 +1,5 @@
-// The plan's corner pieces, made small for a phone: the level chip on one short line that
-// opens the list of floors, and the ground key folded into a "Key" chip.
+// The plan's corner pieces: the level chip on one short line that opens the list of floors (a
+// phone), and the ground key folded into a "Key" chip (everywhere).
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../nav/icons'
@@ -43,7 +43,8 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
         aria-label={`${name}, floor RL ${rl.toFixed(2)}${many ? '. Change floor' : ''}`}
       >
         <span className="level-chip-text">
-          <b>{name}</b> · RL {rl.toFixed(2)}
+          <b>{name}</b>
+          <span className="rl">&nbsp;· RL {rl.toFixed(2)}</span>
         </span>
         {many && <Icon name={open ? 'chevU' : 'chevD'} size={15} />}
       </button>
@@ -71,11 +72,10 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
   )
 }
 
-/** On a phone, the ground key folds into a small "Key" chip; elsewhere it shows as it is. */
-export function KeyChip({ collapse, children }: { collapse: boolean; children: ReactNode }) {
+/** The ground key folds into a small "Key" chip, on a desktop too, so it never sits on the house; a click opens it. */
+export function KeyChip({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const ref = useDismiss(open, () => setOpen(false))
-  if (!collapse) return <>{children}</>
   return (
     <div className={`key-chip${open ? ' open' : ''}`} ref={ref}>
       {open && <div className="key-pop">{children}</div>}

@@ -10,6 +10,7 @@ import { addFurniture, addLevelAbove, addRoof } from '../../plan/ops'
 import { levelOutlines } from '../../plan/roof'
 import { textWidth } from '../pdfWriter'
 import { planSetPdf, type PlanSetInput } from '../plans'
+import { shadowDiagram } from '../../sun/facts'
 import { isProjectFile, parseProjectFile, projectFileText, projectTitle } from '../project'
 
 function setup() {
@@ -52,6 +53,36 @@ describe('PDF plans', () => {
     expect(pdf).toContain('(Roof plan) Tj')
     // Brackets in text are escaped.
     expect(pdf).toContain('/Title (Test \\(house\\))')
+  })
+
+  it('prints the stormwater concept on the site plan when given one', () => {
+    const storm = {
+      path: [survey.boundary[0], survey.boundary[1]] as [number, number][],
+      label: 'Stormwater concept: to the street (south side)',
+      rows: [['Roof catchment (plan area)', '125.0 m²'] as [string, string], ['Stormwater concept', 'to the street by gravity, 0.80 m fall over 12.0 m'] as [string, string]],
+    }
+    const pdf = text(planSetPdf({ ...input, stormwater: storm }))
+    expect(pdf).toContain('(Roof catchment \\(plan area\\)) Tj')
+    expect(pdf).toContain('(to the street by gravity, 0.80 m fall over 12.0 m) Tj')
+    expect(pdf).toContain('(Stormwater concept: to the street \\(south side\\)) Tj')
+    // Nothing of it without one, and the sheet count is unchanged either way.
+    expect(text(planSetPdf(input))).not.toContain('Stormwater concept')
+    expect(pdf).toContain('/Count 4')
+  })
+
+  it('adds a shadow diagram for 21 June when the shadows are given', () => {
+    const at = (p: Plan) => shadowDiagram({ plan: p, boundary: survey.boundary, origin: survey.origin, ground: terrain.grid, date: { year: 2026, month: 6, day: 21 } })
+    const pdf = text(planSetPdf({ ...input, shadows: at(plan) }))
+    expect(pdf).toContain('/Count 5')
+    expect(pdf).toContain('(Shadow diagram, 21 June) Tj')
+    for (const t of ['9 am', '12 pm', '3 pm']) expect(pdf).toContain(`(${t}) Tj`)
+    // The house sits close to this block's edges, so its shadows reach over them.
+    expect(pdf).toMatch(/\(sun \d+\\260 up in the north; shadow \d+ m\\262, [\d.]+ m\\262 over the south boundary\) Tj/)
+    expect(pdf).toMatch(/\(sun \d+\\260 up in the north-east; shadow \d+ m\\262, [\d.]+ m\\262 over the west and south boundaries\) Tj/)
+    expect(pdf).toContain('Times are AEST \\(UTC+10\\), no daylight saving.) Tj')
+    expect(pdf).toContain('(Shadows are estimates. Trees, fences and neighbouring buildings are not shown.) Tj')
+    // Nothing to cast a shadow: no sheet.
+    expect(text(planSetPdf({ ...input, shadows: at({ ...plan, walls: [], roofs: [] }) }))).not.toContain('Shadow diagram')
   })
 
   it('points every cross-reference at its object', () => {

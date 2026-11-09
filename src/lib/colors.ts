@@ -31,3 +31,7 @@ export const CUT_RGB: [number, number, number] = [0.85, 0.45, 0.28]
 export const FILL_RGB: [number, number, number] = [0.3, 0.55, 0.85]
 
 export const rgbCss = ([r, g, b]: [number, number, number]) => `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`
+
+/** The surveyed points in 3D: spot levels in ink, reference points (benchmarks) in red. */
+export const SPOT_LEVEL = '#1d2733'
+export const REFERENCE_POINT = '#d2463c'

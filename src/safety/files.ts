@@ -3,6 +3,9 @@
 
 import { DxfError, parseDxf } from '../lib/dxf'
 import type { SavedProject } from '../lib/storage'
+import { confirmColumns } from '../formats/columns'
+import { isLandXml, readLandXml } from '../lib/landxml'
+import { NeedColumns, looksLikePoints, readPointsCsv } from '../lib/pointsCsv'
 import { analyzeLayers, buildSurvey, guessRoles, NoGroundError, type LayerInfo, type LayerRole } from '../lib/survey'
 import { buildTerrain } from '../lib/terrain'
 import type { Plan } from '../plan/model'
@@ -16,7 +19,7 @@ export type OpenedFile =
   | { kind: 'plan'; name: string; plan: Plan }
 
 const NOT_OURS =
-  'That file isn’t one the planner can open. Choose a survey (.dxf), a project file, or a plan (.json). A PDF or picture of the survey can be laid over the plan afterwards, under Site features.'
+  'That file isn’t one the planner can open. Choose a survey (.dxf, LandXML .xml, or spot levels as .csv or .txt), a project file, or a plan (.json). A PDF or picture of the survey can be laid over the plan afterwards, under Site features.'
 
 const DWG = new DxfError('That’s a DWG, the CAD program’s own kind of file, which the planner can’t read. Ask your surveyor for the survey as an ASCII DXF, or save it as one from a CAD program.')
 
@@ -87,12 +90,28 @@ export function detectFile(name: string, text: string): OpenedFile {
   }
   // A DXF starts with group code 0 and SECTION (some exports lead with a comment, code 999).
   if (/\.dxf$/i.test(name) || /^(0|999)\s*\r?\n/.test(trimmed)) return { kind: 'survey', name, survey: readSurvey(name, text) }
+  // Other survey formats: LandXML, and spot levels as text (src/lib/landxml.ts, pointsCsv.ts).
+  if (/\.xml$/i.test(name) || isLandXml(text)) return { kind: 'survey', name, survey: checked(readLandXml(name, text)) }
+  if (/\.csv$/i.test(name) || (/\.txt$/i.test(name) && looksLikePoints(text))) return { kind: 'survey', name, survey: checked(readPointsCsv(name, text)) }
   throw new Error(NOT_OURS)
+}
+
+/** Fail early, with the reader's message, if a survey can't make a site. */
+function checked(saved: SavedProject): SavedProject {
+  buildSurvey(parseDxf(saved.dxfText), saved.roles)
+  return saved
 }
 
 /** Read a chosen or dropped file and work out what it is. */
 export async function readFile(file: File): Promise<OpenedFile> {
   if (/\.dwg$/i.test(file.name)) throw DWG
   if (/\.(pdf|png|jpe?g|gif|webp|heic)$/i.test(file.name)) throw new Error(NOT_OURS)
-  return detectFile(file.name, await file.text())
+  const text = await file.text()
+  try {
+    return detectFile(file.name, text)
+  } catch (e) {
+    // Spot levels whose columns aren't certain: ask which is which, then read them.
+    if (!(e instanceof NeedColumns)) throw e
+    return { kind: 'survey', name: file.name, survey: checked(readPointsCsv(file.name, text, await confirmColumns(e))) }
+  }
 }

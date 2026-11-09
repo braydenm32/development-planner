@@ -3,6 +3,7 @@
 // can do neither, so a signed-in browser can't be made to change anything from elsewhere.
 
 import { account, canSave, deleteAccount, keepAccount } from './account'
+import { addComment, deleteComment, listComments, resolveComment, setLinkComments, sharedComments } from './comments'
 import { loginOptions, loginVerify, logout, newCode, passkeyOptions, passkeyVerify, recoverOptions, recoverVerify, signupOptions, signupState, signupVerify } from './auth'
 import { emailOn } from './email'
 import { emailAddConfirm, emailAddStart, emailRemove, emailSigninStart, emailSigninVerify } from './emailAuth'
@@ -74,9 +75,16 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)$/, withUser((env, _req, user, now, [id, link]) => revokeShare(env, user, id, link, now))],
   ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/restore$/, toSave((env, _req, user, now, [id, link]) => restoreShare(env, user, id, link, now))],
   ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/extend$/, toSave((env, _req, user, now, [id, link]) => extendShare(env, user, id, link, now))],
-  // …and the viewer's, with the token only (in the X-BHP-Share header). GET only.
+  // Comments on share links (./comments.ts): the owner's side, signed in. Deleting works while the account is being deleted, as turning a link off does.
+  ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/comments$/, toSave((env, req, user, now, [id, link]) => setLinkComments(env, req, user, id, link, now))],
+  ['GET', /^\/api\/projects\/([^/]+)\/comments$/, withUser((env, _req, user, _now, [id]) => listComments(env, user, id))],
+  ['POST', /^\/api\/projects\/([^/]+)\/comments\/([^/]+)\/resolve$/, toSave((env, req, user, now, [id, c]) => resolveComment(env, req, user, id, c, now))],
+  ['DELETE', /^\/api\/projects\/([^/]+)\/comments\/([^/]+)$/, withUser((env, _req, user, _now, [id, c]) => deleteComment(env, user, id, c))],
+  // …and the viewer's, with the token only (in the X-BHP-Share header). GET only, but for a comment.
   ['GET', /^\/api\/shared$/, (env, req, now) => openShared(env, req, now)],
   ['GET', /^\/api\/shared\/blobs\/([^/]+)\/([^/]+)$/, (env, req, now, [hash, part]) => sharedBlob(env, req, hash, part, now)],
+  ['GET', /^\/api\/shared\/comments$/, (env, req, now) => sharedComments(env, req, now)],
+  ['POST', /^\/api\/shared\/comments$/, (env, req, now) => addComment(env, req, now)],
 ]
 
 /** The viewer's side of share links: every reply, errors too, is never cached, indexed or passed on. */

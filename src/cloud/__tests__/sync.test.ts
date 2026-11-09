@@ -139,6 +139,32 @@ describe('cloud sync', () => {
     expect(a.states.at(-1)).toMatchObject({ busy: 0, offline: false, error: null })
   })
 
+  it('carries a project’s options both ways as one more record, with no change on the server', async () => {
+    const w = await world()
+    const a = await device(w)
+    const options = { version: 1, current: 'o1', items: [{ id: 'o1', name: 'Slab' }, { id: 'o2', name: 'Piers', plan: { ...garageFloor(), name: 'piers plan' } }] }
+    const p = await a.app.create({ name: 'Two ways', records: { survey: { dxfText: 'survey text' }, plan: garageFloor(), options } })
+    await a.settle()
+    const store = createCloudProjectStore(a.api)
+    expect((await store.read(p.id, ['options']))?.options).toEqual(options)
+    // Switching option writes the plan and the options record together.
+    a.requests.length = 0
+    const switched = { ...options, current: 'o2', items: [{ id: 'o1', name: 'Slab', plan: garageFloor() }, { id: 'o2', name: 'Piers' }] }
+    await a.app.save(p.id, { records: { plan: { ...garageFloor(), name: 'piers plan' }, options: switched, history: null } })
+    await a.settle()
+    expect((await store.read(p.id, ['options']))?.options).toEqual(switched)
+    // The other device gets the options with the project.
+    const b = await device(w)
+    await b.sync.syncNow()
+    expect((await b.local.read(p.id, ['options']))?.options).toEqual(switched)
+    expect(await b.local.read(p.id)).toEqual(await a.local.read(p.id))
+    // And an older project, with no options record, still comes down as it was.
+    const old = await a.app.create({ name: 'Older', records: { plan: garageFloor() } })
+    await a.settle()
+    await b.sync.syncNow()
+    expect(Object.keys((await b.local.read(old.id)) ?? {})).toEqual(['plan'])
+  })
+
   it('brings another device’s projects down on sync, and newer copies when a project opens', async () => {
     const w = await world()
     const a = await device(w)

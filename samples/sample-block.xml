@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2" date="2026-01-01" time="09:00:00">
+  <Units><Metric areaUnit="squareMeter" linearUnit="meter" volumeUnit="cubicMeter" temperatureUnit="celsius" pressureUnit="milliBars" diameterUnit="millimeter" angularUnit="decimal degrees" directionUnit="decimal degrees" /></Units>
+  <Project name="Sample block (made up)" />
+  <Application name="make-sample-survey" />
+  <CgPoints>
+    <CgPoint name="1" code="SPOT">8001.5 5001.5 47.246</CgPoint>
+    <CgPoint name="2" code="SPOT">8001.5 5004.5 46.775</CgPoint>
+    <CgPoint name="3" code="SPOT">8001.5 5007.5 46.292</CgPoint>
+    <CgPoint name="4" code="SPOT">8001.5 5010.5 45.811</CgPoint>
+    <CgPoint name="5" code="SPOT">8001.5 5013.5 45.328</CgPoint>
+    <CgPoint name="6" code="SPOT">8001.5 5016.5 44.857</CgPoint>
+    <CgPoint name="7" code="SPOT">8001.5 5019.5 44.375</CgPoint>
+    <CgPoint name="8" code="SPOT">8001.5 5022.5 43.891</CgPoint>
+    <CgPoint name="9" code="SPOT">8004.6 5003 46.986</CgPoint>
+    <CgPoint name="10" code="SPOT">8004.6 5006 46.506</CgPoint>
+    <CgPoint name="11" code="SPOT">8004.6 5009 46.018</CgPoint>
+    <CgPoint name="12" code="SPOT">8004.6 5012 45.547</CgPoint>
+    <CgPoint name="13" code="SPOT">8004.6 5015 45.067</CgPoint>
+    <CgPoint name="14" code="SPOT">8004.6 5018 44.584</CgPoint>
+    <CgPoint name="15" code="SPOT">8004.6 5021 44.111</CgPoint>
+    <CgPoint name="16" code="SPOT">8007.7 5001.5 47.174</CgPoint>
+    <CgPoint name="17" code="SPOT">8007.7 5004.5 46.696</CgPoint>
+    <CgPoint name="18" code="SPOT">8007.7 5007.5 46.213</CgPoint>
+    <CgPoint name="19" code="SPOT">8007.7 5010.5 45.745</CgPoint>
+    <CgPoint name="20" code="SPOT">8007.7 5013.5 45.26</CgPoint>
+    <CgPoint name="21" code="SPOT">8007.7 5016.5 44.783</CgPoint>
+    <CgPoint name="22" code="SPOT">8007.7 5019.5 44.303</CgPoint>
+    <CgPoint name="23" code="SPOT">8007.7 5022.5 43.81</CgPoint>
+    <CgPoint name="24" code="SPOT">8010.8 5003 46.855</CgPoint>
+    <CgPoint name="25" code="SPOT">8010.8 5006 46.38</CgPoint>
+    <CgPoint name="26" code="SPOT">8010.8 5009 45.888</CgPoint>
+    <CgPoint name="27" code="SPOT">8010.8 5012 45.417</CgPoint>
+    <CgPoint name="28" code="SPOT">8010.8 5015 44.927</CgPoint>
+    <CgPoint name="29" code="SPOT">8010.8 5018 44.459</CgPoint>
+    <CgPoint name="30" code="SPOT">8010.8 5021 43.968</CgPoint>
+    <CgPoint name="31" code="SPOT">8013.9 5001.5 46.962</CgPoint>
+    <CgPoint name="32" code="SPOT">8013.9 5004.5 46.486</CgPoint>
+    <CgPoint name="33" code="SPOT">8013.9 5007.5 46.003</CgPoint>
+    <CgPoint name="34" code="SPOT">8013.9 5010.5 45.523</CgPoint>
+    <CgPoint name="35" code="SPOT">8013.9 5013.5 45.046</CgPoint>
+    <CgPoint name="36" code="SPOT">8013.9 5016.5 44.559</CgPoint>
+    <CgPoint name="37" code="SPOT">8013.9 5019.5 44.087</CgPoint>
+    <CgPoint name="38" code="SPOT">8013.9 5022.5 43.612</CgPoint>
+    <CgPoint name="39" code="SPOT">8017 5003 46.546</CgPoint>
+    <CgPoint name="40" code="SPOT">8017 5006 46.066</CgPoint>
+    <CgPoint name="41" code="SPOT">8017 5009 45.594</CgPoint>
+    <CgPoint name="42" code="SPOT">8017 5012 45.116</CgPoint>
+    <CgPoint name="43" code="SPOT">8017 5015 44.632</CgPoint>
+    <CgPoint name="44" code="SPOT">8017 5018 44.143</CgPoint>
+    <CgPoint name="45" code="SPOT">8017 5021 43.67</CgPoint>
+    <CgPoint name="46" code="SPOT">8020.1 5001.5 46.575</CgPoint>
+    <CgPoint name="47" code="SPOT">8020.1 5004.5 46.094</CgPoint>
+    <CgPoint name="48" code="SPOT">8020.1 5007.5 45.604</CgPoint>
+    <CgPoint name="49" code="SPOT">8020.1 5010.5 45.129</CgPoint>
+    <CgPoint name="50" code="SPOT">8020.1 5013.5 44.658</CgPoint>
+    <CgPoint name="51" code="SPOT">8020.1 5016.5 44.177</CgPoint>
+    <CgPoint name="52" code="SPOT">8020.1 5019.5 43.69</CgPoint>
+    <CgPoint name="53" code="SPOT">8020.1 5022.5 43.208</CgPoint>
+    <CgPoint name="54" code="SPOT">8023.2 5003 46.074</CgPoint>
+    <CgPoint name="55" code="SPOT">8023.2 5006 45.587</CgPoint>
+    <CgPoint name="56" code="SPOT">8023.2 5009 45.12</CgPoint>
+    <CgPoint name="57" code="SPOT">8023.2 5012 44.63</CgPoint>
+    <CgPoint name="58" code="SPOT">8023.2 5015 44.151</CgPoint>
+    <CgPoint name="59" code="SPOT">8023.2 5018 43.676</CgPoint>
+    <CgPoint name="60" code="SPOT">8023.2 5021 43.195</CgPoint>
+  </CgPoints>
+  <Surfaces>
+    <Surface name="Existing ground">
+      <Definition surfType="TIN">
+        <Pnts>
+          <P id="1">7998 4998 47.832</P>
+          <P id="2">7998 5002 47.192</P>
+          <P id="3">7998 5006 46.552</P>
+          <P id="4">7998 5010 45.912</P>
+          <P id="5">7998 5014 45.272</P>
+          <P id="6">7998 5018 44.632</P>
+          <P id="7">7998 5022 43.992</P>
+          <P id="8">7998 5026 43.352</P>
+          <P id="9">8002 4998 47.808</P>
+          <P id="10">8002 5002 47.168</P>
+          <P id="11">8002 5006 46.528</P>
+          <P id="12">8002 5010 45.888</P>
+          <P id="13">8002 5014 45.248</P>
+          <P id="14">8002 5018 44.608</P>
+          <P id="15">8002 5022 43.968</P>
+          <P id="16">8002 5026 43.328</P>
+          <P id="17">8006 4998 47.767</P>
+          <P id="18">8006 5002 47.127</P>
+          <P id="19">8006 5006 46.487</P>
+          <P id="20">8006 5010 45.847</P>
+          <P id="21">8006 5014 45.207</P>
+          <P id="22">8006 5018 44.567</P>
+          <P id="23">8006 5022 43.927</P>
+          <P id="24">8006 5026 43.287</P>
+          <P id="25">8010 4998 47.678</P>
+          <P id="26">8010 5002 47.038</P>
+          <P id="27">8010 5006 46.398</P>
+          <P id="28">8010 5010 45.758</P>
+          <P id="29">8010 5014 45.118</P>
+          <P id="30">8010 5018 44.478</P>
+          <P id="31">8010 5022 43.838</P>
+          <P id="32">8010 5026 43.198</P>
+          <P id="33">8014 4998 47.52</P>
+          <P id="34">8014 5002 46.88</P>
+          <P id="35">8014 5006 46.24</P>
+          <P id="36">8014 5010 45.6</P>
+          <P id="37">8014 5014 44.96</P>
+          <P id="38">8014 5018 44.32</P>
+          <P id="39">8014 5022 43.68</P>
+          <P id="40">8014 5026 43.04</P>
+          <P id="41">8018 4998 47.284</P>
+          <P id="42">8018 5002 46.644</P>
+          <P id="43">8018 5006 46.004</P>
+          <P id="44">8018 5010 45.364</P>
+          <P id="45">8018 5014 44.724</P>
+          <P id="46">8018 5018 44.084</P>
+          <P id="47">8018 5022 43.444</P>
+          <P id="48">8018 5026 42.804</P>
+          <P id="49">8022 4998 46.977</P>
+          <P id="50">8022 5002 46.337</P>
+          <P id="51">8022 5006 45.697</P>
+          <P id="52">8022 5010 45.057</P>
+          <P id="53">8022 5014 44.417</P>
+          <P id="54">8022 5018 43.777</P>
+          <P id="55">8022 5022 43.137</P>
+          <P id="56">8022 5026 42.497</P>
+          <P id="57">8026 4998 46.62</P>
+          <P id="58">8026 5002 45.98</P>
+          <P id="59">8026 5006 45.34</P>
+          <P id="60">8026 5010 44.7</P>
+          <P id="61">8026 5014 44.06</P>
+          <P id="62">8026 5018 43.42</P>
+          <P id="63">8026 5022 42.78</P>
+          <P id="64">8026 5026 42.14</P>
+          <P id="65">8030 4998 46.244</P>
+          <P id="66">8030 5002 45.604</P>
+          <P id="67">8030 5006 44.964</P>
+          <P id="68">8030 5010 44.324</P>
+          <P id="69">8030 5014 43.684</P>
+          <P id="70">8030 5018 43.044</P>
+          <P id="71">8030 5022 42.404</P>
+          <P id="72">8030 5026 41.764</P>
+          <P id="73">8034 4998 45.882</P>
+          <P id="74">8034 5002 45.242</P>
+          <P id="75">8034 5006 44.602</P>
+          <P id="76">8034 5010 43.962</P>
+          <P id="77">8034 5014 43.322</P>
+          <P id="78">8034 5018 42.682</P>
+          <P id="79">8034 5022 42.042</P>
+          <P id="80">8034 5026 41.402</P>
+        </Pnts>
+        <Faces>
+          <F>1 2 10</F>
+          <F>1 10 9</F>
+          <F>2 3 11</F>
+          <F>2 11 10</F>
+          <F>3 4 12</F>
+          <F>3 12 11</F>
+          <F>4 5 13</F>
+          <F>4 13 12</F>
+          <F>5 6 14</F>
+          <F>5 14 13</F>
+          <F>6 7 15</F>
+          <F>6 15 14</F>
+          <F>7 8 16</F>
+          <F>7 16 15</F>
+          <F>9 10 18</F>
+          <F>9 18 17</F>
+          <F>10 11 19</F>
+          <F>10 19 18</F>
+          <F>11 12 20</F>
+          <F>11 20 19</F>
+          <F>12 13 21</F>
+          <F>12 21 20</F>
+          <F>13 14 22</F>
+          <F>13 22 21</F>
+          <F>14 15 23</F>
+          <F>14 23 22</F>
+          <F>15 16 24</F>
+          <F>15 24 23</F>
+          <F>17 18 26</F>
+          <F>17 26 25</F>
+          <F>18 19 27</F>
+          <F>18 27 26</F>
+          <F>19 20 28</F>
+          <F>19 28 27</F>
+          <F>20 21 29</F>
+          <F>20 29 28</F>
+          <F>21 22 30</F>
+          <F>21 30 29</F>
+          <F>22 23 31</F>
+          <F>22 31 30</F>
+          <F>23 24 32</F>
+          <F>23 32 31</F>
+          <F>25 26 34</F>
+          <F>25 34 33</F>
+          <F>26 27 35</F>
+          <F>26 35 34</F>
+          <F>27 28 36</F>
+          <F>27 36 35</F>
+          <F>28 29 37</F>
+          <F>28 37 36</F>
+          <F>29 30 38</F>
+          <F>29 38 37</F>
+          <F>30 31 39</F>
+          <F>30 39 38</F>
+          <F>31 32 40</F>
+          <F>31 40 39</F>
+          <F>33 34 42</F>
+          <F>33 42 41</F>
+          <F>34 35 43</F>
+          <F>34 43 42</F>
+          <F>35 36 44</F>
+          <F>35 44 43</F>
+          <F>36 37 45</F>
+          <F>36 45 44</F>
+          <F>37 38 46</F>
+          <F>37 46 45</F>
+          <F>38 39 47</F>
+          <F>38 47 46</F>
+          <F>39 40 48</F>
+          <F>39 48 47</F>
+          <F>41 42 50</F>
+          <F>41 50 49</F>
+          <F>42 43 51</F>
+          <F>42 51 50</F>
+          <F>43 44 52</F>
+          <F>43 52 51</F>
+          <F>44 45 53</F>
+          <F>44 53 52</F>
+          <F>45 46 54</F>
+          <F>45 54 53</F>
+          <F>46 47 55</F>
+          <F>46 55 54</F>
+          <F>47 48 56</F>
+          <F>47 56 55</F>
+          <F>49 50 58</F>
+          <F>49 58 57</F>
+          <F>50 51 59</F>
+          <F>50 59 58</F>
+          <F>51 52 60</F>
+          <F>51 60 59</F>
+          <F>52 53 61</F>
+          <F>52 61 60</F>
+          <F>53 54 62</F>
+          <F>53 62 61</F>
+          <F>54 55 63</F>
+          <F>54 63 62</F>
+          <F>55 56 64</F>
+          <F>55 64 63</F>
+          <F>57 58 66</F>
+          <F>57 66 65</F>
+          <F>58 59 67</F>
+          <F>58 67 66</F>
+          <F>59 60 68</F>
+          <F>59 68 67</F>
+          <F>60 61 69</F>
+          <F>60 69 68</F>
+          <F>61 62 70</F>
+          <F>61 70 69</F>
+          <F>62 63 71</F>
+          <F>62 71 70</F>
+          <F>63 64 72</F>
+          <F>63 72 71</F>
+          <F>65 66 74</F>
+          <F>65 74 73</F>
+          <F>66 67 75</F>
+          <F>66 75 74</F>
+          <F>67 68 76</F>
+          <F>67 76 75</F>
+          <F>68 69 77</F>
+          <F>68 77 76</F>
+          <F>69 70 78</F>
+          <F>69 78 77</F>
+          <F>70 71 79</F>
+          <F>70 79 78</F>
+          <F>71 72 80</F>
+          <F>71 80 79</F>
+        </Faces>
+      </Definition>
+    </Surface>
+  </Surfaces>
+  <Parcels>
+    <Parcel name="Sample lot" area="0">
+      <CoordGeom>
+        <Line><Start>8000 5000</Start><End>8000.6 5023.4</End></Line>
+        <Line><Start>8000.6 5023.4</Start><End>8034.2 5024.1</End></Line>
+        <Line><Start>8034.2 5024.1</Start><End>8033.5 4999.2</End></Line>
+        <Line><Start>8033.5 4999.2</Start><End>8000 5000</End></Line>
+      </CoordGeom>
+    </Parcel>
+  </Parcels>
+</LandXML>

@@ -25,6 +25,16 @@ describe('features.json', () => {
 
   it('lists the features added since the feature map was made', () => {
     const added = [
+      // sections and elevations
+      'sections-tab',
+      'section-line-draw',
+      'section-drawing',
+      'section-flip-delete',
+      'elevations',
+      'elevation-height',
+      'sections-large',
+      'section-marks-plan',
+      'sections-pdf',
       // furniture
       'tool-furniture',
       'furniture-catalog',
@@ -195,6 +205,19 @@ describe('features.json', () => {
       'cost-owner-builder-rules',
       'cost-project-file',
       'cost-undo',
+      // sun and shadow
+      'sun-location',
+      'sun-true-north',
+      'sun-study-3d',
+      'sun-day-time',
+      'sun-play-day',
+      'sun-living-hours',
+      'plan-shadow-diagram',
+      'shadow-over-boundary',
+      'room-living-area',
+      'sun-checks',
+      'shadow-diagram-pdf',
+      'overview-sun',
     ]
     expect(added.filter(id => !featureIds.has(id))).toEqual([])
   })
@@ -225,11 +248,11 @@ describe('the menu', () => {
   it('has the five areas, each with its tabs in order and a More', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
-      ['block', 'features', '3d', MORE],
-      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', MORE],
-      ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
+      ['block', 'features', '3d', 'sun', MORE],
+      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'sections', 'checks', 'options', 'basix', MORE],
+      ['place', 'cut-fill', 'retaining-walls', 'driveway', 'stormwater', MORE],
       ['estimate', 'materials', 'quotes', MORE],
-      ['plans', 'send', '3d-print', MORE],
+      ['plans', 'export', 'send', '3d-print', MORE],
     ])
     for (const a of AREAS) {
       expect(a.tabs.some(t => t.id === a.defaultTab), a.id).toBe(true)
@@ -243,14 +266,15 @@ describe('the menu', () => {
     expect(menu.items.map(i => i.label)).toEqual([
       'All projects…',
       'New project…',
+      'Open an example',
       'Where it’s saved',
       'Sign in and cloud saves',
       'Project name',
       'Survey file name',
-      'Save project file',
+      'Download a backup (project file)',
       'Open…',
       'Export plan',
-      'New plan',
+      'Start the plan again',
       'About Contour & Gable',
       'Privacy policy',
       'Terms of use',
@@ -270,6 +294,21 @@ describe('the menu', () => {
     expect(homeOf('site-features-project-file')?.entry.id).toBe('send')
     expect(homeOf('site-feature-layer-roles')?.entry.id).toBe('survey-layers')
     expect(homeOf('site-checks-chip')?.entry).toMatchObject({ id: 'site-checks', at: 'site/features' })
+  })
+
+  it('gives the sun its own Site tab, found by the words people use for it', () => {
+    const tab = areaById('site')!.tabs.find(t => t.id === 'sun')!
+    expect(tab).toMatchObject({ label: 'Sun', view: '3d' })
+    expect(TAB_PANELS['site/sun']).toBeDefined()
+    expect(homeOf('plan-shadow-diagram')?.entry.id).toBe('plan-shadows')
+    expect(homeOf('room-living-area')?.entry.id).toBe('inspect-room')
+    expect(homeOf('shadow-diagram-pdf')?.entry.id).toBe('plans')
+    expect(homeOf('sun-checks')?.entry.id).toBe('checks')
+    const index = buildIndex(features)
+    for (const word of ['sun', 'overshadowing', 'solar']) expect(search(index, word)[0]?.place, word).toMatchObject({ kind: 'tab', area: { id: 'site' }, tab: { id: 'sun' } })
+    // "shadow" finds the plan's shadows first, and the Sun tab too.
+    expect(search(index, 'shadow')[0]?.entry.id).toBe('plan-shadows')
+    expect(search(index, 'shadow').some(r => r.place.kind === 'tab' && r.place.tab.id === 'sun')).toBe(true)
   })
 
   it('puts Costs between Earthworks and Share, with its rates in More and ⌘K words for money', () => {
@@ -622,6 +661,16 @@ describe('⌘K search', () => {
     expect(search(index, 'retaining walls')[0]).toMatchObject({ kind: 'tab', label: 'Retaining walls' })
     expect(search(index, 'balance')[0]).toMatchObject({ action: 'balance' })
     expect(search(index, 'pdf').some(r => r.action === 'download-pdf')).toBe(true)
+  })
+
+  it('finds the measure and note tools and the DXF, picture and schedule exports by plain words', () => {
+    for (const q of ['measure', 'ruler', 'distance', 'slope']) expect(search(index, q).some(r => r.action === 'tool:measure'), q).toBe(true)
+    for (const q of ['note', 'label', 'text']) expect(search(index, q).some(r => r.action === 'tool:note'), q).toBe(true)
+    expect(search(index, 'measure').find(r => r.action === 'tool:measure')).toMatchObject({ shortcut: 'L' })
+    expect(search(index, 'note').find(r => r.action === 'tool:note')).toMatchObject({ shortcut: 'E' })
+    const atExport = (q: string) => search(index, q).some(r => (r.place.kind === 'tab' && r.place.area.id === 'share' && r.place.tab.id === 'export') || r.entry.at === 'share/export')
+    for (const q of ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'schedule', 'doors', 'windows']) expect(atExport(q), q).toBe(true)
+    expect(search(index, 'dxf').some(r => r.action === 'download-dxf')).toBe(true)
   })
 
   it('finds the retaining wall tool, finished contours and the 1:50 scale', () => {

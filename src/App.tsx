@@ -5,7 +5,7 @@ import { PlanEditor } from './components/PlanEditor'
 import { PrintPreview } from './components/PrintPreview'
 import { SiteView, type HoverInfo } from './components/SiteView'
 import { useBuiltSite } from './lib/builtSite'
-import { RAMP_CSS } from './lib/colors'
+import { CUT_RGB, FILL_RGB, RAMP_CSS, REFERENCE_POINT, rgbCss, SPOT_LEVEL } from './lib/colors'
 import { MORE } from './nav/menu'
 import { canvasOf, formatHash, NEW_PROJECT, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
 import { navigate, startRouter, useRouter } from './nav/router'
@@ -16,6 +16,7 @@ import { buildSiteSolid } from './lib/terrainMesh'
 import { emptyPlan } from './plan/model'
 import { defaultPlacement } from './plan/placement'
 import { usePlan } from './plan/store'
+import { migrateStoredStreetSide } from './plan/streetSide'
 import { startToolDefaults } from './plan/toolDefaults'
 import { startCostRecords } from './costs/persist'
 import { useEarthworks } from './plan/useEarthworks'
@@ -26,6 +27,7 @@ import { projectActions, ProjectsHome, projectsNow, useProjects, useProjectSite 
 import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
+import { ColumnsSheet } from './formats/ColumnsSheet'
 import { SafetyLayer } from './safety/SafetyLayer'
 import { sayFileError } from './safety/surveyor'
 import { pickFile } from './safety/store'
@@ -134,6 +136,11 @@ export default function App() {
     usePlan.getState().load(emptyPlan(defaultPlacement(site.survey, site.terrain)))
   }, [openedId, plan, site])
 
+  // An older project's street side, kept by its 3D view on this device, becomes its plan's (once).
+  useEffect(() => {
+    if (openedId && plan && project && site?.survey && plan.checks?.frontEdge === undefined) migrateStoredStreetSide(openedId, project, site.survey.boundary)
+  }, [openedId, plan, project, site])
+
   // The card on the Projects home shows this site's area and outline.
   const siteSummary = useMemo(
     () => (site?.survey && site.terrain ? { boundary: site.survey.boundary, origin: site.survey.origin, area: site.terrain.stats.area } : null),
@@ -203,6 +210,7 @@ export default function App() {
     <>
       {screen}
       <SafetyLayer />
+      <ColumnsSheet />
     </>
   )
   // The start screen shows alone until a site exists, real or sketched. Back and Esc leave it
@@ -240,6 +248,7 @@ export default function App() {
             viewKey={openedId}
             showSetbacks={placing || view.planSetbacks}
             setbacksSwitch={placing ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
+            earthworks={route.kind === 'app' && route.area === 'earthworks'}
           />
         ) : null
       ) : site?.survey && site.terrain && site.solid && mode === 'print' ? (
@@ -311,12 +320,41 @@ export default function App() {
           <div className="view-actions">
             <OrientationControl value={view.up} onChange={changeUp} />
           </div>
-          <div className="legend">
-            <div className="ramp" style={{ background: RAMP_CSS }} />
-            <div className="ramp-labels">
-              <span>RL {site.terrain.stats.maxRL.toFixed(2)}</span>
-              <span>RL {site.terrain.stats.minRL.toFixed(2)}</span>
+          <div className="legend" aria-label="Key">
+            <div className="legend-ramp">
+              <div className="ramp" style={{ background: RAMP_CSS }} />
+              <div className="ramp-labels">
+                <span>RL {site.terrain.stats.maxRL.toFixed(2)}</span>
+                <span>RL {site.terrain.stats.minRL.toFixed(2)}</span>
+              </div>
             </div>
+            <ul className="legend-key">
+              {showEarth && (
+                <>
+                  <li>
+                    <i style={{ background: rgbCss(CUT_RGB) }} /> Cut
+                  </li>
+                  <li>
+                    <i style={{ background: rgbCss(FILL_RGB) }} /> Fill
+                  </li>
+                </>
+              )}
+              {view.showContours && (
+                <li>
+                  <i className="line" /> Contour
+                </li>
+              )}
+              {view.showLevels && (
+                <li>
+                  <i className="dot" style={{ background: SPOT_LEVEL }} /> Spot level
+                </li>
+              )}
+              {view.showReference && (
+                <li>
+                  <i className="dot" style={{ background: REFERENCE_POINT }} /> Reference point
+                </li>
+              )}
+            </ul>
           </div>
           <div className="readout">
             {hover ? (
@@ -348,6 +386,7 @@ export default function App() {
   return (
     <FoldingContext.Provider value={folding}>
       <SafetyLayer />
+      <ColumnsSheet />
       <AppShell
         canvas={canvas}
         projectsHome={home(true)}
