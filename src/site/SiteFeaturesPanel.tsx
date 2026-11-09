@@ -25,6 +25,7 @@ import type { VectorPage } from './pdfVector'
 import { allFeatures, removeFeature, storeExtraDxf, storeOverlayFiles, updateFeature, updateOverlay, useSiteFeatures, useSiteStore, type Overlay, type SiteTool } from './store'
 import { TO_CHECK_ID, useSiteWarnings } from './sync'
 import { srzRadius, tpzRadius } from './warnings'
+import { TreeRemoval } from '../checks/TreeRemoval'
 import './site.css'
 
 /**
@@ -701,15 +702,8 @@ function Inspector({ readOnly = false }: { readOnly?: boolean }) {
           <Num label="Trunk Ø" unit="mm" value={f.trunk ?? 0.3} min={0.02} max={4} onCommit={trunk => set({ trunk })} />
           <Num label="Canopy Ø" unit="mm" value={f.canopy ?? 6} min={0.2} max={60} onCommit={canopy => set({ canopy })} />
           <Num label="Height" unit="m" value={f.height ?? 8} min={0.5} max={80} onCommit={height => set({ height })} />
-          <Select
-            label="Plan"
-            value={f.remove ? 'remove' : 'keep'}
-            options={[
-              { id: 'keep', label: 'Keep' },
-              { id: 'remove', label: 'Remove' },
-            ]}
-            onChange={v => set({ remove: v === 'remove' })}
-          />
+          {/* The same toggle as the tree's row in Design › Checks. */}
+          <TreeRemoval remove={!!f.remove} onChange={remove => set({ remove })} />
           {!f.remove && f.trunk ? (
             <p className="muted small">
               Tree protection zone {tpzRadius(f.trunk).toFixed(1)} m round the trunk (12 × trunk Ø), structural root zone {srzRadius(f.trunk).toFixed(1)} m: AS 4970

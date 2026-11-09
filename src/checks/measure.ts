@@ -37,6 +37,8 @@ export interface Edge {
   clearance: number | null
   /** The same from the upper floor: the levels that sit over a lower one (see stacking). */
   upperClearance: number | null
+  /** Where that distance is measured: the house's closest point and the boundary's (site frame), so Checks can draw it on the plan. */
+  near?: [Vec2, Vec2]
 }
 
 export interface EarthNumbers {
@@ -65,6 +67,9 @@ export interface WallNumbers {
   /** Ground held back (m), and the closest the wall comes to the boundary (m). */
   height: number
   toBoundary: number
+  /** Its ends (site frame), for the spacing between walls and the pins on the plan. */
+  a: Vec2
+  b: Vec2
 }
 
 export interface Measures {
@@ -284,6 +289,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
       b: q,
       clearance: clear[i] ? signedClearance(clear[i]) : null,
       upperClearance: clearUp[i] ? signedClearance(clearUp[i]) : null,
+      ...(clear[i] ? { near: [clear[i].from, clear[i].to] as [Vec2, Vec2] } : {}),
     }
   })
 
@@ -299,7 +305,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
       d = Math.min(d, distToRing([a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t], b))
     }
     // The wall's face is half its thickness nearer the boundary than its centreline.
-    return { id: p.wall.id, height: p.maxHeight, toBoundary: Math.max(0, d - p.wall.thickness / 2) }
+    return { id: p.wall.id, height: p.maxHeight, toBoundary: Math.max(0, d - p.wall.thickness / 2), a, b: z }
   })
 
   const out = outsideLot(all, pl, survey)

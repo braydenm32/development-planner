@@ -13,7 +13,7 @@ import type { ProjectThumbnail } from '../projects/types'
 import { askReview, showToast } from '../safety/store'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
-import { bestIn, ROWS } from './compare'
+import { bestIn, differs, ROWS } from './compare'
 import { MAX_NAME, MAX_OPTIONS, plansOf } from './model'
 import { earthOfPlan, optionNumbers, type OptionNumbers } from './numbers'
 import { copyOption, openOption, removeOption, renameOption, restoreOption, useOptions } from './store'
@@ -199,6 +199,9 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
     return () => before?.focus?.()
   }, [])
   const marks = useMemo(() => (cols ? ROWS.map(r => bestIn(r, cols.map(c => c.nums))) : []), [cols])
+  const [onlyDiff, setOnlyDiff] = useState(false)
+  // The rows to show: every row, or with "Differences only", the ones where the options don't all say the same.
+  const rows = useMemo(() => ROWS.map((r, i) => ({ r, i })).filter(({ r }) => !onlyDiff || !cols || differs(r, cols.map(c => c.nums))), [cols, onlyDiff])
   const tooFew = cols !== null && cols.length < 2
   return (
     <>
@@ -229,6 +232,11 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
         ) : tooFew ? (
           <p className="muted opt-wait">There’s only one option so far. Copy this one to try another.</p>
         ) : (
+          <>
+          <label className="check opt-diff">
+            <input type="checkbox" checked={onlyDiff} onChange={e => setOnlyDiff(e.target.checked)} />
+            Differences only
+          </label>
           <div className="opt-scroll" tabIndex={0} role="region" aria-label="Comparison table, scrolls sideways">
             <table className="opt-table">
               <thead>
@@ -258,21 +266,39 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
                 </tr>
               </thead>
               <tbody>
-                {ROWS.map((r, ri) => (
+                {rows.map(({ r, i: ri }) => (
                   <tr key={r.id}>
                     <th scope="row">{r.label}</th>
-                    {cols.map((c, ci) => (
-                      <td key={c.id} className={marks[ri]?.[ci] ? 'best' : ''}>
-                        <span className="opt-val">{r.text(c.nums)}</span>
-                        {marks[ri]?.[ci] && <span className="opt-best">Best</span>}
-                        {r.note?.(c.nums) && <small className={r.id === 'cost' && c.nums.cost.incomplete ? 'opt-incomplete' : ''}>{r.note(c.nums)}</small>}
-                      </td>
-                    ))}
+                    {cols.map((c, ci) => {
+                      const list = r.list?.(c.nums) ?? []
+                      return (
+                        <td key={c.id} className={marks[ri]?.[ci] ? 'best' : ''}>
+                          {r.text(c.nums) && <span className="opt-val">{r.text(c.nums)}</span>}
+                          {marks[ri]?.[ci] && <span className="opt-best">Best</span>}
+                          {list.length > 0 && (
+                            <ul className={`opt-list ${r.id}`}>
+                              {list.map((t, k) => (
+                                <li key={k}>{t}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {r.note?.(c.nums) && <small className={r.id === 'cost' && c.nums.cost.incomplete ? 'opt-incomplete' : ''}>{r.note(c.nums)}</small>}
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={cols.length + 1} className="muted">
+                      The options are the same in every row.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+          </>
         )}
         {cols && !tooFew && (
           <p className="muted small opt-foot">

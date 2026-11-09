@@ -22,6 +22,7 @@ import { measure } from '../checks/measure'
 import { notChecked, runChecks } from '../checks/rules'
 import { checkTreesOf } from '../checks/siteTrees'
 import { daOf } from '../da/model'
+import { packDetails, useDaDetails } from '../da/details'
 import { projectsNow } from '../projects/session'
 import { daPackPdf } from '../da/pack'
 import { stormwaterSheet } from '../drainage/stormwater'
@@ -128,8 +129,8 @@ export function daPackFile(p: PdfInput): OutFile {
     ...base,
     earthworks: base.earthworks && e ? { ...base.earthworks, maxCut: e.maxCut, maxFill: e.maxFill } : base.earthworks,
     revision: daOf(p.plan).revision,
-    place: place ? { address: place.lot.address ?? null, lot: place.lot.label } : null,
-    preparedBy: null,
+    // What's typed above the Download button first, then the map placement's.
+    ...packDetails(useDaDetails.getState().details, place ? { address: place.lot.address ?? null, lot: place.lot.label } : null),
     planning,
     council,
     checks,

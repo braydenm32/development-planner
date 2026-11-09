@@ -82,6 +82,7 @@ import { StreetAsk } from '../start/StreetAsk'
 import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
+import { ChecksPlanLayer } from '../checks/ChecksPlanLayer'
 import { useCommentsPlan } from '../comments/PlanComments'
 import { DrainageLayer } from '../drainage/DrainageLayer'
 import { costsUndoKey } from '../costs/store'
@@ -2198,6 +2199,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {brush.over}
         {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
+        <ChecksPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <DrainageLayer plan={plan} survey={survey} terrain={terrain} S={S} k={k} />
 
         {/* Drawing in progress */}
