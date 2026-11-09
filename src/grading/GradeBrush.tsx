@@ -209,10 +209,10 @@ export function useGradeBrush(a: GradeBrushArgs) {
         {!strokePts &&
           (() => {
             const scr = (p: Vec2) => S(fromSite(p, plan.placement, o))
-            const ends = suggestions.map(s => ({ A: scr(s.a), B: scr(s.b), height: s.height }))
+            const ends = suggestions.map(s => ({ A: scr(s.a), B: scr(s.b), height: s.height, implied: s.rule === 'implied' }))
             const at = placeTags(ends, !viewOnly)
             return [
-              ...suggestions.map((s, n) => <path key={`l${n}`} className="grade-suggest-line" d={`M${s.path.map(p => scr(p).map(v => v.toFixed(1)).join(' ')).join('L')}`} />),
+              ...suggestions.map((s, n) => <path key={`l${n}`} className={`grade-suggest-line${s.rule === 'implied' ? ' implied' : ''}`} d={`M${s.path.map(p => scr(p).map(v => v.toFixed(1)).join(' ')).join('L')}`} />),
               ...suggestions.map((s, n) => (
                 <Suggested key={s.key} n={n + 1} s={s} at={at[n]} readOnly={viewOnly} onAdd={() => addSuggestion(s, survey, terrain.grid)} onDismiss={() => dismissWall(s, o)} />
               )),

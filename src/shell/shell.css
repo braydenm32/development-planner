@@ -504,6 +504,21 @@ body:has(.app-shell) {
   white-space: nowrap;
 }
 
+/* The survey line: its file name with Replace… beside it. */
+.menu-note.menu-survey {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.menu-note.menu-survey > .muted {
+  grid-column: 1 / -1;
+}
+
+.menu-note.menu-survey > button {
+  font-size: 12px;
+}
+
 .flash {
   animation: flash 1.6s ease-out;
 }
@@ -583,6 +598,12 @@ button.chip:hover .chip-label {
 
 .chip b {
   font-weight: 600;
+}
+
+/* "implied": the tallest wall is a vertical edge of the cut and fill, not one drawn. */
+.chip .chip-note {
+  font-style: normal;
+  color: var(--muted);
 }
 
 .chip .badge.warn {
@@ -926,6 +947,18 @@ button.chip:hover .chip-label {
 .tool-card h2 {
   font-size: 14px;
   font-weight: 600;
+}
+
+.tool-card.compact > header {
+  gap: 4px;
+}
+
+.tool-card.compact h2 {
+  margin-right: auto;
+}
+
+.tool-card.compact > header:only-child {
+  border-bottom: 0;
 }
 
 .tool-card .tool-options,

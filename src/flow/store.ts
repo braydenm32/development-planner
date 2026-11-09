@@ -13,7 +13,7 @@ import { isLowestLevel, levelFloorType, onPad, setLevelFloorType, shouldAskFloor
 import { faceAround, planarFaces, type Face } from '../plan/geometry'
 import type { Plan } from '../plan/model'
 import { faceKey, newEnclosures, OFFER_GAP, OFFER_PLACEMENT, OFFER_THRESHOLD, offeredWall, retainOfferFor, type OfferPlacement, type RetainOffer } from '../plan/retainOffer'
-import { placeRetainingWall } from '../plan/retainingSession'
+import { placeKeptRetainingWall } from '../plan/retainingSession'
 import { usePlan } from '../plan/store'
 
 /** A room, or a space walls have just closed round, that a question is about. */
@@ -195,12 +195,12 @@ export function offerFor(space: Space) {
 export const setOfferPlacement = (placement: OfferPlacement) => set(s => ({ offer: s.offer && { ...s.offer, placement } }))
 export const setOfferGap = (gap: number) => set(s => ({ offer: s.offer && { ...s.offer, gap } }))
 
-/** Place the suggested wall (one undoable step) and open its card, filled in, to check and keep. */
+/** Place the suggested wall (one undoable step), selected so its panel shows it to change: no second Place to press. */
 export function acceptOffer() {
   const o = get().offer
   if (!o) return
   set({ offer: null })
-  placeRetainingWall(offeredWall(o.offer, o.placement, o.gap))
+  placeKeptRetainingWall(offeredWall(o.offer, o.placement, o.gap))
 }
 
 /** "Not now". */

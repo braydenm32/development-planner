@@ -11,6 +11,7 @@ import { nearestContour, type ContourLine } from '../plan/contourPick'
 import type { ContourRun } from '../plan/finishedContours'
 import { fromSite, levelById, toSite, wallLength, type Plan, type Wall } from '../plan/model'
 import { retainingProfile } from '../plan/retaining'
+import { offeredWall } from '../plan/retainOffer'
 import { setEarthSide, SIDE_PICK_CLEAR, sideOfWall, stopSidePick, useRetaining } from '../plan/retainingSession'
 import type { Tool } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
@@ -89,6 +90,7 @@ export function siteFeatureAt(features: readonly SiteFeature[], p: Vec2, tol: nu
 export function usePlanFlow(a: PlanFlowArgs) {
   const { plan, level, tool, survey, terrain, S, k, size } = a
   const picking = useFlow(s => s.picking)
+  const offer = useFlow(s => s.offer)
   const sidePick = useRetaining(s => s.sidePick)
   const features = useSiteFeatures()
   const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null)
@@ -212,6 +214,17 @@ export function usePlanFlow(a: PlanFlowArgs) {
   } else if (sideWall && hover) {
     const side = sideOfWall(sideWall, hover.world, SIDE_PICK_CLEAR)
     if (side) over = <EarthSide wall={sideWall} side={side} S={S} k={k} at={[hover.sx, hover.sy]} size={size} />
+  }
+
+  // The retaining wall the card offers, dashed where it would go, while the card is open.
+  if (offer && !over) {
+    const w = offeredWall(offer.offer, offer.placement, offer.gap)
+    over = (
+      <g className="flow-offer">
+        <path className="flow-offer-wall" d={path([w.a, w.b])} style={{ strokeWidth: Math.max(4, w.thickness * k) }} />
+        <path className="flow-offer-line" d={path([w.a, w.b])} />
+      </g>
+    )
   }
 
   const html = (

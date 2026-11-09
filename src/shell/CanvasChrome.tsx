@@ -42,43 +42,53 @@ const drawsKind = (tool: Tool): Selection['type'] | null =>
 const KIND_WORDS: Partial<Record<Selection['type'], string>> = { roof: 'roof', stair: 'stair', area: 'area', wall: 'wall', furniture: 'piece of furniture', opening: 'opening' }
 
 /**
- * The current tool's settings for what it draws next, in a small card beside the rail. While one
- * of the things it draws is selected (the roof just drawn, say), the inspector shows that one's
- * settings, so the card folds its own away rather than show the same fields side by side.
+ * The current tool's settings for what it draws next, in a small card beside the rail.
+ * `compact`: above a tab's panel, the card is one line with its options folded, so it
+ * doesn't push the panel down the screen. While one of the things it draws is selected (the
+ * roof just drawn, say), the inspector shows that one's settings, so the card folds its own away
+ * rather than show the same fields side by side.
  */
-export function ToolCard() {
+export function ToolCard({ compact = false }: { compact?: boolean }) {
   const tool = usePlan(s => s.tool)
   const selected = usePlan(s => s.selection?.type ?? null)
+  const [open, setOpen] = useState(false)
   const [nextOpen, setNextOpen] = useState(false)
   const def = TOOLS.find(t => t.id === tool)
   if (!def || !hasToolCard(tool)) return null
+  const shown = !compact || open
   const folded = !nextOpen && selected !== null && selected === drawsKind(tool)
   const word = selected ? (KIND_WORDS[selected] ?? 'item') : 'item'
   return (
-    <section className="float-card tool-card" aria-label={`${def.label} tool`}>
+    <section className={`float-card tool-card${compact ? ' compact' : ''}`} aria-label={`${def.label} tool`}>
       <header>
         <h2>
           {def.label} <kbd>{def.key}</kbd>
         </h2>
+        {compact && (
+          <button className="plain small" onClick={() => setOpen(!open)} aria-expanded={open}>
+            {open ? 'Hide options' : 'Options'}
+          </button>
+        )}
         <button className="plain small" onClick={() => usePlan.getState().setTool('select')} title="Back to Select (V)">
           Done
         </button>
       </header>
-      {tool === 'move' ? (
-        <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p>
-      ) : folded ? (
-        <div className="tool-options">
-          {tool === 'roof' && <RoofModeSwitch />}
-          <p className="muted small">
-            The selected {word}’s settings are on the right.{' '}
-            <button className="link" onClick={() => setNextOpen(true)}>
-              Settings for the next one
-            </button>
-          </p>
-        </div>
-      ) : (
-        <ToolOptions />
-      )}
+      {shown &&
+        (tool === 'move' ? (
+          <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p>
+        ) : folded ? (
+          <div className="tool-options">
+            {tool === 'roof' && <RoofModeSwitch />}
+            <p className="muted small">
+              The selected {word}’s settings are on the right.{' '}
+              <button className="link" onClick={() => setNextOpen(true)}>
+                Settings for the next one
+              </button>
+            </p>
+          </div>
+        ) : (
+          <ToolOptions />
+        ))}
     </section>
   )
 }

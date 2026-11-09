@@ -28,7 +28,7 @@ export function ShareFirst({ d, only }: { d: Loaded; only?: ShareKind }) {
     try {
       const f =
         kind === 'pdf'
-          ? plansPdfFile({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: d.printPrefs.paper, pdfFurniture: d.printPrefs.pdfFurniture })
+          ? plansPdfFile({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: d.printPrefs.paper, pdfFurniture: d.printPrefs.pdfFurniture, leaveOut: d.printPrefs.leaveOut })
           : await projectFile(d.project, d.plan)
       const r: Handed = await shareOrSave(f, title)
       if (r === 'saved') setSaid({ kind, text: `Saved ${f.name}` })

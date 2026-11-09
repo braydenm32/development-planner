@@ -2,8 +2,7 @@
 // fill, and the plan file. Design, Earthworks and their More render them (src/shell/tabs), and
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
-import { DemFlag } from '../map/DemNotes'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
@@ -13,7 +12,6 @@ import {
   areaKind,
   earthworksOf,
   isRetaining,
-  fflForGroundRL,
   OPENING_NAMES,
   floorRL,
   levelById,
@@ -33,7 +31,6 @@ import {
 } from '../plan/model'
 import {
   addLevelAbove,
-  planBounds,
   setWallLength,
   updateArea,
   updateLevel,
@@ -46,14 +43,14 @@ import {
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
 import { stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
-import { centredPlacement, placeAtClearance, signedClearance } from '../plan/placement'
+import { placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
-import { housePadRL, piersGroundNote } from '../plan/platforms'
+import { piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
-import { crossedBoundaries, earthAgainstWall, levelSummaries, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { earthAgainstWall, levelSummaries, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteLevelWithReview, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
@@ -65,9 +62,9 @@ import { RoomSun } from '../sun/RoomSun'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
-import { balanceCutFill, houseOutline, retainedText, rotateHouse, useRetainingWalls } from './planNumbers'
+import { houseOutline, retainedText } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
-import { DrivewayLevels } from './DrivewayLevels'
+import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
 import { CeilingLineUp, RoofLineFields } from './RoofLineFields'
 import './roofs-stairs.css'
@@ -89,15 +86,6 @@ const STAIR_SHAPES: { id: StairShape; label: string }[] = [
   { id: 'u', label: 'U-shaped (half landing)' },
 ]
 
-const BATTERS: { value: number; label: string }[] = [
-  { value: 1, label: '1 in 1 (45°)' },
-  { value: 1.5, label: '1 in 1.5' },
-  { value: 2, label: '1 in 2' },
-  { value: 3, label: '1 in 3' },
-  { value: 4, label: '1 in 4' },
-  { value: 0, label: 'Retaining wall' },
-]
-
 // ---------------------------------------------------------------------------
 // Tools
 
@@ -115,6 +103,12 @@ export function ToolOptions({ tool: shown }: { tool?: Tool }) {
   return null
 }
 
+/** Draw retaining walls with their own tool, at this thickness. */
+function pickRetainingTool(thickness: number) {
+  useRetaining.setState({ thickness })
+  usePlan.getState().setTool('retaining')
+}
+
 export function WallOptions() {
   const wallStyle = usePlan(s => s.wallStyle)
   const st = usePlan.getState()
@@ -126,7 +120,10 @@ export function WallOptions() {
           value={WALL_PRESETS.findIndex(p => p.thickness === wallStyle.thickness && p.kind === wallStyle.kind)}
           onChange={e => {
             const p = WALL_PRESETS[Number(e.target.value)]
-            if (p) st.setWallStyle({ kind: p.kind, thickness: p.thickness })
+            if (!p) return
+            // One tool draws retaining walls, and asks once what they hold back.
+            if (p.kind === 'retaining') return pickRetainingTool(p.thickness)
+            st.setWallStyle({ kind: p.kind, thickness: p.thickness })
           }}
         >
           {WALL_PRESETS.map((p, i) => (
@@ -143,18 +140,14 @@ export function WallOptions() {
         value={wallStyle.kind}
         options={WALL_KINDS}
         onChange={kind => {
+          if (kind === 'retaining') return pickRetainingTool(WALL_PRESETS.find(p => p.kind === 'retaining')!.thickness)
           // Switch to that kind's usual thickness, unless a custom one was set.
           const preset = WALL_PRESETS.some(p => p.kind === wallStyle.kind && p.thickness === wallStyle.thickness)
           const thickness = preset ? WALL_PRESETS.find(p => p.kind === kind)!.thickness : wallStyle.thickness
           st.setWallStyle({ kind, thickness })
         }}
       />
-      {wallStyle.kind === 'retaining' && (
-        <p className="muted small">
-          Retaining walls hold back earth on the site. Cut and fill stops at them, and their height follows the ground on each side. The
-          Retaining wall tool also asks which side it holds back and how high.
-        </p>
-      )}
+      <p className="muted small">A retaining preset or kind picks the Retaining wall tool (T), which asks once which side a wall holds back and how high.</p>
     </div>
   )
 }
@@ -675,10 +668,13 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       )}
       {kind === 'slab' && <p className="muted small">The ground under a slab is levelled as part of the cut and fill.</p>}
       {kind === 'driveway' && (
-        <>
-          <DrivewayLevels plan={plan} area={a} survey={survey} terrain={terrain} earth={earth} />
-          <DrivewayGrade plan={plan} area={a} survey={survey} terrain={terrain} earth={earth} />
-        </>
+        <p className="muted small">
+          Its levels, grade and street crossing are in{' '}
+          <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'driveway', view: 'plan' })}>
+            Earthworks › Driveway
+          </button>
+          .
+        </p>
       )}
       <p className="muted small">Drag the corner handles to reshape it.</p>
       <div className="row">{del}</div>
@@ -773,86 +769,18 @@ export function RetainingTotals({ walls }: { walls: RetainingProfile[] }) {
 // ---------------------------------------------------------------------------
 // Cut and fill
 
-interface EarthProps {
-  plan: Plan
-  survey: Survey
-  earth: Earth | null
-  terrain: Terrain
-}
 
 const setEarthworks = (patch: Partial<Earthworks>) =>
   usePlan.getState().commit(p => ({ ...p, earthworks: { ...earthworksOf(p), ...patch } }))
 
-export function EarthworksIntro() {
-  return (
-    <p className="muted small">
-      The ground is levelled under slab floors and concrete slabs, cut back under floors on piers to leave room underneath, and brought to a level where you paint it with the grading brush below. Batters slope from there back to the natural ground.
-    </p>
-  )
-}
-
 export function MarginField({ plan }: { plan: Plan }) {
   return <Num label="Level area past slab edges" unit="mm" value={earthworksOf(plan).margin} min={0} onCommit={margin => setEarthworks({ margin })} />
-}
-
-export function BatterFields({ plan }: { plan: Plan }) {
-  const ew = earthworksOf(plan)
-  return (
-    <>
-      <Select label="Cut slopes" value={ew.cutBatter} options={BATTERS.map(b => ({ id: b.value, label: b.label }))} onChange={cutBatter => setEarthworks({ cutBatter })} />
-      <Select label="Fill slopes" value={ew.fillBatter} options={BATTERS.map(b => ({ id: b.value, label: b.label }))} onChange={fillBatter => setEarthworks({ fillBatter })} />
-    </>
-  )
 }
 
 export function SubfloorField({ plan }: { plan: Plan }) {
   return <Num label="Gap under floors on piers" unit="mm" value={earthworksOf(plan).subfloor} min={0} onCommit={subfloor => setEarthworks({ subfloor })} />
 }
 
-
-/** Volumes, the boundary warning, the retaining walls' totals and Balance. */
-export function EarthworksResults({ plan, survey, earth, terrain, retaining = true }: EarthProps & { retaining?: boolean }) {
-  const [message, setMessage] = useState<string | null>(null)
-  const r = earth?.result
-  const pad = housePadRL(plan)
-  const walls = useRetainingWalls(plan, survey, terrain, earth)
-  const crossed = r ? crossedBoundaries(r, survey) : null
-  const balance = () => {
-    const m = balanceCutFill(earth)
-    if (m) setMessage(m)
-  }
-  return r && earth && earth.platforms.length > 0 ? (
-    <>
-      <dl className="stats">
-        <FragmentRow label="House pad (under the slab)" value={`RL ${pad.toFixed(2)}`} />
-        <FragmentRow label="Cut" value={`${r.cut.toFixed(1)} m³`} strong />
-        <FragmentRow label="Fill" value={`${r.fill.toFixed(1)} m³`} strong />
-        <FragmentRow label={r.cut >= r.fill ? 'Left over to take away' : 'Extra fill to bring in'} value={`${Math.abs(r.cut - r.fill).toFixed(1)} m³`} />
-        <FragmentRow label="Deepest cut" value={`${r.maxCut.toFixed(2)} m`} />
-        <FragmentRow label="Deepest fill" value={`${r.maxFill.toFixed(2)} m`} />
-      </dl>
-      <DemFlag what="these volumes" />
-      {crossed && (
-        <p className="notice small">
-          Batters cross {crossed}. Add a suggested retaining wall below, or draw one there (Retaining wall tool), to hold them back, or move the house.
-        </p>
-      )}
-      {retaining && walls.length > 0 && <RetainingTotals walls={walls} />}
-      <div className="row">
-        <button className="secondary" onClick={balance}>
-          Balance cut and fill
-        </button>
-      </div>
-      {message && <p className="muted small">{message}</p>}
-      <p className="muted small">
-        Volumes are in the ground; dug soil bulks up by roughly a quarter once it is loose. Retaining walls stop the batters, so the ground
-        behind them stays as it is, unless a wall is given a level for that side; then it's levelled beside the wall and battered back.
-      </p>
-    </>
-  ) : (
-    <p className="muted small">Draw walls on the lowest level, or a concrete slab, or paint ground with the grading brush below, to see cut and fill.</p>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Position on site
@@ -868,50 +796,6 @@ export function PlacementOriginFields({ plan }: { plan: Plan }) {
       <Num label="Easting of plan origin" unit="m" value={pl.e} onCommit={e => setPlacement({ e })} />
       <Num label="Northing of plan origin" unit="m" value={pl.n} onCommit={n => setPlacement({ n })} />
     </>
-  )
-}
-
-export function PlacementRotationField({ plan }: { plan: Plan }) {
-  return <Num label="Rotation (anticlockwise)" unit="°" value={plan.placement.rotation} onCommit={rotation => setPlacement(rotateHouse(plan, rotation))} />
-}
-
-/** The ground floor's RL (it includes that floor's "Above ground floor" height). */
-export function FloorLevelField({ plan }: { plan: Plan }) {
-  return <Num label="Ground floor level (FFL)" unit="RL" value={floorRL(plan)} onCommit={rl => setPlacement({ ffl: fflForGroundRL(plan, rl) })} />
-}
-
-export function PlacementActions({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo | null }) {
-  const pl = plan.placement
-  const alignToBoundary = () => {
-    if (!info) return
-    const closest = [...info.sides].sort((a, b) => a.dist - b.dist)[0]
-    let r = closest.angle
-    while (r > 45) r -= 90
-    while (r <= -45) r += 90
-    setPlacement(rotateHouse(plan, Math.round(r * 10) / 10))
-  }
-
-  const centreOnBlock = () => {
-    const b = planBounds(plan)
-    if (!b) return
-    const { e, n } = centredPlacement(pl, [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], survey)
-    setPlacement({ e, n })
-  }
-
-  return (
-    <div className="row">
-      <button className="secondary" onClick={centreOnBlock}>
-        Centre on block
-      </button>
-      <button className="secondary" onClick={alignToBoundary} disabled={!info}>
-        Square to boundary
-      </button>
-      {info && (
-        <button className="secondary" onClick={() => setPlacement({ ffl: fflForGroundRL(plan, Math.round(info.centreRL * 20) / 20) })}>
-          Floor at ground level
-        </button>
-      )}
-    </div>
   )
 }
 
@@ -967,7 +851,7 @@ export function RetainingToolOptions() {
         options={presets.map(p => ({ id: p.thickness, label: p.label.replace('Retaining (', '').replace(')', '') }))}
         onChange={t => useRetaining.setState({ thickness: t })}
       />
-      <p className="muted small">Click its start and its end. It then asks which side it holds back and how high, and cuts or fills the ground to suit.</p>
+      <p className="muted small">Click its start, then each corner; double-click or Esc to finish. Its panel asks once which side it holds back and how high, for every piece, and cuts or fills the ground to suit.</p>
     </div>
   )
 }

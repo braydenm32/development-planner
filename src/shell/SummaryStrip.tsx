@@ -121,8 +121,17 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                     </Chip>
                   ))}
                 {n.retaining && (
-                  <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} term="retaining-wall" title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
+                  <Chip
+                    id="retaining"
+                    label="Tallest wall"
+                    shown={shown.retaining}
+                    route={route}
+                    readOnly={readOnly}
+                    term="retaining-wall"
+                    title={`Holds back up to ${retainedText(n.retaining.maxHeight)}${n.retaining.impliedTallest ? '. An implied wall: a vertical edge of the cut and fill, not drawn yet.' : ''}`}
+                  >
                     <b>{n.retaining.maxHeight.toFixed(2)} m</b>
+                    {n.retaining.impliedTallest && <em className="chip-note"> implied</em>}
                     {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_TEXT}</span>}
                   </Chip>
                 )}
@@ -190,7 +199,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const against = checkedAgainst(pathway, council)
   if (shown || !loud) {
     // A design that isn't drawn enough to check says so before anything passes.
-    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
+    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
     if (readOnly && !shown)
       return (
         <span className="chip ghost" data-term={term} data-term-note={against}>
@@ -207,7 +216,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
       </button>
     )
   }
-  const parts = [counts.fail && `${counts.fail} fail${counts.fail > 1 ? 's' : ''}`, counts.warn && `${counts.warn} to check`].filter(Boolean).join(' · ')
+  const parts = [counts.fail && `${counts.fail} to fix`, counts.warn && `${counts.warn} to confirm`].filter(Boolean).join(' · ')
   if (readOnly)
     return (
       <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>

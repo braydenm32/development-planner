@@ -51,7 +51,7 @@ export function setTreeRemoval(id: string, remove: boolean): void {
   const after = useSiteStore.getState().data
   let unsub = () => {}
   const toast = showToast({
-    text: remove ? 'Tree marked for removal.' : 'Tree kept.',
+    text: remove ? 'Tree planned for removal.' : 'Tree kept.',
     undo: () => {
       const st = useSiteStore.getState()
       if (st.data === after) st.undo()

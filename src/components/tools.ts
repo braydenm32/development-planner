@@ -20,7 +20,7 @@ export const TOOLS: ToolDef[] = [
   { id: 'retaining', label: 'Retaining wall', key: 'T', icon: 'retain', short: 'Retaining' },
   { id: 'door', label: 'Door', key: 'D', icon: 'door' },
   { id: 'window', label: 'Window', key: 'N', icon: 'window' },
-  { id: 'opening', label: 'Opening', key: 'O', icon: 'opening' },
+  { id: 'opening', label: 'Wall opening', key: 'O', icon: 'opening', short: 'Opening' },
   { id: 'garage', label: 'Garage door', key: 'G', icon: 'garage', short: 'Garage' },
   { id: 'room', label: 'Room', key: 'R', icon: 'room' },
   { id: 'area', label: 'Area', key: 'A', icon: 'area' },

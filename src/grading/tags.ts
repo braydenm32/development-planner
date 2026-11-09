@@ -4,11 +4,11 @@
 import type { Vec2 } from '../lib/geom'
 import { wallText } from './suggest'
 
-/** The tag's label, and its width (px) with and without its Add and Dismiss buttons. */
-export function tagSize(height: number, buttons: boolean) {
-  const label = `${wallText(height)} wall?`
+/** The tag's label, and its width (px) with and without its Add and Dismiss buttons. An implied wall is no question, and can't be dismissed. */
+export function tagSize(height: number, buttons: boolean, implied = false) {
+  const label = implied ? `Implied ${wallText(height)} wall` : `${wallText(height)} wall?`
   const w = label.length * 6.4 + 30
-  return { label, w, total: w + (buttons ? 64 : 0) }
+  return { label, w, total: w + (buttons ? (implied ? 38 : 64) : 0) }
 }
 
 interface Box {
@@ -25,10 +25,10 @@ const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 &
  * ends, on the batter side first and then the other, the first spot that's free; where none is,
  * the spot that overlaps the others least.
  */
-export function placeTags(lines: { A: Vec2; B: Vec2; height: number }[], buttons: boolean): Vec2[] {
+export function placeTags(lines: { A: Vec2; B: Vec2; height: number; implied?: boolean }[], buttons: boolean): Vec2[] {
   const placed: Box[] = []
-  return lines.map(({ A, B, height }) => {
-    const { w, total } = tagSize(height, buttons)
+  return lines.map(({ A, B, height, implied }) => {
+    const { w, total } = tagSize(height, buttons, implied)
     const dx = B[0] - A[0]
     const dy = B[1] - A[1]
     const l = Math.hypot(dx, dy) || 1

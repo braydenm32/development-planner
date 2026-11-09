@@ -1,5 +1,5 @@
 import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
-import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
+import { convexHull, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Heightfield } from '../lib/terrain'
 import { buildSiteSolid } from '../lib/terrainMesh'
@@ -22,6 +22,7 @@ import {
   type Plan,
   type Wall,
 } from '../plan/model'
+import { planBounds } from '../plan/ops'
 import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry } from '../plan/roof'
@@ -50,9 +51,29 @@ export interface PrintSettings {
   furniture: boolean
   /** Put trees, sheds and fences from Site features on the terrain. */
   siteFeatures: boolean
+  /** The terrain: the whole block, or the ground around the house out to `margin`. */
+  terrain: 'block' | 'house'
+  /** How far the terrain reaches past the house, around the house (m, on the ground). */
+  margin: number
+  /** Hollow the terrain from underneath, in pockets that bridge without supports. */
+  hollow: boolean
 }
 
-export const DEFAULT_PRINT: PrintSettings = { scale: 100, minFeature: 1.2, clearance: 0.2, key: 1.2, base: 3, bedX: 225, bedY: 225, tiles: true, furniture: false, siteFeatures: false }
+export const DEFAULT_PRINT: PrintSettings = {
+  scale: 100,
+  minFeature: 1.2,
+  clearance: 0.2,
+  key: 1.2,
+  base: 3,
+  bedX: 225,
+  bedY: 225,
+  tiles: true,
+  furniture: false,
+  siteFeatures: false,
+  terrain: 'block',
+  margin: 5,
+  hollow: true,
+}
 
 /**
  * The bed before it was 225 × 225 mm was 220 × 220. Settings are saved whole, so a project or
@@ -63,9 +84,66 @@ export function withCurrentBed(s: PrintSettings): PrintSettings {
   return s.bedX === 220 && s.bedY === 220 ? { ...s, bedX: DEFAULT_PRINT.bedX, bedY: DEFAULT_PRINT.bedY } : s
 }
 
+/**
+ * How far over the stated bed a part can be and still count as fitting (mm). A part a millimetre
+ * over used to be cut in two; most printers reach a little past their stated bed, and the slicer
+ * says so if this one can't.
+ */
+export const BED_SLACK = 1.5
+
 /** Does a w x d footprint fit the bed, either way round? */
 export function fitsBed(w: number, d: number, s: Pick<PrintSettings, 'bedX' | 'bedY'>): boolean {
-  return (w <= s.bedX && d <= s.bedY) || (w <= s.bedY && d <= s.bedX)
+  const x = s.bedX + BED_SLACK
+  const y = s.bedY + BED_SLACK
+  return (w <= x && d <= y) || (w <= y && d <= x)
+}
+
+/**
+ * The turn (radians, counter-clockwise) that lays a ring's smallest bounding rectangle square to
+ * the axes with its long side along x: the block's long edge along the bed, before it's cut into
+ * tiles. Of equal choices, the smallest turn.
+ */
+export function longSideTurn(ring: Vec2[]): number {
+  const hull = convexHull(ring)
+  if (hull.length < 3) return 0
+  const box = (a: number) => {
+    const c = Math.cos(-a)
+    const s = Math.sin(-a)
+    let x0 = Infinity
+    let x1 = -Infinity
+    let y0 = Infinity
+    let y1 = -Infinity
+    for (const [x, y] of hull) {
+      const u = x * c - y * s
+      const v = x * s + y * c
+      x0 = Math.min(x0, u)
+      x1 = Math.max(x1, u)
+      y0 = Math.min(y0, v)
+      y1 = Math.max(y1, v)
+    }
+    return { w: x1 - x0, h: y1 - y0 }
+  }
+  // Each edge's direction, folded into (-45°, 45°]: a rectangle looks the same every quarter turn.
+  const fold = (a: number) => {
+    let x = a % (Math.PI / 2)
+    if (x > Math.PI / 4) x -= Math.PI / 2
+    if (x <= -Math.PI / 4) x += Math.PI / 2
+    return x
+  }
+  let best = { a: 0, area: Infinity }
+  const candidates = [0, ...hull.map((p, i) => {
+    const q = hull[(i + 1) % hull.length]
+    return fold(Math.atan2(q[1] - p[1], q[0] - p[0]))
+  })]
+  for (const a of candidates) {
+    const b = box(a)
+    const area = b.w * b.h
+    if (area < best.area * (1 - 1e-6) || (Math.abs(area - best.area) <= best.area * 1e-6 && Math.abs(a) < Math.abs(best.a))) best = { a, area }
+  }
+  const b = box(best.a)
+  // Long side along x: a quarter turn more when it came out along y (and not just about square).
+  if (b.h > b.w * 1.001) return best.a > 0 ? best.a - Math.PI / 2 : best.a + Math.PI / 2
+  return best.a
 }
 
 /** The fewest tiles, nx across and ny up, that cut a w x d footprint into pieces that fit the bed. */
@@ -101,6 +179,10 @@ export interface PrintModel {
   parts: PrintPart[]
   /** Things changed to make the model printable, in plain words. */
   notes: string[]
+  /** Degrees the model is turned (counter-clockwise from east) so the block's long side runs along the bed. */
+  turn: number
+  /** The whole terrain's footprint (mm), before it's cut into tiles; null without one. */
+  terrainSize: [number, number] | null
 }
 
 export interface PrintInput {
@@ -389,11 +471,25 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   if (roofParts.length > 1) for (const p of roofParts) p.name = `Roof over ${levelById(plan, p.id.slice(5))?.name.toLowerCase() ?? 'level'}`
 
   // ---- Terrain ----
-  const first = buildSiteSolid(ground, survey.boundary, -1e4)
+  // The whole block, or the ground around the house out to the margin, inside the block.
+  let lot: Vec2[] = survey.boundary
+  const cropped = settings.terrain === 'house'
+  if (cropped) {
+    const b = planBounds(plan)
+    const m = Math.max(0, settings.margin)
+    const block = shape([survey.boundary])
+    if (b && block) {
+      const rect = shape([site([[b.minX - m, b.minY - m], [b.maxX + m, b.minY - m], [b.maxX + m, b.maxY + m], [b.minX - m, b.maxY + m]])])
+      const rings = rect ? keep(rect.intersect(block)).toPolygons().map(r => r.map(p => [p[0], p[1]] as Vec2)) : []
+      const ring = rings.sort((x, y) => Math.abs(signedArea(y)) - Math.abs(signedArea(x)))[0]
+      if (ring && Math.abs(signedArea(ring)) > 1) lot = ring
+    }
+  }
+  const first = buildSiteSolid(ground, lot, -1e4)
   let minZ = Infinity
   for (let i = 0; i < first.surfaceIndexCount; i++) minZ = Math.min(minZ, first.positions[3 * first.indices[i] + 2])
   const baseZ = minZ - toM(settings.base)
-  const solid = buildSiteSolid(ground, survey.boundary, baseZ)
+  const solid = buildSiteSolid(ground, lot, baseZ)
   const mesh = new Mesh({ numProp: 3, vertProperties: solid.positions, triVerts: solid.indices })
   mesh.merge()
   let terrain: Manifold | null = keep(new Manifold(mesh))
@@ -441,18 +537,20 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       const wall = keep(new Manifold(m))
       if (wall.status() === 'NoError') walls.push(wall)
     }
-    const lot = prism([survey.boundary], baseZ, 1e4)
+    const inLot = prism([lot], baseZ, 1e4)
     const all = union(walls)
-    if (all && lot) extras.push(keep(all.intersect(lot)))
+    if (all && inLot) extras.push(keep(all.intersect(inLot)))
   }
   if (settings.siteFeatures && input.features?.length) {
     const { solids, summary } = featureSolids(input.features, survey.boundary, { Manifold, prism, keep, groundAt, minW })
     const all = union(solids)
-    const lot = prism([survey.boundary], baseZ, 1e4)
-    if (all && lot) extras.push(keep(all.intersect(lot)))
+    const inLot = prism([lot], baseZ, 1e4)
+    if (all && inLot) extras.push(keep(all.intersect(inLot)))
     if (summary) notes.push(summary)
   }
   terrain = union([terrain, ...extras])
+  // Around the house, slabs, decks and driveways stop where the ground does.
+  if (cropped && terrain) terrain = keep(terrain.intersect(prism([lot], baseZ - 1, 1e4)!))
   if (ground0 && ground0.outlines.length) {
     // A shallow pocket the lowest floor drops into.
     terrain = minus(terrain, extrude(grow(shape(ground0.outlines), c), ground0.bottom, ground0.top + 1000))
@@ -461,15 +559,77 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       ...pierPosts.map(p => prism([square(p, pierSize)], groundAt(p) - 0.2, ground0.bottom + key)),
     ])
   }
+  // Hollow from underneath: a grid of pockets open at the bottom, each roofed a little below the
+  // lowest ground over it, with thin ribs between them so each roof is a short bridge that prints
+  // without supports. The edges stay solid. A solid block of ground is most of the plastic.
+  if (settings.hollow && terrain) {
+    const pockets = hollowPockets()
+    if (pockets) {
+      terrain = minus(terrain, pockets)
+      notes.push('The terrain is hollow underneath, in pockets with thin ribs between, so it uses far less plastic; print it flat side down as usual.')
+    }
+  }
   if (terrain) parts.unshift({ id: 'terrain', name: 'Terrain', kind: 'terrain', solid: terrain })
 
+  function hollowPockets(): Manifold | null {
+    const inset = shape([lot]) ? keep(shape([lot])!.offset(-toM(2.4), 'Miter', 4)) : null
+    if (!inset || inset.isEmpty()) return null
+    const box = inset.bounds()
+    const rib = toM(1.6)
+    const skin = toM(2)
+    let cellMm = 20
+    const count = (mm: number) => ((box.max[0] - box.min[0]) / toM(mm)) * ((box.max[1] - box.min[1]) / toM(mm))
+    while (cellMm < 40 && count(cellMm) > 900) cellMm += 5
+    const cell = toM(cellMm)
+    const house = ground0 && ground0.outlines.length ? grow(shape(ground0.outlines), c + rib) : null
+    const prisms: (Manifold | null)[] = []
+    for (let x = box.min[0]; x < box.max[0]; x += cell) {
+      for (let y = box.min[1]; y < box.max[1]; y += cell) {
+        const x0 = x + rib / 2
+        const x1 = x + cell - rib / 2
+        const y0 = y + rib / 2
+        const y1 = y + cell - rib / 2
+        // The lowest ground over the pocket and just round it; posts, walls and steps reach 0.2 m below the ground.
+        let low = Infinity
+        for (let i = 0; i <= 5; i++)
+          for (let j = 0; j <= 5; j++) {
+            const z = groundAt([x0 - rib + ((x1 - x0 + 2 * rib) * i) / 5, y0 - rib + ((y1 - y0 + 2 * rib) * j) / 5])
+            if (Number.isFinite(z)) low = Math.min(low, z)
+          }
+        if (!Number.isFinite(low)) continue
+        let top = low - 0.25 - skin
+        const r = shape([
+          [
+            [x0, y0],
+            [x1, y0],
+            [x1, y1],
+            [x0, y1],
+          ],
+        ])
+        if (!r) continue
+        if (house && !keep(r.intersect(house)).isEmpty()) top = Math.min(top, ground0!.bottom - skin)
+        if (top - baseZ < toM(3)) continue
+        const inside = keep(r.intersect(inset))
+        if (inside.isEmpty()) continue
+        prisms.push(extrude(inside, baseZ - toM(1), top))
+      }
+    }
+    return union(prisms)
+  }
+
   // ---- To millimetres ----
+  // Turned so the block's long side runs along the bed (x), then moved to start at 0, 0.
+  const turn = (longSideTurn(lot) * 180) / Math.PI
+  const cosT = Math.cos((-turn * Math.PI) / 180)
+  const sinT = Math.sin((-turn * Math.PI) / 180)
   let ox = Infinity
   let oy = Infinity
-  for (const p of survey.boundary) {
-    ox = Math.min(ox, p[0])
-    oy = Math.min(oy, p[1])
+  for (const p of lot) {
+    ox = Math.min(ox, p[0] * cosT - p[1] * sinT)
+    oy = Math.min(oy, p[0] * sinT + p[1] * cosT)
   }
+  if (Math.abs(turn) >= 0.5) notes.push(`The model is turned ${Math.abs(Math.round(turn))}° so the block’s long side runs along the bed${cropped ? '' : ', which takes fewer tiles'}.`)
+  let terrainSize: [number, number] | null = null
   const out: PrintPart[] = []
   const emit = (id: string, name: string, kind: PartKind, m: Manifold, of?: string) => {
     if (m.isEmpty()) return
@@ -492,16 +652,18 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     })
   }
   for (const p of parts) {
-    const m = keep(keep(keep(p.solid.translate([-ox, -oy, -baseZ])).scale(k)).simplify(0.01))
+    const turned = Math.abs(turn) > 1e-9 ? keep(p.solid.rotate([0, 0, -turn])) : p.solid
+    const m = keep(keep(keep(turned.translate([-ox, -oy, -baseZ])).scale(k)).simplify(0.01))
     const box = m.boundingBox()
     const w = box.max[0] - box.min[0]
     const d = box.max[1] - box.min[1]
+    if (p.kind === 'terrain') terrainSize = [w, d]
     const grid = settings.tiles && !fitsBed(w, d, settings) ? tileGrid(w, d, settings) : null
     if (!grid || grid[0] * grid[1] === 1) {
       emit(p.id, p.name, p.kind, m)
       continue
     }
-    // Cut it into a grid of pieces, lettered west to east and numbered south to north. A floor
+    // Cut it into a grid of pieces, lettered along x and numbered along y (west to east and south to north when not turned). A floor
     // or roof is cut the same way: its pieces glue back into one before it sits on the one below.
     const [nx, ny] = grid
     const labels: string[] = []
@@ -519,10 +681,10 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     }
     notes.push(
       p.kind === 'terrain'
-        ? `The terrain is ${Math.round(w)} × ${Math.round(d)} mm, so it is cut into ${nx * ny} tiles to fit a ${settings.bedX} × ${settings.bedY} mm bed: letters run west to east and numbers south to north. Glue them together on a flat board.`
+        ? `The terrain is ${Math.round(w)} × ${Math.round(d)} mm, so it is cut into ${nx * ny} tiles to fit a ${settings.bedX} × ${settings.bedY} mm bed: letters run ${Math.abs(turn) >= 0.5 ? 'along the block’s long side' : 'west to east'} and numbers ${Math.abs(turn) >= 0.5 ? 'across it' : 'south to north'}. Glue them together on a flat board.`
         : `${p.name} is ${Math.round(w)} × ${Math.round(d)} mm, so it is cut into ${nx * ny} pieces (${labels.join(', ')}) to fit a ${settings.bedX} × ${settings.bedY} mm bed. Glue them together before it goes on the part below.`,
     )
   }
   for (const x of pool) x.delete()
-  return { parts: out, notes }
+  return { parts: out, notes, turn, terrainSize }
 }

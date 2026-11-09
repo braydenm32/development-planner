@@ -40,7 +40,10 @@ const painted = (id: string, ring: Vec2[], level: number, mode: 'cut' | 'fill'):
   fixed: true,
 })
 
-function suggest(platforms: Platform[], o: { z?: (x: number, y: number) => number; batter?: number; counted?: number[]; barriers?: Barrier[]; trees?: SuggestInput['trees'] } = {}) {
+function suggest(
+  platforms: Platform[],
+  o: { z?: (x: number, y: number) => number; batter?: number; counted?: number[]; barriers?: Barrier[]; trees?: SuggestInput['trees']; house?: Vec2[][]; impliedOnly?: boolean } = {},
+) {
   const { grid, boundary } = block(o.z)
   const b = o.batter ?? 2
   const prep = prepareEarthworks(grid, boundary, platforms, { margin: 0.5, cutBatter: b, fillBatter: b }, o.barriers ?? [])
@@ -53,6 +56,8 @@ function suggest(platforms: Platform[], o: { z?: (x: number, y: number) => numbe
     sources: platforms.map(p => p.id!),
     family: p => p.id ?? null,
     label: () => 'other painted ground',
+    house: o.house,
+    impliedOnly: o.impliedOnly,
   })
 }
 
@@ -147,5 +152,27 @@ describe('retaining wall suggestions', () => {
     // A retaining wall along the west edge of the boundary-crossing fill.
     const area = painted('w', rect(1.6, 15, 10, 25), 11, 'fill')
     expect(suggest([area], { barriers: [[[1.4, 14.5], [1.4, 25.5]]] })).toEqual([])
+  })
+})
+
+describe('implied retaining walls', () => {
+  it('traces a vertical edge as a wall someone has to build, whatever has room', () => {
+    // 1 m of cut in the middle of the block with Retaining wall slopes: a batter would have room, but there is none.
+    const area = painted('a', rect(15, 15, 25, 25), 9, 'cut')
+    const s = suggest([area], { batter: 0 })
+    expect(s.length).toBeGreaterThan(0)
+    expect(s.every(x => x.rule === 'implied' && x.kind === 'cut')).toBe(true)
+    expect(Math.max(...s.map(x => x.height))).toBeCloseTo(1, 1)
+    expect(s[0].why).toMatch(/^Cut slopes are set to Retaining wall, so this cut edge is a 1\.0 m wall someone has to build$/)
+    // Its face, ground to ground: about its length times the metre it holds.
+    const len = s.reduce((t, x) => t + x.path.slice(1).reduce((u, p, i) => u + Math.hypot(p[0] - x.path[i][0], p[1] - x.path[i][1]), 0), 0)
+    expect(s.reduce((t, x) => t + x.face, 0)).toBeCloseTo(len, -1)
+    // The same, cheaply, on its own.
+    expect(suggest([area], { batter: 0, impliedOnly: true }).map(x => x.key)).toEqual(s.map(x => x.key))
+  })
+
+  it('leaves out an edge the house itself holds', () => {
+    const area = painted('a', rect(15, 15, 25, 25), 9, 'cut')
+    expect(suggest([area], { batter: 0, house: [rect(15, 15, 25, 25)] })).toEqual([])
   })
 })

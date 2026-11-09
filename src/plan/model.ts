@@ -311,6 +311,11 @@ export interface Earthworks {
   fillBatter: number
   /** Gap kept between the ground and the underside of floors on piers (m). */
   subfloor: number
+  /**
+   * The design takes earth away (or brings it in) on purpose: "Out of balance" stays quiet. Missing
+   * (older plans, and the default) means it's flagged.
+   */
+  keepNet?: boolean
 }
 
 export interface Placement {

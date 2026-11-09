@@ -131,7 +131,8 @@ export default function App() {
     if (on !== apart) changePrintPrefs({ apart: on })
   }
   // Setbacks on the plan: always in Earthworks › Place, elsewhere when the plan's key switches them on.
-  const placing = route.kind === 'app' && route.area === 'earthworks' && route.tab === 'place'
+  const inEarthworks = route.kind === 'app' && route.area === 'earthworks'
+  const placing = inEarthworks && route.tab === 'place'
 
   // A project with no plan yet starts an empty one on its block (saved to that project).
   useEffect(() => {
@@ -218,8 +219,9 @@ export default function App() {
   if (page === 'new') return alone(<StartScreen into="new" onCancel={somewhere ? () => toProjects(false, true) : undefined} cancelLabel="All projects" />)
   // Nothing open: pick a project, or (on a first visit) start the first one.
   if (!openedId) return alone(page === 'projects' || projects.list.length ? home(false) : <StartScreen into="new" />)
-  // The home shows inside the app's frame, below, once the open project has a site.
-  if (page === 'projects' && !project) return alone(home(false))
+  // The home is one page whether a project is open or not, so archiving the open one doesn't
+  // change its layout; it has a way back to the project open now.
+  if (page === 'projects') return alone(home(false))
   // A project with no site yet (never a project with one): its start screen, with the way out.
   if (!project) return alone(<StartScreen into="current" onCancel={() => toProjects()} cancelLabel="All projects" />)
 
@@ -246,9 +248,10 @@ export default function App() {
             onShowGroundChange={planGround => changeView({ ...view, planGround })}
             earth={earth}
             viewKey={openedId}
-            showSetbacks={placing || view.planSetbacks}
-            setbacksSwitch={placing ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
-            earthworks={route.kind === 'app' && route.area === 'earthworks'}
+            // In Earthworks the boundary distances are Place's: shown there, and not repeated as a Key switch on its other tabs.
+            showSetbacks={placing || (view.planSetbacks && !inEarthworks)}
+            setbacksSwitch={placing || inEarthworks ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
+            earthworks={inEarthworks}
           />
         ) : null
       ) : site?.survey && site.terrain && site.solid && mode === 'print' ? (

@@ -3,6 +3,7 @@
 // and start the project on it. The levels are rough, and it says so before and after.
 
 import { useEffect, useRef, useState } from 'react'
+import { nameFromLot } from '../projects/ops'
 import { projectsNow } from '../projects/session'
 import { replaceSurvey, startFromGround } from '../safety/flows'
 import { blockFromLot } from './demSite'
@@ -44,7 +45,7 @@ export function StateGround({ lot, into, buttonClass = 'primary', ask = true }: 
         // Only if the review was accepted.
         if (projectsNow().opened?.survey === block.survey) placeDemBlock(block, lot)
       } else {
-        await startFromGround(block.survey, into)
+        await startFromGround(block.survey, into, nameFromLot(lot))
         placeDemBlock(block, lot)
       }
     } catch (e) {

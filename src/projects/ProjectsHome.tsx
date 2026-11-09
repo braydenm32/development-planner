@@ -39,6 +39,7 @@ interface Props {
 
 const ICONS = {
   plus: <path d="M12 5v14M5 12h14" />,
+  back: <path d="M14.5 6 8.5 12l6 6" />,
   file: (
     <>
       <path d="M6.5 3.5H14l4 4v13H6.5z" />
@@ -184,6 +185,8 @@ export function ProjectsHome(props: Props) {
   const active = p.list.filter(m => !m.archived)
   const tucked = p.list.filter(m => m.archived)
   const shown = archived ? tucked : active
+  // The project open now: the home is the same page with or without one, with a way back to it.
+  const current = active.find(m => m.id === p.currentId && p.opened)
 
   const act = async (fn: () => Promise<unknown>) => {
     setError(null)
@@ -247,7 +250,8 @@ export function ProjectsHome(props: Props) {
       </button>
       <button className="ph-btn primary" onClick={onNew}>
         <Icon name="plus" size={16} />
-        New project
+        <span className="ph-long">New project</span>
+        <span className="ph-short">New</span>
       </button>
     </div>
   )
@@ -278,6 +282,12 @@ export function ProjectsHome(props: Props) {
       )}
 
       <Main className="ph-main">
+        {current && !props.inShell && (
+          <button className="ph-back" onClick={() => void open(current.id)}>
+            <Icon name="back" size={16} />
+            Back to {current.name}
+          </button>
+        )}
         <div className="ph-head">
           <h1>Projects</h1>
           {(tucked.length > 0 || archived) && (
@@ -438,9 +448,14 @@ export function ProjectsHome(props: Props) {
                   <p className="ph-when">
                     {m.id === p.currentId && <span className="ph-current">Open now</span>}
                     <span>Edited {edited(m.updated)}</span>
-                    {m.surveyFileName && <span className="ph-file" title={m.surveyFileName}>{m.surveyFileName}</span>}
                     <CloudMark id={m.id} />
                   </p>
+                  {/* The file name on a line of its own: a long one never wraps after a lone "·". */}
+                  {m.surveyFileName && (
+                    <p className="ph-file" title={m.surveyFileName}>
+                      {m.surveyFileName}
+                    </p>
+                  )}
                   <Numbers m={m} />
                   <div className="ph-card-actions">
                     {m.archived ? (

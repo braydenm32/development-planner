@@ -398,6 +398,31 @@
   margin-top: 4px;
 }
 
+/* ---- Wide screens: the three ways in side by side, so the address is above the fold too ---- */
+
+@media (min-width: 1180px) {
+  .st-main {
+    width: min(1180px, 100%);
+  }
+
+  .st-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .st-wide {
+    grid-column: auto;
+  }
+
+  .st-wide .st-art-wide {
+    display: block;
+  }
+}
+
+/* The address card's picture only shows beside the other two, to line the cards up. */
+.st-art-wide {
+  display: none;
+}
+
 /* ---- Phones and touch: one column, 44 px taps, 14 px text and up ---- */
 
 @media (max-width: 760px), (pointer: coarse) {

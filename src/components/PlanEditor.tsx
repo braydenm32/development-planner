@@ -4,7 +4,7 @@ import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, closestOnSegment, planarFaces, roomShape, wallPolygons } from '../plan/geometry'
-import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes } from '../plan/groundOverlay'
+import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
 import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
   areaKind,
@@ -47,7 +47,7 @@ import { useSitePlan } from '../site/SitePlanLayer'
 import { outlineAround, roofGeometry, toggleGable } from '../plan/roof'
 import { roofsOverLevel, wallsUnderRoofline } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
-import { newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
+import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
@@ -58,9 +58,11 @@ import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
 import { finishedContours, finishedShown, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
-import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
+import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip, WorksTint } from './GroundOverlay'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
+import { floorToFirstWalls } from './placeActions'
+import { useWallFocus } from '../plan/wallFocus'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
@@ -83,6 +85,7 @@ import { StreetAsk } from '../start/StreetAsk'
 import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
+import { ChecksPlanLayer } from '../checks/ChecksPlanLayer'
 import { useCommentsPlan } from '../comments/PlanComments'
 import { DrainageLayer } from '../drainage/DrainageLayer'
 import { costsUndoKey } from '../costs/store'
@@ -147,7 +150,7 @@ const VIEW_HINT = {
 const HINTS: Record<Tool, string> = {
   select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
   wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Hold Shift to turn off snapping. For a retaining wall, use the Retaining wall tool (T).',
-  retaining: "Click the retaining wall's start, then its end (or type a length in mm and press Enter). It then asks which side it holds back and how high. Esc cancels.",
+  retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
   opening: 'Click on a wall to add an opening with no door, such as an archway.',
@@ -246,6 +249,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   /** A press on a side of the block while the street question is up: a click (not a drag) picks it. */
   const streetPress = useRef<number | null>(null)
   const newRetaining = useRetaining(s => s.newWall)
+  // Earthworks › Retaining walls tags every wall with its height, and its list lights the wall pointed at or zooms to it.
+  const onRetainingTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'retaining-walls')
+  const onCutFillTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'cut-fill')
+  const wallHover = useWallFocus(s => s.hover)
+  const wallChanged = useWallFocus(s => s.changed)
+  const wallZoom = useWallFocus(s => s.zoom)
   const retainingThickness = useRetaining(s => s.thickness)
   const { commit, preview, beginGesture, endGesture, select, toggleSelect, notify } = usePlan.getState()
 
@@ -262,6 +271,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
   /** Points to keep fitted (a drawing being lined up) in place of the plan, until the user moves the view. */
   const [around, setAround] = useState<{ pts: Vec2[]; token: number } | null>(null)
+  useEffect(() => {
+    if (!wallZoom) return
+    setAround({ pts: wallZoom.pts, token: fitToken })
+    setView(null)
+    // Once for each wall asked for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallZoom?.token])
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
@@ -369,6 +385,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const contours = useMemo(
     () => (earth && earth.result.cut + earth.result.fill > 0.01 ? finishedContours(survey, terrain.grid, earth.result.grid, earth.strips) : null),
     [earth, survey, terrain],
+  )
+  // On Earthworks › Cut & fill the tint is the cut and fill itself, only where the earth is moved,
+  // in place of the floor against the ground over the whole block (which reads as cut far past the batters).
+  const works = useMemo(
+    () => (onCutFillTab && showGround && earth && earth.result.cut + earth.result.fill > 0.01 ? worksOverlay(earth.prep.natural, earth.result.grid, survey.boundary) : null),
+    [onCutFillTab, showGround, earth, survey],
   )
   // Drawn as the user last chose; until then only in Earthworks, where the ground is the subject.
   const [finishedPref, setFinishedPref] = useState(readFinishedPref)
@@ -604,7 +626,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const askAfterChain = () => {
     const c = chainStart.current
     chainStart.current = null
-    if (c) wallsPlaced(c.plan, c.level)
+    if (!c) return
+    // A house's first walls: its floor starts at the mean ground under them (src/plan/levelGround.ts).
+    floorToFirstWalls(c.plan, survey, terrain.grid)
+    wallsPlaced(c.plan, c.level)
   }
   // Switching tool or level drops the run, and leaving the plan ends it: ask then.
   useEffect(() => askAfterChain, [draftKey])
@@ -639,18 +664,23 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     else updateDraft(() => ({ chain: [...chain, end], typed: '' }))
   }
 
-  /** The Retaining wall tool draws one straight wall from two clicks, then asks about it. */
+  /**
+   * The Retaining wall tool, as the Wall tool does: click its start, then each corner; double-click
+   * or Esc ends the run. The first piece opens its panel, which asks once (which side, how high) for
+   * the whole run; each piece after it carries on from the last, holding back the same side.
+   */
   const placeRetainingPoint = (p: Vec2) => {
-    // While the wall just drawn asks for its earth side, a click answers that and never starts another wall.
+    // While the wall just drawn asks for its earth side by a click, that click answers it and starts nothing.
     if (waitingForSide()) return
     if (chain.length === 0) {
       setChain([p])
       return
     }
-    const a = chain[0]
+    const a = chain[chain.length - 1]
     if (Math.hypot(p[0] - a[0], p[1] - a[1]) < 0.05) return
-    placeRetainingWall(newRetainingWall(plan, level, a, p, retainingThickness, survey.origin, terrain.grid), { pickSide: true })
-    finishChain()
+    const w = newRetainingWall(plan, level, a, p, retainingThickness, survey.origin, terrain.grid)
+    if (chain.length < 2 || !extendRun(w, survey.origin, terrain.grid)) placeRetainingWall(w, { draft: true })
+    updateDraft(() => ({ chain: [...chain, p], typed: '' }))
     notify(null)
   }
 
@@ -1452,7 +1482,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       site.dblclick()
       return
     }
-    if (tool === 'wall') finishChain()
+    if (tool === 'wall' || tool === 'retaining') finishChain()
     if (tool === 'area') closeArea(areaPts)
     if (tool === 'roof') closeRoof(areaPts)
   }
@@ -2044,7 +2074,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {/* Stairs coming up through this floor: the hole in it, over the rooms' fill */}
         <g className="arriving-stairs">{arrivingStairs.map(st => stairSymbol(st, false, false, true))}</g>
 
-        {ground && (
+        {works && <WorksTint overlay={works} toScreen={p => S(fromSite(p, plan.placement, survey.origin))} />}
+        {ground && !works && (
           <GroundOverlay
             near={
               nearHouse && {
@@ -2194,6 +2225,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           show={selWall?.id ?? newRetaining}
           toScreen={S}
           k={k}
+          tags={onRetainingTab}
+          hover={wallHover}
+          changed={wallChanged}
         />
 
         {/* Selected wall handles, which only Select drags */}
@@ -2208,6 +2242,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {brush.over}
         {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
+        <ChecksPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <DrainageLayer plan={plan} survey={survey} terrain={terrain} S={S} k={k} />
 
         {/* Drawing in progress */}
@@ -2263,7 +2298,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           </div>
         )}
         <KeyChip>
-          <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest} floor={!noFloor}>
+          <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest} floor={!noFloor} works={onCutFillTab && !!earth && earth.result.cut + earth.result.fill > 0.01}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
             {comments.key}

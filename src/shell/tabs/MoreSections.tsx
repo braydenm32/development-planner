@@ -3,16 +3,13 @@
 import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
-  PlacementActions,
   PlacementOriginFields,
-  PlacementRotationField,
   PlanFileBody,
   StairOptions,
   SubfloorField,
   WallOptions,
 } from '../../components/PlanSections'
-import { usePlacementInfo } from '../../components/planNumbers'
-import { DownloadStlsButton, FineTuningFields, PaperSelect, PrintInstructions } from '../../components/ShareSections'
+import { FineTuningFields, PrintInstructions } from '../../components/ShareSections'
 import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
@@ -21,10 +18,9 @@ import { useProjects } from '../../projects/session'
 import { layersKey, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
-import { usePlan } from '../../plan/store'
 import { useShell } from '../context'
 import { ShortcutList } from '../KeyboardHelp'
-import { pickTool, useLoaded, type Loaded } from '../useSite'
+import { pickTool, useLoaded } from '../useSite'
 import { Waiting } from './Waiting'
 
 // Site
@@ -103,17 +99,6 @@ export function WallPresetSection() {
   )
 }
 
-function ToolButton({ tool, label, keyName }: { tool: 'opening' | 'garage' | 'move'; label: string; keyName: string }) {
-  const current = usePlan(s => s.tool)
-  return (
-    <div className="row">
-      <button className={`secondary${current === tool ? ' on' : ''}`} aria-pressed={current === tool} onClick={() => pickTool(tool)}>
-        {label} <kbd>{keyName}</kbd>
-      </button>
-    </div>
-  )
-}
-
 export function StairDefaultsSection() {
   return <StairOptions />
 }
@@ -123,30 +108,6 @@ export function StairDefaultsSection() {
 export function OriginSection() {
   const d = useLoaded()
   return d ? <PlacementOriginFields plan={d.plan} /> : <Waiting />
-}
-
-export function RotationSection() {
-  const d = useLoaded()
-  return d ? <PlacementRotationField plan={d.plan} /> : <Waiting />
-}
-
-export function PlacementActionsSection() {
-  const d = useLoaded()
-  return d ? <PlacementActionsLoaded d={d} /> : <Waiting />
-}
-
-function PlacementActionsLoaded({ d }: { d: Loaded }) {
-  const info = usePlacementInfo(d.plan, d.survey, d.terrain)
-  return <PlacementActions plan={d.plan} survey={d.survey} info={info} />
-}
-
-export function MoveToolSection() {
-  return (
-    <>
-      <p className="muted small">Drag the house around the block on the plan. Its distance to each side shows as you move it.</p>
-      <ToolButton tool="move" label="Use the Move tool" keyName="M" />
-    </>
-  )
 }
 
 export function MarginSection() {
@@ -165,24 +126,6 @@ export function FineTuningSection() {
   const { printPrefs, changePrintPrefs } = useShell()
   const settings = printPrefs.settings
   return <FineTuningFields settings={settings} onChange={(patch: Partial<PrintSettings>) => changePrintPrefs({ settings: { ...settings, ...patch } })} />
-}
-
-export function StlSection() {
-  const d = useLoaded()
-  if (!d) return <Waiting />
-  return (
-    <>
-      <p className="muted small">A ZIP with one STL file per part, for slicers that don't open 3MF.</p>
-      <div className="row">
-        <DownloadStlsButton plan={d.plan} settings={d.printPrefs.settings} print={d.print} />
-      </div>
-    </>
-  )
-}
-
-export function PaperSection() {
-  const { printPrefs, changePrintPrefs } = useShell()
-  return <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
 }
 
 export function PrintInstructionsSection() {
