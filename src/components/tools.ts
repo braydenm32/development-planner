@@ -26,6 +26,9 @@ export const TOOLS: ToolDef[] = [
   { id: 'stair', label: 'Stair', key: 'S', icon: 'stair' },
   { id: 'furniture', label: 'Furniture', key: 'U', icon: 'furniture' },
   { id: 'move', label: 'Move on site', key: 'M', icon: 'move', more: true },
+  // Measure and Note use the keys L (length) and E (edit a label); every other plan key is taken.
+  { id: 'measure', label: 'Measure', key: 'L', icon: 'ruler' },
+  { id: 'note', label: 'Note', key: 'E', icon: 'note' },
 ]
 
 /** Tools whose options show next to the rail. */

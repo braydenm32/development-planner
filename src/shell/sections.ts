@@ -9,6 +9,7 @@ import { ChecksTab } from './tabs/ChecksTab'
 import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
+import { ExportTab } from '../export/ExportTab'
 import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
@@ -32,6 +33,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,
   'share/plans': PlansTab,
+  'share/export': ExportTab,
   'share/send': SendTab,
   'share/3d-print': PrintTab,
 }

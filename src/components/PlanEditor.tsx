@@ -67,6 +67,7 @@ import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan }
 import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
+import { useMeasureNotes } from '../measure/useMeasure'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { PlanHints } from '../guide/PlanHints'
 import { useRouter } from '../nav/router'
@@ -135,6 +136,8 @@ const HINTS: Record<Tool, string> = {
   stair: 'Click where the stair starts, then click the direction it goes up. Hold Shift for any angle.',
   furniture:
     'Pick a piece from the list and click to place it. Its back snaps flush to a nearby wall. Q turns it 90° (Shift+Q the other way), or drag its round handle. Hold Shift to turn off snapping.',
+  measure: 'Click a point, then another to read the distance and height. Shift turns off snapping. Esc finishes.',
+  note: 'Click the plan to add a note; click a note to change or delete it. Esc finishes.',
   move: 'Drag to move the house on the block. Type exact distances to the boundary, rotation and floor level in Earthworks › Place.',
 }
 
@@ -499,6 +502,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     siteActive: site.active,
     viewOnly,
   })
+  // The Measure and Note tools: the ruler and the plan's text notes.
+  const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, viewOnly, size })
   const path = (pts: Vec2[], close = true) =>
     pts.length ? `M${pts.map(p => S(p).map(n => n.toFixed(1)).join(' ')).join('L')}${close ? 'Z' : ''}` : ''
   const tol = 10 / v.k
@@ -974,6 +979,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       site.move(world, free)
       return
     }
+    if (mn.active) {
+      mn.move(world, free)
+      return
+    }
     if (d?.type === 'box') {
       if (Math.hypot(sx - d.fromPx[0], sy - d.fromPx[1]) > 4) setBox({ a: d.fromPx, b: [sx, sy] })
       return
@@ -1173,6 +1182,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     site.deselect()
+    if (mn.click(world, e.shiftKey)) return
     if (tool === 'wall') {
       const s = snap(world, { walls, anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), tol, free: e.shiftKey })
       placeWallPoint(s.p)
@@ -1310,6 +1320,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         e.preventDefault()
         return
       }
+      if (mn.key(e)) {
+        e.preventDefault()
+        return
+      }
       const st = usePlan.getState()
       const mod = e.ctrlKey || e.metaKey
       if (mod && e.key.toLowerCase() === 'z') {
@@ -1421,6 +1435,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         s: 'stair',
         u: 'furniture',
         m: 'move',
+        l: 'measure',
+        e: 'note',
       }
       const next = map[e.key.toLowerCase()]
       if (next) st.setTool(next)
@@ -1953,6 +1969,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
         {site.over}
         {flow.over}
+        {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
 
         {/* Drawing in progress */}
@@ -2020,6 +2037,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {site.bar}
       {site.chips}
       {flow.html}
+      {mn.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
       {frame && !viewOnly && <StreetAsk survey={survey} terrain={terrain} />}

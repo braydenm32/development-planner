@@ -229,7 +229,7 @@ describe('the menu', () => {
       ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['estimate', 'materials', 'quotes', MORE],
-      ['plans', 'send', '3d-print', MORE],
+      ['plans', 'export', 'send', '3d-print', MORE],
     ])
     for (const a of AREAS) {
       expect(a.tabs.some(t => t.id === a.defaultTab), a.id).toBe(true)
@@ -623,6 +623,16 @@ describe('⌘K search', () => {
     expect(search(index, 'retaining walls')[0]).toMatchObject({ kind: 'tab', label: 'Retaining walls' })
     expect(search(index, 'balance')[0]).toMatchObject({ action: 'balance' })
     expect(search(index, 'pdf').some(r => r.action === 'download-pdf')).toBe(true)
+  })
+
+  it('finds the measure and note tools and the DXF, picture and schedule exports by plain words', () => {
+    for (const q of ['measure', 'ruler', 'distance', 'slope']) expect(search(index, q).some(r => r.action === 'tool:measure'), q).toBe(true)
+    for (const q of ['note', 'label', 'text']) expect(search(index, q).some(r => r.action === 'tool:note'), q).toBe(true)
+    expect(search(index, 'measure').find(r => r.action === 'tool:measure')).toMatchObject({ shortcut: 'L' })
+    expect(search(index, 'note').find(r => r.action === 'tool:note')).toMatchObject({ shortcut: 'E' })
+    const atExport = (q: string) => search(index, q).some(r => (r.place.kind === 'tab' && r.place.area.id === 'share' && r.place.tab.id === 'export') || r.entry.at === 'share/export')
+    for (const q of ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'schedule', 'doors', 'windows']) expect(atExport(q), q).toBe(true)
+    expect(search(index, 'dxf').some(r => r.action === 'download-dxf')).toBe(true)
   })
 
   it('finds the retaining wall tool, finished contours and the 1:50 scale', () => {

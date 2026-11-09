@@ -22,6 +22,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['F'], what: 'Roof' },
       { keys: ['S'], what: 'Stair' },
       { keys: ['U'], what: 'Furniture' },
+      { keys: ['L'], what: 'Measure: distance and height between two points' },
+      { keys: ['E'], what: 'Note: a text label on the plan' },
       { keys: ['M'], what: 'Move the house on the block' },
     ],
   },
