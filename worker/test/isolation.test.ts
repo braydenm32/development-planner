@@ -54,7 +54,7 @@ describe('keeping each person’s data to themselves', () => {
     const { s, ana, ben, before } = await twoPeople()
     const same = JSON.stringify({ survey: 'Ana’s survey', pad: 'x'.repeat(INLINE_MAX) })
     const his = await ben.upload(same)
-    expect([...s.env.BLOBS.map.keys()].filter(k => k.includes(his.hash)).sort()).toEqual([`b:${ana.id}:${his.hash}:0`, `b:${ben.id}:${his.hash}:0`])
+    expect([...s.env.BLOBS.map.keys()].filter(k => k.includes(his.hash)).sort()).toEqual([`b:${ana.id}:${his.hash}:0`, `b:${ben.id}:${his.hash}:0`].sort())
     await ben.save('p_ben', 'Ben’s', { survey: his })
     // His copy going (unused, then tidied) leaves hers.
     expect((await ben.fetch('/api/projects/p_ben/commit', post({ base: 1, meta: meta('Ben’s'), records: { survey: null } }))).status).toBe(200)
