@@ -141,9 +141,9 @@ describe('the ground against a floor', () => {
 
   it('says how deep a floor on piers has to be dug out under, with the framing and the gap', () => {
     // Floor 84, framing 300, gap 400: the ground must be at RL 83.3 or lower.
-    expect(cutUnderPiers(p, [study], [0, 0], flat(83.3))).toBeCloseTo(0, 9)
-    expect(cutUnderPiers(p, [study], [0, 0], flat(84.5))).toBeCloseTo(1.2, 9)
-    expect(cutUnderPiers(p, [study], [0, 0], flat(82))).toBe(0)
+    expect(cutUnderPiers(p, 'level_ground', [study], [0, 0], flat(83.3))).toBeCloseTo(0, 9)
+    expect(cutUnderPiers(p, 'level_ground', [study], [0, 0], flat(84.5))).toBeCloseTo(1.2, 9)
+    expect(cutUnderPiers(p, 'level_ground', [study], [0, 0], flat(82))).toBe(0)
   })
 
   it('finds how far the ground comes up a wall', () => {

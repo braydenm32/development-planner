@@ -615,7 +615,7 @@ describe('the tooltip', () => {
 describe('where the floor type is shown and asked', () => {
   const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
 
-  it('lists the two usual types first in Design › Floors, the rest behind More floor types, and framed above', () => {
+  it('lists the two usual types first in Design › Floors, the rest behind More floor types, and framed or suspended above', () => {
     const plan = boxHouse(83)
     const floors = text(renderToStaticMarkup(createElement(LevelFloorType, { plan, level: L })))
     expect(floors).toContain('Not chosen yet (builds as a slab)')
@@ -628,7 +628,11 @@ describe('where the floor type is shown and asked', () => {
     expect(waffle).toContain('Waffle pod slab')
     expect(waffle).not.toContain('Not chosen yet')
     const two = addLevelAbove(plan)
-    expect(text(renderToStaticMarkup(createElement(LevelFloorType, { plan: two.plan, level: two.id })))).toContain('Framed floor.')
+    // A level well above the ground: framed, or a suspended slab.
+    const above = text(renderToStaticMarkup(createElement(LevelFloorType, { plan: two.plan, level: two.id })))
+    expect(above).toContain('Framed floor')
+    expect(above).toContain('Suspended slab')
+    expect(above).not.toContain('Bearers and joists on piers')
   })
 
   it('lets a room follow its level or set its own', () => {

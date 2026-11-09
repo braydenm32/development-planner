@@ -7,7 +7,7 @@
 
 import type { EarthworksResult } from '../lib/earthworks'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
-import { DEFAULT_FLOOR_TYPE, levelFloorType, roomFloorType, type FloorTypeId } from './floorTypes'
+import { levelBuildsAs, roomFloorType, type FloorTypeId } from './floorTypes'
 import { faceAround, offsetPolygon, planarFaces, type Face } from './geometry'
 import { levelSummaries } from './keyNumbers'
 import { areaKind, type AreaKind, type Opening, type Plan, type Roof } from './model'
@@ -52,9 +52,13 @@ export interface RetainingSet extends Counted {
 export interface DesignQuantities {
   /** Every level's floor area to the outside of its walls: the strip's Floor (levelSummaries). */
   floorArea: number
-  /** The lowest level's floor, by how it is built (Design › Floors). Null before walls enclose it. */
+  /**
+   * The floors built on the ground, by how they are built (Design › Floors): the lowest level's,
+   * and any split level's given a floor type of its own. `level` is the lowest of them, `name`
+   * their names together. Null before walls enclose one.
+   */
   ground: { level: string; name: string; area: number; parts: { type: FloorTypeId; area: number }[] } | null
-  /** Framed floors above the lowest: their floor areas, less any slab on ground under them (slabUnder). */
+  /** Framed floors: their floor areas, less any slab on ground under them (slabUnder). */
   upper: { area: number; names: string[] }
   /**
    * Concrete slab areas that sit under an upper level's rooms: on a split level that level's floor
@@ -106,13 +110,14 @@ const counted = (): Counted => ({ count: 0, area: 0, ids: [] })
 const SLAB_LEVEL_SHARE = 0.8
 
 /**
- * The lowest floor split by how each part is built: rooms whose own floor type differs from
- * their level's take their outline to the outside of their walls (as the earthworks leave the
+ * A floor built on the ground split by how each part is built: rooms whose own floor type differs
+ * from their level's take their outline to the outside of their walls (as the earthworks leave the
  * ground natural under piers); the rest of the floor area is the level's own type.
  */
 function groundParts(plan: Plan, levelId: string, gross: number): { type: FloorTypeId; area: number }[] {
-  const own = levelFloorType(plan, levelId)
-  const levelType: FloorTypeId = own === undefined || own === 'framed' ? DEFAULT_FLOOR_TYPE : own
+  const own = levelBuildsAs(plan, levelId)
+  if (own === 'framed') return []
+  const levelType: FloorTypeId = own
   const faces = planarFaces(plan.walls.filter(w => w.level === levelId))
   const seen = new Set<Face>()
   const other = new Map<FloorTypeId, number>()
@@ -133,6 +138,19 @@ function groundParts(plan: Plan, levelId: string, gross: number): { type: FloorT
   return [{ type: levelType, area: rest }, ...[...other].map(([type, area]) => ({ type, area }))].filter(p => p.area > 1e-9)
 }
 
+/** The floors built on the ground, their parts added up by type. */
+function groundFloors(plan: Plan, levels: ReturnType<typeof levelSummaries>): NonNullable<DesignQuantities['ground']> {
+  const byType = new Map<FloorTypeId, number>()
+  for (const s of levels) for (const p of groundParts(plan, s.level.id, s.gross.area)) byType.set(p.type, (byType.get(p.type) ?? 0) + p.area)
+  const names = levels.map(s => s.level.name)
+  return {
+    level: levels[0].level.id,
+    name: names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0],
+    area: levels.reduce((t, s) => t + s.gross.area, 0),
+    parts: [...byType].map(([type, area]) => ({ type, area })),
+  }
+}
+
 /**
  * Everything a cost estimate counts in the design. `earth` is the earthworks result when there
  * is something levelled (as the strip's cut and fill); `retaining` the retaining walls' profiles
@@ -145,15 +163,16 @@ export function designQuantities(
   implied: ImpliedTotals | null = null,
 ): DesignQuantities {
   const summaries = levelSummaries(plan)
-  const lowest = summaries[0]
 
   const floorArea = summaries.reduce((t, s) => t + s.gross.area, 0)
-  const ground = lowest && lowest.gross.area > 0 ? { level: lowest.level.id, name: lowest.level.name, area: lowest.gross.area, parts: groundParts(plan, lowest.level.id, lowest.gross.area) } : null
-  const uppers = summaries.slice(1).filter(s => s.gross.area > 0)
+  // Every level built on the ground counts as ground floor, by type; the rest are framed.
+  const onGround = summaries.filter(s => s.gross.area > 0 && levelBuildsAs(plan, s.level.id) !== 'framed')
+  const ground = onGround.length ? groundFloors(plan, onGround) : null
+  const uppers = summaries.filter(s => s.gross.area > 0 && !onGround.includes(s))
 
   // A slab area under an upper level's outline is that level's floor, poured on the ground (a
-  // split level's usual way), not an outdoor slab and not a framed floor. The fuller answer is a
-  // floor type for each level.
+  // split level's way before each level had a floor type), not an outdoor slab and not a framed
+  // floor. A level given a floor type of its own is counted above instead.
   const slabUnder = { ...counted(), names: [] as string[], areas: [] as string[] }
   const claimed = new Set<string>()
   const upperParts: { name: string; area: number }[] = []

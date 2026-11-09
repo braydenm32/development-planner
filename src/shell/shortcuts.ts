@@ -36,6 +36,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['-'], what: 'Zoom out' },
       { keys: ['0'], what: 'Fit the house' },
       { keys: ['shift+0'], what: 'Fit the block' },
+      { keys: ['PageUp', 'PageDown'], what: 'Draw on the level above or below' },
       { keys: ['mod+K'], what: 'Search everything' },
       { keys: ['?'], what: 'This list' },
     ],

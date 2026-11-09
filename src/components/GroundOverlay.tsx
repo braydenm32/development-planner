@@ -3,10 +3,10 @@ import { CUT_RGB, FILL_RGB, rgbCss } from '../lib/colors'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { onNaturalGround } from '../plan/floorTypes'
+import { onNaturalGround, roomFloorType } from '../plan/floorTypes'
 import { planarFaces, roomShape } from '../plan/geometry'
 import { floorVsGround, formatOffset, groundRange, groundUnder, levelFloorRL, type GroundOverlay as Overlay, type WorksOverlay as Works } from '../plan/groundOverlay'
-import { sortedLevels, type Plan, type Room } from '../plan/model'
+import type { Plan, Room } from '../plan/model'
 
 const FILL = rgbCss(FILL_RGB)
 const CUT = rgbCss(CUT_RGB)
@@ -229,19 +229,6 @@ export function CornerOffsets({ pts, offsets, closed, atPointer, toScreen }: Cor
   )
 }
 
-/** Which level is being drawn on, and its floor level, in the corner of the plan; `action` is a small control after it (Pick a contour). */
-export function LevelChip({ name, rl, below, action }: { name: string; rl: number; below: string | null; action?: ReactNode }) {
-  return (
-    <div className="level-chip">
-      <span>
-        Drawing on <b>{name}</b> · floor RL {rl.toFixed(2)}
-        {action}
-      </span>
-      {below && <span className="muted">Dashed lines: {below} walls below</span>}
-    </div>
-  )
-}
-
 /**
  * Turns the ground tint on and off, with a key to its colours. `works`: the tint is the cut and
  * fill itself (Earthworks › Cut & fill), not the floor against the ground. With no `floor` (Site,
@@ -325,6 +312,6 @@ export function RoomGround({ plan, room, survey, terrain }: { plan: Plan; room: 
     return shape ? groundRange(shape.inner, plan.placement, survey.origin, terrain.grid) : null
   }, [plan.walls, plan.placement, room, survey, terrain])
   if (!range) return null
-  const kind = sortedLevels(plan)[0]?.id !== room.level ? 'upper' : onNaturalGround(plan, room) ? 'piers' : 'slab'
+  const kind = roomFloorType(plan, room) === 'framed' ? 'upper' : onNaturalGround(plan, room) ? 'piers' : 'slab'
   return <p className="muted small">{groundUnder(range, levelFloorRL(plan, room.level), kind)}</p>
 }
