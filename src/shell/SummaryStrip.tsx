@@ -121,8 +121,17 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                     </Chip>
                   ))}
                 {n.retaining && (
-                  <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} term="retaining-wall" title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
+                  <Chip
+                    id="retaining"
+                    label="Tallest wall"
+                    shown={shown.retaining}
+                    route={route}
+                    readOnly={readOnly}
+                    term="retaining-wall"
+                    title={`Holds back up to ${retainedText(n.retaining.maxHeight)}${n.retaining.impliedTallest ? '. An implied wall: a vertical edge of the cut and fill, not drawn yet.' : ''}`}
+                  >
                     <b>{n.retaining.maxHeight.toFixed(2)} m</b>
+                    {n.retaining.impliedTallest && <em className="chip-note"> implied</em>}
                     {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_TEXT}</span>}
                   </Chip>
                 )}

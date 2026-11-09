@@ -82,8 +82,12 @@ function OfferCard({ o }: { o: OfferState }) {
         <h2>A retaining wall on the {offer.facing} side?</h2>
         <p>
           {who} is {m(offer.depth)} {cut ? 'below the ground' : 'above the ground'} on its {offer.facing} side ({cut ? 'uphill: cut' : 'downhill: fill'}).{' '}
-          {cut ? 'A wall there holds the earth back.' : 'A wall there holds up the fill under the house.'}
-          {height !== null && height > 0.005 && ` It would hold back about ${m(height)}.`}
+          {cut ? 'A wall there holds the earth back' : 'A wall there holds up the fill under the house'}
+          {height !== null && height > 0.005
+            ? Math.abs(height - offer.depth) >= 0.05
+              ? `: about ${m(height)}, ${placement === 'gap' ? `${gap.toFixed(1)} m out, where` : 'at the house wall, where'} the ground is ${(cut ? height > offer.depth : height < offer.depth) ? 'higher' : 'lower'} than at the room’s edge. Dashed on the plan.`
+              : `: about ${m(height)}. Dashed on the plan.`
+            : '. Dashed on the plan.'}
         </p>
       </header>
       {OFFER_PLACEMENT === 'ask' ? (

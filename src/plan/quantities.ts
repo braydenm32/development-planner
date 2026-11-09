@@ -12,6 +12,7 @@ import { faceAround, offsetPolygon, planarFaces, type Face } from './geometry'
 import { levelSummaries } from './keyNumbers'
 import { areaKind, type AreaKind, type Opening, type Plan, type Roof } from './model'
 import type { RetainingProfile } from './retaining'
+import type { ImpliedTotals } from '../grading/implied'
 import { roofGeometry } from './roof'
 
 /** Rooms that need their own fit-out and plumbing, found by their names. */
@@ -85,6 +86,8 @@ export interface DesignQuantities {
   earth: { cut: number; fill: number; net: number } | null
   /** Retaining walls, by how they are built. */
   retaining: { sleeper: RetainingSet; block: RetainingSet }
+  /** Walls the earthworks imply but nobody has drawn: vertical edges of the cut and fill (src/grading/implied.ts). */
+  impliedRetaining?: ImpliedTotals | null
 }
 
 /** The part of an opening that is in its wall: no higher than the wall (m²). */
@@ -153,7 +156,12 @@ function groundFloors(plan: Plan, levels: ReturnType<typeof levelSummaries>): No
  * is something levelled (as the strip's cut and fill); `retaining` the retaining walls' profiles
  * against the finished ground (as Earthworks › Retaining walls measures them).
  */
-export function designQuantities(plan: Plan, earth: Pick<EarthworksResult, 'cut' | 'fill'> | null, retaining: RetainingProfile[]): DesignQuantities {
+export function designQuantities(
+  plan: Plan,
+  earth: Pick<EarthworksResult, 'cut' | 'fill'> | null,
+  retaining: RetainingProfile[],
+  implied: ImpliedTotals | null = null,
+): DesignQuantities {
   const summaries = levelSummaries(plan)
 
   const floorArea = summaries.reduce((t, s) => t + s.gross.area, 0)
@@ -298,5 +306,6 @@ export function designQuantities(plan: Plan, earth: Pick<EarthworksResult, 'cut'
     outdoor,
     earth: earth ? { cut: earth.cut, fill: earth.fill, net: earth.cut - earth.fill } : null,
     retaining: retain,
+    impliedRetaining: implied,
   }
 }

@@ -372,3 +372,58 @@ export function isNear(p: Vec2, s: NearShapes, reach: number): boolean {
   }
   return s.filled.some(r => near(r, true)) || s.lines.some(l => near(l, false))
 }
+
+// ---------------------------------------------------------------------------
+// Where the earth is actually moved: the finished ground against the natural ground.
+//
+// "Ground vs this floor" above is about the floor level, over the whole block, and reads as
+// cut far past the batters. On Earthworks › Cut & fill the tint is instead the difference the
+// works make, so it stops where the batters meet the ground.
+
+/** Ground changed by less than this (m) is left untouched in the tint, so rounding doesn't show as works. */
+export const WORKS_MIN = 0.02
+/** The depths (m) where the works tint gets a shade stronger: the edge of the works, then every half metre. */
+export const WORKS_BANDS = [WORKS_MIN, 0.5, 1, 1.5, 2]
+
+export interface WorksOverlay {
+  x0: number
+  y0: number
+  cell: number
+  /** SVG path data (grid units, to fill even-odd) for where the ground is cut by at least WORKS_BANDS[k]... */
+  cut: string[]
+  /** ...and filled by at least that. */
+  fill: string[]
+  /** The edge of the works (cut or fill) as lines in grid units. */
+  edge: string
+  clip: string
+}
+
+const worksCache = new WeakMap<Heightfield, WorksOverlay>()
+
+/** The cut and fill tint for one earthworks result: `natural` and `finished` share a grid. */
+export function worksOverlay(natural: Heightfield, finished: Heightfield, boundary: Vec2[]): WorksOverlay {
+  const hit = worksCache.get(finished)
+  if (hit) return hit
+  const { nx, ny } = finished
+  const down = new Float64Array(finished.z.length)
+  const up = new Float64Array(finished.z.length)
+  const moved = new Float64Array(finished.z.length)
+  for (let k = 0; k < down.length; k++) {
+    const d = finished.z[k] - natural.z[k]
+    down[k] = -d
+    up[k] = d
+    moved[k] = Math.abs(d)
+  }
+  const layers = (vals: Float64Array) => WORKS_BANDS.map(t => ringsPath(superlevel(vals, nx, ny, t).rings))
+  const o: WorksOverlay = {
+    x0: finished.x0,
+    y0: finished.y0,
+    cell: finished.cell,
+    cut: layers(down),
+    fill: layers(up),
+    edge: superlevel(moved, nx, ny, WORKS_MIN).lines.map(linePath).join(''),
+    clip: ringsPath([boundary.map(([x, y]): Vec2 => [(x - finished.x0) / finished.cell, (y - finished.y0) / finished.cell])]),
+  }
+  worksCache.set(finished, o)
+  return o
+}

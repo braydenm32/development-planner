@@ -17,7 +17,7 @@ import { crosses, type Barrier, type PreparedEarthworks, type PreparedPlatform }
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { bearingName } from '../lib/terrain'
 
-export type RuleId = 'boundary' | 'clearance' | 'room' | 'tall' | 'wide'
+export type RuleId = 'boundary' | 'clearance' | 'room' | 'tall' | 'wide' | 'implied'
 
 /** Earthworks must stay more than this from a side or rear boundary: Housing Code cl 3.30 (hc-works-boundary) (m). */
 export const WORKS_CLEARANCE = 1
@@ -103,8 +103,22 @@ export const SUGGEST_RULES: SuggestRule[] = [
   },
 ]
 
-const RANK: Record<RuleId, number> = Object.fromEntries(SUGGEST_RULES.map((r, i) => [r.id, i])) as Record<RuleId, number>
-export const ruleOf = (id: RuleId) => SUGGEST_RULES[RANK[id]]
+/**
+ * Not a suggestion but a wall the design already has: with the cut (or fill) slopes set to
+ * Retaining wall the ground stops in a vertical face, and someone has to build the wall that holds
+ * it. Traced like the suggestions, it shows dashed with its height, and counts as an implied wall
+ * (./implied.ts).
+ */
+export const IMPLIED_RULE: SuggestRule = {
+  id: 'implied',
+  title: 'Vertical edge',
+  rule: 'The slopes are set to Retaining wall, so the ground stops in a vertical face here: a wall someone has to build.',
+  why: f => `${Kind(f.kind)} slopes are set to Retaining wall, so this ${f.kind} edge is a ${wallText(f.wall)} wall someone has to build`,
+}
+
+// The implied walls come before every suggestion: they're already in the design.
+const RANK: Record<RuleId, number> = { implied: -1, ...(Object.fromEntries(SUGGEST_RULES.map((r, i) => [r.id, i])) as Record<Exclude<RuleId, 'implied'>, number>) }
+export const ruleOf = (id: RuleId) => (id === 'implied' ? IMPLIED_RULE : SUGGEST_RULES[RANK[id]])
 
 /** A retaining wall worth adding, with why. */
 export interface WallSuggestion {
@@ -125,6 +139,8 @@ export interface WallSuggestion {
   level: number
   /** Ground it holds back, at most (m). */
   height: number
+  /** Its face, ground to ground: each straight run's length times the ground it holds there on average (m²). */
+  face: number
   why: string
   /** Needs a professional engineer's certificate (needsEngineer). */
   engineer: boolean
@@ -155,7 +171,17 @@ export interface SuggestInput {
   dismissed?: Dismissal[]
   /** The wall's thickness, so its face sits on the levelled area's edge (m). */
   thickness?: number
+  /** Only the implied walls (vertical edges), which skip the batter walk: cheap, and the same whatever the trees and dismissals. */
+  impliedOnly?: boolean
+  /**
+   * The house's outline. A vertical edge along it (no level ground past the slab) is held by the
+   * house's own walls and footings, so it isn't an implied wall; only edges outside the house are.
+   */
+  house?: Vec2[][]
 }
+
+/** A vertical edge this close to the house's outline is the house's own wall (m). */
+export const HOUSE_HOLDS = 0.3
 
 interface Hit {
   k: number
@@ -278,7 +304,14 @@ export function suggestWalls(inp: SuggestInput): WallSuggestion[] {
       if (!kind || (kind === 'cut' && !P.cut) || (kind === 'fill' && !P.fill)) continue
       const batter = kind === 'cut' ? prep.opts.cutBatter : prep.opts.fillBatter
       const wall = Math.abs(outside - L)
-      if (batter <= 0 || wall < MIN_WALL_HEIGHT) continue
+      if (wall < MIN_WALL_HEIGHT) continue
+      // No batter: a vertical edge, which is a wall whatever else is near it.
+      if (batter <= 0) {
+        if (inp.house?.some(r => pointInPolygon(pos[0], pos[1], r) || segmentsOf([...r, r[0]]).some(([a, b]) => distToSegment(pos, a, b) < HOUSE_HOLDS))) continue
+        hits.push({ k, i, j, pos, n, kind, wall, height: wall, width: 0, rule: 'implied' })
+        continue
+      }
+      if (inp.impliedOnly) continue
       // Walk the batter out.
       let prev = node
       let run = 0
@@ -344,7 +377,8 @@ export function suggestWalls(inp: SuggestInput): WallSuggestion[] {
     const near = (a: Vec2, b: Vec2, tol: number) => angleApart(dir, lineDir(a, b)) < 25 && distToSegment(m, a, b) < tol
     if (kept.some(t => segmentsOf(t.path).some(([a, b]) => near(a, b, 1.5)))) continue
     if (inp.barriers.some(([a, b]) => near(a, b, 1.5))) continue
-    if (inp.dismissed?.some(d => angleApart(dir, d.dir) < 20 && distToSegment(d.at, s.a, s.b) < 1)) continue
+    // An implied wall is in the design already: turning it down doesn't take it away.
+    if (s.rule !== 'implied' && inp.dismissed?.some(d => angleApart(dir, d.dir) < 20 && distToSegment(d.at, s.a, s.b) < 1)) continue
     kept.push(s)
   }
   return kept
@@ -419,6 +453,7 @@ function joinPieces(pieces: Piece[], source: string, level: number): WallSuggest
       b: main[1],
       level,
       height,
+      face: chain.reduce((t, p) => t + gap(p.a, p.b) * p.mean, 0),
       why: ruleOf(top.rule).why({ ...top.facts, wall: height }),
       engineer: needsEngineer(height),
     })
@@ -433,6 +468,8 @@ interface Piece {
   kind: 'cut' | 'fill'
   rule: RuleId
   height: number
+  /** The ground it holds, on average along it (m). */
+  mean: number
   facts: WhyFacts
 }
 
@@ -543,7 +580,7 @@ function groupHits(hits: Hit[], c: { cell: number; nx: number; reach: number; th
       height: Math.max(...top.map(h => h.height)),
       width: Math.max(...top.map(h => h.width)),
     }
-    out.push({ a, b, kind: seed.kind, rule, height, facts })
+    out.push({ a, b, kind: seed.kind, rule, height, mean: group.reduce((t, h) => t + h.wall, 0) / group.length, facts })
   }
   return out
 }

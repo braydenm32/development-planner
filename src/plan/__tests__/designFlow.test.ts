@@ -455,8 +455,10 @@ describe('offering a retaining wall', () => {
       // the card's "hold back about" is the number the placed wall's panel then shows
       expect(finishedProfile(usePlan.getState().plan!, walls[0]).maxHeight, placement).toBeCloseTo(said, 9)
       expect(walls[0].a[1]).toBeCloseTo(placement === 'gap' ? 9.25 : 8.25, 9)
-      // its card opens, filled in, to check and keep
-      expect(useRetaining.getState().newWall).toBe(walls[0].id)
+      // placed at once (no second Place to press), selected so its panel shows it to change
+      expect(useRetaining.getState().newWall).toBeNull()
+      expect(walls[0].retain?.draft).toBeUndefined()
+      expect(usePlan.getState().selection).toEqual({ type: 'wall', id: walls[0].id })
       usePlan.getState().undo()
       expect(usePlan.getState().plan).toBe(before)
     }

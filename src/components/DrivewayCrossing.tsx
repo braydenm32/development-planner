@@ -107,7 +107,7 @@ export function DrivewayCrossing(props: Props) {
               </>
             )}
           </p>
-          {!typed && kerb?.from !== 'survey' && <StateKerb d={d} facts={facts} survey={survey} set={set} />}
+          {!typed && kerb?.from !== 'survey' && kerb?.from !== 'chosen' && <StateKerb d={d} facts={facts} survey={survey} set={set} />}
           <Num label="Footpath width" unit="m" decimals={1} min={0.5} max={30} value={facts.footpath ?? d.std.footpath.width} onCommit={v => set({ footpath: v })} />
           <p className="muted small">
             Kerb to boundary.{' '}

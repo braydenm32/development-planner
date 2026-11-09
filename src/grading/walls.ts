@@ -52,19 +52,37 @@ export function planWallSuggestions(plan: Plan, survey: Pick<Survey, 'origin' | 
   const key = JSON.stringify([counted, zones, dismissed])
   const hit = cache.get(earth)
   if (hit && hit.key === key) return hit.value
-  const value = suggestWalls({
-    prep: earth.prep,
-    boundary: survey.boundary,
-    counted,
-    barriers: earth.strips.map(s => [s.a, s.b]),
-    trees: zones,
-    sources: earth.prep.platforms.flatMap(p => (p.id && (isPadId(p.id) || p.id.startsWith('slab:') || p.id.startsWith('grade:')) ? [p.id] : [])),
-    family,
-    label,
-    dismissed,
-    thickness: SUGGESTED_THICKNESS,
-  })
+  const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
+  const value = suggestWalls({ ...inputs(survey, earth), counted, trees: zones, dismissed, house })
   cache.set(earth, { key, value })
+  return value
+}
+
+/** What suggestWalls looks along and what stops a batter, from the earthworks. */
+const inputs = (survey: Pick<Survey, 'boundary'>, earth: Earth) => ({
+  prep: earth.prep,
+  boundary: survey.boundary,
+  barriers: earth.strips.map(s => [s.a, s.b] as [Vec2, Vec2]),
+  sources: earth.prep.platforms.flatMap(p => (p.id && (isPadId(p.id) || p.id.startsWith('slab:') || p.id.startsWith('grade:')) ? [p.id] : [])),
+  family,
+  label,
+  thickness: SUGGESTED_THICKNESS,
+})
+
+const impliedCache = new WeakMap<Earth, WallSuggestion[]>()
+
+/**
+ * Only the implied walls (src/grading/implied.ts): the vertical edges, which don't depend on the
+ * trees, the boundary's sides or what was dismissed, so the strip and Costs can have them without
+ * those. Worked out once for each earthworks result.
+ */
+export function planImpliedWalls(survey: Pick<Survey, 'boundary'>, earth: Earth | null): WallSuggestion[] {
+  if (!earth || !earth.platforms.length) return []
+  const hit = impliedCache.get(earth)
+  if (hit) return hit
+  const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
+  const value = suggestWalls({ ...inputs(survey, earth), counted: [], trees: [], impliedOnly: true, house })
+  impliedCache.set(earth, value)
   return value
 }
 

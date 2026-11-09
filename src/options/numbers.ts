@@ -2,6 +2,7 @@
 // the earthworks panels, Costs and Checks use, so the table can't disagree with the rest of
 // the app (CALM 8): the only new thing here is that it runs them for a plan that isn't open.
 
+import { impliedTotals, impliedWalls } from '../grading/implied'
 import type { CheckCounts } from '../checks/rules'
 import type { CheckTree, Pathway } from '../checks/types'
 import { checksFor } from '../checks/useChecks'
@@ -69,7 +70,8 @@ export function optionNumbers(
   const total = levelSummaries(plan).reduce((t, l) => t + l.gross.area, 0)
   const r = earth.platforms.length > 0 ? earth.result : null
   const walls = retainingProfiles(plan, survey.origin, earth.result.grid ?? terrain.grid)
-  const est = estimate(designQuantities(plan, r, walls), costs, feeContextOf(plan))
+  // With the walls the cut and fill imply, as Costs counts them.
+  const est = estimate(designQuantities(plan, r, walls, impliedTotals(impliedWalls(survey, earth))), costs, feeContextOf(plan))
   // The inputs the Checks panel gives its checks, so the sun and the planning maps' rows are counted here too.
   const sun = ctx.sun ?? keptSunFacts({ plan, boundary: survey.boundary, origin: survey.origin, ground: groundFor(terrain, earth), date: winterDay() })
   const c = checksFor({ plan, survey, terrain, earth, trees, sun, dem: ctx.dem ?? false, planning: ctx.planning ?? null })
