@@ -8,7 +8,7 @@
 import { driveWidth } from '../lib/drape'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { distToRings, driveEndPoints, garageRL, houseRings, type DriveGround } from './driveway'
-import { areaKind, earthworksOf, pointOnWall, sortedLevels, toSite, wallDir, type Area, type CrossingFacts, type Plan } from './model'
+import { areaKind, earthworksOf, pointOnWall, toSite, wallDir, type Area, type CrossingFacts, type Plan } from './model'
 
 /** Samples along the drive (m). */
 export const STEP = 0.25
@@ -80,13 +80,15 @@ function hitEdge(p: Vec2, u: Vec2, boundary: Vec2[], i: number): number | null {
   return s >= -0.02 && s <= 1.02 && t >= 0 ? t : null
 }
 
-/** The garage door nearest the drive's garage end, within 3 m: its width and how it sits to the drive. */
+/**
+ * The garage door nearest the drive's garage end, within 3 m, on any level (a split level's
+ * garage can be on an upper one): its width and how it sits to the drive.
+ */
 function doorFor(plan: Plan, origin: Vec2, garage: Vec2, u: Vec2): DoorFacts | null {
-  const lowest = sortedLevels(plan)[0]
   let best: { d: number; door: DoorFacts } | null = null
   for (const o of plan.openings) {
     const w = plan.walls.find(x => x.id === o.wall)
-    if (!w || w.level !== lowest?.id) continue
+    if (!w) continue
     // A garage door, or a wide opening at floor level (older plans drew them that way).
     if (!(o.kind === 'garage' || (o.kind === 'opening' && o.width >= 2.1 && (o.sill ?? 0) <= 0.01))) continue
     const c = toSite(pointOnWall(w, o.offset), plan.placement, origin)
@@ -103,15 +105,14 @@ function doorFor(plan: Plan, origin: Vec2, garage: Vec2, u: Vec2): DoorFacts | n
 }
 
 /**
- * Each driveway on the lowest level, as the crossing checks measure it: its centreline from the
+ * Each driveway, on whichever level it's drawn, as the crossing checks measure it: its centreline from the
  * garage end out to where it meets the street boundary (the plan's street side, or the first
  * edge the centreline meets when none is set), and the finished ground along it.
  */
 export function driveLines(plan: Plan, origin: Vec2, boundary: Vec2[], ground: DriveGround, opts: { frontEdge?: number; battleAxe?: boolean; natural?: (p: Vec2) => number | null } = {}): DriveLine[] {
-  const lowest = sortedLevels(plan)[0]
   const out: DriveLine[] = []
   for (const area of plan.areas) {
-    if (areaKind(area) !== 'driveway' || area.level !== lowest?.id) continue
+    if (areaKind(area) !== 'driveway') continue
     const line = driveLine(plan, area, origin, boundary, ground, opts)
     if (line) out.push(line)
   }

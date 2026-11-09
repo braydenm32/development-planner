@@ -171,6 +171,15 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     }
   else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Floors', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
   if (q.upper.area > 0) add('floor-upper', 'floor-upper', q.upper.area, { from: listOf(q.upper.names), dp: 2, target: { kind: 'floor' }, at: 'design/floors' })
+  // A split level's slab poured on the ground under an upper level: once, as slab on ground.
+  if (q.slabUnder.area > 0)
+    add('floor-slab-under', 'floor-slab', q.slabUnder.area, {
+      label: `Slab on ground under the ${listOf(q.slabUnder.names.map(n => n.toLowerCase()))}`,
+      from: listOf(q.slabUnder.areas),
+      dp: 2,
+      target: { kind: 'areas', ids: q.slabUnder.ids },
+      at: 'design/floors',
+    })
 
   // Frame
   const frame = choice('frame')

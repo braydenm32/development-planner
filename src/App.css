@@ -512,6 +512,26 @@ button.secondary:hover {
   opacity: 0.6;
 }
 
+/* A stair coming up through this floor: an open hole in it, with the treads seen below. */
+.stair.arriving .stair-body {
+  fill: #ffffff;
+  stroke-dasharray: 6 3;
+}
+
+.stair.arriving .stair-treads,
+.stair.arriving .stair-walk {
+  stroke: #6b737c;
+}
+
+.stair-flag {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--danger, #b3261e);
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+}
+
 .roof-outline {
   fill: none;
   stroke: #a0613f;

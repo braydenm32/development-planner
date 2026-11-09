@@ -12,7 +12,6 @@ import {
   floorRL,
   houseWalls,
   isRetaining,
-  levelById,
   SLAB_THICKNESS,
   sortedLevels,
   toSite,
@@ -25,7 +24,7 @@ import { garagePanelFootprint } from '../plan/garageDoor'
 import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
-import { stairLayout } from '../plan/stairs'
+import { stairArrivesAt, stairLayout } from '../plan/stairs'
 
 interface Props {
   plan: Plan
@@ -131,10 +130,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       }
 
       // Floor structure under the outside of the walls, with a hole where a stair comes up.
-      const arriving = plan.stairs.filter(st => {
-        const from = levelById(plan, st.level)
-        return from && from.elevation < level.elevation && Math.abs(from.elevation + st.base + st.rise - level.elevation) < 0.05
-      })
+      const arriving = plan.stairs.filter(st => stairArrivesAt(plan, st, level.id))
       for (const outline of buildingOutline(planarFaces(walls)).outlines) {
         const holes = arriving.map(st => stairLayout(st).outline).filter(h => h.every(p => pointInPolygon(p[0], p[1], outline)))
         const g = prism(
