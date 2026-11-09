@@ -100,8 +100,12 @@ export interface PlacementInfo {
   sides: BoundaryClearance[]
 }
 
-/** The ground under the house and its distance to each side of the block, from the ground floor's outline. */
-export function placementInfo(gross: Vec2[][], pl: Placement, survey: Survey, terrain: Terrain): PlacementInfo | null {
+/**
+ * The ground under the house and its distance to each side of the block, from the house's outline
+ * rings (every level's, lowest first: see houseOutline). With `names` (each ring's level), each
+ * side also says which level is nearest it, when the rings are on more than one.
+ */
+export function placementInfo(gross: Vec2[][], pl: Placement, survey: Survey, terrain: Terrain, names?: string[]): PlacementInfo | null {
   const outline = gross.flat()
   if (!outline.length) return null
   const site = outline.map(p => toSite(p, pl, survey.origin))
@@ -110,6 +114,16 @@ export function placementInfo(gross: Vec2[][], pl: Placement, survey: Survey, te
 
   // Distance from the house to each side of the block.
   const sides = boundaryClearances(gross, pl, survey)
+  const levelNames = names ? [...new Set(names)] : []
+  if (names && levelNames.length > 1) {
+    const each = levelNames.map(name => ({ name, sides: boundaryClearances(gross.filter((_, i) => names[i] === name), pl, survey) }))
+    sides.forEach((s, i) => {
+      // The level that sets this side's number: furthest over it, or else nearest.
+      const key = (c: BoundaryClearance) => (c.over > 0 ? -c.over : c.dist)
+      const best = each.filter(e => e.sides[i]).sort((a, b) => key(a.sides[i]) - key(b.sides[i]))[0]
+      if (best) s.level = best.name
+    })
+  }
   return {
     minRL: Math.min(...levels),
     maxRL: Math.max(...levels),

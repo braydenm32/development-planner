@@ -6,7 +6,7 @@
 // measures yet (the outside walls' area, the openings, wet rooms) is worked out here.
 
 import type { EarthworksResult } from '../lib/earthworks'
-import { signedArea, type Vec2 } from '../lib/geom'
+import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { DEFAULT_FLOOR_TYPE, levelFloorType, roomFloorType, type FloorTypeId } from './floorTypes'
 import { faceAround, offsetPolygon, planarFaces, type Face } from './geometry'
 import { levelSummaries } from './keyNumbers'
@@ -53,8 +53,15 @@ export interface DesignQuantities {
   floorArea: number
   /** The lowest level's floor, by how it is built (Design › Floors). Null before walls enclose it. */
   ground: { level: string; name: string; area: number; parts: { type: FloorTypeId; area: number }[] } | null
-  /** Framed floors above the lowest: their floor areas. */
+  /** Framed floors above the lowest: their floor areas, less any slab on ground under them (slabUnder). */
   upper: { area: number; names: string[] }
+  /**
+   * Concrete slab areas that sit under an upper level's rooms: on a split level that level's floor
+   * is a slab on the ground, drawn as a slab area. Counted once here, as slab on ground, and taken
+   * out of both the framed upper floors and the outdoor slabs. `names` are the levels they're
+   * under, `areas` the slab areas' own names.
+   */
+  slabUnder: Counted & { names: string[]; areas: string[] }
   /** Rooms with a floor finish: every enclosed room except garages and carports (room areas, inside the walls). */
   finishes: Counted
   /** Rooms with a fit-out of their own, by kind, with their names. */
@@ -91,6 +98,9 @@ function outsideWallIds(faces: Face[]): Set<string> {
 const perimeter = (ring: Vec2[]) => ring.reduce((t, p, i) => t + Math.hypot(ring[(i + 1) % ring.length][0] - p[0], ring[(i + 1) % ring.length][1] - p[1]), 0)
 
 const counted = (): Counted => ({ count: 0, area: 0, ids: [] })
+
+/** Slab areas covering at least this share of an upper level's floor make all of it a slab on ground. */
+const SLAB_LEVEL_SHARE = 0.8
 
 /**
  * The lowest floor split by how each part is built: rooms whose own floor type differs from
@@ -132,7 +142,38 @@ export function designQuantities(plan: Plan, earth: Pick<EarthworksResult, 'cut'
   const floorArea = summaries.reduce((t, s) => t + s.gross.area, 0)
   const ground = lowest && lowest.gross.area > 0 ? { level: lowest.level.id, name: lowest.level.name, area: lowest.gross.area, parts: groundParts(plan, lowest.level.id, lowest.gross.area) } : null
   const uppers = summaries.slice(1).filter(s => s.gross.area > 0)
-  const upper = { area: uppers.reduce((t, s) => t + s.gross.area, 0), names: uppers.map(s => s.level.name) }
+
+  // A slab area under an upper level's outline is that level's floor, poured on the ground (a
+  // split level's usual way), not an outdoor slab and not a framed floor. The fuller answer is a
+  // floor type for each level.
+  const slabUnder = { ...counted(), names: [] as string[], areas: [] as string[] }
+  const claimed = new Set<string>()
+  const upperParts: { name: string; area: number }[] = []
+  for (const s of uppers) {
+    let covered = 0
+    for (const a of plan.areas) {
+      if (areaKind(a) !== 'slab' || claimed.has(a.id) || a.pts.length < 3) continue
+      const c = centroidOf(a.pts)
+      if (!s.gross.outlines.some(o => pointInPolygon(c[0], c[1], o))) continue
+      claimed.add(a.id)
+      covered += Math.abs(signedArea(a.pts))
+      slabUnder.count++
+      slabUnder.ids.push(a.id)
+      slabUnder.areas.push(a.name)
+    }
+    if (covered <= 0) {
+      upperParts.push({ name: s.level.name, area: s.gross.area })
+      continue
+    }
+    slabUnder.names.push(s.level.name)
+    // A slab drawn inside the walls leaves a strip under them: when it covers most of the level,
+    // the whole floor is slab, measured to the outside of the walls as the lowest floor is.
+    const whole = covered >= SLAB_LEVEL_SHARE * s.gross.area
+    slabUnder.area += whole ? s.gross.area : covered
+    upperParts.push({ name: s.level.name, area: whole ? 0 : Math.max(0, s.gross.area - covered) })
+  }
+  const framed = upperParts.filter(u => u.area > 0.01)
+  const upper = { area: framed.reduce((t, u) => t + u.area, 0), names: framed.map(u => u.name) }
 
   const finishes = counted()
   const wet = Object.fromEntries(WET_ROOMS.map(w => [w.id, { ...counted(), names: [] as string[] }])) as DesignQuantities['wet']
@@ -202,6 +243,7 @@ export function designQuantities(plan: Plan, earth: Pick<EarthworksResult, 'cut'
   const outdoor = Object.fromEntries((['slab', 'driveway', 'deck', 'garden'] as AreaKind[]).map(k => [k, { ...counted(), names: [] as string[] }])) as DesignQuantities['outdoor']
   for (const s of summaries)
     for (const a of s.areas) {
+      if (claimed.has(a.area.id)) continue
       const c = outdoor[areaKind(a.area)]
       c.count++
       c.area += a.size
@@ -224,6 +266,7 @@ export function designQuantities(plan: Plan, earth: Pick<EarthworksResult, 'cut'
     floorArea,
     ground,
     upper,
+    slabUnder,
     finishes,
     wet,
     walls,

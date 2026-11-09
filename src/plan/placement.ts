@@ -28,6 +28,41 @@ export function defaultPlacement(survey: Survey, terrain: Terrain): Placement {
 }
 
 /**
+ * The middle of the house's outline rings (house frame): their centroid weighted by area, or the
+ * middle of their corners when they enclose nothing. Null with no rings.
+ */
+export function ringsCentre(rings: Vec2[][]): Vec2 | null {
+  const rs = rings.filter(r => r.length)
+  if (!rs.length) return null
+  let a = 0
+  let x = 0
+  let y = 0
+  for (const r of rs) {
+    const w = Math.abs(signedArea(r))
+    const c = centroidOf(r)
+    a += w
+    x += c[0] * w
+    y += c[1] * w
+  }
+  if (a > 1e-9) return [x / a, y / a]
+  const pts = rs.flat()
+  return [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length]
+}
+
+/**
+ * Turn the house to `rotation` about `mid` (a point in the house frame, the middle of the house),
+ * which stays where it is on the block. The placement turns about the plan's origin, which can be
+ * metres from the house, so turning it alone would swing the house across the block.
+ */
+export function rotatedPlacement(pl: Placement, rotation: number, mid: Vec2 | null): Placement {
+  if (!mid) return { ...pl, rotation }
+  // Where the middle is now, in site coordinates (easting, northing), less where the new turn puts it.
+  const now = toSite(mid, pl, [0, 0])
+  const turned = toSite(mid, { ...pl, rotation, e: 0, n: 0 }, [0, 0])
+  return { ...pl, rotation, e: Math.round((now[0] - turned[0]) * 1000) / 1000, n: Math.round((now[1] - turned[1]) * 1000) / 1000 }
+}
+
+/**
  * Centre on block: slide the house (keeping its turn and floor level) so the middle of what is
  * drawn, `mid` in the house frame, sits on the block's centroid.
  */
@@ -54,6 +89,8 @@ export interface BoundaryClearance {
   inward: Vec2
   /** Direction of the side, degrees anticlockwise from east. */
   angle: number
+  /** On a plan with more than one level: the level nearest this side (or furthest over it). */
+  level?: string
 }
 
 function closestOnSeg(p: Vec2, a: Vec2, b: Vec2): Vec2 {

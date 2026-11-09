@@ -189,3 +189,33 @@ describe('a drive on the plan', () => {
     expect(driveLines(plan, origin, boundary, driveGround(null, ground), { frontEdge: 0 })).toEqual([])
   })
 })
+
+describe('a drive on an upper split level', () => {
+  const pts: Vec2[] = [
+    [2, -21.5],
+    [6, -21.5],
+    [6, 0],
+    [2, 0],
+  ]
+  /** The garage and drive on the upper level of a made-up split level, with a lower wing 1.5 m down behind them. */
+  const split = (plan: Plan): Plan => {
+    const c: Vec2[] = [
+      [0, 9],
+      [10, 9],
+      [10, 15],
+      [0, 15],
+    ]
+    let p: Plan = { ...plan, levels: [{ id: 'level_low', name: 'Lower level', elevation: -1.5, height: 2.7 }, ...plan.levels] }
+    for (let i = 0; i < 4; i++) p = addWall(p, 'level_low', c[i], c[(i + 1) % 4], { kind: 'external', thickness: 0.27 })
+    return p
+  }
+
+  it('has its footpath crossing checked, with the same numbers as on the lowest level', () => {
+    const opts = { frontEdge: 0, natural: (p: Vec2) => ground.sample(p[0], p[1]) }
+    const flat = driveLines(block(pts, { garage: 'slab' }), origin, boundary, driveGround(null, ground), opts)
+    const upper = driveLines(split(block(pts, { garage: 'slab' })), origin, boundary, driveGround(null, ground), opts)
+    expect(upper).toHaveLength(1)
+    expect(upper).toEqual(flat)
+    expect(upper[0].floor).toBe(84)
+  })
+})

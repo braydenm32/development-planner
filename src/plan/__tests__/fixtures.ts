@@ -52,3 +52,45 @@ export function garageFloor(): Plan {
     placement: { e: 1005, n: 1000, rotation: 0, ffl: 84 },
   }
 }
+
+/** Four outside walls round a box, on a level. */
+const box = (level: string, id: string, x0: number, y0: number, x1: number, y1: number): Wall[] =>
+  (
+    [
+      [[x0, y0], [x1, y0]],
+      [[x1, y0], [x1, y1]],
+      [[x1, y1], [x0, y1]],
+      [[x0, y1], [x0, y0]],
+    ] as [[number, number], [number, number]][]
+  ).map(([a, b], i) => ({ id: `${id}_${i}`, level, a, b, thickness: 0.27, kind: 'external' }))
+
+/**
+ * A made-up split level for tests, stepping up a slope to the north: a lower wing (x 0..8,
+ * y 0..6), a middle wing half a level up beside it (y 6..12) whose floor is a slab poured on
+ * the ground, and a top level over the lower wing. A stair climbs from the lower level to the
+ * middle one. It isn't anyone's house.
+ */
+export function splitLevels(): Plan {
+  return {
+    version: 1,
+    levels: [
+      { id: 'level_low', name: 'Lower level', elevation: 0, height: 2.7 },
+      { id: 'level_mid', name: 'Middle level', elevation: 1.2, height: 2.7 },
+      { id: 'level_top', name: 'Top level', elevation: 3.0, height: 2.7 },
+    ],
+    walls: [...box('level_low', 'low', 0, 0, 8, 6), ...box('level_mid', 'mid', 0, 6, 8, 12), ...box('level_top', 'top', 0, 0, 8, 6)],
+    openings: [],
+    rooms: [
+      { id: 'r_low', level: 'level_low', name: 'Rumpus', at: [4, 3] },
+      { id: 'r_mid', level: 'level_mid', name: 'Living', at: [4, 9] },
+      { id: 'r_top', level: 'level_top', name: 'Bedroom', at: [4, 3] },
+    ],
+    areas: [{ id: 'mid_slab', level: 'level_mid', name: 'Middle slab', kind: 'slab', top: 0, pts: [[0, 6], [8, 6], [8, 12], [0, 12]] }],
+    roofs: [],
+    stairs: [
+      { id: 'stair_up', level: 'level_low', at: [6, 4], angle: 90, width: 0.9, base: 0, rise: 1.2, going: 0.25, shape: 'straight', turn: 'left', toLevel: 'level_mid' },
+    ],
+    furniture: [],
+    placement: { e: 1006, n: 1004, rotation: 0, ffl: 82 },
+  }
+}
