@@ -230,3 +230,13 @@
 .dem-notice .muted {
   margin: 6px 0 0;
 }
+
+/* In 3D the view buttons sit where the chip would. */
+.app-shell:not(.phone) .dem-chip.in-3d {
+  top: 58px;
+}
+
+/* On a phone there's room for the gist only; Site › Block has the rest. */
+.app-shell.phone .dem-chip-more {
+  display: none;
+}

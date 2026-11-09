@@ -12,14 +12,15 @@ const useDem = (): DemSource | undefined => useProjects().opened?.survey?.dem
 
 const dateOf = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 
-/** On the canvas: the ground is rough, and the survey can come in any time. */
-export function DemChip() {
+/** On the canvas: the ground is rough, and the survey can come in any time. In 3D it sits below the view buttons. */
+export function DemChip({ in3d = false }: { in3d?: boolean }) {
   const dem = useDem()
   if (!dem) return null
   return (
-    <div className="sketch-chip dem-chip" role="status" title={dem.credit}>
+    <div className={`sketch-chip dem-chip${in3d ? ' in-3d' : ''}`} role="status" title={`Ground levels from the state’s elevation model, about ±${dem.accuracy} m. ${dem.credit}.`}>
       <span>
-        <b>Rough ground</b> · state elevation data, about ±{dem.accuracy} m
+        <b>Rough ground</b>
+        <span className="dem-chip-more"> · state data, ±{dem.accuracy} m</span>
       </span>
       <button onClick={() => pickFile('survey')}>Add the survey</button>
     </div>

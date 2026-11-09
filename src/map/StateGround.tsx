@@ -16,12 +16,14 @@ interface Props {
   into: 'new' | 'current' | 'replace'
   /** The class of the main button, to match the screen it's on. */
   buttonClass?: string
+  /** Lead with "No survey yet?" (off where the heading already asks it). */
+  ask?: boolean
 }
 
 /** What the levels are good for, in one line, wherever they're offered. */
 export const DEM_GOOD_FOR = `Accurate to about ±${DEM.accuracy} m: good for a first look before you buy, not for design or earthworks quantities.`
 
-export function StateGround({ lot, into, buttonClass = 'primary' }: Props) {
+export function StateGround({ lot, into, buttonClass = 'primary', ask = true }: Props) {
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ctrl = useRef<AbortController | null>(null)
@@ -59,7 +61,8 @@ export function StateGround({ lot, into, buttonClass = 'primary' }: Props) {
   return (
     <div className="state-ground">
       <p>
-        <b>No survey yet? Use the state’s ground levels.</b> The lot’s lines come from the NSW cadastre and the ground from the state’s elevation model ({DEM.from}, on a {DEM.resolution} m grid). {DEM_GOOD_FOR}
+        {ask && <b>No survey yet? Use the state’s ground levels. </b>}
+        The lot’s lines come from the NSW cadastre and the ground from the state’s elevation model ({DEM.from}, on a {DEM.resolution} m grid). {DEM_GOOD_FOR}
       </p>
       {progress === null ? (
         <div className="row">

@@ -13,7 +13,9 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
 
   // Addresses as you type, a moment after you stop.
   const q = text.trim()
-  const typing = q.length >= 4 && !parseLotDp(q)
+  // An address picked from the list is in the box now; it isn't searched for again.
+  const [chosen, setChosen] = useState<string | null>(null)
+  const typing = q.length >= 4 && !parseLotDp(q) && text !== chosen
   useEffect(() => {
     if (!typing) return
     const c = new AbortController()
@@ -60,6 +62,7 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
   }
   const choose = (h: AddressHit) => {
     setText(h.address)
+    setChosen(h.address)
     void run(s => lotsOfProperty(h.propId, s), 'That address has no lot on the map. Try its Lot and DP instead.')
   }
 

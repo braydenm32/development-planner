@@ -62,7 +62,7 @@ export function MapTab() {
   return (
     <div className="map-tab">
       {place && !moving ? (
-        <Placed place={place} outline={outline} view={view} onView={setView} onMove={() => setMoving(true)} />
+        <Placed place={place} outline={outline} view={view} onView={setView} onMove={() => setMoving(true)} fromLot={!!project.dem} />
       ) : (
         <>
           <p className="muted small">
@@ -103,7 +103,7 @@ export function MapTab() {
   )
 }
 
-function Placed({ place, outline, view, onView, onMove }: { place: MapPlace; outline: SurveyOutline; view: MapViewState; onView: (v: MapViewState) => void; onMove: () => void }) {
+function Placed({ place, outline, view, onView, onMove, fromLot }: { place: MapPlace; outline: SurveyOutline; view: MapViewState; onView: (v: MapViewState) => void; onMove: () => void; fromLot: boolean }) {
   const [step, setStep] = useState(0.25)
   const surveyLonLat = useMemo(() => outline.boundary.map(p => fromMga(gridToMga(place.fit, p), place.zone)), [outline, place.fit, place.zone])
   const fit = fitWords(place)
@@ -123,7 +123,10 @@ function Placed({ place, outline, view, onView, onMove }: { place: MapPlace; out
         </button>
       </div>
       <MapPicker view={view} onView={onView} lots={[place.lot]} selected={place.lot.id} onPick={() => {}} outline={surveyLonLat} height={260} />
-      {stale ? (
+      {fromLot && !stale ? (
+        // The block was made from this lot, so there's no fit to judge or nudge.
+        <p className="muted small">The block’s boundary is the lot’s own lines from the NSW cadastre, and its ground the state’s elevation model.</p>
+      ) : stale ? (
         <div className="notice small">
           The survey has changed since it was put on the map.{' '}
           <button className="link" onClick={() => placeOnLot(outline, place.lot)}>
@@ -133,44 +136,46 @@ function Placed({ place, outline, view, onView, onMove }: { place: MapPlace; out
       ) : (
         <p className={fit.loose ? 'notice small' : 'muted small'}>{fit.text}</p>
       )}
-      {handle && <p className="muted small">The survey covers {Math.round(place.areaRatio * 100)}% of the lot’s area, so part of the lot isn’t in it. On a battle-axe lot that’s usually the access handle.</p>}
-      {north && (
+      {handle && !fromLot && <p className="muted small">The survey covers {Math.round(place.areaRatio * 100)}% of the lot’s area, so part of the lot isn’t in it. On a battle-axe lot that’s usually the access handle.</p>}
+      {north && !fromLot && (
         <p className="muted small">
           Your survey’s north is turned {Math.abs(place.fit.rotation).toFixed(1)}° {place.fit.rotation > 0 ? 'anticlockwise' : 'clockwise'} from grid north.
         </p>
       )}
-      <details className="checks-more map-nudge">
-        <summary>Nudge it into place</summary>
-        <div className="map-nudge-grid" role="group" aria-label="Move the survey on the map">
-          <button className="secondary" onClick={() => turn(0.25)} aria-label="Turn anticlockwise a quarter degree">
-            ↺
-          </button>
-          <button className="secondary" onClick={() => shift(0, 1)} aria-label="Move north">
-            ↑
-          </button>
-          <button className="secondary" onClick={() => turn(-0.25)} aria-label="Turn clockwise a quarter degree">
-            ↻
-          </button>
-          <button className="secondary" onClick={() => shift(-1, 0)} aria-label="Move west">
-            ←
-          </button>
-          <button className="secondary" onClick={() => shift(0, -1)} aria-label="Move south">
-            ↓
-          </button>
-          <button className="secondary" onClick={() => shift(1, 0)} aria-label="Move east">
-            →
-          </button>
-        </div>
-        <label className="map-step">
-          <span>Each move</span>
-          <select value={step} onChange={e => setStep(Number(e.target.value))}>
-            <option value={0.05}>5 cm</option>
-            <option value={0.25}>25 cm</option>
-            <option value={1}>1 m</option>
-          </select>
-          <span className="muted small">Turns are ¼°.</span>
-        </label>
-      </details>
+      {!fromLot && (
+        <details className="checks-more map-nudge">
+          <summary>Nudge it into place</summary>
+          <div className="map-nudge-grid" role="group" aria-label="Move the survey on the map">
+            <button className="secondary" onClick={() => turn(0.25)} aria-label="Turn anticlockwise a quarter degree">
+              ↺
+            </button>
+            <button className="secondary" onClick={() => shift(0, 1)} aria-label="Move north">
+              ↑
+            </button>
+            <button className="secondary" onClick={() => turn(-0.25)} aria-label="Turn clockwise a quarter degree">
+              ↻
+            </button>
+            <button className="secondary" onClick={() => shift(-1, 0)} aria-label="Move west">
+              ←
+            </button>
+            <button className="secondary" onClick={() => shift(0, -1)} aria-label="Move south">
+              ↓
+            </button>
+            <button className="secondary" onClick={() => shift(1, 0)} aria-label="Move east">
+              →
+            </button>
+          </div>
+          <label className="map-step">
+            <span>Each move</span>
+            <select value={step} onChange={e => setStep(Number(e.target.value))}>
+              <option value={0.05}>5 cm</option>
+              <option value={0.25}>25 cm</option>
+              <option value={1}>1 m</option>
+            </select>
+            <span className="muted small">Turns are ¼°.</span>
+          </label>
+        </details>
+      )}
 
       <label className="check">
         <input type="checkbox" checked={place.aerial} onChange={e => setMapOptions({ aerial: e.target.checked })} />
@@ -269,13 +274,31 @@ function Planning({ place }: { place: MapPlace }) {
           {!council && f.lga && <p className="muted small">The checks don’t know {titleCase(f.lga)}’s own rules yet, so the DA checks stay off. The Housing Code checks apply across NSW.</p>}
           {mapValues && (
             <div className="row">
-              <button className="secondary" onClick={() => setCheckSettings({ ...(f.height !== null ? { lepHeight: f.height } : {}), ...(f.fsr !== null ? { lepFsr: f.fsr } : {}) })}>
+              <button
+                className="secondary"
+                onClick={() =>
+                  setCheckSettings({
+                    ...(f.height !== null ? { lepHeight: f.height } : {}),
+                    ...(f.fsr !== null ? { lepFsr: f.fsr } : {}),
+                  })
+                }
+              >
                 Use the map’s {[f.height !== null && 'height', f.fsr !== null && 'floor space ratio'].filter(Boolean).join(' and ')} in the checks
               </button>
             </div>
           )}
           <div className="row">
-            <button className="link" onClick={() => navigate({ kind: 'app', area: 'design', tab: 'checks', view: 'plan' })}>
+            <button
+              className="link"
+              onClick={() =>
+                navigate({
+                  kind: 'app',
+                  area: 'design',
+                  tab: 'checks',
+                  view: 'plan',
+                })
+              }
+            >
               See them in Checks
             </button>
           </div>

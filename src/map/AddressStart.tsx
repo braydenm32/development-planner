@@ -33,7 +33,7 @@ export function AddressStart({ into }: { into: 'new' | 'current' }) {
           {picked ? (
             <div className="map-picked">
               <b>{picked.label}</b>
-              <StateGround key={picked.id} lot={picked} into={into} buttonClass="st-btn primary" />
+              <StateGround key={picked.id} lot={picked} into={into} buttonClass="st-btn primary" ask={false} />
             </div>
           ) : (
             <p className="st-note">Tap your lot on the map to pick it.</p>

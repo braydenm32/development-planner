@@ -231,7 +231,7 @@ export default function App() {
   const canvas = (
     <>
       {isSketch(project) && mode !== 'print' && <SketchChip />}
-      {project.dem && mode !== 'print' && <DemChip />}
+      {project.dem && mode !== 'print' && <DemChip in3d={mode === '3d'} />}
       {(projects.saveError || projects.memoryOnly) && (
         <p className="bhp-save-problem" role="status">
           {projects.memoryOnly

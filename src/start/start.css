@@ -192,6 +192,44 @@
   margin: 0;
 }
 
+/* The lot search (src/map/LotSearch.tsx), dressed as the start screen's own fields and buttons. */
+.st-wide .map-search form {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0;
+}
+
+.st-wide .map-search form > * {
+  margin: 0;
+}
+
+.st-wide .map-search input[type='search'] {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-r);
+  background: #ffffff;
+  font: inherit;
+}
+
+.st-wide .map-search input[type='search']:focus-visible {
+  outline: none;
+  border-color: var(--st-accent);
+  box-shadow: 0 0 0 1px var(--st-accent);
+}
+
+.st-wide .map-search button[type='submit'] {
+  margin: 0;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-r);
+  background: #ffffff;
+  font: inherit;
+  font-weight: 550;
+}
+
 .st-art {
   height: 140px;
   border-radius: var(--st-r);
@@ -495,10 +533,10 @@
   left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
 }
 
-/* On a phone: under the floor chip, clear of the canvas buttons down the right. */
+/* On a phone: under the floor chip, clear of the tool rail (in Edit) and the canvas buttons down the right. */
 .app-shell.phone .sketch-chip {
   top: 64px;
-  left: 12px;
+  left: calc(var(--free-left, 0px) + 12px);
   right: 64px;
   max-width: none;
   justify-content: space-between;
