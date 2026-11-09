@@ -257,7 +257,7 @@ export interface ProjectReviewInput {
   current: string | null
 }
 
-/** What a project file holds besides its plan, in words: "36 site features · 3 levels · block 624 m²". */
+/** What a project file holds besides its plan, in words: "12 site features · 2 levels · block 480 m²". */
 export function holds(i: Pick<ProjectReviewInput, 'siteFeatures' | 'plan' | 'blockArea'>): string {
   const levels = sortedLevels(i.plan).length
   return [
