@@ -1,8 +1,10 @@
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { softPasskey } from '../../../worker/test/authenticator'
 import { ORIGIN, testServer } from '../../../worker/test/fakes'
+import { RESEND_KEY, stubResend } from '../../../worker/test/mail'
 import { createCloudApi } from '../api'
+import { codeDigits, couldBeEmail } from '../emailCode'
 
 // The browser's passkey prompt, answered by a software authenticator.
 const h = vi.hoisted(() => ({ key: null as null | { create: (o: never) => Promise<unknown>; get: (o: never) => Promise<unknown> } }))
@@ -159,5 +161,104 @@ describe('cloud saves in the app', () => {
     const { passkeyTrouble } = await vi.importActual<typeof import('../passkeys')>('../passkeys')
     expect(passkeyTrouble(Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }))).toBeNull()
     expect(passkeyTrouble(new Error('That passkey isn’t one this account knows.'))).toBe('That passkey isn’t one this account knows.')
+  })
+})
+
+describe('email sign-in in the app (Resend stubbed: nothing reaches the network)', () => {
+  afterEach(() => void vi.unstubAllGlobals())
+
+  /** A Worker that can send codes, and the inbox they land in. */
+  const emailing = () => ({ mail: stubResend(), server: testServer({ RESEND_API_KEY: RESEND_KEY }) })
+
+  it('offers email only where the cloud can send it', async () => {
+    const off = await freshApp(testServer().fetch)
+    await off.startCloud()
+    expect(off.useCloud.getState()).toMatchObject({ phase: 'signed-out', email: false })
+    const { server } = emailing()
+    const on = await freshApp(server.fetch)
+    await on.startCloud()
+    expect(on.useCloud.getState()).toMatchObject({ phase: 'signed-out', email: true })
+  })
+
+  it('asks once for an email after a new account’s code is kept, then reviews the upload', async () => {
+    const { mail, server } = emailing()
+    const app = await freshApp(server.fetch)
+    await app.ensureProjects()
+    await app.projectActions.create(survey('a.dxf'))
+    await app.startCloud()
+    await app.cloudActions.createAccount('Tester')
+    expect(app.useCloud.getState().sheet).toBe('code')
+    app.cloudActions.close()
+    expect(app.useCloud.getState().sheet).toBe('email-nudge')
+
+    const kept = await app.cloudActions.addEmail('  Tester@Example.com ')
+    expect(kept).toBe('tester@example.com')
+    expect(mail.to('tester@example.com')).toHaveLength(1)
+    // A wrong code says so, and the sheet stays.
+    const code = mail.codeFor('tester@example.com')
+    expect(await app.cloudActions.confirmEmail(kept!, code === '000000' ? '111111' : '000000')).toBe(false)
+    expect(app.useCloud.getState()).toMatchObject({ sheet: 'email-nudge', busy: false })
+    expect(app.useCloud.getState().problem).toMatch(/didn’t work/)
+    expect(await app.cloudActions.confirmEmail(kept!, code)).toBe(true)
+    expect(app.useCloud.getState()).toMatchObject({ sheet: 'upload', problem: null })
+    expect((await app.cloudActions.account()).email).toBe('tester@example.com')
+  })
+
+  it('lets the ask go by with Not now, straight on to the upload', async () => {
+    const { server } = emailing()
+    const app = await freshApp(server.fetch)
+    await app.ensureProjects()
+    await app.projectActions.create(survey('a.dxf'))
+    await app.startCloud()
+    await app.cloudActions.createAccount('Tester')
+    app.cloudActions.close()
+    app.cloudActions.close()
+    expect(app.useCloud.getState().sheet).toBe('upload')
+    expect((await app.cloudActions.account()).email).toBeNull()
+  })
+
+  it('signs in on a new device with an emailed code, then offers a passkey there', async () => {
+    const { mail, server } = emailing()
+    // The account, made on another device, with its email added.
+    const first = await freshApp(server.fetch)
+    await first.startCloud()
+    await first.cloudActions.createAccount('Tester')
+    await first.cloudActions.addEmail('tester@example.com')
+    await first.cloudActions.confirmEmail('tester@example.com', mail.codeFor('tester@example.com'))
+    expect(first.useCloud.getState().sheet).toBe('account')
+
+    const device = await freshApp(server.browser())
+    h.key = softPasskey(ORIGIN)
+    await device.startCloud()
+    device.cloudActions.open('sign-in')
+    device.cloudActions.open('email')
+    expect(await device.cloudActions.emailCode('nobody@example.com')).toBe(true)
+    expect(mail.to('nobody@example.com')).toEqual([])
+    expect(await device.cloudActions.emailCode(' tester@example.com')).toBe(true)
+    const code = mail.codeFor('tester@example.com')
+    expect(await device.cloudActions.emailSignIn('tester@example.com', code === '000000' ? '111111' : '000000')).toBe(false)
+    expect(device.useCloud.getState()).toMatchObject({ phase: 'signed-out', sheet: 'email' })
+    expect(device.useCloud.getState().problem).toMatch(/didn’t work/)
+
+    expect(await device.cloudActions.emailSignIn('tester@example.com', code)).toBe(true)
+    expect(device.useCloud.getState()).toMatchObject({ phase: 'signed-in', user: { name: 'Tester' }, sheet: 'passkey-offer', problem: null })
+    expect(await device.cloudActions.addPasskey()).toBe(true)
+    device.cloudActions.close()
+    // On, as after any sign-in: projects already on this device are offered for upload.
+    expect([null, 'upload']).toContain(device.useCloud.getState().sheet)
+    expect((await device.cloudActions.account()).passkeys).toHaveLength(2)
+
+    // And it can be removed.
+    expect(await device.cloudActions.removeEmail()).toBe(true)
+    expect((await device.cloudActions.account()).email).toBeNull()
+  })
+
+  it('reads the code however it’s typed or pasted, and checks an address looks like one', () => {
+    expect(codeDigits('123 456')).toBe('123456')
+    expect(codeDigits('123-456')).toBe('123456')
+    expect(codeDigits('Your code is 654321.')).toBe('654321')
+    expect(codeDigits('1234567')).toBe('123456')
+    expect(couldBeEmail(' ana@example.com ')).toBe(true)
+    for (const no of ['', 'ana', 'ana@example', 'ana @example.com', `${'a'.repeat(250)}@example.com`]) expect(couldBeEmail(no), no).toBe(false)
   })
 })

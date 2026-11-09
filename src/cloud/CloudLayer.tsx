@@ -1,6 +1,6 @@
-// The cloud's sheets, over every screen: sign in, create an account, use the
-// recovery code, keep a new code, the first upload's review, the account, and deleting it.
-// Mounted once.
+// The cloud's sheets, over every screen: sign in (with a passkey, or a code by email), create an
+// account, use the recovery code, keep a new code, the first upload's review, the account and its
+// email for sign-in, and deleting it. Mounted once.
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { saveFile } from '../lib/download'
@@ -8,6 +8,7 @@ import { Icon } from '../nav/icons'
 import { edited } from '../projects/format'
 import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
+import { codeDigits, couldBeEmail } from './emailCode'
 import { passkeysWork } from './passkeys'
 import { cloudActions, startCloud, useCloud } from './state'
 import { chipLook, longDate, megabytes, projects } from './words'
@@ -28,6 +29,10 @@ export function CloudLayer() {
   if (sheet === 'account') return <AccountSheet />
   if (sheet === 'delete') return <DeleteSheet />
   if (sheet === 'deleting') return <DeletingSheet />
+  if (sheet === 'email') return <EmailSignInSheet />
+  if (sheet === 'email-add') return <EmailAddSheet nudge={false} />
+  if (sheet === 'email-nudge') return <EmailAddSheet nudge />
+  if (sheet === 'passkey-offer') return <PasskeyOfferSheet />
   return null
 }
 
@@ -91,6 +96,7 @@ const NO_PASSKEYS = 'This browser can’t use passkeys. Try an up-to-date Safari
 function SignInSheet() {
   const busy = useCloud(s => s.busy)
   const signup = useCloud(s => s.signup)
+  const email = useCloud(s => s.email)
   const works = passkeysWork()
   return (
     <Sheet title="Save your projects to the cloud">
@@ -107,6 +113,14 @@ function SignInSheet() {
           {busy ? 'Waiting for your passkey…' : 'Sign in with a passkey'}
         </button>
       </div>
+      {email && (
+        <p className="cl-instead">
+          <button className="cl-link" onClick={() => cloudActions.open('email')} disabled={busy}>
+            <Icon name="mail" size={16} />
+            Email me a code instead
+          </button>
+        </p>
+      )}
       <p className="cl-alt">
         {signup !== 'closed' && (
           <span>
@@ -231,6 +245,227 @@ function RecoverSheet() {
           </span>
         </p>
       </form>
+    </Sheet>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Email: the backup to passkeys. Signed out, a 6-digit code to the account's address signs in;
+// signed in, an address is added once a code sent to it is typed in. Both start with the address,
+// then take the code.
+
+function EmailField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const busy = useCloud(s => s.busy)
+  return (
+    <label className="cl-field">
+      <span>Email address</span>
+      <input
+        type="email"
+        autoFocus
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        autoComplete="email"
+        inputMode="email"
+        autoCapitalize="none"
+        spellCheck={false}
+        maxLength={254}
+        readOnly={busy}
+      />
+    </label>
+  )
+}
+
+/** The code: six digits, typed, pasted in any shape or filled in from the email by the phone. Sends itself once whole. */
+function CodeStep({ lede, label, onCode, onResend, onOther }: { lede: ReactNode; label: string; onCode: (code: string) => Promise<boolean>; onResend: () => Promise<boolean>; onOther: () => void }) {
+  const busy = useCloud(s => s.busy)
+  const [code, setCode] = useState('')
+  const [resent, setResent] = useState(false)
+  const submit = (value: string) => {
+    if (!busy && value.length === 6) void onCode(value)
+  }
+  const resend = async () => {
+    if (!(await onResend())) return
+    setCode('')
+    setResent(true)
+  }
+  return (
+    <form
+      onSubmit={e => {
+        e.preventDefault()
+        submit(code)
+      }}
+    >
+      <p>{lede}</p>
+      <label className="cl-field">
+        <span>6-digit code</span>
+        <input
+          autoFocus
+          className="cl-otp"
+          value={code}
+          onChange={e => {
+            const digits = codeDigits(e.target.value)
+            setCode(digits)
+            if (digits.length === 6 && code.length < 6) submit(digits)
+          }}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          spellCheck={false}
+          readOnly={busy}
+        />
+      </label>
+      {resent && (
+        <p className="cl-muted" role="status">
+          A new code is on its way. The one before it no longer works.
+        </p>
+      )}
+      <Problem />
+      <div className="cl-actions">
+        <button type="submit" className="cl-btn primary big" disabled={busy || code.length !== 6}>
+          {busy ? 'Checking…' : label}
+        </button>
+      </div>
+      <p className="cl-alt">
+        <span>
+          No email?{' '}
+          <button type="button" className="cl-link" onClick={() => void resend()} disabled={busy}>
+            Send a new code
+          </button>
+        </span>
+        <span>
+          <button type="button" className="cl-link" onClick={onOther} disabled={busy}>
+            Use another email
+          </button>
+        </span>
+      </p>
+    </form>
+  )
+}
+
+function EmailSignInSheet() {
+  const busy = useCloud(s => s.busy)
+  const [address, setAddress] = useState('')
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const ready = couldBeEmail(address)
+  const send = async (e: FormEvent) => {
+    e.preventDefault()
+    if (ready && !busy && (await cloudActions.emailCode(address))) setSentTo(address.trim())
+  }
+  return (
+    <Sheet title="Sign in with an email code">
+      {sentTo === null ? (
+        <form onSubmit={e => void send(e)}>
+          <p>Lost your passkey, or on a new device? We’ll email you a 6-digit code, if you’ve added this email to your account.</p>
+          <EmailField value={address} onChange={setAddress} />
+          <Problem />
+          <div className="cl-actions">
+            <button type="submit" className="cl-btn primary big" disabled={busy || !ready}>
+              <Icon name="mail" size={18} />
+              {busy ? 'Sending…' : 'Email me a code'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <CodeStep
+          lede={
+            <>
+              If an account has <b className="cl-email">{sentTo}</b>, we’ve emailed it a code. It works for 10 minutes. Not there in a minute? Check your spam folder.
+            </>
+          }
+          label="Sign in"
+          onCode={code => cloudActions.emailSignIn(sentTo, code)}
+          onResend={() => cloudActions.emailCode(sentTo)}
+          onOther={() => setSentTo(null)}
+        />
+      )}
+      <p className="cl-alt">
+        <span>
+          <button type="button" className="cl-link" onClick={() => cloudActions.open('sign-in')} disabled={busy}>
+            Back to sign in
+          </button>
+        </span>
+        <span>
+          No email added?{' '}
+          <button type="button" className="cl-link" onClick={() => cloudActions.open('recover')} disabled={busy}>
+            Use your recovery code
+          </button>
+        </span>
+      </p>
+    </Sheet>
+  )
+}
+
+/** Add (or change) the account's email: from the account sheet, or the one ask after creating an account (`nudge`). */
+function EmailAddSheet({ nudge }: { nudge: boolean }) {
+  const busy = useCloud(s => s.busy)
+  const [address, setAddress] = useState('')
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const ready = couldBeEmail(address)
+  const send = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!ready || busy) return
+    const kept = await cloudActions.addEmail(address)
+    if (kept) setSentTo(kept)
+  }
+  const leave = () => (nudge ? cloudActions.close() : cloudActions.open('account'))
+  return (
+    <Sheet title={nudge ? 'Add an email, just in case' : 'Email for sign-in'}>
+      {sentTo === null ? (
+        <form onSubmit={e => void send(e)}>
+          <p>{nudge ? 'Add an email so you can get back in if you lose this device.' : 'If you lose your passkeys, we can email you a code to sign in.'} We’ll send it a code first, to check it’s yours.</p>
+          <EmailField value={address} onChange={setAddress} />
+          <p className="cl-agree">
+            Used only to send you sign-in codes, through Resend.{' '}
+            <a href="#/privacy" target="_blank" rel="noopener">
+              Privacy policy
+            </a>
+          </p>
+          <Problem />
+          <div className="cl-actions split">
+            <button type="button" className="cl-btn" onClick={leave} disabled={busy}>
+              {nudge ? 'Not now' : 'Cancel'}
+            </button>
+            <button type="submit" className="cl-btn primary" disabled={busy || !ready}>
+              <Icon name="mail" size={17} />
+              {busy ? 'Sending…' : 'Email me a code'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <CodeStep
+          lede={
+            <>
+              We’ve emailed a code to <b className="cl-email">{sentTo}</b>. It works for 10 minutes.
+            </>
+          }
+          label="Add this email"
+          onCode={code => cloudActions.confirmEmail(sentTo, code)}
+          onResend={async () => !!(await cloudActions.addEmail(sentTo))}
+          onOther={() => setSentTo(null)}
+        />
+      )}
+    </Sheet>
+  )
+}
+
+/** After signing in by email: a passkey on this device, so next time is quicker. */
+function PasskeyOfferSheet() {
+  const busy = useCloud(s => s.busy)
+  const add = async () => {
+    if (await cloudActions.addPasskey()) cloudActions.close()
+  }
+  return (
+    <Sheet title="Add a passkey on this device?">
+      <p>You’re signed in. With a passkey here, next time it’s Face ID, your fingerprint, your PIN or Windows Hello, with no email to wait for.</p>
+      <Problem />
+      <div className="cl-actions split">
+        <button className="cl-btn" onClick={cloudActions.close} disabled={busy}>
+          Not now
+        </button>
+        <button className="cl-btn primary" data-autofocus onClick={() => void add()} disabled={busy}>
+          <Icon name="key" size={17} />
+          {busy ? 'Waiting for your passkey…' : 'Add a passkey'}
+        </button>
+      </div>
     </Sheet>
   )
 }
@@ -367,6 +602,8 @@ function AccountSheet() {
   const user = useCloud(s => s.user)
   const sync = useCloud(s => s.sync)
   const busy = useCloud(s => s.busy)
+  const emailOn = useCloud(s => s.email)
+  const [removing, setRemoving] = useState(false)
   const localOnly = useCloud(s => s.waiting.length + s.kept.length)
   const [account, setAccount] = useState<Account | null>(null)
   useEffect(() => {
@@ -436,6 +673,59 @@ function AccountSheet() {
           Add a passkey on this device
         </button>
       </section>
+
+      {/* Shown where email works; and wherever an address is kept, so it can always be removed. */}
+      {account && (emailOn || account.email) && (
+        <section className="cl-section">
+          <h3>Email for sign-in</h3>
+          {account.email ? (
+            <>
+              <p className="cl-muted">
+                <b className="cl-email">{account.email}</b>
+                <br />
+                {emailOn ? 'If you lose your passkeys, we can email you a code to sign in.' : 'Email codes can’t be sent here for now.'}
+              </p>
+              {removing ? (
+                <div className="cl-inline" role="group" aria-label="Remove this email?">
+                  <span>Remove this email? You’ll sign in with a passkey or your recovery code.</span>
+                  <button className="cl-btn" onClick={() => setRemoving(false)} disabled={busy}>
+                    Keep it
+                  </button>
+                  <button
+                    className="cl-btn danger"
+                    onClick={async () => {
+                      if (await cloudActions.removeEmail()) setAccount({ ...account, email: null })
+                      setRemoving(false)
+                    }}
+                    disabled={busy}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="cl-inline">
+                  {emailOn && (
+                    <button className="cl-btn" onClick={() => cloudActions.open('email-add')} disabled={busy}>
+                      Change…
+                    </button>
+                  )}
+                  <button className="cl-btn" onClick={() => setRemoving(true)} disabled={busy}>
+                    Remove…
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="cl-muted">Add an email so you can get back in if you lose this device. It’s used only to send you sign-in codes.</p>
+              <button className="cl-btn" onClick={() => cloudActions.open('email-add')} disabled={busy}>
+                <Icon name="mail" size={16} />
+                Add an email…
+              </button>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="cl-section">
         <h3>Recovery code</h3>

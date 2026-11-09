@@ -10,16 +10,34 @@ import type { ProjectMeta } from '../projects/types'
 import { showToast } from '../safety/store'
 import { createCloudApi, isOffline, type CloudApi, type CloudUser, type Signup } from './api'
 import { createCloudProjectStore } from './cloudStore'
-import { makePasskey, passkeyTrouble, getPasskey } from './passkeys'
+import { makePasskey, passkeyTrouble, passkeysWork, getPasskey } from './passkeys'
 import { createSync, type Sync, type SyncNotice, type SyncState } from './sync'
 import { longDate, noticeText } from './words'
 
 export type CloudPhase = 'checking' | 'unavailable' | 'signed-out' | 'signed-in'
-export type CloudSheet = 'sign-in' | 'create' | 'recover' | 'code' | 'upload' | 'account' | 'delete' | 'deleting'
+export type CloudSheet =
+  | 'sign-in'
+  | 'create'
+  | 'recover'
+  | 'code'
+  | 'upload'
+  | 'account'
+  | 'delete'
+  | 'deleting'
+  /** Signed out: sign in with a code emailed to the account's address. */
+  | 'email'
+  /** Signed in: add or change the address (from the account sheet). */
+  | 'email-add'
+  /** The same, offered once right after creating an account. */
+  | 'email-nudge'
+  /** After signing in by email: add a passkey on this device. */
+  | 'passkey-offer'
 
 export interface CloudState {
   phase: CloudPhase
   signup: Signup
+  /** Whether this cloud can email sign-in codes; every email option shows only then. */
+  email: boolean
   user: CloudUser | null
   sync: SyncState
   notices: SyncNotice[]
@@ -41,6 +59,7 @@ const IDLE: SyncState = { busy: 0, offline: false, signedOut: false, error: null
 export const useCloud = create<CloudState>(() => ({
   phase: 'checking',
   signup: 'closed',
+  email: false,
   user: null,
   sync: IDLE,
   notices: [],
@@ -111,7 +130,7 @@ export function startCloud(): Promise<void> {
       return
     }
     if (!health) return void set({ phase: 'unavailable' })
-    set({ signup: health.signup })
+    set({ signup: health.signup, email: health.email })
     const user = await api.session().catch(() => null)
     if (!user) {
       setHint(null)
@@ -176,13 +195,16 @@ async function signedIn(user: CloudUser, opts: { offerUpload?: boolean } = {}) {
 // ---------------------------------------------------------------------------
 // What the sheets and menus do.
 
+/** What went wrong with an email step: the server's words. */
+const emailTrouble = (e: unknown) => (e as Error)?.message || 'That didn’t work. Try again.'
+
 /** Run a passkey step: busy while it runs, a plain problem if it fails, quiet if he closed the prompt. */
-async function step<T>(fn: () => Promise<T>): Promise<T | null> {
+async function step<T>(fn: () => Promise<T>, trouble: (e: unknown) => string | null = passkeyTrouble): Promise<T | null> {
   set({ busy: true, problem: null })
   try {
     return await fn()
   } catch (e) {
-    set({ problem: isOffline(e) ? 'You’re offline. Try again when you’re back online.' : passkeyTrouble(e) })
+    set({ problem: isOffline(e) ? 'You’re offline. Try again when you’re back online.' : trouble(e) })
     return null
   } finally {
     set({ busy: false })
@@ -210,10 +232,12 @@ export const cloudActions = {
     return phase === 'signed-in' || phase === 'signed-out'
   },
   close() {
-    const wasCode = get().sheet === 'code'
-    set({ sheet: null, problem: null, ...(wasCode ? { code: null } : {}) })
-    // After keeping a new account's code, offer the upload.
-    if (wasCode && get().waiting.length) set({ sheet: 'upload' })
+    const { sheet, code, email } = get()
+    set({ sheet: null, problem: null, ...(sheet === 'code' ? { code: null } : {}) })
+    // A new account, its code kept: once, ask for an email to get back in with (where it works).
+    if (sheet === 'code' && code?.first && email) return void set({ sheet: 'email-nudge' })
+    // After keeping a code, that ask, or the passkey offer after an email sign-in: offer the upload.
+    if ((sheet === 'code' || sheet === 'email-nudge' || sheet === 'passkey-offer') && get().waiting.length) set({ sheet: 'upload' })
   },
 
   async signIn() {
@@ -246,13 +270,55 @@ export const cloudActions = {
     await signedIn(done.user, { offerUpload: false })
   },
 
-  async addPasskey() {
+  /** True once the passkey is added. */
+  async addPasskey(): Promise<boolean> {
     const done = await step(async () => {
       const o = await api.passkeyOptions()
       await api.passkeyVerify(o.challengeId, await makePasskey(o.options))
       return true
     })
     if (done) showToast({ text: 'Passkey added. You can sign in with it on this device now.' })
+    return !!done
+  },
+
+  // Email: the backup to passkeys. Signed out, a code to the account's address signs in;
+  // signed in, an address is added (or changed) once a code sent to it is typed in.
+
+  /** Ask for a sign-in code. True once asked: the reply can't say whether an account has the address. */
+  async emailCode(email: string): Promise<boolean> {
+    return !!(await step(async () => (await api.emailCode(email.trim()), true), emailTrouble))
+  },
+
+  /** Sign in with the address and its code; then offer a passkey on this device. */
+  async emailSignIn(email: string, code: string): Promise<boolean> {
+    const done = await step(() => api.emailSignIn(email.trim(), code), emailTrouble)
+    if (!done) return false
+    // Signed in without a passkey here: offer one, so next time is Face ID, not an email.
+    const offer = passkeysWork()
+    set({ sheet: offer ? 'passkey-offer' : null })
+    await signedIn(done.user, { offerUpload: !offer })
+    return true
+  },
+
+  /** Email a code to an address being added. The address as kept (trimmed, lower case), or null. */
+  async addEmail(email: string): Promise<string | null> {
+    return step(() => api.emailAdd(email.trim()), emailTrouble)
+  },
+
+  /** The code for that address: it's the account's now. Back to the account, or on from the nudge. */
+  async confirmEmail(email: string, code: string): Promise<boolean> {
+    const added = await step(() => api.emailConfirm(email, code), emailTrouble)
+    if (!added) return false
+    showToast({ text: `Email added. If you lose this device, you can sign in with a code sent to ${added}.` })
+    if (get().sheet === 'email-nudge') cloudActions.close()
+    else set({ sheet: 'account', problem: null })
+    return true
+  },
+
+  async removeEmail(): Promise<boolean> {
+    const done = await step(async () => (await api.emailRemove(), true), emailTrouble)
+    if (done) showToast({ text: 'Email removed. Sign in with your passkey, or your recovery code.' })
+    return !!done
   },
 
   async newRecoveryCode() {

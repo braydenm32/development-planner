@@ -4,6 +4,7 @@
 //   sign in      a passkey this site knows (discoverable, so no name to type) → session
 //   recover      the recovery code → a new passkey on this device → session and a new code
 //   add passkey  signed in → another passkey (a second device)
+//   email code   the backup: a 6-digit code to an address added from the account (./emailAuth.ts)
 //
 // Challenges are single use and last five minutes. Every endpoint here is rate limited.
 
@@ -42,7 +43,8 @@ function relyingParty(env: Env, req: Request) {
   return { rpID: env.RP_ID || url.hostname, origin: url.origin }
 }
 
-async function limitAuth(env: Env, req: Request, now: number) {
+/** Every sign-in endpoint's limit, per address (IP). */
+export async function limitAuth(env: Env, req: Request, now: number) {
   await rateLimit(env, `auth:${clientIp(req)}`, 40, 10 * MINUTE, now)
 }
 
@@ -110,10 +112,11 @@ function cleanName(name: unknown): string {
   return n
 }
 
-const signedIn = (user: User, token: string, extra: Record<string, unknown> = {}) => json({ user, ...extra }, 200, { 'set-cookie': sessionCookie(token) })
+/** The reply that starts a session: the user, and the cookie. */
+export const signedIn = (user: User, token: string, extra: Record<string, unknown> = {}) => json({ user, ...extra }, 200, { 'set-cookie': sessionCookie(token) })
 
 /** An account past its 30 days after asking to delete it: going, or gone, for good. */
-const accountGone = () => new HttpError(403, 'account-deleted', 'This account was deleted, with everything saved in the cloud for it.')
+export const accountGone = () => new HttpError(403, 'account-deleted', 'This account was deleted, with everything saved in the cloud for it.')
 
 const notVerified = (e?: unknown) => {
   if (e) console.warn('passkey check failed:', (e as Error)?.message)

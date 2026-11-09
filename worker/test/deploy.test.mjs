@@ -26,4 +26,15 @@ describe('the deploy’s preparation', () => {
     expect(out).toMatch(/^QUOTA_MB = "50"$/m)
     expect(out).not.toMatch(/0{32}|00000000-0000/)
   })
+
+  it('passes the invite codes and the Resend key to the Worker as secrets, without echoing either', () => {
+    const yml = readFileSync(new URL('../../.github/workflows/cloudflare.yml', import.meta.url), 'utf8')
+    const step = yml.slice(yml.indexOf('- name: Deploy the Worker'), yml.indexOf('- name: Say where it is'))
+    expect(step).toContain('INVITE: ${{ secrets.SIGNUP_INVITE_CODE }}')
+    expect(step).toContain('RESEND: ${{ secrets.RESEND_API_KEY }}')
+    expect(step).toContain('s.INVITE_CODE = e.INVITE')
+    expect(step).toContain('s.RESEND_API_KEY = e.RESEND')
+    expect(step).toContain('--secrets-file')
+    expect(step).not.toMatch(/\becho\b|\bcat\b|set -x/)
+  })
 })

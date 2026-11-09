@@ -70,6 +70,7 @@ export function Privacy() {
         </p>
         <ul>
           <li>your account name, as you typed it;</li>
+          <li>the email address you add for sign-in, if you add one;</li>
           <li>which invite code you signed up with (its label, or a short fingerprint of it), so a code that’s been passed around can be stopped;</li>
           <li>the public key of each passkey you’ve added, and when it was made and last used. The private key never leaves your device;</li>
           <li>a hash of your recovery code (not the code itself);</li>
@@ -77,7 +78,7 @@ export function Privacy() {
           <li>your projects and everything in them: survey, plan, site features, costs, and each project’s settings;</li>
           <li>your view-only links: a hash of each link’s token, when it was made, last opened and ended or expires (not who opened it);</li>
           <li>comments left on your links that take them (see below);</li>
-          <li>short-lived counters to slow down guessing and abuse, which can include your IP address and are cleared after a day or so.</li>
+          <li>short-lived counters to slow down guessing and abuse, which can include your IP address or a fingerprint (hash) of an email address, and are cleared after a day or so.</li>
         </ul>
         <p>Like any web host, Cloudflare handles your IP address and the usual request details to deliver the page. We don’t use them to identify you.</p>
       </S>
@@ -93,10 +94,18 @@ export function Privacy() {
         </p>
       </S>
       <S id="use" title="What we use it for">
-        <p>Only to run the planner for you: to sign you in, save and show your projects, and keep the service safe. We don’t sell your information, use it for advertising, or share it, except with Cloudflare (to host it) and where the law requires.</p>
+        <p>
+          Only to run the planner for you: to sign you in, save and show your projects, and keep the service safe. We don’t sell your information, use it for advertising, or share it, except with Cloudflare (to host it), Resend (to email your sign-in codes, if you add an email) and where the law requires.
+        </p>
       </S>
       <S id="email" title="Email sign-in">
-        <p>Sign-in by email (through a sending service called Resend) is on its way. When it exists, we’ll use your email address only to sign you in, and we’ll update this page first.</p>
+        <p>
+          Email is a backup to your passkeys. If you add an email address to your account (Cloud saves, then Email for sign-in), we keep that address and use it only to send you 6-digit sign-in codes, and one code first to check the address is yours. Nothing else: no newsletters, no marketing.
+        </p>
+        <p>
+          The emails go through Resend, a US company, so your address and the code go to the United States to be sent. We keep each code only as a hash. It works for 10 minutes, once, and is cleared away soon after.
+        </p>
+        <p>Remove the email from your account (or delete your account) and we remove the address.</p>
       </S>
       <S id="delete" title="Deleting your information">
         <p>
