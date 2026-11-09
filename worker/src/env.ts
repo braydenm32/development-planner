@@ -46,7 +46,12 @@ export interface Env {
    * Setting INVITE_CODE makes it `invite` unless it is `closed`.
    */
   SIGNUP?: string
-  /** A secret code that lets someone create an account (wrangler secret put INVITE_CODE). */
+  /**
+   * The secret codes that let someone create an account (wrangler secret put INVITE_CODE): one, or
+   * several separated by commas or new lines, each optionally `label:CODE` ("builders:oak-door-17").
+   * Each account notes the label it came in with (users.invite; `#` and a short hash for a code
+   * without one), so one code can be taken out of the list without the others changing.
+   */
   INVITE_CODE?: string
   /** The passkeys' relying party id; defaults to the hostname the Worker is reached on. */
   RP_ID?: string
