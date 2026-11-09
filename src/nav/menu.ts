@@ -403,6 +403,14 @@ export const AREAS: Area[] = [
         keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'outside the lot', 'over the boundary', 'not drawn yet', 'zone', 'heritage', 'flood', 'bushfire', 'overshadowing', 'solar access'],
         features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal', 'checks-not-drawn-yet', 'checks-lot-inside', 'checks-cdc-land', 'sun-checks'],
       },
+      {
+        id: 'options',
+        label: 'Options',
+        icon: 'layers',
+        subtitle: 'Named versions of the design on the same survey, side by side.',
+        keywords: ['option', 'options', 'version', 'variant', 'compare', 'alternative', 'scenario', 'slab vs piers', 'copy', 'duplicate design', 'try something', 'split level', 'what if', 'side by side'],
+        features: ['options-list', 'options-open', 'options-copy', 'options-rename', 'options-delete', 'options-compare', 'options-undo-separate'],
+      },
     ],
     more: {
       label: 'More',

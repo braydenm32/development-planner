@@ -6,6 +6,7 @@ import { AboutCostsSection, EstimateAside, EstimateTab, MaterialsTab, QuotesTab,
 import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
+import { OptionsTab } from '../options/OptionsTab'
 import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
@@ -27,6 +28,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
   'design/checks': ChecksTab,
+  'design/options': OptionsTab,
   'earthworks/place': PlaceTab,
   'earthworks/cut-fill': CutFillTab,
   'earthworks/retaining-walls': RetainingWallsTab,
