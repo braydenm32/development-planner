@@ -27,7 +27,7 @@ const status = (c: Council, sc: Scenario) => Object.fromEntries(Object.entries(r
 
 describe('Kiama', () => {
   it('checks the controls its DCP has, and lists the two it couldn’t read', () => {
-    expect(Object.keys(run(KIAMA, { checks: front }))).toEqual(['da-height', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-batters', 'da-cut-fill', 'da-retaining'])
+    expect(Object.keys(run(KIAMA, { checks: front }))).toEqual(['lot-inside', 'da-height', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-batters', 'da-cut-fill', 'da-retaining'])
     expect(controlCount(KIAMA)).toEqual({ have: 9, of: 11 })
     expect(notChecked('da', KIAMA).slice(0, 2)).toEqual(['Erosion and sediment control: Kiama’s own rule isn’t in the app yet', 'Trees: Kiama’s own rule isn’t in the app yet'])
   })
@@ -56,7 +56,7 @@ describe('Kiama', () => {
 
 describe('Central Coast', () => {
   it('checks the controls its DCP has, and lists the two it couldn’t read', () => {
-    expect(Object.keys(run(CENTRAL_COAST, { checks: front }))).toEqual(['da-height', 'da-storeys', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-cut-fill', 'da-retaining'])
+    expect(Object.keys(run(CENTRAL_COAST, { checks: front }))).toEqual(['lot-inside', 'da-height', 'da-storeys', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-cut-fill', 'da-retaining'])
     expect(controlCount(CENTRAL_COAST)).toEqual({ have: 9, of: 11 })
   })
   it('uses the DCP’s 10 m until the map value is entered', () => {
@@ -92,7 +92,7 @@ describe('Central Coast', () => {
 
 describe('Blue Mountains', () => {
   it('checks the controls its DCP has, and lists the four it couldn’t read', () => {
-    expect(Object.keys(run(BLUE_MOUNTAINS, { checks: front }))).toEqual(['da-height', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-landscaped', 'da-cut-fill', 'da-erosion'])
+    expect(Object.keys(run(BLUE_MOUNTAINS, { checks: front }))).toEqual(['lot-inside', 'da-height', 'da-fsr', 'da-front', 'da-side', 'da-rear', 'da-coverage', 'da-landscaped', 'da-cut-fill', 'da-erosion'])
     expect(controlCount(BLUE_MOUNTAINS)).toEqual({ have: 9, of: 13 })
     expect(notChecked('da', BLUE_MOUNTAINS)[0]).toBe('Batter slopes: Blue Mountains’ own rule isn’t in the app yet')
   })

@@ -231,6 +231,12 @@ export interface Council {
   retaining?: RetainingRule
   trees?: TreeRule
   /**
+   * The neighbours' winter sun (their living room windows and open space keep `hours` of sun from
+   * 9 am to 3 pm on 21 June), and the clause asking for shadow diagrams. Checked from the house's
+   * own shadow (src/sun); not one of the CONTROLS, so a council without it isn't counted short.
+   */
+  sun?: { hours: number; source: RuleSource; diagrams?: RuleSource }
+  /**
    * Controls the research read the council's text for and found it has none of its own (so there's
    * nothing to check), as against ones it couldn't read, which the checks list as not checked.
    */

@@ -1,0 +1,272 @@
+/* The sun study card on the 3D view, the shadows on the plan and their key, and the Sun tab. */
+
+.app-shell .sun-card {
+  position: absolute;
+  z-index: 4;
+  left: calc(50% + var(--free-left, 16px) / 2);
+  bottom: 60px;
+  width: 380px;
+  max-width: calc(100% - var(--free-left, 16px) - 2 * var(--gap));
+  transform: translateX(-50%);
+  padding: 10px 12px 10px;
+}
+
+.app-shell .sun-card > header {
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 8px;
+  border-bottom: 0;
+}
+
+.app-shell .sun-card h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-shell .sun-card .sun-place {
+  margin-left: auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.app-shell .sun-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.app-shell .sun-days button {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--field-line);
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.app-shell .sun-days button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.app-shell .sun-days input[type='date'] {
+  height: 30px;
+  min-width: 0;
+  flex: 1 1 120px;
+  padding: 0 6px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font-size: 12.5px;
+}
+
+.app-shell .sun-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.app-shell .sun-time input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.app-shell .sun-play {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--field-line);
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.app-shell .sun-clock {
+  flex: none;
+  min-width: 64px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell .sun-readout {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+/* On a phone the card is as short as it can be, over the panel's pill: the picture moves up
+   clear of it. `.float-card.sun-card` outranks the phone's own float-card rules in shell.css. */
+.app-shell.phone .float-card.sun-card {
+  left: var(--gap);
+  right: var(--gap);
+  bottom: calc(var(--peek-h, 0px) + var(--gap) + 54px);
+  width: auto;
+  max-width: none;
+  transform: none;
+  padding: 4px 10px 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px -10px rgba(0, 0, 0, 0.3);
+}
+
+/* A phone's panel or selection sheet takes the foot of the screen; the card waits until it closes. */
+.app-shell.phone .has-col .float-card.sun-card,
+.app-shell.phone .has-inspector .float-card.sun-card {
+  display: none;
+}
+
+.app-shell.phone .float-card.sun-card > header {
+  padding: 0;
+}
+
+.app-shell.phone .float-card.sun-card > header .icon-button {
+  margin: -4px -8px -4px auto;
+}
+
+.app-shell.phone .sun-card .sun-place,
+.app-shell.phone .sun-readout .muted {
+  display: none;
+}
+
+.app-shell.phone .sun-days {
+  flex-wrap: nowrap;
+}
+
+.app-shell.phone .sun-days button {
+  flex: none;
+  height: 34px;
+  padding: 0 9px;
+}
+
+.app-shell.phone .sun-days input[type='date'] {
+  flex: 1 1 0;
+  height: 34px;
+}
+
+.app-shell.phone .sun-time {
+  margin-top: 4px;
+}
+
+.app-shell.phone .float-card.sun-card .sun-play {
+  width: 40px;
+  height: 40px;
+}
+
+.app-shell.phone .sun-readout {
+  margin-top: 2px;
+}
+
+/* ---- Shadows on the plan ---- */
+
+.plan-shadows {
+  pointer-events: none;
+}
+
+.plan-shadow {
+  stroke-width: 1.2;
+  fill-rule: nonzero;
+}
+
+.plan-shadow.t0 {
+  stroke: #6a5a9e;
+}
+
+.plan-shadow.t1 {
+  stroke: #3d6f8f;
+  stroke-dasharray: 6 3;
+}
+
+.plan-shadow.t2 {
+  stroke: #8a5a3c;
+  stroke-dasharray: 2 2.5;
+}
+
+.plan-shadow-over {
+  fill: rgba(196, 55, 45, 0.14);
+  stroke: #b3261e;
+  stroke-width: 1;
+}
+
+.plan-shadow-label {
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.plan-shadow-label.t0 {
+  fill: #4e4180;
+}
+
+.plan-shadow-label.t1 {
+  fill: #2c566f;
+}
+
+.plan-shadow-label.t2 {
+  fill: #6d4428;
+}
+
+.shadows-key {
+  margin-top: 2px;
+}
+
+.shadows-key ul {
+  margin: 4px 0 0 22px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.shadows-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shadows-key svg {
+  flex: none;
+}
+
+/* ---- Site › Sun ---- */
+
+.sun-tab .sun-hours {
+  margin: 0;
+}
+
+.sun-tab .sun-hours b,
+.sun-room b {
+  font-variant-numeric: tabular-nums;
+}
+
+.sun-tab .sun-shadow-times {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sun-tab .sun-shadow-times li {
+  padding: 3px 0;
+}
+
+.sun-tab .sun-latlon {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sun-room {
+  margin: 6px 0 0;
+}

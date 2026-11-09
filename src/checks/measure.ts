@@ -10,9 +10,10 @@ import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
 import { levelSummaries, roofAboveGround, sideLabel } from '../plan/keyNumbers'
 import { areaKind, earthworksOf, floorRL, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
-import { boundaryClearances, type BoundaryClearance } from '../plan/placement'
+import { boundaryClearances, outsideLot, signedClearance, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
+import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
 import type { CheckSettings, CheckTree } from './types'
 
@@ -26,7 +27,10 @@ export interface Edge {
   role: EdgeRole
   a: Vec2
   b: Vec2
-  /** Shortest distance from the house (every level) to this edge (m); null with no house. */
+  /**
+   * Shortest distance from the house (every level) to this edge (m); null with no house.
+   * Negative by how far the house goes past the edge, out of the lot.
+   */
   clearance: number | null
   /** The same from the upper floor: the levels that sit over a lower one (see stacking). */
   upperClearance: number | null
@@ -63,7 +67,14 @@ export interface Measures {
   /** Lot area inside the survey boundary (m²): what the Housing Code counts on a battle-axe lot. */
   lotArea: number
   edges: Edge[]
+  /** The outside walls make a closed outline on some level: there's a house to measure. */
   hasHouse: boolean
+  /** A roof that builds: the house's height is measured to its top, not the walls'. */
+  hasRoof: boolean
+  /** Rooms enclosed by walls, so the floor area inside the walls is known. */
+  hasRooms: boolean
+  /** The house reaches outside the lot: by how far (m), and whether none of it is inside. */
+  outside: { by: number; all: boolean } | null
   /** Floor area to the outside of the walls, every level (m²). The rooms' own areas are a lower bound. */
   grossArea: number
   roomsArea: number
@@ -93,6 +104,8 @@ export interface Measures {
   trees: CheckTree[]
   /** Whether the cut and fill changes the ground at a point by more than 50 mm. */
   changedAt: ((p: Vec2) => boolean) | null
+  /** The sun on 21 June (src/sun/facts.ts), once worked out; the sun checks wait for it. */
+  sun?: SunFacts | null
 }
 
 function distToSeg(p: Vec2, a: Vec2, b: Vec2): number {
@@ -221,9 +234,10 @@ export interface MeasureInput {
   terrain: Terrain
   earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[] } | null
   trees?: CheckTree[]
+  sun?: SunFacts | null
 }
 
-export function measure({ plan, survey, terrain, earth, trees = [] }: MeasureInput): Measures {
+export function measure({ plan, survey, terrain, earth, trees = [], sun = null }: MeasureInput): Measures {
   const settings = checkSettingsOf(plan.checks)
   const pl = plan.placement
   const site = (ring: Vec2[]) => ring.map(p => toSite(p, pl, survey.origin))
@@ -252,8 +266,8 @@ export function measure({ plan, survey, terrain, earth, trees = [] }: MeasureInp
       role: i === front ? 'front' : i === rear ? 'rear' : 'side',
       a,
       b: q,
-      clearance: clear[i]?.dist ?? null,
-      upperClearance: clearUp[i]?.dist ?? null,
+      clearance: clear[i] ? signedClearance(clear[i]) : null,
+      upperClearance: clearUp[i] ? signedClearance(clearUp[i]) : null,
     }
   })
 
@@ -272,13 +286,18 @@ export function measure({ plan, survey, terrain, earth, trees = [] }: MeasureInp
     return { id: p.wall.id, height: p.maxHeight, toBoundary: Math.max(0, d - p.wall.thickness / 2) }
   })
 
+  const out = outsideLot(all, pl, survey)
+  const roomsArea = summaries.reduce((t, s) => t + s.rooms.reduce((u, r) => u + (r.area ?? 0), 0), 0)
   return {
     settings,
     lotArea: Math.abs(signedArea(b)),
     edges,
     hasHouse: all.length > 0,
+    hasRoof: plan.roofs.some(r => !roofGeometry(r).error),
+    hasRooms: roomsArea > 0,
+    outside: out.any ? { by: out.by, all: out.all } : null,
     grossArea: summaries.reduce((t, s) => t + s.gross.area, 0),
-    roomsArea: summaries.reduce((t, s) => t + s.rooms.reduce((u, r) => u + (r.area ?? 0), 0), 0),
+    roomsArea,
     footprint: all.length ? unionArea(all) : 0,
     hardArea: all.length || hardPolys.length ? unionArea([...all, ...hardPolys]) : 0,
     height: houseHeight(plan, survey, terrain),
@@ -295,5 +314,6 @@ export function measure({ plan, survey, terrain, earth, trees = [] }: MeasureInp
       earth && earth.platforms.length
         ? p => Math.abs(earth.result.grid.sample(p[0], p[1]) - earth.prep.natural.sample(p[0], p[1])) > 0.05 && pointInPolygon(p[0], p[1], b)
         : null,
+    sun,
   }
 }

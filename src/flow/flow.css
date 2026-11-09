@@ -266,14 +266,14 @@
   outline-offset: 2px;
 }
 
-/* A note at the foot of the screen (Undo, what an import found) lifts the card clear of it. */
+/* A note at the foot of the screen (Undo, what an import found) sits above the hint bar, at 64 px; the card lifts clear of it. */
 body:has(.toast, .sf-toast) .flow-card {
-  bottom: 108px;
+  bottom: 150px;
 }
 
 /* Both notes at once: the import's sits above the shell's. */
 body:has(.app-shell .toast):has(.sf-toast) .flow-card {
-  bottom: 162px;
+  bottom: 204px;
 }
 
 /* Phones: a sheet-like card at the bottom, taps of 44 px and text of 14 px. */
@@ -319,10 +319,11 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
     font-size: 14px;
   }
 
-  /* Clear of a note at the foot of the screen, which sits above the phone's bottom bar and can run to three lines. */
+  /* Clear of a note at the foot of the screen, which sits above the phone's bottom bar and the
+     peek sheet (--peek-size, from src/phone/PeekSheet.tsx) and can run to three lines. */
   body:has(.toast, .sf-toast) .flow-card,
   body:has(.toast, .sf-toast) .flow-bar {
-    bottom: 144px;
+    bottom: calc(144px + var(--peek-size, 0px));
   }
 
   body:has(.toast, .sf-toast) .flow-card {

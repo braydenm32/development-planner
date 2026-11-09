@@ -21,6 +21,8 @@ import {
   type SetbackRule,
 } from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
+import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
+import { hourText } from '../sun/solar'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
@@ -144,6 +146,10 @@ const minClear = (es: Edge[], upper = false) => {
 }
 const closest = (es: Edge[]) => es.reduce<Edge | null>((b, e) => (e.clearance !== null && (!b || e.clearance < (b.clearance ?? Infinity)) ? e : b), null)
 const NEED_FRONT = 'Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.'
+/** A distance to the boundary, or how far over it the house goes: "1.20 m", "0.40 m over". */
+const dist = (d: number) => (d >= 0 ? m(d) : `${m(-d)} over`)
+/** "1.20 m to the west side", or "0.40 m over the west side" where the house goes past it. */
+const toEdge = (d: number, e: Edge | null | undefined) => `${dist(d)}${d >= 0 ? ' to' : ''} the ${e?.label.toLowerCase()}`
 
 /** Pass when `value` is at least `min` (or at most, with `max`). */
 /** "1 storey", or "1 storey (2 levels)" when some levels sit beside each other rather than stacked. */
@@ -258,6 +264,69 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
 }
 
 // ---------------------------------------------------------------------------
+// Sun on 21 June (src/sun): what the shadow does to the neighbours, and the sun your own
+// living areas get, which no rule here sets a number for.
+
+const DAY = `${hourText(STUDY_FROM)} and ${hourText(STUDY_TO)} on 21 June`
+
+/** A council's rule for the neighbours' winter sun, and the shadow diagrams it asks for (Wollongong DCP B1 4.7.2). */
+function neighbourSun(ms: Measures, c: Council): CheckResult[] {
+  const rule = c.sun
+  if (!rule) return []
+  const out: CheckResult[] = []
+  const f = ms.sun
+  if (f && ms.hasHouse && !f.empty) {
+    const over = overRuns(f.over).length > 0
+    out.push({
+      id: 'da-sun-neighbours',
+      title: 'Sun to the neighbours',
+      status: over ? 'warn' : 'pass',
+      value: overText(f),
+      limit: `Neighbours’ living room windows keep ${num(rule.hours)} hours of continuous sun, and at least half their private open space ${num(rule.hours)} hours, between ${DAY}`,
+      note: over
+        ? `The app knows where the shadow falls next door, not where the neighbours’ windows and open space are. Use the shadow diagram (in the PDF plans) to show they keep ${num(rule.hours)} hours, or ask council how it reads the rule where they had less already.`
+        : 'The shadow never reaches next door between 9 am and 3 pm, so the house can’t take the neighbours’ sun. Trees, fences and their own house aren’t counted.',
+      source: cite(c, rule.source),
+    })
+  }
+  if (rule.diagrams) {
+    out.push({
+      id: 'da-shadow-diagrams',
+      title: 'Shadow diagrams',
+      status: 'info',
+      value: ms.storeys > 1 ? 'Needed: the house is two storeys' : 'Asked for two-storey houses; this one is single storey',
+      limit: 'Shadows at 9 am, 12 pm and 3 pm on 21 June',
+      note: 'The PDF plans (Share › Plans) include a shadow diagram sheet at those times.',
+      source: cite(c, rule.diagrams),
+    })
+  }
+  return out
+}
+
+/** The winter sun on the living areas' windows, for information on either pathway. */
+function livingSun(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] {
+  const rooms = ms.sun?.rooms ?? []
+  if (!rooms.length) return []
+  const whose = c ? (c.name.endsWith('s') ? `${c.name}’` : `${c.name}’s`) : ''
+  return [
+    {
+      id: 'sun-living',
+      title: 'Winter sun to your living areas',
+      status: 'info',
+      value: `${roomsText(rooms)} of sun on the windows between ${DAY}`,
+      note:
+        'For your information: the hours when at least one window has sun on half its glass or more. It counts windows (not glass doors), the house itself and the ground, not trees, fences or the neighbours’ houses. ' +
+        (pathway === 'cdc'
+          ? 'The Housing Code has no sun standard for your own house.'
+          : c?.sun
+            ? `${whose} sun rule (${c.sun.source.clause}) is about the neighbours’ sun.`
+            : `${whose} rules in the app have no sun standard for your own house.`),
+      source: { clause: 'No rule for a house’s own winter sun in the research notes (Housing Code, council DCPs)', confidence: 'unverified', asAt: 'research notes, Nov 2026' },
+    },
+  ]
+}
+
+// ---------------------------------------------------------------------------
 // Housing Code (CDC)
 
 function housingCode(ms: Measures): CheckResult[] {
@@ -283,10 +352,15 @@ function housingCode(ms: Measures): CheckResult[] {
   out.push({
     id: 'hc-gfa',
     title: 'Gross floor area',
-    status: !ms.hasHouse ? 'pass' : ms.grossArea <= gfa ? 'pass' : ms.roomsArea <= gfa ? 'warn' : 'fail',
-    value: ms.hasHouse ? `${m2(ms.grossArea)} to the outside of the walls (rooms ${m2(ms.roomsArea)})` : 'No floors yet',
+    // Over the limit to the outside of the walls, the rooms decide it: with none drawn, it can't be told.
+    status: !ms.hasHouse || ms.grossArea <= gfa ? 'pass' : !ms.hasRooms ? 'incomplete' : ms.roomsArea <= gfa ? 'warn' : 'fail',
+    value: !ms.hasHouse
+      ? 'No floors yet'
+      : !ms.hasRooms && ms.grossArea > gfa
+        ? `${m2(ms.grossArea)} to the outside of the walls. ${DRAW.rooms}`
+        : `${m2(ms.grossArea)} to the outside of the walls${ms.hasRooms ? ` (rooms ${m2(ms.roomsArea)})` : ''}`,
     limit: `${m2(gfa)} on a ${m2(area)} lot`,
-    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
+    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
     source: HC_TABLE('cl 3.9'),
   })
 
@@ -316,7 +390,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-front',
       title: 'Setback from the lot in front',
       status: !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, 3),
-      value: f ? (f.clearance === null ? 'No house yet' : `${m(f.clearance)} to the ${f.label.toLowerCase()}`) : undefined,
+      value: f ? (f.clearance === null ? 'No house yet' : toEdge(f.clearance, f)) : undefined,
       limit: '3 m from the rear boundary of the lot in front',
       note: f ? undefined : NEED_FRONT,
       source: HC('cl 3.10(15)'),
@@ -326,8 +400,9 @@ function housingCode(ms: Measures): CheckResult[] {
     out.push({
       id: 'hc-front',
       title: 'Front setback',
-      status: !f ? 'unknown' : f.clearance === null ? 'pass' : f.clearance + 1e-6 >= need ? 'pass' : 'warn',
-      value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
+      // Short of the fallback only warns (the neighbours may allow it), but over the front boundary fails.
+      status: !f ? 'unknown' : f.clearance === null ? 'pass' : f.clearance + 1e-6 >= need ? 'pass' : f.clearance < 0 ? 'fail' : 'warn',
+      value: f && f.clearance !== null ? toEdge(f.clearance, f) : undefined,
       limit: `The average of the two nearest houses within 40 m, else ${m(need)}`,
       note: f ? 'The neighbours’ setbacks aren’t known, so this uses the fallback distance.' : NEED_FRONT,
       source: HC_TABLE('cl 3.10(1), (3)'),
@@ -349,7 +424,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-side',
       title: 'Side setbacks',
       status: sideMin === null ? 'pass' : sideMin + 1e-6 >= hi ? 'pass' : sideMin + 1e-6 >= lo ? 'warn' : 'fail',
-      value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${c?.label.toLowerCase()}`,
+      value: sideMin === null ? 'No house yet' : toEdge(sideMin, c),
       limit: needs.map(n => `${m(n.need)} if the lot is ${n.label}`).join('; '),
       note:
         needs.length > 1
@@ -372,7 +447,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-rear',
       title: 'Rear setback',
       status: low === null ? 'pass' : ok ? 'pass' : 'fail',
-      value: low === null ? 'No house yet' : `${m(low)} to the ${r.label.toLowerCase()}${twoStorey && high !== null ? `, upper floor ${m(high)}` : ''}`,
+      value: low === null ? 'No house yet' : `${toEdge(low, r)}${twoStorey && high !== null ? `, upper floor ${dist(high)}` : ''}`,
       limit: `${m(rearLow)} up to 4.5 m high, ${m(rearHigh)} above`,
       note:
         (s.battleAxe ? 'A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ' : '') +
@@ -431,7 +506,7 @@ function housingCode(ms: Measures): CheckResult[] {
     source: HC('cl 3.30'),
   })
 
-  return [...out, ...treeChecks(ms, 'cdc')]
+  return [lotCheck(ms), ...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
 }
 
 // ---------------------------------------------------------------------------
@@ -479,7 +554,7 @@ function setbackCheck(ms: Measures, c: Council, r: SetbackRule, id: string, titl
     id,
     title,
     status: low === null ? 'pass' : ok ? 'pass' : 'fail',
-    value: low === null ? 'No house yet' : `${m(low)} to the ${near?.label.toLowerCase()}${high !== null ? `, upper floor ${m(high)}` : ''}`,
+    value: low === null ? 'No house yet' : `${toEdge(low, near)}${high !== null ? `, upper floor ${dist(high)}` : ''}`,
     limit: setbackLimit(r),
     note: [need > r.min ? tallNote(r) : '', r.note ?? ''].filter(Boolean).join(' ') || undefined,
     source: cite(c, r.source),
@@ -489,7 +564,7 @@ function setbackCheck(ms: Measures, c: Council, r: SetbackRule, id: string, titl
 /** The front setback, by the band of site area the lot is in, or from the lot in front on a battle-axe lot. */
 function frontCheck(ms: Measures, c: Council, fr: FrontRule, f: Edge | undefined): CheckResult {
   const s = ms.settings
-  const at = f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined
+  const at = f && f.clearance !== null ? toEdge(f.clearance, f) : undefined
   const ba = fr.battleAxe
   if (s.battleAxe && 'min' in ba) {
     return {
@@ -512,9 +587,11 @@ function frontCheck(ms: Measures, c: Council, fr: FrontRule, f: Edge | undefined
         ? `${num(b.min)} m or ${who}, whichever is greater${garage}`
         : `${num(b.min)} m ${fr.to}${garage}`
   // Without the neighbours' setbacks, an 'instead' fallback only warns when short, and an 'or-greater' one can't pass outright.
+  // Over the front boundary fails whatever the neighbours do.
   const short = f && f.clearance !== null ? f.clearance + 1e-6 < b.min : false
+  const over = f && f.clearance !== null ? f.clearance < 0 : false
   const status: CheckStatus =
-    s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : b.average === 'instead' ? (short ? 'warn' : 'pass') : short ? 'fail' : b.average === 'or-greater' ? 'warn' : 'pass'
+    s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : over ? 'fail' : b.average === 'instead' ? (short ? 'warn' : 'pass') : short ? 'fail' : b.average === 'or-greater' ? 'warn' : 'pass'
   const why =
     b.average === 'instead'
       ? 'The neighbours’ setbacks aren’t known, so this uses the fallback distance.'
@@ -598,7 +675,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       id: 'da-rear-upper',
       title: `Upper floor out of the rear ${num(c.rearUpper.min)} m`,
       status: !r ? 'unknown' : r.upperClearance === null ? 'pass' : atLeast(r.upperClearance, c.rearUpper.min),
-      value: r && r.upperClearance !== null ? `${m(r.upperClearance)} to the ${r.label.toLowerCase()}` : undefined,
+      value: r && r.upperClearance !== null ? toEdge(r.upperClearance, r) : undefined,
       limit: `Single storey only within ${num(c.rearUpper.min)} m of the rear boundary`,
       note: r ? undefined : NEED_FRONT,
       source: cite(c, c.rearUpper.source),
@@ -635,7 +712,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       id: 'da-side-rear',
       title: 'Side and rear setbacks',
       status: sideMin === null ? 'pass' : atLeast(sideMin, need),
-      value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${closestSide?.label.toLowerCase()}`,
+      value: sideMin === null ? 'No house yet' : toEdge(sideMin, closestSide),
       limit: setbackLimit(sr),
       note: f ? (tall ? tallNote(sr) : undefined) : 'Until the front is picked under Lot facts, every side is held to this.',
       source: cite(c, sr.source),
@@ -746,7 +823,95 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
     })
   }
 
-  return [...out, ...treeChecks(ms, 'da', c)]
+  out.push(...neighbourSun(ms, c))
+
+  return [lotCheck(ms), ...out, ...livingSun(ms, 'da', c), ...treeChecks(ms, 'da', c)]
+}
+
+// ---------------------------------------------------------------------------
+// What a check needs drawn before it can pass
+
+/** The parts of the design a check measures. */
+export type Part = 'outline' | 'roof' | 'rooms'
+
+const has = (ms: Measures, p: Part) => (p === 'outline' ? ms.hasHouse : p === 'roof' ? ms.hasRoof : ms.hasRooms)
+
+/** What to draw, for the first part a check is waiting on. */
+const DRAW: Record<Part, string> = {
+  outline: 'Draw the outside walls as a closed outline to check this.',
+  roof: 'Add a roof to check this.',
+  rooms: 'Add rooms to check this.',
+}
+
+/**
+ * What each check measures of the design: it waits for these before it can pass. The height and
+ * the setbacks that grow with it wait for a roof, since the walls alone stand lower.
+ */
+const NEEDS: Record<string, Part[]> = {
+  'lot-inside': ['outline'],
+  'hc-gfa': ['outline'],
+  'hc-height': ['outline', 'roof'],
+  'hc-storeys': ['outline'],
+  'hc-front': ['outline'],
+  'hc-side': ['outline', 'roof'],
+  'hc-rear': ['outline', 'roof'],
+  'hc-landscaped': ['outline'],
+  'hc-cut': ['outline'],
+  'hc-fill': ['outline'],
+  'hc-works-boundary': ['outline'],
+  'hc-retaining': ['outline'],
+  'da-height': ['outline', 'roof'],
+  'da-storeys': ['outline'],
+  'da-fsr': ['outline'],
+  'da-front': ['outline'],
+  'da-side-rear': ['outline', 'roof'],
+  // A council's side or rear rule can grow with the house's height, which the roof sets.
+  'da-side': ['outline', 'roof'],
+  'da-rear': ['outline', 'roof'],
+  'da-rear-upper': ['outline'],
+  'da-coverage': ['outline'],
+  'da-landscaped': ['outline'],
+  'da-batters': ['outline'],
+  'da-cut-fill': ['outline'],
+  'da-geotech': ['outline'],
+  'da-erosion': ['outline'],
+  'da-retaining': ['outline'],
+  // The shadow is the house's, so it waits for the walls and the roof that cast it.
+  'da-sun-neighbours': ['outline', 'roof'],
+}
+
+/** A tree is measured against the house; retaining walls once there are some, house or not. */
+const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && ms.walls.length ? [] : (NEEDS[r.id] ?? []))
+
+/**
+ * A check can't pass on a design that's missing what it measures (an empty plan used to show
+ * "8 pass", and walls without a roof a passing height): it says what to draw instead. A fail
+ * or a warning stands, since drawing more only adds to the house.
+ */
+export function waitForDesign(r: CheckResult, ms: Measures): CheckResult {
+  const missing = partsOf(r, ms).find(p => !has(ms, p))
+  if (!missing || r.status !== 'pass') return r
+  const sofar = missing !== 'outline' && r.value ? `So far: ${r.value}.` : ''
+  return { ...r, status: 'incomplete', value: DRAW[missing], note: [sofar, r.note].filter(Boolean).join(' ') || undefined }
+}
+
+/** The survey's boundary, which every pathway's setbacks are measured from. */
+const LOT: Source = { clause: 'Lot boundary, from the survey', confidence: 'read', asAt: 'the survey you imported' }
+
+/** The house inside the lot: a hard fail on every pathway when any of it is over the boundary. */
+function lotCheck(ms: Measures): CheckResult {
+  const o = ms.outside
+  if (!o) return { id: 'lot-inside', title: 'Building inside the lot', status: 'pass', value: 'Inside the survey boundary', source: LOT }
+  const over = ms.edges.filter(e => e.clearance !== null && e.clearance < 0).sort((a, b) => a.clearance! - b.clearance!)
+  return {
+    id: 'lot-inside',
+    title: o.all ? 'The building is outside the lot' : 'Part of the building is outside the lot',
+    status: 'fail',
+    value: over.length ? over.map(e => toEdge(e.clearance!, e)).join(', ') : 'A corner of the lot is inside the house',
+    limit: 'All of the building inside the lot',
+    note: 'Move the house under Earthworks › Place: type a distance to a side there to slide the house square to it.',
+    source: LOT,
+  }
 }
 
 /**
@@ -754,28 +919,38 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
  * rules, so with no council switched on there are none.
  */
 export function runChecks(ms: Measures, pathway: Pathway, council: CouncilId | null = activeCouncil(ms.settings)?.id ?? null): CheckResult[] {
-  if (pathway === 'cdc') return housingCode(ms)
-  return council ? councilChecks(ms, COUNCIL_TABLES[council]) : []
+  const rs = pathway === 'cdc' ? housingCode(ms) : council ? councilChecks(ms, COUNCIL_TABLES[council]) : []
+  return rs.map(r => waitForDesign(r, ms))
 }
 
 export interface CheckCounts {
   fail: number
   warn: number
   unknown: number
+  /** Waiting for more of the design (see waitForDesign). */
+  incomplete: number
   pass: number
   pending: number
+  info: number
 }
 
 export function countChecks(rs: CheckResult[]): CheckCounts {
-  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, pass: 0, pending: 0 }
+  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0 }
   for (const r of rs) c[r.status]++
   return c
 }
 
+/**
+ * The CDC checks' biggest gap, pinned at the top of Checks so a clean run isn't read as a CDC:
+ * whether the land can use one at all. The section 10.7 planning certificate says (docs/research).
+ */
+export const CDC_LAND =
+  'Not checked: whether this land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions). The council’s section 10.7 planning certificate says.'
+
 /** What the Housing Code checks don't cover yet: shown under the list so a clean run isn't read as approval. */
 export const NOT_CHECKED: { cdc: string[] } = {
+  // Whether the land can use a CDC at all is pinned at the top of Checks instead (CDC_LAND).
   cdc: [
-    'Whether the land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions)',
     'Private open space (24 m², 3 × 3 m, 1 in 50)',
     'Privacy screens, balconies and decks',
     'Garage door width and garage setback; parking to AS/NZS 2890.1',

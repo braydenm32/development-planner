@@ -143,10 +143,16 @@ export const WOLLONGONG: Council = {
     },
   },
 
+  sun: {
+    hours: 3,
+    source: { in: 'b1', clause: 'B1 4.7.2(1), (2)', sure: 'read' },
+    diagrams: { in: 'b1', clause: 'B1 4.7.2(3)', sure: 'read' },
+  },
+
   notChecked: [
     'Zone and the LEP map values (height, floor space ratio, overlays)',
     'Private open space (24 m², 4 m wide, 1 in 50)',
-    'Sun to the neighbours on 21 June',
+    'Where the neighbours’ living room windows and open space are, for their 3 hours of winter sun (the app knows where the shadow falls)',
     'Garage doors, parking and driveway width',
     'Fences, pools and storage',
     'Easements',

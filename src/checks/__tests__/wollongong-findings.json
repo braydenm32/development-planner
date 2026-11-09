@@ -2,12 +2,23 @@
  "no front picked": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -54,10 +65,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "Until the front is picked under Lot facts, every side is held to this.",
+    "note": "So far: 3.59 m to the south side. Until the front is picked under Lot facts, every side is held to this.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -138,16 +149,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -157,10 +192,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -282,12 +317,23 @@
  "front to the south": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -334,9 +380,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -417,16 +464,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -436,10 +507,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -475,10 +546,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -488,10 +559,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -566,12 +637,23 @@
  "front to the north, rear set to the east": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -618,9 +700,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 3.59 m to the south side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -701,16 +784,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -720,10 +827,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -759,10 +866,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.50 m if the lot is 24.91 m along the front; 2.50 m if the lot is 33.51 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 3.59 m to the south side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -772,10 +879,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "7.37 m to the east side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 7.37 m to the east side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -850,12 +957,23 @@
  "cut and fill at 1 in 2": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -902,9 +1020,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -986,16 +1105,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -1005,10 +1148,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -1044,10 +1187,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -1057,10 +1200,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -1135,12 +1278,23 @@
  "cut and fill at 1 in 4": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -1187,9 +1341,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -1270,16 +1425,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -1289,10 +1468,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -1328,10 +1507,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -1341,10 +1520,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -1419,12 +1598,23 @@
  "battle-axe with title area and map values": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.50 m (Height of Buildings Map)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.3(2)",
      "confidence": "read",
@@ -1472,9 +1662,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -1556,9 +1747,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -1578,7 +1793,7 @@
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -1588,10 +1803,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -1626,10 +1841,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -1639,10 +1854,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ",
+    "note": "So far: 15.91 m to the north side. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -1717,12 +1932,23 @@
  "battle-axe without a title area": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -1770,9 +1996,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -1853,9 +2080,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -1875,7 +2126,7 @@
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -1885,10 +2136,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -1923,10 +2174,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -1936,10 +2187,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ",
+    "note": "So far: 15.91 m to the north side. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -2014,12 +2265,23 @@
  "battle-axe, no front picked": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -2066,10 +2328,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "Until the front is picked under Lot facts, every side is held to this.",
+    "note": "So far: 3.59 m to the south side. Until the front is picked under Lot facts, every side is held to this.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -2150,9 +2412,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -2172,7 +2458,7 @@
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -2182,10 +2468,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -2307,12 +2593,23 @@
  "lot width set": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -2359,9 +2656,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -2442,16 +2740,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -2461,10 +2783,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -2500,10 +2822,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.00 m wide at the building line",
-    "note": "Uses the house’s tallest point, so a lower wall may need less.",
+    "note": "So far: 6.19 m to the west side. Uses the house’s tallest point, so a lower wall may need less.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -2513,10 +2835,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -2591,12 +2913,23 @@
  "two storeys": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -2655,9 +2988,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -2738,16 +3072,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "159.6 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -2757,10 +3115,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -2796,10 +3154,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.07 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -2809,10 +3167,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.83 m to the north side, upper floor 15.83 m",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "Takes the upper floor as the part over 4.5 m high.",
+    "note": "So far: 15.83 m to the north side, upper floor 15.83 m. Takes the upper floor as the part over 4.5 m high.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -2887,12 +3245,23 @@
  "two storeys on a battle-axe lot": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -2953,9 +3322,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -3037,9 +3407,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -3059,7 +3453,7 @@
     "status": "pass",
     "value": "159.6 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -3069,10 +3463,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -3107,10 +3501,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.07 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -3120,10 +3514,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.83 m to the north side, upper floor 15.83 m",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). Takes the upper floor as the part over 4.5 m high.",
+    "note": "So far: 15.83 m to the north side, upper floor 15.83 m. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). Takes the upper floor as the part over 4.5 m high.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -3198,12 +3592,23 @@
  "two storeys, no front picked": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -3262,10 +3667,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "Until the front is picked under Lot facts, every side is held to this.",
+    "note": "So far: 3.59 m to the south side. Until the front is picked under Lot facts, every side is held to this.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -3346,16 +3751,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "159.6 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -3365,10 +3794,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "6.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 6.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -3490,12 +3919,23 @@
  "a tall two-storey house": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "8.58 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "12.00 m (Height of Buildings Map)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 8.58 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong LEP 2009 cl 4.3(2)",
      "confidence": "read",
@@ -3554,10 +3994,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
+    "note": "So far: 6.19 m to the west side. The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -3638,16 +4078,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "159.6 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -3696,10 +4160,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.52 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -3709,10 +4173,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.83 m to the north side, upper floor 15.83 m",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "Takes the upper floor as the part over 4.5 m high.",
+    "note": "So far: 15.83 m to the north side, upper floor 15.83 m. Takes the upper floor as the part over 4.5 m high.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -3787,12 +4251,23 @@
  "a tall house, no front picked": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "8.58 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 8.58 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -3851,10 +4326,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "3.59 m to the south side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "Until the front is picked under Lot facts, every side is held to this.",
+    "note": "So far: 3.59 m to the south side. Until the front is picked under Lot facts, every side is held to this.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -3935,16 +4410,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "159.6 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -4079,12 +4578,23 @@
  "retaining walls": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -4131,9 +4641,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -4216,16 +4727,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -4235,10 +4770,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -4274,10 +4809,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -4287,10 +4822,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -4366,12 +4901,23 @@
  "trees": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -4418,9 +4964,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -4503,6 +5050,19 @@
     }
    },
    {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
+   },
+   {
     "id": "tree:kept-near",
     "title": "Tree T1",
     "tree": "kept-near",
@@ -4576,12 +5136,23 @@
   ],
   "cdc": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -4591,10 +5162,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -4630,10 +5201,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -4643,10 +5214,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -4792,12 +5363,23 @@
  "trees with cut and fill": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -4844,9 +5426,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -4929,6 +5512,19 @@
     }
    },
    {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
+   },
+   {
     "id": "tree:kept-near",
     "title": "Tree T1",
     "tree": "kept-near",
@@ -5004,12 +5600,23 @@
   ],
   "cdc": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -5019,10 +5626,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -5058,10 +5665,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -5071,10 +5678,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -5222,9 +5829,21 @@
  "no house": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
     "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
@@ -5236,8 +5855,8 @@
    {
     "id": "da-storeys",
     "title": "Storeys",
-    "status": "pass",
-    "value": "0 storeys",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "Two",
     "source": {
      "clause": "Wollongong DCP B1 4.1",
@@ -5261,7 +5880,8 @@
    {
     "id": "da-front",
     "title": "Front setback",
-    "status": "pass",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "6 m to the front facade (infill); garages 5.5 m",
     "source": {
      "clause": "Wollongong DCP B1 4.2.2(1)",
@@ -5272,8 +5892,8 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "No house yet",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
@@ -5284,8 +5904,8 @@
    {
     "id": "da-coverage",
     "title": "Site coverage",
-    "status": "pass",
-    "value": "0.0 m² (0%)",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "405.1 m² on 810.3 m²",
     "source": {
      "clause": "Wollongong DCP B1 4.4.2(2)",
@@ -5296,8 +5916,8 @@
    {
     "id": "da-landscaped",
     "title": "Landscaped area",
-    "status": "pass",
-    "value": "About 810.3 m²",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "183.1 m² on 810.3 m²; half behind the building line",
     "note": "Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.",
     "source": {
@@ -5309,8 +5929,8 @@
    {
     "id": "da-batters",
     "title": "Batter slopes",
-    "status": "pass",
-    "value": "No cut and fill",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "No steeper than 1 in 4",
     "source": {
      "clause": "Wollongong DCP E19 4.3",
@@ -5334,8 +5954,8 @@
    {
     "id": "da-erosion",
     "title": "Erosion and sediment control",
-    "status": "pass",
-    "value": "About 0.0 m² of ground disturbed",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "A basic erosion and sediment control plan (under 1,000 m²)",
     "note": "What the DA has to include; a fuller plan is needed within 50 m of a watercourse or next to sensitive land. The disturbed area counts the cut and fill and the house’s footprint.",
     "source": {
@@ -5347,11 +5967,24 @@
    {
     "id": "da-retaining",
     "title": "Retaining walls",
-    "status": "pass",
-    "value": "None",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "600 mm within 900 mm of a side or rear boundary, 1 m elsewhere; over 1 m terraced and engineered",
     "source": {
      "clause": "Wollongong DCP B1 4.17.3",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
@@ -5359,12 +5992,23 @@
   ],
   "cdc": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "hc-gfa",
     "title": "Gross floor area",
-    "status": "pass",
-    "value": "No floors yet",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -5374,7 +6018,8 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "8.5 m",
     "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
@@ -5386,8 +6031,8 @@
    {
     "id": "hc-storeys",
     "title": "Storeys",
-    "status": "pass",
-    "value": "0 storeys",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "2 at any point",
     "note": "Counts the levels stacked over any one point, so split levels side by side on a slope are one storey. A basement counts as a storey; the upper floor is the levels that sit over a lower one.",
     "source": {
@@ -5399,7 +6044,8 @@
    {
     "id": "hc-front",
     "title": "Front setback",
-    "status": "pass",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "The average of the two nearest houses within 40 m, else 4.50 m",
     "note": "The neighbours’ setbacks aren’t known, so this uses the fallback distance.",
     "source": {
@@ -5411,8 +6057,8 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "No house yet",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
     "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
@@ -5424,10 +6070,9 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "No house yet",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -5437,8 +6082,8 @@
    {
     "id": "hc-landscaped",
     "title": "Landscaped area",
-    "status": "pass",
-    "value": "About 810.3 m² (100%)",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "243.1 m² (30%), half behind the building line",
     "note": "Everything outside the house, slabs, driveways and decks counts here. Strips under 1.5 m wide and the split either side of the building line aren’t checked yet.",
     "source": {
@@ -5450,8 +6095,8 @@
    {
     "id": "hc-cut",
     "title": "Depth of cut",
-    "status": "pass",
-    "value": "No cut and fill",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "1 m, 2 m and 3 m",
     "note": "Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).",
     "source": {
@@ -5463,8 +6108,8 @@
    {
     "id": "hc-fill",
     "title": "Fill outside the house",
-    "status": "pass",
-    "value": "No cut and fill",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "1 m above existing ground",
     "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
@@ -5476,8 +6121,8 @@
    {
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
-    "status": "pass",
-    "value": "No cut and fill",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -5488,8 +6133,8 @@
    {
     "id": "hc-retaining",
     "title": "Retaining walls",
-    "status": "pass",
-    "value": "None",
+    "status": "incomplete",
+    "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -5501,6 +6146,17 @@
  },
  "over the map height": {
   "da": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "da-height",
     "title": "Building height",
@@ -5554,9 +6210,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -5637,16 +6294,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -5656,10 +6337,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -5695,10 +6376,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -5708,10 +6389,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -5786,12 +6467,23 @@
  "close to the west side": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "2.88 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 2.88 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -5921,16 +6613,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -5940,10 +6656,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "2.88 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 2.88 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -5992,10 +6708,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.75 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.75 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -6070,12 +6786,23 @@
  "close to the west side, no front picked": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "2.88 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 2.88 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -6206,16 +6933,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -6225,10 +6976,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "2.88 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 2.88 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -6350,6 +7101,17 @@
  "three storeys": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
     "status": "fail",
@@ -6414,10 +7176,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
+    "note": "So far: 6.19 m to the west side. The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -6498,16 +7260,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "135.5 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -6556,10 +7342,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.71 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -6569,10 +7355,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side, upper floor 25.34 m",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "Takes the upper floor as the part over 4.5 m high.",
+    "note": "So far: 15.91 m to the north side, upper floor 25.34 m. Takes the upper floor as the part over 4.5 m high.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -6647,6 +7433,17 @@
  "three storeys on a battle-axe lot": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
     "status": "fail",
@@ -6713,10 +7510,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
-    "note": "The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
+    "note": "So far: 6.19 m to the west side. The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -6797,9 +7594,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Needed: the house is two storeys",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -6819,7 +7640,7 @@
     "status": "pass",
     "value": "135.5 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -6867,10 +7688,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "2.71 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -6880,10 +7701,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side, upper floor 25.34 m",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). Takes the upper floor as the part over 4.5 m high.",
+    "note": "So far: 15.91 m to the north side, upper floor 25.34 m. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). Takes the upper floor as the part over 4.5 m high.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -6958,12 +7779,23 @@
  "a big house": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -7010,9 +7842,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "1.30 m to the east side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 1.30 m to the east side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -7093,16 +7926,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "fail",
     "value": "452.7 m² to the outside of the walls (rooms 427.5 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -7112,10 +7969,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -7164,10 +8021,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "8.42 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
+    "note": "So far: 8.42 m to the north side. The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -7242,12 +8099,23 @@
  "a big house on a bigger title": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -7295,9 +8163,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "1.30 m to the east side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 1.30 m to the east side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -7379,9 +8248,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -7401,7 +8294,7 @@
     "status": "fail",
     "value": "452.7 m² to the outside of the walls (rooms 427.5 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -7411,10 +8304,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -7462,10 +8355,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "8.42 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
+    "note": "So far: 8.42 m to the north side. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -7540,12 +8433,23 @@
  "a big house on a much bigger title": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -7593,9 +8497,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "1.30 m to the east side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 1.30 m to the east side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -7677,9 +8582,33 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-lot-shape",
     "title": "Battle-axe lot at least 12 × 12 m",
@@ -7699,7 +8628,7 @@
     "status": "fail",
     "value": "452.7 m² to the outside of the walls (rooms 427.5 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -7709,10 +8638,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "5.33 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 5.33 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -7760,10 +8689,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "8.42 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
+    "note": "So far: 8.42 m to the north side. A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). The house rises over 4.5 m above the ground, so the whole of it is held to the higher setback.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -7838,12 +8767,23 @@
  "paved over": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -7890,9 +8830,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -7974,16 +8915,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -7993,10 +8958,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -8032,10 +8997,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -8045,10 +9010,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",
@@ -8123,12 +9088,23 @@
  "a retaining wall that follows the ground": {
   "da": [
    {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
+   {
     "id": "da-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "9.00 m (B1’s figure for R2; look up this lot’s map value)",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Wollongong DCP B1 4.1 (LEP map value not looked up)",
      "confidence": "secondary",
@@ -8175,9 +9151,10 @@
    {
     "id": "da-side-rear",
     "title": "Side and rear setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "0.9 m to walls; 3 m where walls are over 7 m high",
+    "note": "So far: 6.19 m to the west side.",
     "source": {
      "clause": "Wollongong DCP B1 4.3.2(1), (2)",
      "confidence": "read",
@@ -8258,16 +9235,40 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "da-shadow-diagrams",
+    "title": "Shadow diagrams",
+    "status": "info",
+    "value": "Asked for two-storey houses; this one is single storey",
+    "limit": "Shadows at 9 am, 12 pm and 3 pm on 21 June",
+    "note": "The PDF plans (Share › Plans) include a shadow diagram sheet at those times.",
+    "source": {
+     "clause": "Wollongong DCP B1 4.7.2(3)",
+     "confidence": "read",
+     "asAt": "chapter B1, in force 14 Dec 2016"
+    }
    }
   ],
   "cdc": [
+   {
+    "id": "lot-inside",
+    "title": "Building inside the lot",
+    "status": "pass",
+    "value": "Inside the survey boundary",
+    "source": {
+     "clause": "Lot boundary, from the survey",
+     "confidence": "read",
+     "asAt": "the survey you imported"
+    }
+   },
    {
     "id": "hc-gfa",
     "title": "Gross floor area",
     "status": "pass",
     "value": "92.4 m² to the outside of the walls (rooms 78.0 m²)",
     "limit": "352.6 m² on a 810.3 m² lot",
-    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
+    "note": "Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.",
     "source": {
      "clause": "Housing Code cl 3.9 (table)",
      "confidence": "read",
@@ -8277,10 +9278,10 @@
    {
     "id": "hc-height",
     "title": "Building height",
-    "status": "pass",
-    "value": "3.78 m above existing ground",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "8.5 m",
-    "note": "Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
+    "note": "So far: 3.78 m above existing ground. Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.",
     "source": {
      "clause": "Housing Code cl 3.8",
      "confidence": "read",
@@ -8316,10 +9317,10 @@
    {
     "id": "hc-side",
     "title": "Side setbacks",
-    "status": "pass",
-    "value": "6.19 m to the west side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "1.50 m if the lot is 23.41 m along the front; 2.50 m if the lot is 33.61 m along the sides",
-    "note": "How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
+    "note": "So far: 6.19 m to the west side. How the lot width at the building line is read on a battle-axe lot isn’t confirmed; enter the width under Lot facts to settle it. Uses the house’s tallest point.",
     "source": {
      "clause": "Housing Code cl 3.10(4) (table)",
      "confidence": "read",
@@ -8329,10 +9330,10 @@
    {
     "id": "hc-rear",
     "title": "Rear setback",
-    "status": "pass",
-    "value": "15.91 m to the north side",
+    "status": "incomplete",
+    "value": "Add a roof to check this.",
     "limit": "3.00 m up to 4.5 m high, 8.00 m above",
-    "note": "",
+    "note": "So far: 15.91 m to the north side.",
     "source": {
      "clause": "Housing Code cl 3.10(10) (table)",
      "confidence": "read",

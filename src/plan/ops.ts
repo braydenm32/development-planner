@@ -224,6 +224,7 @@ export function deleteLevel(plan: Plan, id: string): Plan {
     roofs: plan.roofs.filter(r => r.level !== id),
     stairs: plan.stairs.filter(s => s.level !== id),
     furniture: plan.furniture.filter(f => f.level !== id),
+    notes: (plan.notes ?? []).filter(n => n.level !== id),
   }
 }
 
