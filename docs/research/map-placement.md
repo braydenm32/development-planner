@@ -22,6 +22,16 @@ The survey DXF is in local coordinates (eastings and northings around 1000), so 
 | ePlanning ArcGIS layers | `https://mapprod3.environment.nsw.gov.au/arcgis/rest/services/ePlanning/...` | The same layers, queried by point. Layer ids in the main research doc. | **read**, metadata. The documented-ish route; no propId needed once the block's coordinates are known. |
 | Elevation | [ELVIS](https://elevation.fsdf.org.au/) | LiDAR and DEMs. | Licence not confirmed. Later work. |
 
+**Checked live on 9 November 2026** (`scripts/probe-nsw-maps.mjs`, run from GitHub's runners): every service above answers with `Access-Control-Allow-Origin: *`, preflights included, so the browser calls them directly. Findings:
+
+- Address search works as you type ("41 Burelli" finds the address) but doesn't understand "Lot 401 DP 715513"; the app reads Lot/DP itself and asks the cadastre.
+- `ePlanningApi/lot?propId=` returns each lot's polygon (Web Mercator) with `LotDescription` like `401/-/DP715513`; the cadastre's `lotidstring` is `401//DP715513`.
+- Cadastre queries by `lotidstring` and by envelope work, `outSR=4326` returns lon/lat. `planlotarea` was empty for the test lot.
+- Imagery tiles answer at `.../NSW_Imagery/MapServer/tile/{z}/{y}/{x}` to zoom 21.
+- ePlanning layer queries work by point, multipoint and polygon (POST as a form). A polygon query of a lot catches the neighbouring zones it touches (the council office lot returned E2, MU1 and SP2 Road), so the app asks with points inside the lot instead.
+- Values seen: zoning `SYM_CODE` "R2", `LAY_CLASS` "Low Density Residential"; height `MAX_B_H_M` 9; FSR `FSR` 0.5; lot size `LOT_SIZE` 449 with `UNITS` "m²"; heritage `LAY_CLASS` "Item - General", `H_NAME`, `H_ID`, `SIG`; bushfire `d_Category` "Vegetation Category 1", "Vegetation Category 2", "Vegetation Buffer". The flood planning layer had nothing around Wollongong, which fits LEP cl 5.21 (no fixed map).
+- The `+towgs84` string under Coordinates below has its translations in millimetres where proj expects metres: they are 0.06155, -0.01087 and -0.04019 m. The app uses the ICSM parameters directly (`src/map/geo.ts`): the shift comes out at about 1.5 to 1.9 m in Wollongong.
+
 No NSW geocoder was found on the public SIX Maps services (the old `NSW_Geocoded_Addressing_Theme` service no longer exists). The browser's CORS access to all of these is **untested**: a quick check from the deployed site is the first job when building.
 
 Esri World Imagery is a possible fallback, but its terms limit programmatic tile use and need attribution from the item page ([Esri product-specific terms E300](https://www.esri.com/content/dam/esrisites/en-us/media/legal/product-specific-terms-of-use/e300.pdf), 13 Nov 2025, **read**). NSW imagery should be the default.

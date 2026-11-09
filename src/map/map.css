@@ -1,0 +1,211 @@
+/* Site › Map and the aerial under the plan. */
+
+.map-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-search input[type='search'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.map-hits {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.map-hits li + li {
+  border-top: 1px solid var(--line);
+}
+
+.map-hits button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.map-hits button:hover,
+.map-hits button:focus-visible {
+  background: var(--accent-soft);
+}
+
+.map-picker {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #d9ddd6;
+}
+
+.map-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.map-surface.dragging {
+  cursor: grabbing;
+}
+
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  pointer-events: none;
+}
+
+.map-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.map-lot {
+  fill: transparent;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.2;
+}
+
+.map-lot.picked {
+  fill: rgba(232, 160, 60, 0.18);
+  stroke: #f2a33a;
+  stroke-width: 2.5;
+}
+
+.map-survey {
+  fill: rgba(47, 111, 98, 0.22);
+  stroke: #7fe0c8;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.map-hint {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(29, 35, 43, 0.72);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.map-zoom {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-zoom .icon-button {
+  width: 32px;
+  height: 32px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.map-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  color: #fff;
+  background: rgba(29, 35, 43, 0.55);
+  pointer-events: none;
+}
+
+.map-picked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-placed-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-placed-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.map-nudge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.map-nudge-grid button {
+  height: 40px;
+  font-size: 18px;
+  padding: 0;
+}
+
+.map-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.map-planning {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.map-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.map-facts dt {
+  color: var(--muted);
+}
+
+.map-facts dd {
+  margin: 0;
+}
+
+/* Under the plan. */
+.map-aerial image {
+  pointer-events: none;
+}
+
+.map-lot-line {
+  fill: none;
+  stroke: #e8902b;
+  stroke-width: 1.5;
+  stroke-dasharray: 8 5;
+  pointer-events: none;
+}

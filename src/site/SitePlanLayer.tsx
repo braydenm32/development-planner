@@ -9,6 +9,7 @@ import { addFeatures, removeFeature, updateOverlay, useSiteFeatures, useSiteStor
 import { useSiteWarnings } from './sync'
 import { FeatureSymbol, LiveDim, Tag } from './FeatureSymbol'
 import { snapPoints } from './pdfVector'
+import { useAerialLayer } from '../map/aerial'
 import './site.css'
 
 /**
@@ -350,6 +351,8 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
   }
 
   // ---- Drawing ----
+  // The aerial photo and the lot's lines from the cadastre, once the block is placed (Site › Map).
+  const aerial = useAerialLayer(screenAffine(toScreen, origin), k)
   const overlayImages = data.overlays.map(o => {
     const url = images[o.id]
     if (!url || !o.visible) return null
@@ -429,7 +432,12 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
   const hl = highlight && data.overlays.find(o => o.id === highlight.overlay)
   const hlLocal = (p: Vec2) => worldToLocal(applyAffine(hl!.transform, p))
 
-  const backdrop = <g className="site-backdrop">{overlayImages}</g>
+  const backdrop = (
+    <g className="site-backdrop">
+      {aerial}
+      {overlayImages}
+    </g>
+  )
   const under = (
     <g className="site-under">
       <defs>
