@@ -1638,7 +1638,7 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "pass",
-    "value": "Closest 1.92 m from the boundary",
+    "value": "Closest 1.92 m from a side or rear boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -2068,7 +2068,7 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from the boundary",
+    "value": "Closest 0.00 m from a side or rear boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -6470,7 +6470,7 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from the boundary",
+    "value": "Closest 0.00 m from a side or rear boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -7546,7 +7546,7 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from the boundary",
+    "value": "Closest 0.00 m from a side or rear boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
