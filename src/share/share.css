@@ -1,0 +1,185 @@
+/* Share's panels: the caveat first in a line, what a file holds behind "What's in it", a callout
+   for what's missing, the PDF's pages as ticks with Paper beside Download, and the 3D print's
+   parts list with its downloads pinned at the foot. */
+
+.app-shell .sh-lede {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-shell .sh-lede b {
+  font-weight: 600;
+}
+
+.app-shell .sh-whats {
+  margin: 8px 0 10px;
+  font-size: 12.5px;
+}
+
+.app-shell .sh-whats > summary {
+  width: fit-content;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.app-shell .sh-whats > p {
+  margin-top: 4px;
+}
+
+.app-shell .sh-callout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--warn-line, #f0d9a8);
+  border-radius: var(--r);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 13px;
+}
+
+.app-shell .sh-callout p {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+/* ---- Plans (PDF) ---- */
+
+.app-shell .pdf-pages {
+  display: grid;
+  gap: 0;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell .pdf-pages legend {
+  margin-bottom: 4px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-shell .pdf-pages .check.undrawn {
+  color: var(--muted);
+}
+
+.app-shell .pdf-go {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 4px 0 8px;
+}
+
+.app-shell .pdf-paper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.app-shell .pdf-paper select {
+  height: 34px;
+  padding: 0 6px;
+  border: 1px solid var(--field-line, var(--line));
+  border-radius: var(--r);
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+}
+
+/* ---- 3D print ---- */
+
+.app-shell .parts li.part-group {
+  display: block;
+}
+
+.app-shell .parts .part-group > button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Long names ("Ground floor and deck") wrap rather than lose their end. */
+.app-shell .parts .part-name {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.app-shell .parts .part-size {
+  text-align: right;
+}
+
+.app-shell .parts .part-each {
+  display: block;
+  font-size: 11.5px;
+}
+
+.app-shell .print-crop {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell .print-crop-label {
+  color: var(--muted);
+}
+
+.app-shell .parts li.hot {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.app-shell .parts .part-pieces {
+  grid-column: 1 / -1;
+  margin: 4px 0 0 18px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.app-shell .print-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+}
+
+/* Download 3MF and STL, pinned at the foot of the panel so they never sit under a long list. */
+.app-shell .print-foot {
+  position: sticky;
+  bottom: -20px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px -20px -20px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.app-shell .print-foot .muted {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}

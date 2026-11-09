@@ -5,6 +5,7 @@
 import type { CheckCounts } from '../checks/rules'
 import type { CheckTree, Pathway } from '../checks/types'
 import { checksFor } from '../checks/useChecks'
+import { feeContextOf } from '../costs/govFees'
 import { estimate } from '../costs/estimate'
 import type { CostsData } from '../costs/model'
 import type { PlanningFacts } from '../map/planning'
@@ -60,7 +61,7 @@ export function optionNumbers(
   const total = levelSummaries(plan).reduce((t, l) => t + l.gross.area, 0)
   const r = earth.platforms.length > 0 ? earth.result : null
   const walls = retainingProfiles(plan, survey.origin, earth.result.grid ?? terrain.grid)
-  const est = estimate(designQuantities(plan, r, walls), costs)
+  const est = estimate(designQuantities(plan, r, walls), costs, feeContextOf(plan))
   // The inputs the Checks panel gives its checks, so the sun and the planning maps' rows are counted here too.
   const sun = ctx.sun ?? keptSunFacts({ plan, boundary: survey.boundary, origin: survey.origin, ground: groundFor(terrain, earth), date: winterDay() })
   const c = checksFor({ plan, survey, terrain, earth, trees, sun, dem: ctx.dem ?? false, planning: ctx.planning ?? null })

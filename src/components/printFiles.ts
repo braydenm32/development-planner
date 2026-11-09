@@ -62,6 +62,8 @@ export interface PdfInput {
   up: 'house' | number
   paper: Paper
   pdfFurniture: boolean
+  /** Pages left out of the plan set (not the DA pack), by key. */
+  leaveOut?: readonly string[]
 }
 
 /** A file to hand over: saved, or shared on a phone. */
@@ -92,6 +94,7 @@ function planSetInput(p: PdfInput): PlanSetInput {
     up: p.up,
     paper: p.paper,
     furniture: p.pdfFurniture,
+    leaveOut: p.leaveOut,
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },

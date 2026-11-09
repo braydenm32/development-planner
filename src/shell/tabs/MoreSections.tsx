@@ -13,7 +13,7 @@ import {
   WallOptions,
 } from '../../components/PlanSections'
 import { usePlacementInfo } from '../../components/planNumbers'
-import { DownloadStlsButton, FineTuningFields, PaperSelect, PrintInstructions } from '../../components/ShareSections'
+import { FineTuningFields, PrintInstructions } from '../../components/ShareSections'
 import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
@@ -180,24 +180,6 @@ export function FineTuningSection() {
   const { printPrefs, changePrintPrefs } = useShell()
   const settings = printPrefs.settings
   return <FineTuningFields settings={settings} onChange={(patch: Partial<PrintSettings>) => changePrintPrefs({ settings: { ...settings, ...patch } })} />
-}
-
-export function StlSection() {
-  const d = useLoaded()
-  if (!d) return <Waiting />
-  return (
-    <>
-      <p className="muted small">A ZIP with one STL file per part, for slicers that don't open 3MF.</p>
-      <div className="row">
-        <DownloadStlsButton plan={d.plan} settings={d.printPrefs.settings} print={d.print} />
-      </div>
-    </>
-  )
-}
-
-export function PaperSection() {
-  const { printPrefs, changePrintPrefs } = useShell()
-  return <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
 }
 
 export function PrintInstructionsSection() {

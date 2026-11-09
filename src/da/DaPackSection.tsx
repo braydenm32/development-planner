@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { TextField } from '../components/fields'
 import { saveDaPack, type PdfInput } from '../components/printFiles'
 import { useMap } from '../map/store'
+import { tabRoute } from '../nav/route'
+import { navigate, useRouter } from '../nav/router'
 import { daOf, setDaRevision } from './model'
 
 export function DaPackSection(p: PdfInput) {
@@ -19,14 +21,36 @@ export function DaPackSection(p: PdfInput) {
     }
   }
   const site = lot ? [lot.address, lot.label].filter(Boolean).join(', ') : null
+  const toMap = () => {
+    const r = useRouter.getState().route
+    if (r.kind === 'app') navigate(tabRoute(r, 'site', 'map'))
+  }
   return (
     <>
       <h3>DA pack (PDF)</h3>
-      <p className="muted small">
-        A concept pack to take to a town planner or designer as the start of a development application: a cover checklist of what a DA
-        for a new house usually needs, the plans, elevations and sections, shadow diagrams, a cut and fill plan, the stormwater concept and
-        a summary of the checks, each sheet with a title block. It isn’t ready to lodge.
+      <p className="sh-lede">
+        <b>Not ready to lodge.</b> A concept pack to start a development application with a town planner or designer.
       </p>
+      <details className="sh-whats">
+        <summary>What’s in it</summary>
+        <p className="muted small">
+          A cover checklist of what a DA for a new house usually needs, the plans, elevations and sections, shadow diagrams, a cut and fill plan, the
+          stormwater concept and a summary of the checks, each sheet with a title block. Every page is in it, whatever is ticked above.
+        </p>
+      </details>
+      {!lot?.address && (
+        <div className="sh-callout" role="note">
+          <p>
+            <b>{lot ? 'No street address yet.' : 'No site address yet.'}</b>{' '}
+            {lot
+              ? `The title blocks show ${site}. Find the block by its street address to add that too.`
+              : 'Put the block on the map to show its address and Lot/DP on the title blocks.'}
+          </p>
+          <button className="secondary" onClick={toMap}>
+            Go to Site › Map
+          </button>
+        </div>
+      )}
       <div className="tool-options">
         <TextField label="Revision" value={daOf(p.plan).revision} onCommit={setDaRevision} />
       </div>
@@ -37,11 +61,7 @@ export function DaPackSection(p: PdfInput) {
       </div>
       {error && <p className="error">{error}</p>}
       <p className="muted small">
-        {site && lot?.address
-          ? `The title blocks show ${site}.`
-          : site
-            ? `The title blocks show ${site}. Find the block by its street address under Site › Map to add the address too.`
-            : 'Site address not set: put the block on the map under Site › Map to show its address and Lot/DP on the title blocks.'}{' '}
+        {site && lot?.address ? `The title blocks show ${site}. ` : ''}
         The pack is saved to this device only.
       </p>
     </>
