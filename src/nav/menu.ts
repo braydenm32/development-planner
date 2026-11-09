@@ -24,6 +24,7 @@ export type ActionId =
   | 'overview'
   | 'balance'
   | 'download-pdf'
+  | 'download-da-pack'
   | 'download-3mf'
   | 'download-dxf'
   | 'download-schedule'
@@ -750,9 +751,48 @@ export const AREAS: Area[] = [
         id: 'plans',
         label: 'Plans (PDF)',
         icon: 'file',
-        subtitle: 'A plan set for the builder or council.',
-        keywords: ['pdf', 'print', 'sheets', 'drawings', 'site plan', 'floor plan', 'roof plan', 'paper', 'shadow diagram', 'sections', 'elevations', '1:100'],
-        features: ['download-pdf', 'furniture-pdf', 'finished-contours-pdf', 'site-features-pdf', 'share-from-phone', 'setback-dimensions-pdf', 'shadow-diagram-pdf', 'sections-pdf'],
+        subtitle: 'A plan set for the builder or council, and a DA pack.',
+        keywords: [
+          'pdf',
+          'print',
+          'sheets',
+          'drawings',
+          'site plan',
+          'floor plan',
+          'roof plan',
+          'paper',
+          'shadow diagram',
+          'sections',
+          'elevations',
+          '1:100',
+          'DA',
+          'DA pack',
+          'development application',
+          'lodgement',
+          'lodge',
+          'title block',
+          'revision',
+          'cover sheet',
+          'checklist',
+          'town planner',
+          'cut and fill plan',
+          'stormwater plan',
+        ],
+        features: [
+          'download-pdf',
+          'furniture-pdf',
+          'finished-contours-pdf',
+          'site-features-pdf',
+          'share-from-phone',
+          'setback-dimensions-pdf',
+          'shadow-diagram-pdf',
+          'sections-pdf',
+          'da-pack-pdf',
+          'da-pack-title-block',
+          'da-pack-checklist',
+          'da-pack-revision',
+          'da-pack-checks',
+        ],
       },
       {
         id: 'export',
@@ -1111,6 +1151,16 @@ export const HOMES: Home[] = [
     features: [],
     items: [
       { id: 'cmd-pdf', label: 'Download PDF plans', icon: 'download', keywords: ['print', 'plan set', 'drawings'], features: [], action: 'download-pdf', run: 'offer', at: 'share/plans' },
+      {
+        id: 'cmd-da-pack',
+        label: 'Download DA pack (PDF)',
+        icon: 'download',
+        keywords: ['DA', 'development application', 'lodgement', 'title block', 'council', 'town planner', 'checklist'],
+        features: [],
+        action: 'download-da-pack',
+        run: 'offer',
+        at: 'share/plans',
+      },
       { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
       { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },
       { id: 'cmd-picture', label: 'Save a picture of the plan or 3D view', icon: 'download', keywords: ['png', 'image', 'screenshot', 'export'], features: [], action: 'save-picture', run: 'now' },

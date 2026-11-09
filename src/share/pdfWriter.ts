@@ -27,6 +27,8 @@ const EXTRA: Record<string, { code: number; w: number; wb: number }> = {
   '—': { code: 0x97, w: 1000, wb: 1000 },
   '’': { code: 0x92, w: 222, wb: 278 },
   '·': { code: 0xb7, w: 278, wb: 278 },
+  '›': { code: 0x9b, w: 333, wb: 333 },
+  '‘': { code: 0x91, w: 222, wb: 278 },
 }
 
 export type Font = 'regular' | 'bold'
@@ -41,6 +43,21 @@ export function textWidth(s: string, size: number, font: Font = 'regular'): numb
     else w += 556
   }
   return (w / 1000) * size
+}
+
+/** Break `s` into lines no wider than `width` mm at `size`, at spaces (a word longer than the line stays whole). */
+export function wrapText(s: string, width: number, size: number, font: Font = 'regular'): string[] {
+  const lines: string[] = []
+  let line = ''
+  for (const word of s.split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word
+    if (line && textWidth(next, size, font) > width) {
+      lines.push(line)
+      line = word
+    } else line = next
+  }
+  if (line) lines.push(line)
+  return lines
 }
 
 const PT = 72 / 25.4

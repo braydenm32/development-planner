@@ -26,6 +26,8 @@ interface Area {
 
 export interface DrawingSheet {
   name: string
+  /** A section or a sheet of elevations, for the DA pack's checklist. */
+  kind: 'section' | 'elevation'
   /** 1:scale. */
   scale: number
   draw: (pg: PdfPage) => void
@@ -120,9 +122,10 @@ function fitting(group: Drawing[], area: Area): number | null {
 }
 
 /** One sheet of drawings, stacked and centred in the area. */
-function sheet(name: string, group: Drawing[], area: Area, scale: number): DrawingSheet {
+function sheet(name: string, group: Drawing[], area: Area, scale: number, kind: DrawingSheet['kind']): DrawingSheet {
   return {
     name,
+    kind,
     scale,
     draw: pg => {
       const p = pdfPainter(pg, area)
@@ -140,11 +143,11 @@ function sheet(name: string, group: Drawing[], area: Area, scale: number): Drawi
 }
 
 /** Sheets for a group of drawings: together when that costs no scale, else each on its own at the largest scale that fits. */
-function sheetsFor(name: string, group: Drawing[], area: Area): DrawingSheet[] {
+function sheetsFor(name: string, group: Drawing[], area: Area, kind: DrawingSheet['kind']): DrawingSheet[] {
   const alone = group.map(d => fitting([d], area) ?? SHEET_SCALES[SHEET_SCALES.length - 1])
   const together = fitting(group, area)
-  if (together !== null && together <= Math.max(...alone)) return [sheet(name, group, area, together)]
-  return group.map((d, i) => sheet(d.title, [d], area, alone[i]))
+  if (together !== null && together <= Math.max(...alone)) return [sheet(name, group, area, together, kind)]
+  return group.map((d, i) => sheet(d.title, [d], area, alone[i], kind))
 }
 
 /** The plan set's section and elevation sheets: each section, then the elevations in pairs. */
@@ -152,7 +155,7 @@ export function drawingSheets(input: DrawingInput, area: Area): DrawingSheet[] {
   const out: DrawingSheet[] = []
   for (const line of sectionsOf(input.plan)) {
     const d = sectionDrawing(line, input)
-    out.push(...sheetsFor(d.title, [d], area))
+    out.push(...sheetsFor(d.title, [d], area, 'section'))
   }
   const pairs: [Side, Side][] = [
     ['north', 'south'],
@@ -160,7 +163,7 @@ export function drawingSheets(input: DrawingInput, area: Area): DrawingSheet[] {
   ]
   for (const pair of pairs) {
     const group = pair.map(s => elevationDrawing(s, input)).filter(d => d.any)
-    if (group.length) out.push(...sheetsFor(`Elevations: ${pair.join(' and ')}`, group, area))
+    if (group.length) out.push(...sheetsFor(`Elevations: ${pair.join(' and ')}`, group, area, 'elevation'))
   }
   return out
 }

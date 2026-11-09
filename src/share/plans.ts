@@ -23,7 +23,8 @@ import {
   type Plan,
   type Wall,
 } from '../plan/model'
-import { contourText, labelPoint, type ContourRun, type FinishedContours } from '../plan/finishedContours'
+import { CHANGED, contourText, labelPoint, type ContourRun, type FinishedContours } from '../plan/finishedContours'
+import { superlevel } from '../plan/groundOverlay'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { driveDesign, driveEndPoints, driveGround, type DriveGround } from '../plan/driveway'
 import { garageDoorSymbol } from '../plan/garageDoor'
@@ -38,7 +39,7 @@ import type { SiteWarning } from '../site/warnings'
 import type { StormwaterSheet } from '../drainage/stormwater'
 import type { ShadowDiagram } from '../sun/facts'
 import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
-import { PdfDocument, textWidth, type PdfPage, type RGB } from './pdfWriter'
+import { PdfDocument, textWidth, wrapText, type PdfPage, type RGB } from './pdfWriter'
 import { sectionsOf } from '../sections/lines'
 import { drawingSheets, drawSectionMarks } from '../sections/sheets'
 
@@ -50,7 +51,7 @@ export interface PlanSetInput {
   /** Site area (m²), for coverage. */
   siteArea: number
   /** Cut and fill volumes (m³), if worked out. */
-  earthworks: { cut: number; fill: number } | null
+  earthworks: { cut: number; fill: number; maxCut?: number; maxFill?: number } | null
   /** The finished ground, for the heights of retaining walls. */
   ground?: Heightfield
   /** The finished ground with the driveways graded in, for their grades (from the cut and fill). */
@@ -87,6 +88,12 @@ const AREA_FILL: Record<AreaKind, RGB> = {
   garden: [0.82, 0.9, 0.76],
 }
 const RW_FILL: RGB = [0.72, 0.66, 0.56]
+const NATURAL_MAJOR: RGB = [0.62, 0.55, 0.45]
+const NATURAL_MINOR: RGB = [0.8, 0.76, 0.7]
+const STORM: RGB = [0.12, 0.44, 0.7]
+/** Cut and fill on the DA pack's cut and fill plan: warm where the ground is lowered, blue where it's raised. */
+const CUT_TINT: RGB = [0.96, 0.82, 0.66]
+const FILL_TINT: RGB = [0.74, 0.85, 0.95]
 const FURNITURE: RGB = [0.42, 0.45, 0.5]
 const AREA_LABEL: Record<AreaKind, string> = { slab: 'Concrete slab', driveway: 'Driveway', deck: 'Deck', garden: 'Garden' }
 
@@ -99,7 +106,7 @@ const upright = (deg: number) => {
 }
 
 /** Plan coordinates (house frame, metres) to paper millimetres. */
-interface View {
+export interface View {
   P: (p: Vec2) => [number, number]
   scale: number
   /** Paper angle (degrees) of a plan direction. */
@@ -136,47 +143,91 @@ function makeView(points: Vec2[], rho: number, area: { x: number; y: number; w: 
   }
 }
 
+/** Where the drawings go on a sheet: the paper, its frame, and the strip the title block takes at the bottom. */
+export interface SheetFrame {
+  paper: Paper
+  W: number
+  H: number
+  margin: number
+  /** Height of the title block strip along the bottom of the frame (mm). */
+  strip: number
+  small: boolean
+  /** The drawing area, above the strip. */
+  area: { x: number; y: number; w: number; h: number }
+}
+
+/** The plan set's frame on this paper; the DA pack asks for a taller strip for its title block. */
+export function sheetFrame(paper: Paper, strip?: number): SheetFrame {
+  const [W, H] = PAPER[paper]
+  const small = paper === 'A4'
+  const margin = 10
+  const s = strip ?? (small ? 22 : 26)
+  return { paper, W, H, margin, strip: s, small, area: { x: margin + 4, y: margin + s + 6, w: W - 2 * margin - 8, h: H - 2 * margin - s - 10 } }
+}
+
+/** What a sheet shows, so the DA pack can put them in its own order and say which it has. */
+export type SheetKind = 'site' | 'floor' | 'roof' | 'section' | 'elevation' | 'shadow' | 'cutFill' | 'stormwater'
+
+export interface PlanSheet {
+  kind: SheetKind
+  name: string
+  /** Sections and elevations have no north arrow. */
+  north: boolean
+  /** Nothing drawn on it yet (a floor with no walls): the DA pack leaves it out and lists it as not drawn. */
+  empty?: boolean
+  draw: (pg: PdfPage) => View
+}
+
+/**
+ * A scale bar of five blocks, a round length at least 30 mm long (or the longest that fits in `max` mm),
+ * centred on `cx` with its base at `y`. Returns its ends.
+ */
+export function drawScaleBar(pg: PdfPage, view: View, cx: number, y: number, t = 1, max?: number): { x0: number; x1: number } {
+  const lengths = [0.5, 1, 2, 5, 10, 20, 50, 100]
+  const L = max === undefined ? (lengths.find(l => l * view.k >= 30) ?? 100) : ([...lengths].reverse().find(l => l * view.k <= max) ?? lengths[0])
+  const bw = L * view.k
+  const bx = cx - bw / 2
+  for (let i = 0; i < 5; i++) {
+    pg.lineWidth(0.2).stroke(INK).fill(i % 2 ? [1, 1, 1] : INK)
+    pg.rect(bx + (bw * i) / 5, y, bw / 5, 1.6, 'both')
+  }
+  pg.text(bx, y + 3.2, '0', { size: 2.4 * t, align: 'center' })
+  pg.text(bx + bw, y + 3.2, `${L} m`, { size: 2.4 * t, align: 'center' })
+  return { x0: bx, x1: bx + bw }
+}
+
+/** A north arrow in a circle of radius `r` at (ax, ay), pointing `north` radians anticlockwise from the paper's x axis. */
+export function drawNorthArrow(pg: PdfPage, north: number, ax: number, ay: number, r: number, t = 1) {
+  const tip: [number, number] = [ax + Math.cos(north) * r, ay + Math.sin(north) * r]
+  const back = (a: number, d: number): [number, number] => [ax + Math.cos(north + a) * d, ay + Math.sin(north + a) * d]
+  pg.lineWidth(0.25).stroke(INK).circle(ax, ay, r * 1.05, 'stroke')
+  pg.fill(INK).shape([[tip, back(2.6, r * 0.7), [ax, ay], back(-2.6, r * 0.7)]], 'fill')
+  pg.text(tip[0] + Math.cos(north) * 2.5, tip[1] + Math.sin(north) * 2.5, 'N', { size: 3 * t, font: 'bold', align: 'center', baseline: 'middle' })
+}
+
+/** Paper angle (radians) of north on a sheet of this plan drawn with `view`. */
+export function northAngle(plan: Plan, view: View): number {
+  const t = (plan.placement.rotation * Math.PI) / 180
+  // Site north (0, 1) turned into the house frame.
+  return view.angle([Math.sin(t), Math.cos(t)]) * (Math.PI / 180)
+}
+
 /** Every sheet of drawings for the house as one PDF. */
 export function planSetPdf(input: PlanSetInput): Uint8Array {
-  const { plan, survey } = input
-  const [W, H] = PAPER[input.paper]
-  const small = input.paper === 'A4'
-  const margin = 10
-  const strip = small ? 22 : 26
-  const area = { x: margin + 4, y: margin + strip + 6, w: W - 2 * margin - 8, h: H - 2 * margin - strip - 10 }
-  const rho = planTurn(input.up, plan.placement.rotation)
+  const frame = sheetFrame(input.paper)
+  const { W, H, margin, strip, small } = frame
   const doc = new PdfDocument(input.title)
-  const levels = sortedLevels(plan)
-  const outlineOf = (l: Level) => buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines
-  const roofs = plan.roofs.map(r => ({ roof: r, g: roofGeometry(r) })).filter(x => !x.g.error && x.g.outline.length >= 3)
-  const retaining = plan.walls.filter(isRetaining)
-  const retainingPolys = wallPolygons(retaining)
-  const profiles = input.ground ? retainingProfiles(plan, survey.origin, input.ground) : []
-
-  const sheets: { name: string; draw: (pg: PdfPage) => View; north?: boolean }[] = []
-  sheets.push({ name: 'Site plan', draw: pg => siteSheet(pg) })
-  for (const l of levels) sheets.push({ name: `${l.name} plan`, draw: pg => floorSheet(pg, l) })
-  if (roofs.length) sheets.push({ name: 'Roof plan', draw: pg => roofSheet(pg) })
-  // Sections and elevations (src/sections), at their own scale, with no north arrow.
-  if (input.terrain) {
-    for (const s of drawingSheets({ plan, survey, terrain: input.terrain, finished: input.ground }, area)) {
-      sheets.push({ name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
-    }
-  }
-  const shadows = input.shadows
-  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ name: 'Shadow diagram, 21 June', draw: pg => shadowSheet(pg, shadows) })
-
+  // The cut and fill plan and the stormwater sheet are the DA pack's own (src/da); here both are on the site plan.
+  const sheets = planSheets(input, frame).filter(s => s.kind !== 'cutFill' && s.kind !== 'stormwater')
   sheets.forEach((sheet, i) => {
     const pg = doc.addPage(W, H)
     pg.round()
     const view = sheet.draw(pg)
-    titleBlock(pg, sheet.name, view, i + 1, sheets.length, sheet.north !== false)
+    titleBlock(pg, sheet.name, view, i + 1, sheets.length, sheet.north)
   })
   return doc.output()
 
-  // ---------------------------------------------------------------------------
-
-  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number, northArrow = true) {
+  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number, northArrow: boolean) {
     const x0 = margin
     const y0 = margin
     const w = W - 2 * margin
@@ -195,37 +246,54 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(right, y0 + strip - 15 * t, `Scale 1:${view.scale} at ${input.paper}`, { size: 3 * t, align: 'right' })
     pg.text(right, y0 + strip - 20.5 * t, input.date, { size: 2.6 * t, align: 'right', color: GREY })
 
-    // Scale bar
-    const lengths = [0.5, 1, 2, 5, 10, 20, 50, 100]
-    const L = lengths.find(l => l * view.k >= 30) ?? 100
-    const bw = L * view.k
-    const bx = x0 + w * 0.5 - bw / 2
-    const by = y0 + strip / 2 - 1
-    for (let i = 0; i < 5; i++) {
-      pg.lineWidth(0.2).stroke(INK).fill(i % 2 ? [1, 1, 1] : INK)
-      pg.rect(bx + (bw * i) / 5, by, bw / 5, 1.6, 'both')
-    }
-    pg.text(bx, by + 3.2, '0', { size: 2.4 * t, align: 'center' })
-    pg.text(bx + bw, by + 3.2, `${L} m`, { size: 2.4 * t, align: 'center' })
-
+    const bar = drawScaleBar(pg, view, x0 + w * 0.5, y0 + strip / 2 - 1, t)
     // North arrow (sections and elevations have none)
-    if (!northArrow) return
-    const north = view.angle(northInPlan()) * (Math.PI / 180)
-    const ax = bx + bw + 22
-    const ay = y0 + strip / 2
-    const r = strip * 0.26
-    const tip: [number, number] = [ax + Math.cos(north) * r, ay + Math.sin(north) * r]
-    const back = (a: number, d: number): [number, number] => [ax + Math.cos(north + a) * d, ay + Math.sin(north + a) * d]
-    pg.lineWidth(0.25).stroke(INK).circle(ax, ay, r * 1.05, 'stroke')
-    pg.fill(INK).shape([[tip, back(2.6, r * 0.7), [ax, ay], back(-2.6, r * 0.7)]], 'fill')
-    pg.text(tip[0] + Math.cos(north) * 2.5, tip[1] + Math.sin(north) * 2.5, 'N', { size: 3 * t, font: 'bold', align: 'center', baseline: 'middle' })
+    if (northArrow) drawNorthArrow(pg, northAngle(input.plan, view), bar.x1 + 22, y0 + strip / 2, strip * 0.26, t)
   }
+}
 
-  function northInPlan(): Vec2 {
-    const t = (plan.placement.rotation * Math.PI) / 180
-    // Site north (0, 1) turned into the house frame.
-    return [Math.sin(t), Math.cos(t)]
+/**
+ * Each sheet the house's drawings can make, in the plan set's order, ready to draw on a page of
+ * `frame`: the plan set (above) and the DA pack (src/da/pack.ts) both draw from these, each with
+ * its own title block.
+ */
+export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] {
+  const { plan, survey } = input
+  const { W, H, margin, strip, area } = frame
+  const rho = planTurn(input.up, plan.placement.rotation)
+  const levels = sortedLevels(plan)
+  const outlineOf = (l: Level) => buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines
+  const roofs = plan.roofs.map(r => ({ roof: r, g: roofGeometry(r) })).filter(x => !x.g.error && x.g.outline.length >= 3)
+  const retaining = plan.walls.filter(isRetaining)
+  const retainingPolys = wallPolygons(retaining)
+  const profiles = input.ground ? retainingProfiles(plan, survey.origin, input.ground) : []
+
+  const sheets: PlanSheet[] = []
+  sheets.push({ kind: 'site', name: 'Site plan', north: true, draw: pg => siteSheet(pg) })
+  for (const l of levels) {
+    const empty = ![...plan.walls, ...plan.areas, ...plan.stairs].some(x => x.level === l.id)
+    sheets.push({ kind: 'floor', name: `${l.name} plan`, north: true, empty, draw: pg => floorSheet(pg, l) })
   }
+  if (roofs.length) sheets.push({ kind: 'roof', name: 'Roof plan', north: true, draw: pg => roofSheet(pg) })
+  // Sections and elevations (src/sections), at their own scale, with no north arrow.
+  if (input.terrain) {
+    for (const s of drawingSheets({ plan, survey, terrain: input.terrain, finished: input.ground }, area)) {
+      sheets.push({ kind: s.kind, name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
+    }
+  }
+  const shadows = input.shadows
+  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ kind: 'shadow', name: 'Shadow diagram, 21 June', north: true, draw: pg => shadowSheet(pg, shadows) })
+  // The DA pack's two: cut and fill once the ground is cut or filled, and the stormwater concept once there is one.
+  const natural = input.terrain?.grid
+  const finished = input.ground
+  if (input.earthworks && natural && finished && natural !== finished && input.contours?.any) {
+    sheets.push({ kind: 'cutFill', name: 'Cut and fill plan', north: true, draw: pg => cutFillSheet(pg, natural, finished) })
+  }
+  const storm = input.stormwater
+  if (storm) sheets.push({ kind: 'stormwater', name: 'Stormwater concept', north: true, draw: pg => stormwaterPlanSheet(pg, storm) })
+  return sheets
+
+  // ---------------------------------------------------------------------------
 
   /** A length written along a line, on its outside. */
   function along(pg: PdfPage, view: View, a: Vec2, b: Vec2, text: string, offset: number, size: number, color: RGB = INK) {
@@ -259,63 +327,7 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       warned: new Set((input.site?.warnings ?? []).filter(w => w.severity === 'attn').map(w => w.feature)),
     }
 
-    // Contours: once the ground is cut or filled, the finished ground's in ink there and the natural ones dashed.
-    const fc = input.contours?.any ? input.contours : null
-    const NATURAL_MAJOR: RGB = [0.62, 0.55, 0.45]
-    const NATURAL_MINOR: RGB = [0.8, 0.76, 0.7]
-    const draw = (runs: ContourRun[], major: boolean) => {
-      for (const r of runs) if (r.major === major) pg.polyline(r.pts.map(p => view.P(tf(p))))
-    }
-    if (fc) {
-      pg.lineWidth(0.12).stroke(NATURAL_MINOR)
-      draw(fc.natural, false)
-      pg.lineWidth(0.25).stroke(NATURAL_MAJOR)
-      draw(fc.natural, true)
-      pg.dash([0.8, 0.8])
-      pg.lineWidth(0.12).stroke(NATURAL_MINOR)
-      draw(fc.existing, false)
-      pg.lineWidth(0.2).stroke(NATURAL_MAJOR)
-      draw(fc.existing, true)
-      pg.dash()
-      pg.lineWidth(0.12).stroke([0.45, 0.46, 0.48])
-      draw(fc.finished, false)
-      pg.lineWidth(0.3).stroke(INK)
-      draw(fc.finished, true)
-      for (const r of fc.finished) {
-        if (!r.major) continue
-        const p = labelPoint(r, 12 / view.k)
-        if (!p) continue
-        const q = view.P(tf(p))
-        pg.text(q[0], q[1] + 0.8, contourText(r.z), { size: 2, color: INK, align: 'center', font: 'bold' })
-      }
-    }
-    for (const c of survey.contours) {
-      // Runs of the contour on the block, each point kept in the local frame too, for its label.
-      const segs: Vec2[][] = []
-      let cur: Vec2[] = []
-      for (let i = 0; i + 1 < c.pts.length; i++) {
-        const a = c.pts[i]
-        const b = c.pts[i + 1]
-        if (!pointInPolygon((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, survey.boundary)) {
-          if (cur.length > 1) segs.push(cur)
-          cur = []
-          continue
-        }
-        if (!cur.length) cur.push([a[0], a[1]])
-        cur.push([b[0], b[1]])
-      }
-      if (cur.length > 1) segs.push(cur)
-      pg.lineWidth(c.major ? 0.25 : 0.12).stroke(c.major ? NATURAL_MAJOR : NATURAL_MINOR)
-      if (!fc) for (const sgm of segs) pg.polyline(sgm.map(p => view.P(tf(p))))
-      if (c.major && segs.length) {
-        const longest = segs.reduce((a, b) => (b.length > a.length ? b : a))
-        const mid = longest[Math.floor(longest.length / 2)]
-        // Not on ground that's been cut or filled: the finished contours are labelled there.
-        if (fc?.changedAt(mid[0], mid[1])) continue
-        const at = view.P(tf(mid))
-        pg.text(at[0], at[1] + 0.8, c.z.toFixed(0), { size: 2, color: [0.55, 0.48, 0.38], align: 'center' })
-      }
-    }
+    const fc = drawContours(pg, view, tf)
 
     drawFeatureAreas(marks, features)
 
@@ -367,22 +379,7 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     }
 
     // Stormwater concept: a dashed line from the house to where the water goes, named as a concept.
-    const storm = input.stormwater
-    if (storm && storm.path.length === 2) {
-      const a = tf(storm.path[0])
-      const b = tf(storm.path[1])
-      const pa = view.P(a)
-      const pb = view.P(b)
-      const STORM: RGB = [0.12, 0.44, 0.7]
-      pg.lineWidth(0.4).stroke(STORM).dash([1.6, 1]).line(pa, pb)
-      pg.dash()
-      // An arrow head at the discharge point.
-      const ang = Math.atan2(pb[1] - pa[1], pb[0] - pa[0])
-      const wing = (t: number): [number, number] => [pb[0] - Math.cos(ang) * 2 - Math.sin(ang) * t, pb[1] - Math.sin(ang) * 2 + Math.cos(ang) * t]
-      pg.lineWidth(0.4).line(wing(1.1), pb).line(wing(-1.1), pb)
-      pg.fill(STORM).stroke(STORM).circle(pa[0], pa[1], 0.8, 'both')
-      along(pg, view, a, b, storm.label, 1.8, 2.4, STORM)
-    }
+    if (input.stormwater) stormPath(pg, view, tf, input.stormwater)
 
     // Key numbers
     const footprint = buildingFootprint(plan)
@@ -444,6 +441,255 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       pg.text(bx + 10, ly, legend[2], { size: 2.6 })
     }
     drawFeatureLegend(pg, W - margin - 5, margin + strip + 5, features, input.site?.warnings ?? [])
+    return view
+  }
+
+  /** Contours: once the ground is cut or filled, the finished ground's in ink there and the natural ones dashed. Returns the finished ones, if drawn. */
+  function drawContours(pg: PdfPage, view: View, tf: (p: Vec2) => Vec2): FinishedContours | null {
+    const fc = input.contours?.any ? input.contours : null
+    const draw = (runs: ContourRun[], major: boolean) => {
+      for (const r of runs) if (r.major === major) pg.polyline(r.pts.map(p => view.P(tf(p))))
+    }
+    if (fc) {
+      pg.lineWidth(0.12).stroke(NATURAL_MINOR)
+      draw(fc.natural, false)
+      pg.lineWidth(0.25).stroke(NATURAL_MAJOR)
+      draw(fc.natural, true)
+      pg.dash([0.8, 0.8])
+      pg.lineWidth(0.12).stroke(NATURAL_MINOR)
+      draw(fc.existing, false)
+      pg.lineWidth(0.2).stroke(NATURAL_MAJOR)
+      draw(fc.existing, true)
+      pg.dash()
+      pg.lineWidth(0.12).stroke([0.45, 0.46, 0.48])
+      draw(fc.finished, false)
+      pg.lineWidth(0.3).stroke(INK)
+      draw(fc.finished, true)
+      for (const r of fc.finished) {
+        if (!r.major) continue
+        const p = labelPoint(r, 12 / view.k)
+        if (!p) continue
+        const q = view.P(tf(p))
+        pg.text(q[0], q[1] + 0.8, contourText(r.z), { size: 2, color: INK, align: 'center', font: 'bold' })
+      }
+    }
+    for (const c of survey.contours) {
+      // Runs of the contour on the block, each point kept in the local frame too, for its label.
+      const segs: Vec2[][] = []
+      let cur: Vec2[] = []
+      for (let i = 0; i + 1 < c.pts.length; i++) {
+        const a = c.pts[i]
+        const b = c.pts[i + 1]
+        if (!pointInPolygon((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, survey.boundary)) {
+          if (cur.length > 1) segs.push(cur)
+          cur = []
+          continue
+        }
+        if (!cur.length) cur.push([a[0], a[1]])
+        cur.push([b[0], b[1]])
+      }
+      if (cur.length > 1) segs.push(cur)
+      pg.lineWidth(c.major ? 0.25 : 0.12).stroke(c.major ? NATURAL_MAJOR : NATURAL_MINOR)
+      if (!fc) for (const sgm of segs) pg.polyline(sgm.map(p => view.P(tf(p))))
+      if (c.major && segs.length) {
+        const longest = segs.reduce((a, b) => (b.length > a.length ? b : a))
+        const mid = longest[Math.floor(longest.length / 2)]
+        // Not on ground that's been cut or filled: the finished contours are labelled there.
+        if (fc?.changedAt(mid[0], mid[1])) continue
+        const at = view.P(tf(mid))
+        pg.text(at[0], at[1] + 0.8, c.z.toFixed(0), { size: 2, color: [0.55, 0.48, 0.38], align: 'center' })
+      }
+    }
+    return fc
+  }
+
+  /** A white box of key numbers at the top right (label left, value right) with notes under them; returns where it ends. */
+  function keyBox(pg: PdfPage, rows: [string, string][], notes: string[] = [], minW = 64): { x: number; w: number; bottom: number } {
+    const size = 2.6
+    const w = Math.max(minW, ...rows.map(([k, v]) => textWidth(k, size) + textWidth(v, size) + 4))
+    const lines = notes.map(t => wrapText(t, w, 2.3))
+    const h = rows.length * 4.6 + lines.reduce((t, l) => t + l.length * 3.3 + 1.2, 0) + 5
+    const x = W - margin - w - 8
+    let y = H - margin - 8
+    pg.lineWidth(0.25).stroke(LIGHT).fill([1, 1, 1]).rect(x - 3, y + 4 - h, w + 6, h, 'both')
+    for (const [k, v] of rows) {
+      pg.text(x, y, k, { size, color: GREY })
+      pg.text(x + w, y, v, { size, align: 'right' })
+      y -= 4.6
+    }
+    for (const l of lines) {
+      for (const t of l) {
+        pg.text(x, y + 0.6, t, { size: 2.3, color: GREY })
+        y -= 3.3
+      }
+      y -= 1.2
+    }
+    return { x, w, bottom: y + 4 - 1 }
+  }
+
+  /** A key of swatches and lines under a key box: each row is a mark drawn 8 mm wide, then its words. */
+  function legendBox(pg: PdfPage, x: number, w: number, top: number, rows: { text: string; mark: (x: number, y: number) => void }[]) {
+    const h = rows.length * 4.6 + 2.4
+    pg.lineWidth(0.25).stroke(LIGHT).fill([1, 1, 1]).rect(x - 3, top - h, w + 6, h, 'both')
+    let y = top - 4
+    for (const r of rows) {
+      r.mark(x, y)
+      pg.text(x + 10, y, r.text, { size: 2.6 })
+      y -= 4.6
+    }
+  }
+
+  /** The house's ground floor, filled, with its upper floors and roofs dashed. */
+  function houseOutline(pg: PdfPage, view: View, fill: RGB) {
+    const outlines = levels[0] ? outlineOf(levels[0]) : []
+    pg.lineWidth(0.5).stroke(INK).fill(fill).shape(outlines.map(r => ring(view, r)), 'both')
+    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
+    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
+    pg.dash([3, 1.2])
+    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
+    pg.dash()
+    if (outlines.length) {
+      const c = view.P(centroidOf(outlines[0]))
+      pg.text(c[0], c[1] + 1.5, 'House', { size: 3, font: 'bold', align: 'center' })
+      pg.text(c[0], c[1] - 3, `FFL RL ${floorRL(plan).toFixed(2)}`, { size: 2.6, align: 'center' })
+    }
+  }
+
+  /** The stormwater concept's dashed path from the house to where the water goes, with an arrow head and its label. */
+  function stormPath(pg: PdfPage, view: View, tf: (p: Vec2) => Vec2, storm: StormwaterSheet) {
+    if (storm.path.length !== 2) return
+    const a = tf(storm.path[0])
+    const b = tf(storm.path[1])
+    const pa = view.P(a)
+    const pb = view.P(b)
+    pg.lineWidth(0.4).stroke(STORM).dash([1.6, 1]).line(pa, pb)
+    pg.dash()
+    // An arrow head at the discharge point.
+    const ang = Math.atan2(pb[1] - pa[1], pb[0] - pa[0])
+    const wing = (t: number): [number, number] => [pb[0] - Math.cos(ang) * 2 - Math.sin(ang) * t, pb[1] - Math.sin(ang) * 2 + Math.cos(ang) * t]
+    pg.lineWidth(0.4).line(wing(1.1), pb).line(wing(-1.1), pb)
+    pg.fill(STORM).stroke(STORM).circle(pa[0], pa[1], 0.8, 'both')
+    along(pg, view, a, b, storm.label, 1.8, 2.4, STORM)
+  }
+
+  /** The block's boundary, clipped drawing area and survey frame, as the DA pack's two site sheets share them. */
+  function blockView(extra: Vec2[] = []) {
+    const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
+    const boundary = survey.boundary.map(tf)
+    const outlines = levels[0] ? outlineOf(levels[0]) : []
+    const view = makeView([...boundary, ...outlines.flat(), ...extra], rho, area, 100)
+    return { tf, boundary, view }
+  }
+
+  // ---- Cut and fill plan (DA pack) ----
+  function cutFillSheet(pg: PdfPage, natural: Heightfield, finished: Heightfield): View {
+    const { tf, boundary, view } = blockView()
+    // Where the finished ground is lower than the natural ground (cut) and higher (fill), tinted, on the block only.
+    if (natural.z.length === finished.z.length) {
+      const cut = new Float64Array(finished.z.length)
+      const fill = new Float64Array(finished.z.length)
+      for (let k = 0; k < cut.length; k++) {
+        cut[k] = natural.z[k] - finished.z[k]
+        fill[k] = -cut[k]
+      }
+      const paper = (vals: Float64Array) =>
+        superlevel(vals, finished.nx, finished.ny, CHANGED).rings.map(r => r.map(([u, v]) => view.P(tf([finished.x0 + u * finished.cell, finished.y0 + v * finished.cell]))))
+      pg.save().clip([ring(view, boundary)])
+      pg.fill(CUT_TINT).shape(paper(cut), 'fill')
+      pg.fill(FILL_TINT).shape(paper(fill), 'fill')
+      pg.restore()
+    }
+    const fc = drawContours(pg, view, tf)
+    retainingWalls(pg, view, retaining, true)
+    houseOutline(pg, view, [0.93, 0.93, 0.93])
+    pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
+
+    const e = input.earthworks!
+    const net = e.cut - e.fill
+    const rows: [string, string][] = [
+      ['Cut', `${e.cut.toFixed(1)} m³`],
+      ['Fill', `${e.fill.toFixed(1)} m³`],
+      ['Cut less fill', Math.abs(net) < 0.5 ? 'about even' : `${Math.abs(net).toFixed(1)} m³ ${net > 0 ? 'to take away' : 'to bring in'}`],
+    ]
+    if (e.maxCut !== undefined) rows.push(['Deepest cut', `${e.maxCut.toFixed(2)} m`])
+    if (e.maxFill !== undefined) rows.push(['Deepest fill', `${e.maxFill.toFixed(2)} m`])
+    rows.push(['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`])
+    if (profiles.length) {
+      rows.push(['Retaining walls', `${profiles.reduce((t, p) => t + p.length, 0).toFixed(1)} m`])
+      rows.push(['Tallest retaining wall', `holds back ${mm(Math.max(...profiles.map(p => p.maxHeight)))} mm`])
+    }
+    const key = keyBox(pg, rows, ['Volumes are estimates from the survey’s ground model, as Earthworks › Cut and fill works them out. An engineer or builder confirms them.'])
+    const swatch = (c: RGB) => (x: number, y: number) => {
+      pg.lineWidth(0.15).stroke(GREY).fill(c).rect(x, y - 0.4, 8, 2.8, 'both')
+    }
+    const line = (c: RGB, w: number, dash: number[]) => (x: number, y: number) => {
+      pg.lineWidth(w).stroke(c).dash(dash).line([x, y + 0.9], [x + 8, y + 0.9])
+      pg.dash()
+    }
+    const legend: { text: string; mark: (x: number, y: number) => void }[] = [
+      { text: 'Cut: ground lowered', mark: swatch(CUT_TINT) },
+      { text: 'Fill: ground raised', mark: swatch(FILL_TINT) },
+    ]
+    if (retaining.length) legend.push({ text: 'Retaining wall', mark: swatch(RW_FILL) })
+    if (fc) {
+      const every = fc.minor < 1 ? `${Math.round(fc.minor * 1000)} mm` : `${fc.minor} m`
+      legend.push({ text: `Finished contours every ${every}, proposed`, mark: line(INK, 0.3, []) }, { text: 'Natural ground, existing', mark: line(NATURAL_MAJOR, 0.25, [0.8, 0.8]) })
+    }
+    legendBox(pg, key.x, key.w, key.bottom - 3, legend)
+    return view
+  }
+
+  // ---- Stormwater concept (DA pack) ----
+  function stormwaterPlanSheet(pg: PdfPage, storm: StormwaterSheet): View {
+    const { tf, boundary, view } = blockView()
+    // The natural contours, faint, so the fall reads.
+    pg.save().clip([ring(view, boundary)])
+    for (const c of survey.contours) pg.lineWidth(c.major ? 0.22 : 0.1).stroke(c.major ? NATURAL_MAJOR : NATURAL_MINOR).polyline(c.pts.map(p => view.P(tf([p[0], p[1]]))))
+    pg.restore()
+    houseOutline(pg, view, [0.9, 0.9, 0.9])
+    // Downpipes, most often at the roof's outside corners.
+    for (const p of storm.downpipes ?? []) {
+      const q = view.P(p)
+      pg.lineWidth(0.25).stroke(STORM).fill([1, 1, 1]).circle(q[0], q[1], 0.9, 'both')
+    }
+    stormPath(pg, view, tf, storm)
+    pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
+
+    const notes = [storm.verdict, 'A concept only: a hydraulic engineer designs the pipes, pits, any on-site detention and the connection to the street or easement.'].filter(
+      (t): t is string => !!t,
+    )
+    const key = keyBox(pg, storm.rows, notes, 80)
+    const legend: { text: string; mark: (x: number, y: number) => void }[] = [
+      {
+        text: 'Stormwater concept path',
+        mark: (x, y) => {
+          pg.lineWidth(0.4).stroke(STORM).dash([1.6, 1]).line([x, y + 0.9], [x + 8, y + 0.9])
+          pg.dash()
+        },
+      },
+      { text: 'Likely downpipe (a roof corner)', mark: (x, y) => pg.lineWidth(0.25).stroke(STORM).fill([1, 1, 1]).circle(x + 4, y + 0.9, 0.9, 'both') },
+      { text: 'Natural contours, existing', mark: (x, y) => pg.lineWidth(0.22).stroke(NATURAL_MAJOR).line([x, y + 0.9], [x + 8, y + 0.9]) },
+    ]
+    // Which way the block falls, as an arrow on the paper's own turn of the plan.
+    const fall = storm.fall
+    if (fall) {
+      const b = (fall.bearing * Math.PI) / 180
+      const a = view.P(tf(fall.at))
+      const q = view.P(tf([fall.at[0] + Math.sin(b), fall.at[1] + Math.cos(b)]))
+      const len = Math.hypot(q[0] - a[0], q[1] - a[1]) || 1
+      const d: [number, number] = [(q[0] - a[0]) / len, (q[1] - a[1]) / len]
+      legend.push({
+        text: fall.text,
+        mark: (x, y) => {
+          const c: [number, number] = [x + 4, y + 0.9]
+          const from: [number, number] = [c[0] - d[0] * 3.6, c[1] - d[1] * 3.6]
+          const to: [number, number] = [c[0] + d[0] * 3.6, c[1] + d[1] * 3.6]
+          const wing = (s: number): [number, number] => [to[0] - d[0] * 1.6 - d[1] * s, to[1] - d[1] * 1.6 + d[0] * s]
+          pg.lineWidth(0.4).stroke(INK).line(from, to).line(wing(0.9), to).line(wing(-0.9), to)
+        },
+      })
+    }
+    legendBox(pg, key.x, key.w, key.bottom - 3, legend)
     return view
   }
 

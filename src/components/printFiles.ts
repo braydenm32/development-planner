@@ -1,5 +1,5 @@
-// Saving the print parts, the plan set and the project file: what the download buttons in
-// Share, and ⌘K, call.
+// Saving the print parts, the plan set, the DA pack and the project file: what the download
+// buttons in Share, and ⌘K, call.
 
 import { saveFile } from '../lib/download'
 import type { SavedProject } from '../lib/storage'
@@ -11,15 +11,22 @@ import { driveGround } from '../plan/driveway'
 import type { Earth } from '../plan/useEarthworks'
 import type { PrintModel, PrintSettings } from '../print/build'
 import { fileSafe, to3mf, toStlZip } from '../print/export'
-import { planSetPdf, type Paper } from '../share/plans'
+import { planSetPdf, type Paper, type PlanSetInput } from '../share/plans'
 import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
-import { mapForProject } from '../map/store'
+import { mapForProject, useMap } from '../map/store'
+import { mapChecks } from '../map/checks'
+import { activeCouncil } from '../checks/councils'
+import { measure } from '../checks/measure'
+import { notChecked, runChecks } from '../checks/rules'
+import { checkTreesOf } from '../checks/siteTrees'
+import { daOf } from '../da/model'
+import { daPackPdf } from '../da/pack'
 import { stormwaterSheet } from '../drainage/stormwater'
 import { localFeatures, siteForProject } from '../site/store'
 import { siteWarningsNow } from '../site/sync'
-import { keptShadowDiagram, winterDay } from '../sun/facts'
+import { keptShadowDiagram, keptSunFacts, winterDay } from '../sun/facts'
 
 export type PrintState = { model: PrintModel | null; busy: boolean; error: string | null }
 
@@ -69,11 +76,11 @@ export function savePlansPdf(p: PdfInput) {
   saveFile(f.name, f.data, f.type)
 }
 
-/** The plan set as a PDF file. Throws if the plans can't be drawn. */
-export function plansPdfFile(p: PdfInput): OutFile {
+/** What the plan set and the DA pack both draw from. */
+function planSetInput(p: PdfInput): PlanSetInput {
   const title = projectTitle(p.plan)
   const e = p.earth?.result
-  const pdf = planSetPdf({
+  return {
     plan: p.plan,
     survey: p.survey,
     siteArea: p.terrain.stats.area,
@@ -91,8 +98,49 @@ export function plansPdfFile(p: PdfInput): OutFile {
     shadows: keptShadowDiagram({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() }),
     // The street side the plan knows: Lot facts first, then the one picked for Street view on this project.
     stormwater: stormwaterSheet(p.plan, p.survey, p.terrain),
+  }
+}
+
+/** The plan set as a PDF file. Throws if the plans can't be drawn. */
+export function plansPdfFile(p: PdfInput): OutFile {
+  const input = planSetInput(p)
+  return { name: `${fileSafe(input.title)}-plans.pdf`, data: planSetPdf(input), type: 'application/pdf' }
+}
+
+/**
+ * The DA pack as a PDF file: the plan set's drawings, the cut and fill plan and stormwater concept,
+ * a cover checklist and the checks for a DA. It carries the address from the map placement, so it's
+ * only ever saved to this device, never sent. Throws if the plans can't be drawn.
+ */
+export function daPackFile(p: PdfInput): OutFile {
+  const base = planSetInput(p)
+  const e = p.earth?.result
+  const place = useMap.getState().place
+  const planning = place?.planning ?? null
+  // The checks as Design › Checks works them out, but always for a DA: the land's flags, then the council's rules.
+  const trees = checkTreesOf(localFeatures(undefined, true), p.survey.boundary)
+  const sun = keptSunFacts({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() })
+  const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun })
+  const council = activeCouncil(measures.settings)
+  const checks = [...(planning ? mapChecks(planning, 'da') : []), ...(council ? runChecks(measures, 'da', council.id) : [])]
+  const pdf = daPackPdf({
+    ...base,
+    earthworks: base.earthworks && e ? { ...base.earthworks, maxCut: e.maxCut, maxFill: e.maxFill } : base.earthworks,
+    revision: daOf(p.plan).revision,
+    place: place ? { address: place.lot.address ?? null, lot: place.lot.label } : null,
+    preparedBy: null,
+    planning,
+    council,
+    checks,
+    notChecked: notChecked('da', council),
   })
-  return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
+  return { name: `${fileSafe(base.title)}-DA-pack.pdf`, data: pdf, type: 'application/pdf' }
+}
+
+/** Draw the DA pack and save it to this device. Throws if the plans can't be drawn. */
+export function saveDaPack(p: PdfInput) {
+  const f = daPackFile(p)
+  saveFile(f.name, f.data, f.type)
 }
 
 /** Save the project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */

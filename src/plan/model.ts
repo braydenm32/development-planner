@@ -1,5 +1,6 @@
 import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
+import type { DaSettings } from '../da/model'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import type { SiteLocation } from '../sun/location'
@@ -32,6 +33,8 @@ export interface Plan {
   checks?: CheckSettings
   /** The stormwater concept's tank settings (src/drainage); defaults apply when missing. */
   stormwater?: Stormwater
+  /** The DA pack's revision letter (src/da); revision A when missing. */
+  da?: DaSettings
   /** What the person has told the BASIX checklist (src/basix); defaults apply when missing. */
   basix?: BasixAnswers
   /** Section lines drawn across the plan (Design › Sections). Missing in plans saved before them, which have none. */

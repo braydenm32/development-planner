@@ -57,7 +57,7 @@ export function normalizeMapPlace(raw: unknown): MapPlace | null {
     areaRatio: isNum(r.areaRatio) ? r.areaRatio : 1,
     onGrid: !!r.onGrid,
     adjusted: !!r.adjusted,
-    lot: { id: lot.id, label: typeof lot.label === 'string' ? lot.label : lot.id, ring: lot.ring as LonLat[] },
+    lot: { id: lot.id, label: typeof lot.label === 'string' ? lot.label : lot.id, ring: lot.ring as LonLat[], ...(typeof lot.address === 'string' && lot.address.trim() ? { address: lot.address.trim() } : {}) },
     aerial: r.aerial !== false,
     opacity: isNum(r.opacity) ? Math.min(1, Math.max(0.1, r.opacity)) : 0.8,
     include: !!r.include,

@@ -42,6 +42,13 @@ describe('the map record', () => {
     expect(p.fit).toEqual(place().fit)
   })
 
+  it('keeps the street address a lot was found by, for the DA pack, and nothing for a blank one', () => {
+    const lot = place().lot
+    expect(normalizeMapPlace(place({ lot: { ...lot, address: ' 1 Example Street Sampleton 2000 ' } }))!.lot.address).toBe('1 Example Street Sampleton 2000')
+    expect(normalizeMapPlace(place({ lot: { ...lot, address: '  ' } }))!.lot).not.toHaveProperty('address')
+    expect(normalizeMapPlace(place())!.lot).not.toHaveProperty('address')
+  })
+
   it('drops what isn’t a placement', () => {
     expect(normalizeMapPlace(null)).toBeNull()
     expect(normalizeMapPlace({ fit: { from: [1, 2], at: [3, 'x'], rotation: 0 }, lot: place().lot })).toBeNull()

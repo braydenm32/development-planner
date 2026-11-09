@@ -4,6 +4,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { lotById, lotsOfProperty, MapServiceError, parseLotDp, searchAddress, type AddressHit, type Lot } from './services'
 
+/** The lots of an address, each keeping the address it was found by (for the DA pack's title blocks). */
+const lotsAt = async (h: AddressHit, signal: AbortSignal): Promise<Lot[]> => (await lotsOfProperty(h.propId, signal)).map(l => ({ ...l, address: h.address }))
+
 export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
   const [text, setText] = useState('')
   const [hits, setHits] = useState<AddressHit[]>([])
@@ -55,7 +58,7 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
     return run(
       async s => {
         const h = await searchAddress(text, s)
-        return h[0] ? lotsOfProperty(h[0].propId, s) : []
+        return h[0] ? lotsAt(h[0], s) : []
       },
       'No address like that was found. Try the street number and name, and the suburb.',
     )
@@ -63,7 +66,7 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
   const choose = (h: AddressHit) => {
     setText(h.address)
     setChosen(h.address)
-    void run(s => lotsOfProperty(h.propId, s), 'That address has no lot on the map. Try its Lot and DP instead.')
+    void run(s => lotsAt(h, s), 'That address has no lot on the map. Try its Lot and DP instead.')
   }
 
   return (
