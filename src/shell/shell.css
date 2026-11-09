@@ -147,13 +147,8 @@ body:has(.app-shell) {
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  /* Scrolled to a tab's edge, clear of the arrows (src/shell/ScrollCue.tsx). */
-  scroll-snap-type: x proximity;
+  /* The open tab scrolls into view clear of the arrows (src/shell/ScrollCue.tsx). */
   scroll-padding-inline: 42px;
-}
-
-.tab-bar > .tab {
-  scroll-snap-align: start;
 }
 
 /* ---- A row with more than fits: the tabs, the strip's chips (src/shell/overflow.ts) ---- */
