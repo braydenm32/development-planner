@@ -17,6 +17,7 @@ import type { SiteSolid } from '../lib/terrainMesh'
 import type { Plan } from '../plan/model'
 import { SiteFeatures3D } from '../site/SiteFeatures3D'
 import { House3D } from './House3D'
+import { SnapshotGrab } from '../export/SnapshotGrab'
 
 export interface HoverInfo {
   e: number
@@ -95,6 +96,7 @@ export function SiteView(props: Props) {
         maxDistance={span * 6}
       />
       <Compass compassRef={props.compassRef} />
+      <SnapshotGrab />
       {touch && frame && <CameraRig frame={frame} storageKey={touch.projectKey} phone={touch.phone} upBearing={props.upBearing} hasPlan={!!props.plan} />}
       <Site {...props} refZ={refZ} onPin={touch ? setPin : undefined} />
       {pin && <GroundPin pin={pin} />}

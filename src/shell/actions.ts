@@ -5,6 +5,7 @@ import { cloudActions } from '../cloud/state'
 import { balanceCutFill } from '../components/planNumbers'
 import { downloadPlan, startNewPlan } from '../components/planFile'
 import { save3mf, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
+import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
 import { startContourPick } from '../flow/store'
 import type { ActionId } from '../nav/menu'
 import { NEW_PROJECT, PROJECTS } from '../nav/route'
@@ -86,6 +87,13 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'reset-camera':
       shell.resetCamera()
       return true
+    // A picture of whichever canvas is showing.
+    case 'save-picture':
+      if (plan)
+        void savePicture(plan, planShowing() ? 'plan' : '3d').then(err => {
+          if (err) c.toast(err)
+        })
+      return !!plan
     // One Open: a survey, a project file or a plan, each going its own way after a review.
     case 'open-file':
     case 'open-project':
@@ -113,6 +121,17 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
         c.toast((err as Error).message || 'The plans could not be drawn.')
         return false
       }
+    case 'download-dxf':
+      try {
+        saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth })
+        return true
+      } catch (err) {
+        c.toast((err as Error).message || 'The DXF could not be written.')
+        return false
+      }
+    case 'download-schedule':
+      saveScheduleCsv(plan)
+      return true
     case 'download-3mf':
     case 'download-stls': {
       const ok = (a === 'download-3mf' ? save3mf : saveStls)({ plan, settings: shell.printPrefs.settings, print: shell.print })

@@ -21,7 +21,7 @@ export function ToolRail() {
     <div className="tool-rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical">
       {RAIL.map((t, i) => (
         <span key={t.id} className={i === 1 ? 'tool-gap' : undefined}>
-          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(t.id)} title={`${t.label} (${t.key})`} aria-label={`${t.label} tool`}>
+          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(tool === t.id && (t.id === 'measure' || t.id === 'note') ? 'select' : t.id)} title={`${t.label} (${t.key})`} aria-label={`${t.label} tool`}>
             <Icon name={(t.icon ?? 'select') as IconName} size={19} />
           </button>
         </span>
@@ -101,6 +101,7 @@ export function CanvasControls({ canvas, up, run }: ControlsProps) {
       ) : (
         <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
       )}
+      <Ctl icon="download" label="Picture" onClick={() => run('save-picture')} />
       <Ctl icon="north" label="North up" pressed={up === 0} onClick={() => run('north-up')} />
     </div>
   )

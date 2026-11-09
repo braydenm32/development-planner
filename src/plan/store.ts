@@ -15,7 +15,7 @@ import {
   type WallKind,
 } from './model'
 
-export type Tool = 'select' | 'wall' | 'retaining' | 'door' | 'window' | 'opening' | 'garage' | 'room' | 'area' | 'roof' | 'stair' | 'furniture' | 'move'
+export type Tool = 'select' | 'wall' | 'retaining' | 'door' | 'window' | 'opening' | 'garage' | 'room' | 'area' | 'roof' | 'stair' | 'furniture' | 'move' | 'measure' | 'note'
 
 /** Tools that put an opening in a wall, each of its own kind. */
 export const OPENING_TOOLS = ['door', 'window', 'opening', 'garage'] as const

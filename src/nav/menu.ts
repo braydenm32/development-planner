@@ -24,6 +24,9 @@ export type ActionId =
   | 'balance'
   | 'download-pdf'
   | 'download-3mf'
+  | 'download-dxf'
+  | 'download-schedule'
+  | 'save-picture'
   | 'download-stls'
   | 'save-project'
   | 'open-file'
@@ -603,6 +606,14 @@ export const AREAS: Area[] = [
         features: ['download-pdf', 'furniture-pdf', 'finished-contours-pdf', 'site-features-pdf', 'share-from-phone', 'setback-dimensions-pdf'],
       },
       {
+        id: 'export',
+        label: 'Export',
+        icon: 'download',
+        subtitle: 'A DXF for your surveyor, pictures, and a door and window list.',
+        keywords: ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'picture', 'schedule', 'doors', 'windows', 'door and window schedule', 'csv', 'spreadsheet', 'surveyor', 'engineer'],
+        features: ['download-dxf', 'download-plan-png', 'download-3d-png', 'door-window-schedule', 'download-schedule-csv'],
+      },
+      {
         id: 'send',
         label: 'Send',
         icon: 'send',
@@ -693,6 +704,8 @@ const TOOL_FEATURES: Partial<Record<Tool, string[]>> = {
   roof: ['tool-roof', 'new-roof-mode'],
   stair: ['tool-stair', 'new-stair-width'],
   furniture: ['tool-furniture'],
+  measure: ['tool-measure'],
+  note: ['tool-note', 'note-edit-delete'],
 }
 
 const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
@@ -706,6 +719,8 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   roof: ['pitch', 'hip', 'gable', 'roof this building', 'draw roof outline', 'outline'],
   stair: ['stairs', 'steps', 'risers'],
   furniture: ['bed', 'sofa', 'table'],
+  measure: ['measure', 'ruler', 'distance', 'slope', 'height', 'fall', 'how far', 'length'],
+  note: ['note', 'label', 'text', 'comment', 'annotate'],
 }
 
 export const HOMES: Home[] = [
@@ -889,6 +904,9 @@ export const HOMES: Home[] = [
     features: [],
     items: [
       { id: 'cmd-pdf', label: 'Download PDF plans', icon: 'download', keywords: ['print', 'plan set', 'drawings'], features: [], action: 'download-pdf', run: 'offer', at: 'share/plans' },
+      { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
+      { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },
+      { id: 'cmd-picture', label: 'Save a picture of the plan or 3D view', icon: 'download', keywords: ['png', 'image', 'screenshot', 'export'], features: [], action: 'save-picture', run: 'now' },
       { id: 'cmd-3mf', label: 'Download 3MF for printing', icon: 'download', keywords: ['3D print', 'model'], features: [], action: 'download-3mf', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-reset-camera', label: 'Reset the 3D camera', icon: 'rotate', keywords: ['view', 'orbit', 'home'], features: [], action: 'reset-camera', run: 'now', at: 'site/3d' },
     ],
