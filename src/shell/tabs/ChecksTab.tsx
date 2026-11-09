@@ -6,7 +6,7 @@ import { DemFlag } from '../../map/DemNotes'
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
-import { CDC_LAND, CDC_LAND_MAPPED, controlCount, notChecked } from '../../checks/rules'
+import { CDC_LAND, CDC_LAND_MAPPED, controlCount, countsWords, notChecked } from '../../checks/rules'
 import { isDriveCheck } from '../../checks/crossing'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, COUNCILS, type Council } from '../../checks/councils'
@@ -40,14 +40,8 @@ function Checks({ d }: { d: Loaded }) {
   const rows = sorted.filter(r => !isDriveCheck(r.id))
   const drive = sorted.filter(r => isDriveCheck(r.id))
   const s = c.measures.settings
-  const summary = [
-    c.counts.fail && `${c.counts.fail} fail${c.counts.fail > 1 ? 's' : ''}`,
-    c.counts.warn && `${c.counts.warn} to check`,
-    c.counts.unknown && `${c.counts.unknown} need${c.counts.unknown > 1 ? '' : 's'} a fact`,
-    c.counts.incomplete && `${c.counts.incomplete} not drawn yet`,
-    `${c.counts.pass} pass`,
-    c.counts.info && `${c.counts.info} for info`,
-  ].filter(Boolean)
+  // Every status, trees marked for removal too, so the summary adds up to the rows below.
+  const summary = countsWords(c.counts)
   return (
     <div className="checks">
       <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />

@@ -9,6 +9,7 @@
 
 import type { CheckResult, CheckStatus } from '../checks/types'
 import type { Council } from '../checks/councils'
+import { countChecks, countsWords } from '../checks/rules'
 import type { PlanningFacts } from '../map/planning'
 import { areaKind } from '../plan/model'
 import { PdfDocument, textWidth, wrapText, type Font, type PdfPage, type RGB } from '../share/pdfWriter'
@@ -363,16 +364,10 @@ function checksSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, listed: Che
     pg.text(x, y - 7, 'Checks summary', { size: 6, font: 'bold' })
     const against = input.council ? `Checked against ${input.council.rules} for a development application.` : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Design › Checks.'
     pg.text(x, y - 13, against, { size: 2.8 })
-    const count = (s: CheckStatus) => input.checks.filter(c => c.status === s).length
-    // Every count, zeros too, so "0 fails" reads as checked rather than left out.
-    const counts = [
-      `${count('fail')} fail${count('fail') === 1 ? '' : 's'}`,
-      `${count('warn')} to check`,
-      `${count('unknown')} need${count('unknown') === 1 ? 's' : ''} a fact`,
-      `${count('incomplete')} not drawn yet`,
-      `${count('pass')} pass`,
-    ].join(' · ')
-    pg.text(x, y - 18.5, counts, { size: 2.8, font: 'bold', color: count('fail') ? RED : INK })
+    const tally = countChecks(input.checks)
+    // Design › Checks' words, zeros too, so "0 fails" reads as checked rather than left out.
+    const counts = countsWords(tally, true).join(' · ')
+    pg.text(x, y - 18.5, counts, { size: 2.8, font: 'bold', color: tally.fail ? RED : INK })
     pg.text(x, y - 23, 'Every result that isn’t a pass is listed below, fails first. Passes are counted, not listed.', { size: 2.5, color: GREY })
     y -= CHECKS_HEAD
   } else y -= 4

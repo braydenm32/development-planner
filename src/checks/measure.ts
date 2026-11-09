@@ -17,6 +17,7 @@ import { retainingProfiles } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
+import { worksOf, type Works, type WorksGround } from './trees'
 import type { CheckSettings, CheckTree } from './types'
 
 export type EdgeRole = 'front' | 'rear' | 'side'
@@ -103,11 +104,11 @@ export interface Measures {
   groundOutline: Vec2[][]
   /** Every level's outline rings, in the survey's local frame. */
   outlines: Vec2[][]
-  /** Hard areas (slabs, driveways, decks) in the survey's local frame. */
-  hard: Vec2[][]
+  /** What's built, named, in the survey's local frame (the house, slabs, decks, driveways, retaining walls): what a tree's zone is measured against. */
+  works: Works[]
+  /** The natural and finished ground once there's cut or fill, for the trees' zones too. */
+  ground: WorksGround
   trees: CheckTree[]
-  /** Whether the cut and fill changes the ground at a point by more than 50 mm. */
-  changedAt: ((p: Vec2) => boolean) | null
   /** The sun on 21 June (src/sun/facts.ts), once worked out; the sun checks wait for it. */
   sun?: SunFacts | null
   /** Each driveway on the lowest level, out to where it meets the street (src/plan/crossing.ts). */
@@ -323,12 +324,10 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     walls,
     groundOutline,
     outlines: all.map(site),
-    hard: hardPolys.map(site),
+    works: worksOf(plan, survey.origin),
+    // The ground Site › Features measures the zones on (src/site/sync.ts), so the shares agree.
+    ground: earth && earth.platforms.length ? { natural: terrain.grid, finished: earth.result.grid } : null,
     trees,
-    changedAt:
-      earth && earth.platforms.length
-        ? p => Math.abs(earth.result.grid.sample(p[0], p[1]) - earth.prep.natural.sample(p[0], p[1])) > 0.05 && pointInPolygon(p[0], p[1], b)
-        : null,
     sun,
     drives: driveLines(plan, survey.origin, b, driveGround(earth, terrain.grid), {
       frontEdge: front,

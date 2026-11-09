@@ -5,6 +5,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCheckTrees } from '../checks/siteTrees'
 import { useCosts } from '../costs/store'
+import { useMap } from '../map/store'
+import { useProjects } from '../projects/session'
 import { Icon } from '../nav/icons'
 import { projectThumbnail } from '../projects/summary'
 import type { ProjectThumbnail } from '../projects/types'
@@ -163,6 +165,9 @@ function useColumns(d: Loaded): Column[] | null {
   const rec = useOptions(s => s.rec)
   const costs = useCosts(s => s.data)
   const features = useCheckTrees()
+  // What Design › Checks counts besides the plan, so the checks row agrees with it.
+  const planning = useMap(s => s.place?.planning ?? null)
+  const dem = !!useProjects().opened?.survey?.dem
   const [cols, setCols] = useState<Column[] | null>(null)
   const plans = useMemo(() => plansOf(rec, d.plan), [rec, d.plan])
   useEffect(() => {
@@ -173,13 +178,13 @@ function useColumns(d: Loaded): Column[] | null {
           id: p.id,
           name: p.name,
           open: p.id === rec.current,
-          nums: optionNumbers(p.plan, d.survey, d.terrain, costs, features, p.id === rec.current ? (d.earth ?? earthOfPlan(p.plan, d.survey, d.terrain)) : undefined),
+          nums: optionNumbers(p.plan, d.survey, d.terrain, costs, features, p.id === rec.current ? (d.earth ?? earthOfPlan(p.plan, d.survey, d.terrain)) : undefined, { planning, dem }),
           thumb: projectThumbnail(d.survey, p.plan),
         })),
       )
     }, 20)
     return () => clearTimeout(t)
-  }, [plans, rec, d.survey, d.terrain, d.earth, costs, features])
+  }, [plans, rec, d.survey, d.terrain, d.earth, costs, features, planning, dem])
   return cols
 }
 
