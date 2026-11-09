@@ -15,6 +15,7 @@ import { planeSurvey } from '../../lib/__tests__/fixtures'
 import { parseDxf } from '../../lib/dxf'
 import { analyzeLayers, buildSurvey, guessRoles } from '../../lib/survey'
 import { buildTerrain } from '../../lib/terrain'
+import { AREAS } from '../../nav/menu'
 import { areaRoute } from '../../nav/route'
 import { LockedFor } from '../../phone/lockedFor'
 import { ViewLock } from '../../phone/ViewLock'
@@ -33,8 +34,8 @@ import { onDay } from '../../projects/format'
 import { createShareApi, type ShareApi, type ShareLink } from '../api'
 import { loadShared, troubleOf } from '../load'
 import { sharedPlan, showReadOnly, stopReadOnly } from '../readOnly'
-import { ShareLinksBody, WHO_SEES } from '../ShareLinks'
-import { Trouble } from '../SharedView'
+import { NO_CLOUD_LINKS, ShareLinksBody, WHO_SEES } from '../ShareLinks'
+import { Trouble, Viewer } from '../SharedView'
 import { setShareApi, shareLinkActions, useShareLinks, type ShareLinksState } from '../store'
 
 const TOKEN = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCde'
@@ -234,6 +235,23 @@ describe('the shared view changes nothing and keeps nothing here', () => {
     stopReadOnly()
     usePlan.getState().commit(p => ({ ...p, walls: [] }))
     expect(usePlan.getState().plan?.walls).toEqual([])
+  })
+
+  it('puts the shared project in the stores after drawing, never while drawing', async () => {
+    // A store changed in the middle of a render changes the strip and the numbers reading it
+    // mid-render too: React's "Cannot update a component while rendering a different component".
+    const { meta, owner, viewer } = await ownerWithProject()
+    const { token } = await owner.make(meta.id, 30)
+    const shared = await loadShared(viewer(), token)
+    usePlan.getState().load(null)
+    const plan = usePlan.getState()
+    const site = useSiteStore.getState().data
+    const error = vi.spyOn(console, 'error')
+    renderToStaticMarkup(<Viewer shared={shared} view="plan" setView={() => {}} />)
+    expect(usePlan.getState()).toBe(plan)
+    expect(useSiteStore.getState().data).toBe(site)
+    expect(error).not.toHaveBeenCalled()
+    error.mockRestore()
   })
 
   it('writes nothing to this browser’s projects (IndexedDB) or anywhere else', async () => {
@@ -489,10 +507,24 @@ describe('Share › Send’s link section', () => {
     renderToStaticMarkup(<ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={NOW} />)
   const LENGTHS = ['30 days', '90 days', '1 year']
 
-  it('shows nothing where the app has no cloud, or no project is open', () => {
+  it('shows nothing until the cloud is known, or with no project open', () => {
     expect(body('checking', false)).toBe('')
-    expect(body('unavailable', false)).toBe('')
     expect(body('signed-in', false, none, null)).toBe('')
+    expect(body('unavailable', false, none, null)).toBe('')
+  })
+
+  it('says links need the online version where the app has no cloud, with nothing to press', () => {
+    const html = body('unavailable', false)
+    expect(words(html)).toContain('View-only link')
+    expect(words(html)).toContain(NO_CLOUD_LINKS)
+    expect(NO_CLOUD_LINKS).toMatch(/need the online version/)
+    expect(buttons(html)).toEqual([])
+  })
+
+  it('has Send’s line promise a link only where links can be made', () => {
+    const send = AREAS.find(a => a.id === 'share')!.tabs.find(t => t.id === 'send')!
+    expect(send.subtitle).toMatch(/view-only link/)
+    expect(send.offlineSubtitle).not.toMatch(/link/)
   })
 
   it('asks to sign in when signed out', () => {

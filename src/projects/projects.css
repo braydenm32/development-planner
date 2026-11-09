@@ -112,7 +112,11 @@
   background: #000000;
 }
 
-.ph-btn.danger {
+.ph-btn.danger,
+/* All projects also opens inside the app shell, where `.app-shell button.danger` (red text for
+   the shell's outlined buttons) outranks the rule above and would paint red text on this red
+   button. Say it again with the shell's scope so the label stays white. */
+.app-shell .ph-btn.danger {
   background: var(--ph-danger);
   border-color: var(--ph-danger);
   color: #ffffff;

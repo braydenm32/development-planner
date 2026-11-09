@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { LocalSaveChip } from '../cloud/LocalSave'
 import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
+import { useCloud } from '../cloud/state'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
 import { useFlow } from '../flow/store'
@@ -54,6 +55,7 @@ import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
 import { showToast } from '../safety/store'
+import { ErrorBoundary } from './ErrorBoundary'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
@@ -396,6 +398,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   // On a phone in View, the plan has no tools.
   const rail = area.rail && canvasKind === 'plan' && !!loaded && editing
   const Body = route.tab === MORE ? MorePanel : TAB_PANELS[tabKey]
+  // Where the app has no cloud, a tab's line doesn't promise what only the cloud gives (Send's links).
+  const noCloud = useCloud(s => s.phase === 'unavailable')
+  const subtitle = route.tab === MORE ? area.more.subtitle : noCloud && tab.offlineSubtitle ? tab.offlineSubtitle : tab.subtitle
   const hasPanel = !tab.noPanel && !!Body
   const showPanel = hasPanel && !panelHidden
   // A retaining wall's panel is the Retaining walls tab in Earthworks, and the inspector elsewhere.
@@ -533,7 +538,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         style={{ ['--free-left' as string]: `${insets.l}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>{canvas}</CanvasFrame.Provider>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>
+            <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
+          </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
@@ -548,7 +555,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                   <header>
                     <div>
                       <h2>{tab.label}</h2>
-                      {!inTab && (route.tab === MORE ? area.more.subtitle : tab.subtitle) && <p className="muted">{route.tab === MORE ? area.more.subtitle : tab.subtitle}</p>}
+                      {!inTab && subtitle && <p className="muted">{subtitle}</p>}
                     </div>
                     {!(phone && report) && (
                       <button className="icon-button" onClick={() => setPanelHidden(true)} aria-label={`Hide the ${tab.label} panel`} title="Hide the panel">
@@ -557,13 +564,15 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                     )}
                   </header>
                   <div className="panel-body">
-                    {locked ? (
-                      <ViewLock>
-                        <Body />
-                      </ViewLock>
-                    ) : (
-                      Body && <Body />
-                    )}
+                    <ErrorBoundary variant="inline">
+                      {locked ? (
+                        <ViewLock>
+                          <Body />
+                        </ViewLock>
+                      ) : (
+                        Body && <Body />
+                      )}
+                    </ErrorBoundary>
                   </div>
                 </section>
               ) : (
@@ -573,7 +582,11 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
               ))}
           </div>
           {aside && Aside && <Aside />}
-          {inspector && loaded && <Inspector d={loaded} readOnly={phone && !editing} wide={wideInspector} />}
+          {inspector && loaded && (
+            <ErrorBoundary variant="float">
+              <Inspector d={loaded} readOnly={phone && !editing} wide={wideInspector} />
+            </ErrorBoundary>
+          )}
           {view && !presenting && !(phone && report) && <CanvasControls canvas={canvasKind} up={view.up} run={run} />}
         </TouchCanvas.Provider>
       </main>

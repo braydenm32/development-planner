@@ -22,6 +22,9 @@ import './share-links.css'
 /** The one line that says what a link gives away. */
 export const WHO_SEES = 'Anyone with the link can see this project, including the block’s survey. They can’t change anything.'
 
+/** Where the app has no cloud, why there's no link to make. */
+export const NO_CLOUD_LINKS = 'View-only links need the online version of Contour & Gable. The project file below works anywhere.'
+
 type Nav = Pick<Navigator, 'share'> & Partial<Pick<Navigator, 'clipboard'>>
 
 const DAY = 86_400_000
@@ -66,8 +69,8 @@ export function ShareLinksSection() {
 /** What the section shows for the cloud's phase, the open project and its links. */
 export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phase: CloudState['phase']; projectId: string | null; inCloud: boolean; state: ShareLinksState; now: number }) {
   const { links, making, problem, fresh, days, extending, projectId: listFor } = state
-  // No cloud here (GitHub Pages), or not known yet: nothing to offer.
-  if (phase !== 'signed-in' && phase !== 'signed-out') return null
+  // Not known yet: nothing, so it doesn't flicker.
+  if (phase !== 'signed-in' && phase !== 'signed-out' && phase !== 'unavailable') return null
   if (!projectId) return null
 
   const head = (
@@ -75,6 +78,15 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
       <Icon name="link" size={16} /> View-only link
     </h3>
   )
+
+  // No cloud here (GitHub Pages, a copy run at home): say so, rather than leave the links out unexplained.
+  if (phase === 'unavailable')
+    return (
+      <section className="share-links" aria-label="View-only link">
+        {head}
+        <p className="sl-line muted">{NO_CLOUD_LINKS}</p>
+      </section>
+    )
 
   if (phase === 'signed-out')
     return (

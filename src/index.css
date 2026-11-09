@@ -34,3 +34,52 @@ input {
   font: inherit;
   color: inherit;
 }
+
+/* src/shell/ErrorBoundary.tsx: in place of a part of the page that hit a bug. */
+.error-fallback {
+  max-width: 420px;
+  margin: 12vh auto 0;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.error-fallback p {
+  margin: 0 0 8px;
+}
+
+.error-fallback .error-fallback-title {
+  font-weight: 600;
+}
+
+/* Two classes, so the shell's own button rules don't outrank it. */
+.error-fallback .error-fallback-reload {
+  margin-top: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--text);
+  border-radius: 8px;
+  background: var(--text);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error-fallback.inline {
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+}
+
+.error-fallback.float {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  max-width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  padding: 14px 16px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
+}
