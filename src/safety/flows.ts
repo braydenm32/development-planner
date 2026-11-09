@@ -17,6 +17,7 @@ import { PickLayersError, readFile, readSite, type OpenedFile } from './files'
 import { CHECK_LAYERS, demReadBack, readBackLine } from './readBack'
 import { newPlanReview, planReview, projectReview, surveyReview } from './review'
 import { askLayers, askReview, showToast, useSafety } from './store'
+import { forgetFileStep, rememberFileStep } from './fileUndo'
 import type { SavedProject } from '../lib/storage'
 import type { ProjectMeta } from '../projects/types'
 import { planBounds } from '../plan/ops'
@@ -229,7 +230,7 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   const choice = await askReview(review)
   if (!choice || projectsNow().currentId !== id) return
 
-  const before = { survey: old, previous: opened.previousSurvey ?? null, plan: current }
+  const before = { survey: old, previous: opened.previousSurvey ?? null, plan: current, history: usePlan.getState().past }
   // The survey it replaces is kept (a sketch isn't worth keeping).
   await projectActions.saveSurvey(next, old && !isSketch(old) ? old : before.previous)
   const siteBefore = useSiteStore.getState().data
@@ -249,22 +250,31 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   }
   if (!isSketch(next) && plan()?.checks?.frontEdge === undefined) askStreetSide(id)
   const after = plan()
+  // The toast's Undo and the top bar's (./fileUndo.ts) both put it back, once.
+  let undone = false
+  const putBack = async () => {
+    if (undone) return
+    undone = true
+    forgetFileStep()
+    await backTo(id)
+    if (before.survey) await projectActions.saveSurvey(before.survey, before.previous)
+    const now = plan()
+    if (before.plan && now && after !== before.plan) {
+      // Nothing drawn since: the plan and its history go back to just before, as if it never happened.
+      if (now === after) usePlan.setState({ plan: before.plan, past: before.history, future: [] })
+      else setPlan({ ...now, placement: before.plan.placement })
+      usePlan.getState().requestFit()
+    }
+    if (siteAfter !== siteBefore && useSiteStore.getState().data === siteAfter) useSiteStore.getState().commit(() => siteBefore)
+    showToast({ text: `Put back ${before.survey?.fileName ?? 'the survey'}.` })
+  }
   showToast({
     text: isSketch(old) && !isSketch(next) ? `Your block is now ${next.fileName}.` : `Survey replaced with ${next.fileName}.`,
     // What it found was in the review; the layers are a tap away.
     link: isSketch(next) ? undefined : checkLayers(),
-    undo: async () => {
-      await backTo(id)
-      if (before.survey) await projectActions.saveSurvey(before.survey, before.previous)
-      const now = plan()
-      if (before.plan && now && after !== before.plan) {
-        setPlan(now === after ? before.plan : { ...now, placement: before.plan.placement })
-        usePlan.getState().requestFit()
-      }
-      if (siteAfter !== siteBefore && useSiteStore.getState().data === siteAfter) useSiteStore.getState().commit(() => siteBefore)
-      showToast({ text: `Put back ${before.survey?.fileName ?? 'the survey'}.` })
-    },
+    undo: putBack,
   })
+  if (before.survey) rememberFileStep({ label: isSketch(old) ? 'Add the survey' : 'Replace survey', undo: putBack })
 }
 
 // ---------------------------------------------------------------------------

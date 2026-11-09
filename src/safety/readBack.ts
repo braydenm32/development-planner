@@ -21,11 +21,12 @@ export const rlRangeText = (stats: Pick<SiteStats, 'minRL' | 'maxRL'>) => `RL ${
  * contours, but no boundary" when the survey's extent has to stand in for one.
  */
 export function foundText(survey: Survey): string {
-  const parts = [survey.contours.length ? count(survey.contours.length, 'contour') : null, survey.levels.length ? count(survey.levels.length, 'spot level') : null].filter(
-    (p): p is string => !!p,
-  )
-  if (survey.boundaryIsGuess) return `${andList(parts)}, but no boundary`
-  return andList([...parts, 'the boundary'])
+  // Contours drawn here from the spot levels weren't found in the file.
+  const contours = survey.contours.length && !survey.madeContours ? count(survey.contours.length, 'contour') : null
+  const parts = [contours, survey.levels.length ? count(survey.levels.length, 'spot level') : null].filter((p): p is string => !!p)
+  const made = survey.madeContours ? ' (contours drawn from the levels)' : ''
+  if (survey.boundaryIsGuess) return `${andList(parts)}, but no boundary${made}`
+  return `${andList([...parts, 'the boundary'])}${made}`
 }
 
 /**

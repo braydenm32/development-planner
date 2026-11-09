@@ -142,15 +142,18 @@ export const AREAS: Area[] = [
     features: [],
     view: '3d',
     rail: false,
-    defaultTab: '3d',
+    // Site opens on the block's facts (and the street side) rather than the 3D view's settings.
+    defaultTab: 'block',
     tabs: [
       {
         id: 'block',
         label: 'Block',
         icon: 'block',
+        // Its own canvas, so Site in a phone's bottom bar still lands where nothing covers the numbers.
+        view: '3d',
         subtitle: 'Its size, levels and fall.',
-        keywords: ['site facts', 'area', 'perimeter', 'slope', 'fall', 'levels', 'RL range', 'aspect', 'size', 'sketch block', 'block size'],
-        features: ['site-area-perimeter', 'site-levels-fall', 'site-slope-aspect', 'sketch-block-notice', 'sketch-change-size', 'dem-block-notice'],
+        keywords: ['site facts', 'area', 'perimeter', 'slope', 'fall', 'levels', 'RL range', 'aspect', 'size', 'sketch block', 'block size', 'street side', 'front', 'faces the street', 'low side'],
+        features: ['site-area-perimeter', 'site-levels-fall', 'site-slope-aspect', 'sketch-block-notice', 'sketch-change-size', 'dem-block-notice', 'street-side-block', 'survey-layers-badge'],
       },
       {
         id: 'features',
