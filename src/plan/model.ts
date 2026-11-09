@@ -5,7 +5,7 @@ import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
-import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
+import { migrateFloorTypes, type FloorTypeId, type LevelFloor } from './floorTypes'
 import { linkStairs } from './stairs'
 
 /**
@@ -45,6 +45,11 @@ export interface Plan {
   location?: SiteLocation
   /** Ground painted with the Cut and Fill brushes (src/grading). Missing in plans without any. */
   grading?: Grading
+  /**
+   * Each level keeps its own floor type, wherever it sits. Missing in plans saved before that,
+   * whose levels above the lowest were all framed (see migrateFloorTypes); set when loaded.
+   */
+  floorsByLevel?: true
 }
 
 /**
@@ -68,11 +73,12 @@ export interface Level {
   /** Floor-to-ceiling height (m). */
   height: number
   /**
-   * Lowest level only: how its floor is built (see FLOOR_TYPES in ./floorTypes). Rooms follow it
-   * unless they set their own. Missing means not asked yet, which builds as a slab on ground.
-   * Upper levels are framed floors and never set it.
+   * How its floor is built (see FLOOR_TYPES in ./floorTypes), or framed. Rooms follow it unless
+   * they set their own. Asked of every level that sits on the ground; it stays with the level
+   * whatever order the levels are in. Missing means not asked yet: the lowest level builds as a
+   * slab on ground, any other as a framed floor.
    */
-  floorType?: FloorTypeId
+  floorType?: LevelFloor
 }
 
 /** Retaining walls hold back earth on the site; they aren't part of the house. */
@@ -157,7 +163,7 @@ export interface Room {
   level: string
   name: string
   at: Vec2
-  /** Lowest level only: this room's own floor type. Missing follows its level's (see roomFloorType). */
+  /** This room's own floor type, on a level built on the ground. Missing follows its level's (see roomFloorType). */
   foundation?: Foundation
   /** A living area, for the hours of winter sun on its windows. Missing goes by the room's name (see isLiving). */
   living?: boolean
@@ -229,7 +235,19 @@ export interface Roof {
   gables: boolean[]
   /** Skillion roofs: the edge of `pts` at the low side. */
   lowEdge: number
+  /**
+   * Where its eaves line sits (see roofEavesRL in ./roofline). Missing: on top of its own level's
+   * walls, at that level's ceiling. Set, it shares a roofline with another level or roof, or sits at
+   * a typed RL (a section's eaves drag will set this too).
+   */
+  eaves?: RoofEaves
 }
+
+/**
+ * A roof's eaves line: a typed RL, another level's ceiling (it follows that level), or another
+ * roof's eaves (it follows that roof), so roofs over a split-level house can share one roofline.
+ */
+export type RoofEaves = { rl: number } | { level: string } | { roof: string }
 
 export type StairShape = 'straight' | 'l' | 'u'
 
@@ -379,6 +397,7 @@ export function emptyPlan(placement: Placement): Plan {
     stairs: [],
     furniture: [],
     placement,
+    floorsByLevel: true,
   }
 }
 

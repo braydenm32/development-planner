@@ -2,6 +2,7 @@
 // PDF (sheets.ts). The drawing code works in the output's own units with y running down the
 // page; a Painter turns each line, shape and label into SVG or PDF.
 
+import { FLOOR_STRUCTURE } from '../plan/model'
 import { rlText, type Box, type LevelMark, type Pt } from './common'
 import type { ElevationDrawing } from './elevation'
 import type { SectionDrawing } from './section'
@@ -19,6 +20,7 @@ export type ShapeStyle =
   | 'wall-cut'
   | 'retaining'
   | 'roof-cut'
+  | 'stair-cut'
   | 'wall-face'
   | 'roof-face'
   | 'window'
@@ -29,7 +31,7 @@ export type ShapeStyle =
   | 'scale-light'
 
 /** Lines. */
-export type LineStyle = 'natural' | 'finished' | 'ceiling' | 'level' | 'boundary' | 'dim' | 'axis' | 'roof-edge' | 'detail' | 'height'
+export type LineStyle = 'stair-beyond' | 'natural' | 'finished' | 'ceiling' | 'level' | 'boundary' | 'dim' | 'axis' | 'roof-edge' | 'detail' | 'height'
 
 export type Ink = 'ink' | 'muted' | 'accent' | 'boundary'
 
@@ -175,10 +177,14 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
     for (const b of d.framing) p.shape(rect(b), 'framing')
     for (const b of d.slabs) p.shape(rect(b), 'slab')
     for (const b of d.retaining) p.shape(rect(b), 'retaining')
+    // Stairs beyond the cut, faintly, then those it passes through.
+    for (const st of d.stairs) if (!st.cut) for (const o of st.outlines) p.line([...o, o[0]].map(P), 'stair-beyond')
+    for (const st of d.stairs) if (st.cut) for (const o of st.outlines) p.shape(o.map(P), 'stair-cut')
     for (const f of d.floors) for (const [s0, s1] of f.spans) p.line([P([s0, f.ceiling]), P([s1, f.ceiling])], 'ceiling')
     for (const b of d.walls) p.shape(rect(b), 'wall-cut')
     for (const r of d.roofs) p.shape(r.map(P), 'roof-cut')
     floorNotes(p, d, X, Y, k)
+    stairNotes(p, d, X, Y)
   } else {
     for (const b of d.piers) p.shape(post(b), 'pier')
     for (const s of d.shapes) {
@@ -284,6 +290,19 @@ function floorNotes(p: Painter, d: SectionDrawing, X: (s: number) => number, Y: 
     p.line([[dx, Y(f.rl)], [dx, Y(f.ceiling)]], 'dim')
     for (const yy of [Y(f.rl), Y(f.ceiling)]) p.line([[dx - t, yy + t], [dx + t, yy - t]], 'dim')
     p.text(dx - u * 4, (Y(f.rl) + Y(f.ceiling)) / 2, ceiling, { size: p.size.small, anchor: 'end', middle: true, ink: 'muted' })
+  }
+}
+
+/** Under each cut flight, its risers: "17 risers × 176 mm", where there's room. */
+function stairNotes(p: Painter, d: SectionDrawing, X: (s: number) => number, Y: (z: number) => number) {
+  for (const st of d.stairs) {
+    if (!st.cut || !st.label) continue
+    const pts = st.outlines.flat()
+    const s0 = Math.min(...pts.map(q => q[0]))
+    const s1 = Math.max(...pts.map(q => q[0]))
+    const z0 = Math.min(...pts.map(q => q[1]))
+    if (X(s1) - X(s0) < p.measure(st.label, p.size.small) * 0.6) continue
+    p.text((X(s0) + X(s1)) / 2, Y(z0 - FLOOR_STRUCTURE) + p.size.small * 1.3, st.label, { size: p.size.small, anchor: 'middle', ink: 'muted' })
   }
 }
 

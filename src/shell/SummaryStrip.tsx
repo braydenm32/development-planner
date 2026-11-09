@@ -97,7 +97,8 @@ function Chip({ id, label, shown, children, title, term, route, readOnly }: { id
 export function balanceWords(ffl: number, balanced: number | null): string {
   if (balanced === null) return 'Balance'
   const d = balanced - ffl
-  return `Balance: ${d > 0 ? 'raise' : 'lower'} the floor ${Math.abs(d) >= 1 ? `${Math.abs(d).toFixed(2)} m` : `${Math.round(Math.abs(d) * 1000)} mm`}`
+  // In metres, as every other length in the strip and the Overview is.
+  return `Balance: ${d > 0 ? 'raise' : 'lower'} the floor ${Math.abs(d).toFixed(2)} m`
 }
 
 export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, onBalance, onOverview, overviewOpen, readOnly = false, variant, level, emptyText = 'Key numbers show once the survey and plan load.' }: Props) {

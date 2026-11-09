@@ -8,7 +8,7 @@ import type { PreparedPlatform } from '../lib/earthworks'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { fromSite, newId, sortedLevels, type Plan, type Wall } from '../plan/model'
-import { BENCH_PREFIX, PAD_ID, PIERS_ID } from '../plan/platforms'
+import { BENCH_PREFIX, isPadId, isPiersId } from '../plan/platforms'
 import type { Earth } from '../plan/useEarthworks'
 import { GRADE_CELL } from './model'
 import { lineDir, segmentsOf, suggestWalls, type WallSuggestion } from './suggest'
@@ -16,7 +16,7 @@ import { lineDir, segmentsOf, suggestWalls, type WallSuggestion } from './sugges
 /** Thickness of a suggested wall: concrete block, as the retaining wall offer uses (m). */
 export const SUGGESTED_THICKNESS = 0.2
 
-const isHouse = (id: string | undefined) => id === PAD_ID || id === PIERS_ID || !!id?.startsWith('slab:')
+const isHouse = (id: string | undefined) => isPadId(id) || isPiersId(id) || !!id?.startsWith('slab:')
 
 /** The house pad, its piers and its slabs are one family; the ground beside retaining walls is already held. */
 function family(p: PreparedPlatform): string | null {
@@ -26,7 +26,7 @@ function family(p: PreparedPlatform): string | null {
 }
 
 function label(p: PreparedPlatform): string {
-  if (p.id === PAD_ID || p.id === PIERS_ID) return 'the house'
+  if (isPadId(p.id) || isPiersId(p.id)) return 'the house'
   if (p.id?.startsWith('slab:')) return 'a slab'
   if (p.id?.startsWith('grade:')) return 'other painted ground'
   if (p.isRamp) return 'the driveway'
@@ -52,7 +52,7 @@ export function planWallSuggestions(plan: Plan, survey: Pick<Survey, 'origin' | 
   const key = JSON.stringify([counted, zones, dismissed])
   const hit = cache.get(earth)
   if (hit && hit.key === key) return hit.value
-  const house = earth.platforms.filter(p => p.id === PAD_ID || p.id === PIERS_ID).flatMap(p => p.include)
+  const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
   const value = suggestWalls({ ...inputs(survey, earth), counted, trees: zones, dismissed, house })
   cache.set(earth, { key, value })
   return value
@@ -63,7 +63,7 @@ const inputs = (survey: Pick<Survey, 'boundary'>, earth: Earth) => ({
   prep: earth.prep,
   boundary: survey.boundary,
   barriers: earth.strips.map(s => [s.a, s.b] as [Vec2, Vec2]),
-  sources: earth.prep.platforms.flatMap(p => (p.id && (p.id === PAD_ID || p.id.startsWith('slab:') || p.id.startsWith('grade:')) ? [p.id] : [])),
+  sources: earth.prep.platforms.flatMap(p => (p.id && (isPadId(p.id) || p.id.startsWith('slab:') || p.id.startsWith('grade:')) ? [p.id] : [])),
   family,
   label,
   thickness: SUGGESTED_THICKNESS,
@@ -80,7 +80,7 @@ export function planImpliedWalls(survey: Pick<Survey, 'boundary'>, earth: Earth 
   if (!earth || !earth.platforms.length) return []
   const hit = impliedCache.get(earth)
   if (hit) return hit
-  const house = earth.platforms.filter(p => p.id === PAD_ID || p.id === PIERS_ID).flatMap(p => p.include)
+  const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
   const value = suggestWalls({ ...inputs(survey, earth), counted: [], trees: [], impliedOnly: true, house })
   impliedCache.set(earth, value)
   return value

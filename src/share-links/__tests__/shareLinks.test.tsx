@@ -311,7 +311,7 @@ describe('the numbers in a shared view', () => {
     const html = renderToStaticMarkup(<OverviewSheet readOnly numbers={n} stats={terrain.stats} onBalance={() => {}} onClose={() => {}} />)
     expect(words(html)).toContain('RL 82.00')
     expect(buttons(html)).toEqual(['Close the overview'])
-    expect(buttons(renderToStaticMarkup(<OverviewSheet numbers={n} stats={terrain.stats} onBalance={() => {}} onClose={() => {}} />))).toContain('Balance')
+    expect(buttons(renderToStaticMarkup(<OverviewSheet numbers={n} stats={terrain.stats} onBalance={() => {}} onClose={() => {}} />)).some(b => b.startsWith('Balance: '))).toBe(true)
   })
 })
 

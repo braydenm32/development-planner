@@ -9,6 +9,7 @@ import { triangulate } from '../lib/triangulate'
 import { buildingOutline, planarFaces, wallPolygons } from '../plan/geometry'
 import { FLOOR_STRUCTURE, floorRL, houseWalls, toSite, type Plan } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
+import { roofEavesRL } from '../plan/roofline'
 
 /** A polygon stood up between two RLs. */
 export interface Prism {
@@ -46,7 +47,7 @@ export function houseSolids(plan: Plan, origin: Vec2): HouseSolids {
     if (!level) continue
     const g = roofGeometry(r)
     if (g.error || !g.mesh.tris.length) continue
-    const base = floorRL(plan, level.id) + level.height
+    const base = roofEavesRL(plan, r)
     const { pos, tris } = g.mesh
     for (const i of tris) {
       const s = site([pos[i * 3], pos[i * 3 + 1]])

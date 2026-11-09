@@ -1,7 +1,7 @@
 import type { Barrier, Platform } from '../lib/earthworks'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { WallStrip } from '../lib/terrainMesh'
-import { onNaturalGround } from './floorTypes'
+import { levelBuildsAs, onNaturalGround } from './floorTypes'
 import { buildingOutline, faceAround, offsetPolygon, planarFaces } from './geometry'
 import {
   areaKind,
@@ -21,13 +21,15 @@ import {
   type Wall,
 } from './model'
 
-/** Outline of each room on the lowest level that sits on piers (or another floor that leaves the ground natural), out to the outside of its walls. */
-export function pierOutlines(plan: Plan): Vec2[][] {
-  const ground = sortedLevels(plan)[0]
-  if (!ground) return []
-  const faces = planarFaces(plan.walls.filter(w => w.level === ground.id))
+/**
+ * Outline of each room on a level (the lowest when none is given) that sits on piers (or another
+ * floor that leaves the ground natural), out to the outside of its walls.
+ */
+export function pierOutlines(plan: Plan, levelId = sortedLevels(plan)[0]?.id): Vec2[][] {
+  if (levelId === undefined) return []
+  const faces = planarFaces(plan.walls.filter(w => w.level === levelId))
   return plan.rooms
-    .filter(r => r.level === ground.id && onNaturalGround(plan, r))
+    .filter(r => r.level === levelId && onNaturalGround(plan, r))
     .flatMap(r => {
       const f = faceAround(r.at, faces)
       return f
@@ -44,6 +46,19 @@ export function pierOutlines(plan: Plan): Vec2[][] {
 /** The earthworks' names for the house's own levelled ground, so it can be told from the rest. */
 export const PAD_ID = 'pad'
 export const PIERS_ID = 'piers'
+
+/**
+ * The lowest level's pad and piers keep the plain names; another level built on the ground (a
+ * split level) has its own, after its level: "pad:<level id>".
+ */
+export const padId = (plan: Plan, levelId: string) => (sortedLevels(plan)[0]?.id === levelId ? PAD_ID : `${PAD_ID}:${levelId}`)
+export const piersId = (plan: Plan, levelId: string) => (sortedLevels(plan)[0]?.id === levelId ? PIERS_ID : `${PIERS_ID}:${levelId}`)
+
+/** Is this one of the house's own pads (any level's)? */
+export const isPadId = (id: string | undefined) => id === PAD_ID || !!id?.startsWith(`${PAD_ID}:`)
+
+/** Is this the ground kept clear under a floor on piers (any level's)? */
+export const isPiersId = (id: string | undefined) => id === PIERS_ID || !!id?.startsWith(`${PIERS_ID}:`)
 export const BENCH_PREFIX = 'bench:'
 export const slabPlatformId = (areaId: string) => `slab:${areaId}`
 
@@ -148,18 +163,22 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
   const ew = earthworksOf(plan)
   const site = (ring: Vec2[]) => ring.map(p => toSite(p, pl, origin))
   const out: Platform[] = []
-  const ground = sortedLevels(plan)[0]
-  if (ground) {
-    const floor = floorRL(plan, ground.id)
-    const outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === ground.id))).outlines
-    const piers = pierOutlines(plan)
+  // Every level built on the ground gets its own pad (and the gap under its piers). Where a level
+  // sits over a lower one that is already on the ground, the lower one is what's under it there.
+  const below: Vec2[][] = []
+  for (const lv of sortedLevels(plan)) {
+    if (levelBuildsAs(plan, lv.id) === 'framed') continue
+    const floor = floorRL(plan, lv.id)
+    const outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === lv.id))).outlines
+    const piers = pierOutlines(plan, lv.id)
     if (outlines.length) {
-      const stops = padStops(plan, ground.id, outlines)
-      out.push({ id: PAD_ID, include: outlines.map(site), exclude: [...piers, ...stops].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
+      const stops = padStops(plan, lv.id, outlines)
+      out.push({ id: padId(plan, lv.id), include: outlines.map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
     }
     if (piers.length) {
-      out.push({ id: PIERS_ID, include: piers.map(site), exclude: [], level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })
+      out.push({ id: piersId(plan, lv.id), include: piers.map(site), exclude: below.map(site), level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })
     }
+    below.push(...outlines)
   }
   for (const a of plan.areas) {
     if (areaKind(a) !== 'slab' || a.pts.length < 3) continue
@@ -184,4 +203,30 @@ export function earthworksBarriers(plan: Plan, origin: Vec2): Barrier[] {
 /** Retaining walls' footprints in the survey's local frame, so the 3D ground keeps each wall's step inside it. */
 export function retainingStrips(plan: Plan, origin: Vec2): WallStrip[] {
   return plan.walls.filter(isRetaining).map(w => ({ a: toSite(w.a, plan.placement, origin), b: toSite(w.b, plan.placement, origin), half: w.thickness / 2 }))
+}
+
+/** Grid spacing (m) that cutUnderPiers reads the ground at. */
+const PIER_PROBE = 0.5
+
+/**
+ * How deep the ground has to be dug out under a floor on piers inside `rings` (house frame, on
+ * `levelId`) to keep the gap under its framing: the most the natural ground rises above
+ * the floor, less the framing and the gap. 0 when it's clear everywhere.
+ */
+export function cutUnderPiers(plan: Plan, levelId: string, rings: Vec2[][], origin: Vec2, ground: { sample: (x: number, y: number) => number }): number {
+  const ew = earthworksOf(plan)
+  const keep = floorRL(plan, levelId) - FLOOR_STRUCTURE - ew.subfloor
+  let deepest = 0
+  for (const ring of rings) {
+    if (ring.length < 3) continue
+    const xs = ring.map(p => p[0])
+    const ys = ring.map(p => p[1])
+    for (let x = Math.min(...xs) + PIER_PROBE / 2; x < Math.max(...xs); x += PIER_PROBE)
+      for (let y = Math.min(...ys) + PIER_PROBE / 2; y < Math.max(...ys); y += PIER_PROBE) {
+        if (!pointInPolygon(x, y, ring)) continue
+        const s = toSite([x, y], plan.placement, origin)
+        deepest = Math.max(deepest, ground.sample(s[0], s[1]) - keep)
+      }
+  }
+  return deepest
 }

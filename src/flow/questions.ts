@@ -7,7 +7,7 @@
 
 import { create } from 'zustand'
 import { nextHint, TIPS, type HintId, type HintPrefs } from '../guide/hints'
-import { isLowestLevel, levelFloorType } from '../plan/floorTypes'
+import { isLowestLevel, levelFloorAnswer } from '../plan/floorTypes'
 import { planarFaces } from '../plan/geometry'
 import { sortedLevels, type Plan } from '../plan/model'
 import type { OfferState } from './store'
@@ -53,7 +53,9 @@ export function questionsFor(q: QuestionInput): Question[] {
   // Floor types: every ground level with walls round a space and no type yet, whether or not
   // it was put off: "Floor type not chosen" stays until it is, through a reload too.
   for (const l of sortedLevels(plan)) {
-    if (!isLowestLevel(plan, l.id) || levelFloorType(plan, l.id) !== undefined) continue
+    // A split level near the ground is asked too (the flow's own question), and stays once put off.
+    const grounded = isLowestLevel(plan, l.id) || q.ask?.level === l.id || q.dismissed.has(l.id)
+    if (!grounded || levelFloorAnswer(plan, l.id) !== undefined) continue
     const walls = plan.walls.filter(w => w.level === l.id && w.kind !== 'retaining')
     const enclosed = planarFaces(walls).some(f => f.area > 0) || plan.rooms.some(r => r.level === l.id)
     if (!enclosed) continue

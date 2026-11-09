@@ -59,11 +59,14 @@ export function deleteSelected(): boolean {
 }
 
 let clipboard: Clip | null = null
+/** The level the clipboard was copied on: pasting on another level puts things in the same place. */
+let copiedOn: string | null = null
 let pastes = 0
 
 /** Empty the clipboard (tests, and a new project). */
 export function forgetCopied() {
   clipboard = null
+  copiedOn = null
   pastes = 0
 }
 
@@ -78,6 +81,7 @@ export function copySelected(): boolean {
     return true
   }
   clipboard = clip
+  copiedOn = st.activeLevel
   pastes = 0
   const n = clipCount(clip)
   showToast({ text: n === 1 ? 'Copied. Press Ctrl+V (⌘V on a Mac) to paste.' : `${n} items copied.` })
@@ -96,9 +100,21 @@ function put(clip: Clip, offset: Vec2) {
   st.selectMany(added)
 }
 
-/** Paste the copied things on the level being shown, a little off from where they were. */
-export function pasteCopied(): boolean {
+/**
+ * Paste the copied things on the level being shown. On the level they came from they land a
+ * little off from where they were, so they're seen; on another level, or with `inPlace`
+ * (Ctrl+Shift+V), right where they were, lined up with the floor they came from.
+ */
+export function pasteCopied(inPlace = false): boolean {
   if (!clipboard) return false
+  const st = usePlan.getState()
+  const elsewhere = copiedOn !== null && copiedOn !== st.activeLevel
+  if (inPlace || elsewhere) {
+    put(clipboard, [0, 0])
+    const level = st.plan?.levels.find(l => l.id === st.activeLevel)
+    showToast({ text: elsewhere && level ? `Pasted in place on ${level.name}.` : 'Pasted in place.' })
+    return true
+  }
   pastes += 1
   put(clipboard, [PASTE_OFFSET * pastes, PASTE_OFFSET * pastes])
   return true

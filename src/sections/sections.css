@@ -70,6 +70,19 @@
   stroke-width: 1;
 }
 
+.sec-stair-cut {
+  fill: #f5f2ea;
+  stroke: #2b3036;
+  stroke-width: 1;
+}
+
+/* A stair beyond the cut: seen past it, so faint lines only. */
+.sec-l-stair-beyond {
+  fill: none;
+  stroke: #a3aab2;
+  stroke-width: 0.8;
+}
+
 .sec-wall-face {
   fill: #ffffff;
   stroke: #2b3036;

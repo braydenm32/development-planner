@@ -21,6 +21,7 @@ import {
   type Plan,
 } from '../plan/model'
 import { compassWord, postStations, stations, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
+import { roofEavesRL } from '../plan/roofline'
 
 export type Side = 'north' | 'east' | 'south' | 'west'
 export const SIDES: Side[] = ['north', 'east', 'south', 'west']
@@ -89,7 +90,8 @@ export function highestPoint(plan: Plan, origin: Vec2, natural: Heightfield): { 
     const level = levelById(plan, r.level)
     const g = roofGeometry(r)
     if (g.error) continue
-    const base = floorRL(plan, r.level) + (level?.height ?? 0)
+    if (!level) continue
+    const base = roofEavesRL(plan, r)
     for (let i = 0; i < g.mesh.pos.length; i += 3) consider([g.mesh.pos[i], g.mesh.pos[i + 1]], base + g.mesh.pos[i + 2])
   }
   for (const w of houseWalls(plan.walls)) {
@@ -215,7 +217,7 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
     const level = levelById(plan, r.level)
     const g = roofGeometry(r)
     if (!level || g.error) continue
-    const base = floorRL(plan, level.id) + level.height
+    const base = roofEavesRL(plan, r)
     const P = g.mesh.pos
     const at = (k: number): Pt => [U([P[3 * k], P[3 * k + 1]]), base + P[3 * k + 2]]
     for (const f of roofFaces(g.mesh)) {

@@ -25,6 +25,7 @@ import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
+import { roofEavesRL } from '../plan/roofline'
 
 interface Props {
   plan: Plan
@@ -142,10 +143,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         if (g) slabs.push(g)
       }
 
-      // Piers under the parts of the lowest floor that aren't slab on ground.
-      if (level.id === levels[0]?.id) {
-        for (const ring of pierOutlines(plan)) for (const p of postGrid(ring, 1.8)) post(p, floorY - FLOOR_STRUCTURE, 0.2)
-      }
+      // Piers under the parts of each floor built on the ground that aren't a slab.
+      for (const ring of pierOutlines(plan, level.id)) for (const p of postGrid(ring, 1.8)) post(p, floorY - FLOOR_STRUCTURE, 0.2)
 
       for (const a of plan.areas.filter(x => x.level === level.id)) {
         const kind = areaKind(a)
@@ -188,7 +187,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         for (const r of plan.roofs.filter(x => x.level === level.id)) {
           const rg = roofGeometry(r)
           if (rg.error || !rg.mesh.tris.length) continue
-          const base = floorY + level.height
+          // Its eaves RL, which can line up with another level's roofline (src/plan/roofline.ts).
+          const base = floorY + roofEavesRL(plan, r) - floorRL(plan, level.id)
           const pos = new Float32Array(rg.mesh.pos.length)
           for (let i = 0; i < rg.mesh.pos.length; i += 3) {
             const s = site([rg.mesh.pos[i], rg.mesh.pos[i + 1]])

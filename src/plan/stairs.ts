@@ -200,3 +200,67 @@ export function linkStairs(plan: Plan): Plan {
   })
   return changed ? followLevels({ ...plan, stairs }) : plan
 }
+
+// ---------------------------------------------------------------------------
+// What the panel and the plan say about a stair
+
+/**
+ * The NCC's limits for a house stair (Housing Provisions 11.2.2, Table 11.2.2a): risers 115 to
+ * 190 mm, goings 240 to 355 mm, and 2 risers + going 550 to 700 mm. Metres.
+ */
+export const NCC_STAIR = {
+  riser: [0.115, 0.19],
+  going: [0.24, 0.355],
+  twoRG: [0.55, 0.7],
+} as const
+
+export interface StairRule {
+  id: 'riser' | 'going' | 'twoRG'
+  label: string
+  /** The stair's own value (m). */
+  value: number
+  range: readonly [number, number]
+  ok: boolean
+}
+
+/** Each of the NCC's limits, checked against the stair: risers, going, and 2R + G. */
+export function stairRules(s: Stair): StairRule[] {
+  const r = s.rise / riserCount(s.rise)
+  const rule = (id: StairRule['id'], label: string, value: number): StairRule => {
+    const range = NCC_STAIR[id]
+    // To the 0.1 mm the panel shows, so a 190 mm riser passes.
+    const v = Math.round(value * 10000) / 10000
+    return { id, label, value, range, ok: v >= range[0] - 1e-9 && v <= range[1] + 1e-9 }
+  }
+  return [rule('riser', 'Risers', r), rule('going', 'Going', s.going), rule('twoRG', '2R + G', 2 * r + s.going)]
+}
+
+/** An RL as the panel writes it, to the centimetre. */
+const rlText = (z: number) => z.toFixed(2)
+
+/**
+ * Which levels a stair joins and how, in words: "Joins Living 81.60 → Entry 84.60" and
+ * "17 risers of 176 mm". An end that isn't on a floor reads as its RL.
+ */
+export function stairJoins(plan: Plan, s: Stair): { from: string; to: string; risers: string; joined: boolean } {
+  const fromLevel = levelById(plan, s.level)
+  const floor = plan.placement.ffl + (fromLevel?.elevation ?? 0)
+  const bottom = floor + s.base
+  const top = bottom + s.rise
+  const to = stairTopLevel(plan, s)
+  const onFloor = Math.abs(s.base) < 0.0005
+  const L = stairLayout(s)
+  return {
+    from: onFloor && fromLevel ? `${fromLevel.name} ${rlText(bottom)}` : `RL ${rlText(bottom)}${fromLevel ? ` (${fromLevel.name})` : ''}`,
+    to: to ? `${to.name} ${rlText(top)}` : `RL ${rlText(top)}`,
+    risers: `${L.risers} risers of ${mm1(L.riser)} mm`,
+    joined: !!to,
+  }
+}
+
+/** The short tag on the plan: "17R to Entry" on its own level, "17R to Living" going down on the level it arrives at. */
+export function stairPlanTag(plan: Plan, s: Stair, arriving: boolean): string {
+  const n = stairLayout(s).risers
+  const to = arriving ? levelById(plan, s.level) : stairTopLevel(plan, s)
+  return to ? `${n}R to ${to.name}` : `${n}R`
+}

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { findSelection } from '../shell/selection'
+import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
 import {
@@ -126,9 +127,12 @@ function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Sel
   return { selection: all[0] ?? null, extra: all.slice(1) }
 }
 
-/** After every change: openings stay in their walls, and stairs keep to the levels they join. */
-function tidy(p: Plan): Plan {
-  return followLevels(linkStairs(clampOpenings(p)))
+/**
+ * After every change: openings stay in their walls, stairs keep to the levels they join, and a
+ * floor that was the lowest keeps the floor type it was built with when levels change order.
+ */
+function tidy(p: Plan, before: Plan): Plan {
+  return keepFloorTypes(before, followLevels(linkStairs(clampOpenings(p))))
 }
 
 export const usePlan = create<PlanStore>((setState, getState) => ({
@@ -145,7 +149,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   roofDefaults: { type: 'hip', pitch: 22.5, overhang: 0.45 },
   roofMode: 'building',
   stairDefaults: { shape: 'straight', width: 0.9, turn: 'left' },
-  areaDefault: 'slab',
+  areaDefault: 'garden',
   furnitureDefaults: { kind: 'bed-queen', rotation: 0 },
   notice: null,
   fitToken: 0,
@@ -167,7 +171,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   commit: fn => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan))
+    const next = tidy(fn(plan), plan)
     if (next === plan) return
     setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
   },
@@ -177,7 +181,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   preview: fn => {
     const { plan } = getState()
     if (!plan) return
-    setState({ plan: tidy(fn(plan)) })
+    setState({ plan: tidy(fn(plan), plan) })
   },
 
   endGesture: () => {
@@ -212,7 +216,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   nudge: (key, fn) => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan))
+    const next = tidy(fn(plan), plan)
     if (next === plan) return
     const now = Date.now()
     const run = nudgeRun

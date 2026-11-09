@@ -1,5 +1,6 @@
 // The plan editor's gentle questions, in order: when a room is made (with the Room tool, or by
-// walls closing round a space) on a level with no floor type, ask how its floor is built, once;
+// walls closing round a space) on a level that sits on the ground and has no floor type, ask how
+// its floor is built, once;
 // then, on a slab, offer a retaining wall where the floor cuts deep into the ground or sits high
 // above it. Also the one-click "pick a contour" that sets a floor's level. Nothing here changes the
 // plan until it's clicked, and every change is one undoable step.
@@ -9,7 +10,8 @@ import { pointInPolygon } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Heightfield } from '../lib/terrain'
 import { floorFromContour } from '../plan/contourPick'
-import { isLowestLevel, levelFloorType, onPad, setLevelFloorType, shouldAskFloorType, floorTypeInfo, DEFAULT_FLOOR_TYPE, type FloorTypeId } from '../plan/floorTypes'
+import { levelFloorAnswer, levelOnPad, onGroundLevels, onPad, setLevelFloorType, shouldAskFloorType, floorTypeInfo, type LevelFloor } from '../plan/floorTypes'
+import { groundAtPlan } from '../plan/groundOverlay'
 import { faceAround, planarFaces, type Face } from '../plan/geometry'
 import type { Plan } from '../plan/model'
 import { faceKey, newEnclosures, OFFER_GAP, OFFER_PLACEMENT, OFFER_THRESHOLD, offeredWall, retainOfferFor, type OfferPlacement, type RetainOffer } from '../plan/retainOffer'
@@ -122,11 +124,17 @@ function faceOf(p: Plan, space: Space): Face | null {
   return faces.find(f => f.area > 0 && faceKey(f) === key) ?? null
 }
 
+/** The levels that sit on the ground, on the ground the plan editor is drawing on (the lowest alone without it). */
+function groundedLevels(p: Plan): Set<string> {
+  const g = get().ground
+  return onGroundLevels(p, g ? q => groundAtPlan(q, p.placement, g.survey, g.natural) : undefined)
+}
+
 /** A room or space was just made: ask its level's floor type if it hasn't one, else see whether it needs a retaining wall. */
 export function spaceMade(space: Space) {
   const p = plan()
   if (!p) return
-  if (shouldAskFloorType(p, space.level, get().dismissed)) {
+  if (shouldAskFloorType(p, space.level, get().dismissed, groundedLevels(p))) {
     set({ ask: { space, more: false }, offer: null })
     return
   }
@@ -145,7 +153,8 @@ export function roomMade(roomId: string) {
 /** Walls were just drawn on a level: if they closed round a new space, it's a room made. */
 export function wallsPlaced(before: Plan, level: string) {
   const p = plan()
-  if (!p || !isLowestLevel(p, level)) return
+  // Only where a question could follow: a level on the ground, or one built on a pad.
+  if (!p || !(groundedLevels(p).has(level) || levelOnPad(p, level))) return
   const made = newEnclosures(before, p, level)
   if (!made.length) return
   // The biggest new space speaks for the rest.
@@ -159,7 +168,7 @@ export function wallsPlaced(before: Plan, level: string) {
  * new room, the retaining wall question, on a slab. A level asked about earlier (or before a
  * reload) is set as it is.
  */
-export function answerFloorType(type: FloorTypeId, level = get().ask?.space.level) {
+export function answerFloorType(type: LevelFloor, level = get().ask?.space.level) {
   const a = get().ask
   if (!level) return
   if (!a || a.space.level !== level) {
@@ -168,7 +177,7 @@ export function answerFloorType(type: FloorTypeId, level = get().ask?.space.leve
   }
   set({ ask: null })
   usePlan.getState().commit(p => setLevelFloorType(p, a.space.level, type))
-  if (floorTypeInfo(type).ground === 'pad') offerFor(a.space)
+  if (type !== 'framed' && floorTypeInfo(type).ground === 'pad') offerFor(a.space)
 }
 
 /** "Decide later": not asked again this visit; the floor builds as a slab until it's set, and the question list keeps it as a to-do. */
@@ -179,13 +188,11 @@ export function putOffFloorType(level = get().ask?.space.level) {
 }
 
 
-/** Is this space on a levelled pad (its room's own floor type, else its level's)? */
+/** Is this space on a levelled pad (its room's own floor type, else its level's), on whichever level? */
 function spaceOnPad(p: Plan, space: Space): boolean {
-  if (!isLowestLevel(p, space.level)) return false
   const r = space.room ? p.rooms.find(x => x.id === space.room) : undefined
   if (r) return onPad(p, r)
-  const t = levelFloorType(p, space.level)
-  return t !== 'framed' && floorTypeInfo(t ?? DEFAULT_FLOOR_TYPE).ground === 'pad'
+  return levelOnPad(p, space.level)
 }
 
 /** Offer a retaining wall for a space on a slab, when one of its outside edges cuts or fills past the setting. */
@@ -253,7 +260,7 @@ usePlan.subscribe((s, prev) => {
   const { ask, offer } = get()
   if (s.plan && s.plan !== prev.plan) {
     const gone = (sp: Space) => (sp.room ? !s.plan!.rooms.some(r => r.id === sp.room) : !faceOf(s.plan!, sp))
-    if (ask && (gone(ask.space) || levelFloorType(s.plan, ask.space.level) !== undefined)) set({ ask: null })
+    if (ask && (gone(ask.space) || levelFloorAnswer(s.plan, ask.space.level) !== undefined)) set({ ask: null })
     if (offer && gone(offer.space)) set({ offer: null })
   }
 })
