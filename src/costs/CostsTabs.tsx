@@ -13,7 +13,7 @@ import { shareOrSave } from '../phone/share'
 import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
-import { m2 } from '../shell/format'
+import { m2, whereShown } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
@@ -726,10 +726,10 @@ export function CostsStrip({
         {shown.cost ? (
           <>
             <span className="chip ghost">
-              Estimate <em>{shown.cost}</em>
+              Estimate <em>{whereShown(shown.cost)}</em>
             </span>
             <span className="chip ghost">
-              Per m² <em>{shown.cost}</em>
+              Per m² <em>{whereShown(shown.cost)}</em>
             </span>
           </>
         ) : (

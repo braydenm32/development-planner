@@ -412,7 +412,7 @@ body:has(.app-shell.phone) {
   left: var(--gap);
   right: auto;
   display: block;
-  max-width: calc(100% - 2 * var(--gap) - 190px);
+  max-width: calc(100% - 2 * var(--gap) - 170px);
   padding: 0;
   border: 1px solid var(--overlay-line);
   border-radius: calc(var(--r) + 3px);
@@ -433,16 +433,23 @@ body:has(.app-shell.phone) {
   text-align: left;
 }
 
+/* When the chip runs out of room the floor's name is cut short, never its RL. */
 .level-chip-text {
+  display: flex;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .level-chip-text b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
+}
+
+.level-chip-text .rl {
+  flex: none;
 }
 
 .level-pick {
@@ -500,17 +507,12 @@ body:has(.app-shell.phone) {
   gap: 8px;
 }
 
-.key-chip-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.app-shell.phone .key-chip-button {
   height: 44px;
   padding: 0 15px 0 12px;
-  border: 1px solid var(--overlay-line);
-  border-radius: 999px;
+  border-color: var(--overlay-line);
   background: var(--overlay);
   font-size: 15px;
-  font-weight: 500;
 }
 
 .key-swatches {
@@ -674,6 +676,19 @@ body:has(.app-shell.phone) {
 .app-shell.phone .view-lock input[type='checkbox'],
 .app-shell.phone .view-lock input[type='range'] {
   opacity: 0.5;
+}
+
+/* A locked choice (CDC / DA in Checks) still says what's chosen at full strength; only the other
+   option steps back, and no further than the muted ink (5:1). */
+.app-shell.phone .view-lock .segmented-choice button:disabled {
+  opacity: 1;
+  color: var(--muted);
+  cursor: default;
+}
+
+.app-shell.phone .view-lock .segmented-choice button.on:disabled {
+  background: var(--text);
+  color: #ffffff;
 }
 
 /* ---- Turned sideways ---- */

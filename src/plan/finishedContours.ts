@@ -213,14 +213,21 @@ export function planContours(fc: FinishedContours, pl: Placement, origin: Vec2, 
 
 const PREF = 'plan-finished-contours-v1'
 
-/** Whether to show the finished contours: on unless turned off in this browser. */
-export function readFinishedPref(): boolean {
+/** The finished contours switch as last set in this browser: on, off, or null when it hasn't been touched. */
+export function readFinishedPref(): boolean | null {
   try {
-    return localStorage.getItem(PREF) !== 'off'
+    const v = localStorage.getItem(PREF)
+    return v === 'on' ? true : v === 'off' ? false : null
   } catch {
-    return true
+    return null
   }
 }
+
+/**
+ * Whether to draw the finished contours: as the user chose, else only in Earthworks, where the
+ * ground is the subject. On Design › Plan they crowd the house, so there they wait to be asked for.
+ */
+export const finishedShown = (pref: boolean | null, earthworks: boolean): boolean => pref ?? earthworks
 
 export function saveFinishedPref(on: boolean) {
   try {
