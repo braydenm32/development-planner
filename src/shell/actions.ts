@@ -18,6 +18,7 @@ import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
 import { pickFile } from '../safety/store'
 import { beginSectionLine } from '../sections/SectionMarks'
+import { toggleStrip } from '../sectionStrip/store'
 import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
@@ -201,6 +202,11 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'draw-section':
       // Two clicks on the plan; Design › Sections opens beside it to show the drawing.
       beginSectionLine()
+      return true
+    case 'section-strip':
+      // The section lives under the plan, in Design and Earthworks.
+      if (!planShowing()) showPlan()
+      toggleStrip()
       return true
     case 'grade-brush':
       // A drag on the plan paints; Earthworks › Cut & fill opens beside it with the brush's settings.

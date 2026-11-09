@@ -51,6 +51,7 @@ export type ActionId =
   | 'camera-rear'
   | 'pick-contour'
   | 'draw-section'
+  | 'section-strip'
   | 'grade-brush'
   | 'keyboard-help'
   | 'open-example'
@@ -1373,6 +1374,17 @@ export const HOMES: Home[] = [
         run: 'now',
         shortcut: 'X',
         at: 'design/sections',
+      },
+      {
+        id: 'section-strip',
+        label: 'Show or fold the section under the plan',
+        icon: 'section',
+        keywords: ['section', 'live section', 'section strip', 'cross section', 'split level', 'levels', 'floor RL', 'drag level', 'move floor', 'eaves', 'roofline', 'match roofline', 'stairs', 'cut line', 'fold away', 'slope'],
+        features: ['section-strip', 'section-strip-levels', 'section-strip-eaves', 'section-strip-cut', 'section-strip-phone'],
+        action: 'section-strip',
+        run: 'now',
+        at: 'design/plan',
+        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the cut’s ends on the plan to move it.',
       },
       {
         id: 'paint-grade',
