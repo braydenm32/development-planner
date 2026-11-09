@@ -46,6 +46,7 @@ export type ActionId =
   | 'camera-above'
   | 'camera-rear'
   | 'pick-contour'
+  | 'keyboard-help'
   | 'open-example'
   | 'guide'
   | 'glossary'
@@ -407,6 +408,16 @@ export const AREAS: Area[] = [
           action: 'tool:garage',
           run: 'now',
           shortcut: 'G',
+        },
+        {
+          id: 'keyboard-shortcuts',
+          label: 'Keyboard shortcuts',
+          icon: 'list',
+          keywords: ['keys', 'shortcuts', 'hotkeys', 'cheat sheet', 'help', 'nudge', 'arrow keys', 'copy', 'paste', 'duplicate', 'select all', 'fit'],
+          features: ['keyboard-shortcuts-overlay'],
+          action: 'keyboard-help',
+          run: 'now',
+          shortcut: '?',
         },
         {
           id: 'stair-defaults',
@@ -1212,7 +1223,46 @@ export const HOMES: Home[] = [
     label: 'Keyboard',
     features: [],
     items: [
-      { id: 'kbd-fields', label: 'Number fields', keywords: ['enter', 'escape', 'type a number'], features: ['number-field-keys'], hint: 'In a number box, Enter keeps what you typed and Esc puts it back.' },
+      {
+        id: 'kbd-fields',
+        label: 'Number fields',
+        keywords: ['enter', 'escape', 'type a number', 'metres', 'millimetres', 'units', 'error', 'red', 'too small', 'too big'],
+        features: ['number-field-keys', 'number-field-units', 'number-field-errors'],
+        hint: 'In a number box, Enter keeps what you typed and Esc puts it back. Type 0.9 or 0.9m for 900 mm. A value that can’t be used stays, in red, with why.',
+      },
+      {
+        id: 'kbd-nudge',
+        label: 'Nudge with arrow keys',
+        keywords: ['arrows', 'move a little', 'small move', 'shift arrow', 'precise'],
+        features: ['kbd-nudge'],
+        shortcut: 'arrows',
+        hint: 'Arrow keys move what is selected 10 mm; Shift+arrow moves it 100 mm. A run of presses is one Undo.',
+      },
+      {
+        id: 'kbd-copy',
+        label: 'Copy, paste and duplicate',
+        keywords: ['copy', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl v', 'ctrl d', 'cmd c'],
+        features: ['kbd-copy-paste'],
+        shortcut: 'mod+C',
+        hint: '⌘C or Ctrl+C copies furniture, rooms, areas and walls with their doors and windows; V pastes them a little off to one side; D copies and pastes in one go.',
+      },
+      {
+        id: 'kbd-multi',
+        label: 'Pick several things',
+        keywords: ['multi select', 'select all', 'box select', 'marquee', 'group', 'ctrl click', 'several', 'rubber band'],
+        features: ['multi-select', 'kbd-select-all', 'multi-select-panel'],
+        shortcut: 'mod+A',
+        hint: 'Ctrl or ⌘ and click adds to the selection; Ctrl or ⌘ and A picks everything on the floor; Shift and drag over empty ground picks what the box holds. Then drag, nudge, copy or delete them together.',
+      },
+      {
+        id: 'kbd-fit',
+        label: 'Fit the house or the block',
+        keywords: ['zoom to fit', 'zoom all', 'frame', 'show everything'],
+        features: ['kbd-fit'],
+        shortcut: '0',
+        hint: '0 fits the house in view; Shift+0 fits the whole block.',
+      },
+      { id: 'kbd-help', label: 'Show all the shortcuts', keywords: ['question mark', 'cheat sheet'], features: ['kbd-help'], shortcut: '?', hint: 'Press ? to list every shortcut.' },
       {
         id: 'kbd-tools',
         label: 'Tool keys',
@@ -1220,10 +1270,10 @@ export const HOMES: Home[] = [
         features: ['kbd-tool-shortcuts'],
         hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A area, F roof, S stair, U furniture, M move.',
       },
-      { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change.' },
+      { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo', 'undo-keeps-selection'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change, and what you had selected stays selected.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
       { id: 'kbd-save', label: 'Save key', keywords: ['shortcut', 'ctrl s', 'cmd s', 'save now'], features: ['kbd-save'], shortcut: 'mod+S', hint: '⌘S or Ctrl+S saves now and says where: in this browser, or to the cloud.' },
-      { id: 'kbd-delete', label: 'Delete key', keywords: ['backspace', 'remove'], features: ['kbd-delete'], shortcut: 'Delete', hint: 'Delete or Backspace removes what is selected on the plan.' },
+      { id: 'kbd-delete', label: 'Delete key', keywords: ['backspace', 'remove'], features: ['kbd-delete', 'delete-undo-toast'], shortcut: 'Delete', hint: 'Delete or Backspace removes what is selected on the plan; a toast says what went and has Undo.' },
       { id: 'kbd-escape', label: 'Escape key', keywords: ['finish', 'cancel', 'deselect'], features: ['kbd-escape'], shortcut: 'Esc', hint: 'Esc finishes a run of walls, drops a half-drawn outline, or clears the selection.' },
       { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension'], features: ['kbd-typed-length'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter.' },
       { id: 'kbd-close', label: 'Enter closes an outline', keywords: ['finish area', 'close roof'], features: ['kbd-enter-close'], shortcut: '↵', hint: 'Enter closes the area or roof outline you are drawing.' },

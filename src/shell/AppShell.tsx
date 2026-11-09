@@ -17,6 +17,8 @@ import { useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
 import { shortcutText, typingIn } from '../nav/keys'
+import { KeyboardHelp } from './KeyboardHelp'
+import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
 import { canvasOf, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
@@ -60,7 +62,7 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
   a.startsWith('term:') ||
-  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
+  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -164,6 +166,12 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault()
         if (!e.repeat) void saveNow().then(text => showToast({ text }))
+        return
+      }
+      // ? lists the keys, wherever you are (not while typing).
+      if (e.key === '?' && !mod && !palette && !typingIn(e.target)) {
+        e.preventDefault()
+        openKeyboardHelp()
         return
       }
       if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
@@ -312,6 +320,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         )}
         <AreaNav route={route} go={r => navigate(r)} variant="bottom" />
         {fileInputs}
+        <KeyboardHelp />
         {palette && <CommandPalette choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
         {toast && (
           <div key={toast.n} className="toast" role="status">
@@ -346,7 +355,7 @@ function UndoRedo() {
       <button onClick={st.undo} disabled={!canUndo} aria-label={`Undo (${shortcutText('mod+Z')})`} data-tip={`Undo ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button className="desk-only" onClick={st.redo} disabled={!canRedo} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={st.redo} disabled={!canRedo} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>

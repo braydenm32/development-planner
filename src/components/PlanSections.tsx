@@ -31,8 +31,6 @@ import {
 } from '../plan/model'
 import {
   addLevelAbove,
-  deleteLevel,
-  deleteSelection,
   planBounds,
   setWallLength,
   updateArea,
@@ -55,6 +53,9 @@ import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { crossedBoundaries, levelSummaries, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import type { Earth } from '../plan/useEarthworks'
+import { copySelected, deleteLevelWithReview, deleteSelected, duplicateSelected } from '../plan/editActions'
+import { selectionCounts } from '../plan/editing'
+import { shortcutText } from '../nav/keys'
 import { Num, Select, TextField } from './fields'
 import { LevelFloorType, RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
@@ -279,12 +280,7 @@ export function LevelsBody({ plan, beforePick }: { plan: Plan; beforePick?: () =
         {levels.length > 1 && (
           <button
             className="secondary danger"
-            onClick={() => {
-              const l = levels.find(x => x.id === level)
-              if (!l || !confirm(`Delete ${l.name} and everything on it?`)) return
-              st.commit(p => deleteLevel(p, l.id))
-              st.setActiveLevel(sortedLevels(usePlan.getState().plan!)[0].id)
-            }}
+            onClick={() => void deleteLevelWithReview(level)}
           >
             Delete level
           </button>
@@ -374,8 +370,34 @@ interface SelectionProps {
 /** Settings and numbers for the selected wall, opening, room, roof, stair, area or piece of furniture; a room leads with its area. */
 export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps) {
   const selection = usePlan(s => s.selection)
+  const extra = usePlan(s => s.extra)
   const st = usePlan.getState()
   if (!selection) return null
+  // Several items: a short summary and what can be done with them together.
+  if (extra.length > 0) {
+    const all = [selection, ...extra]
+    return (
+      <section className="selection multi">
+        <h2>{all.length} items selected</h2>
+        <p className="muted small">{selectionCounts(all)}</p>
+        <p className="muted small">Drag one to move them together, or use the arrow keys (Shift for bigger steps). Esc clears the selection.</p>
+        <div className="row">
+          <button className="secondary" onClick={() => copySelected()}>
+            Copy
+          </button>
+          <button className="secondary" onClick={() => duplicateSelected()}>
+            Duplicate
+          </button>
+          <button className="secondary danger" onClick={() => deleteSelected()}>
+            Delete
+          </button>
+        </div>
+        <p className="muted small">
+          <kbd>{shortcutText('mod+C')}</kbd> copy, <kbd>{shortcutText('mod+V')}</kbd> paste, <kbd>{shortcutText('mod+D')}</kbd> duplicate.
+        </p>
+      </section>
+    )
+  }
   const pl = plan.placement
   /** Finished ground (after cut and fill) at a plan point. */
   const groundAt = (p: Vec2) => {
@@ -386,10 +408,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
   const del = (
     <button
       className="secondary danger"
-      onClick={() => {
-        st.commit(p => deleteSelection(p, selection))
-        st.select(null)
-      }}
+      onClick={() => deleteSelected()}
     >
       Delete
     </button>

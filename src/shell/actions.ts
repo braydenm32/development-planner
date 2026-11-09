@@ -17,6 +17,7 @@ import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
 import { pickFile } from '../safety/store'
 import type { ShellData } from './context'
+import { openKeyboardHelp } from './keyboardHelpStore'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
 export interface ActionContext {
@@ -56,6 +57,9 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'overview':
       c.openOverview()
+      return true
+    case 'keyboard-help':
+      openKeyboardHelp()
       return true
     case 'balance': {
       const msg = balanceCutFill(shell.earth)

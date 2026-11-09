@@ -23,7 +23,7 @@ export interface ReviewChoice {
 
 export interface Review {
   /** What kind of change, for tests and styling. */
-  kind: 'replace-survey' | 'import-plan' | 'open-project' | 'new-plan'
+  kind: 'replace-survey' | 'import-plan' | 'open-project' | 'new-plan' | 'delete-level'
   /** One question: "Replace your plan with house-plan.json?" */
   title: string
   /** The file it comes from. */
