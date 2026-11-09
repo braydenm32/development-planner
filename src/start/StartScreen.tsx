@@ -5,6 +5,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { CloudStartLink } from '../cloud/CloudCard'
+import { openExample } from '../example/open'
+import { openGuide } from '../guide/store'
 import { Icon, Logo } from '../nav/icons'
 import { LegalFooter } from '../legal/LegalFooter'
 import '../legal/legal.css'
@@ -15,6 +17,7 @@ import { SurveyorRequest } from '../safety/SurveyorRequest'
 import { readSketchSize, ROUGH_SIZE, type StreetSide } from './sketch'
 import '../shell/fonts.css'
 import './start.css'
+import './what.css'
 
 interface Props {
   /** Into the project open now (one without a survey yet), or a new project. */
@@ -161,6 +164,20 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
       </header>
 
       <main className="st-main" aria-busy={busy}>
+        {/* What the app is for, before the two ways in: a finished example, and one to open and change. */}
+        <figure className="st-what">
+          <img src={`${import.meta.env.BASE_URL}start-example.jpg`} width={320} height={180} alt="A split-level house on a sloping block, in 3D, with its driveway, deck and retaining wall" />
+          <figcaption>
+            <button className="st-btn" onClick={() => void openExample()} disabled={busy}>
+              <Icon name="cube" size={16} />
+              Open an example
+            </button>
+            <button className="st-link" onClick={() => openGuide()}>
+              How it works
+            </button>
+          </figcaption>
+        </figure>
+        <p className="st-says">Draw a house on your sloping block and see it in 3D on the real ground, with the cut and fill, the planning checks and a rough cost as you go.</p>
         <p className="st-step">
           <i>1</i>Choose how to start
         </p>

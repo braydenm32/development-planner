@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Termed } from '../guide/Term'
 
 export function Select<T extends string | number>({
   label,
@@ -13,7 +14,9 @@ export function Select<T extends string | number>({
 }) {
   return (
     <label className="num">
-      <span>{label}</span>
+      <span>
+        <Termed text={label} />
+      </span>
       <select
         value={String(value)}
         onChange={e => {
@@ -73,7 +76,9 @@ export function Num({ label, value, unit, onCommit, min, max, decimals }: NumPro
   }
   return (
     <label className="num">
-      <span>{label}</span>
+      <span>
+        <Termed text={label} />
+      </span>
       <span className="num-input">
         {unit === 'RL' && <em>RL</em>}
         <input
@@ -100,7 +105,9 @@ export function TextField({ label, value, onCommit }: { label: string; value: st
   const [editing, setEditing] = useState<string | null>(null)
   return (
     <label className="num">
-      <span>{label}</span>
+      <span>
+        <Termed text={label} />
+      </span>
       <input
         className="text"
         value={editing ?? value}

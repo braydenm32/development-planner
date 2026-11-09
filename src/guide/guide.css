@@ -1,0 +1,463 @@
+/* The getting-started guide: a cloud sheet, wider and taller, for reading. */
+
+.guide-sheet.cl-sheet {
+  width: min(680px, 100%);
+  height: min(760px, calc(100dvh - 48px));
+}
+
+.guide-body {
+  scroll-padding-top: 8px;
+}
+
+.guide-lede {
+  font-size: 14px;
+}
+
+.guide-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 14px;
+}
+
+.guide-pill {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--cl-ink);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.guide-pill:hover {
+  border-color: var(--cl-ink);
+}
+
+.guide-try {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-line-soft);
+  border-radius: var(--cl-r-lg);
+  background: #fafbfc;
+}
+
+.guide-try .cl-muted {
+  flex: 1 1 220px;
+  font-size: 12.5px;
+}
+
+.guide-section {
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--cl-line-soft);
+  margin-top: 14px;
+}
+
+.guide-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.guide-n {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cl-accent-soft);
+  color: var(--cl-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* A section a hint or ⌘K opened at: a quiet mark down its side. */
+.guide-section.guide-here,
+.guide-word.guide-here {
+  box-shadow: inset 3px 0 0 var(--cl-accent);
+  padding-left: 12px;
+}
+
+.guide-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.guide-steps {
+  flex: 1;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.guide-steps li {
+  margin: 0 0 6px;
+}
+
+.guide-pic {
+  flex: none;
+  width: 112px;
+  height: 75px;
+  margin-top: 2px;
+  border: 1px solid var(--cl-line-soft);
+  border-radius: var(--cl-r-lg);
+  background: #fbfcfd;
+}
+
+.guide-pic .gp-line,
+.guide-pic .gp-wall,
+.guide-pic .gp-soft,
+.guide-pic .gp-dash,
+.guide-pic .gp-accent,
+.guide-pic .gp-ground,
+.guide-pic .gp-ground-dash {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.guide-pic .gp-line {
+  stroke: var(--cl-ink);
+  stroke-width: 1.4;
+}
+
+.guide-pic .gp-wall {
+  stroke: var(--cl-ink);
+  stroke-width: 3;
+}
+
+.guide-pic .gp-soft {
+  stroke: var(--cl-muted);
+  stroke-width: 1;
+}
+
+.guide-pic .gp-dash,
+.guide-pic .gp-ground-dash {
+  stroke: var(--cl-muted);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 3;
+}
+
+.guide-pic .gp-ground {
+  stroke: #7d8a5a;
+  stroke-width: 1.6;
+}
+
+.guide-pic .gp-accent {
+  stroke: var(--cl-accent);
+  stroke-width: 1.8;
+}
+
+.guide-pic .gp-corner {
+  fill: #ffffff;
+  stroke: var(--cl-accent);
+  stroke-width: 1.4;
+}
+
+.guide-pic .gp-dot {
+  fill: var(--cl-ink);
+}
+
+.guide-pic .gp-cut {
+  fill: #f3c99a;
+}
+
+.guide-pic .gp-fill {
+  fill: #b9cdf0;
+}
+
+.guide-pic .gp-text {
+  fill: var(--cl-muted);
+  font-size: 9px;
+}
+
+.guide-words {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+}
+
+.guide-word {
+  padding: 6px 0;
+}
+
+.guide-word dt {
+  font-weight: 600;
+}
+
+.guide-word dd {
+  margin: 1px 0 0;
+  color: var(--cl-muted);
+}
+
+.guide-foot {
+  margin-top: 18px !important;
+  font-size: 12.5px;
+}
+
+.guide-foot a {
+  color: var(--cl-accent);
+}
+
+@media (max-width: 760px) {
+  .guide-ui.cl-scrim {
+    padding: 0;
+    align-items: end;
+  }
+
+  .guide-sheet.cl-sheet {
+    width: 100%;
+    height: calc(100dvh - 24px);
+    max-height: none;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .guide-ui .cl-body {
+    padding: 4px 16px 28px;
+    font-size: 14px;
+  }
+
+  .guide-ui .cl-head {
+    padding: 16px 12px 4px 16px;
+  }
+
+  .guide-ui .cl-x {
+    width: 44px;
+    height: 44px;
+  }
+
+  .guide-pill {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
+  .guide-pic {
+    display: none;
+  }
+}
+
+/* ---- A word's meaning, over a label or a key-number chip ---- */
+
+.term {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.term:focus-visible {
+  outline: 2px solid #2346d0;
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+[data-term] > .chip-label,
+.attn-text[data-term] {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+}
+
+.term-tip {
+  position: fixed;
+  z-index: 260;
+  width: min(290px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border: 1px solid #e1e4e7;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #16181b;
+  font-family: 'IBM Plex Sans', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 12px 32px -12px rgba(0, 0, 0, 0.3);
+  animation: term-fade 0.1s ease-out;
+}
+
+@keyframes term-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.term-tip b {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.term-tip p {
+  margin: 0;
+  color: #4a4f56;
+}
+
+.term-tip .term-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #eef0f2;
+  color: #16181b;
+  white-space: pre-line;
+}
+
+.term-tip button {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2346d0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .term-tip {
+    font-size: 14px;
+  }
+
+  .term-tip button {
+    min-height: 36px;
+  }
+}
+
+/* ---- A tip at the top of the plan ---- */
+
+/* Under the floor's chip at the top left of the free part of the plan, clear of the drawing's middle. */
+.plan-hint {
+  position: absolute;
+  z-index: 6;
+  top: 60px;
+  left: var(--free-left, 14px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  width: min(420px, calc(100% - var(--free-left, 14px) - 32px));
+  padding: 10px 36px 10px 14px;
+  border: 1px solid #dcdfe3;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.98);
+  color: #16181b;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.35);
+}
+
+.plan-hint-text {
+  flex: 1 1 260px;
+  display: grid;
+  gap: 1px;
+}
+
+.plan-hint-text b {
+  font-weight: 600;
+}
+
+.plan-hint-text span {
+  color: #4a4f56;
+}
+
+.plan-hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.plan-editor .plan-hint-go {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid #16181b;
+  border-radius: 4px;
+  background: #16181b;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-editor .plan-hint-link {
+  min-height: 30px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: #2346d0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.plan-editor .plan-hint-link.quiet {
+  color: #6b7077;
+}
+
+.plan-editor .plan-hint-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: #6b7077;
+  cursor: pointer;
+}
+
+.plan-editor .plan-hint-x:hover {
+  background: #eef0f2;
+  color: #16181b;
+}
+
+.plan-editor :is(.plan-hint-go, .plan-hint-link, .plan-hint-x):focus-visible {
+  outline: 2px solid #2346d0;
+  outline-offset: 2px;
+}
+
+/* On a phone: under the floor chip, between the tools down the left and the canvas buttons down
+   the right, so the Wall tool it names stays in sight. */
+.app-shell.phone .plan-hint {
+  top: 64px;
+  left: 68px;
+  right: 60px;
+  width: auto;
+  transform: none;
+  padding: 10px 40px 10px 12px;
+  font-size: 14px;
+}
+
+.app-shell.phone .sketch-chip ~ .plan-editor .plan-hint {
+  top: 112px;
+}
+
+.app-shell.phone .plan-editor :is(.plan-hint-go, .plan-hint-link) {
+  min-height: 40px;
+}
+
+.app-shell.phone .plan-editor .plan-hint-x {
+  width: 40px;
+  height: 40px;
+  top: 2px;
+  right: 2px;
+}
+
+/* The street question's sides, two to a row. */
+.plan-editor .street-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}

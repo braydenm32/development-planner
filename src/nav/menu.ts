@@ -6,6 +6,7 @@
 // then sharing. Rare things live under each area's More. Nothing is removed.
 
 import { TOOLS } from '../components/tools'
+import { TERMS } from '../guide/glossary'
 import type { Tool } from '../plan/store'
 import type { IconName } from './icons'
 
@@ -45,11 +46,17 @@ export type ActionId =
   | 'camera-above'
   | 'camera-rear'
   | 'pick-contour'
+  | 'open-example'
+  | 'guide'
+  | 'glossary'
+  | 'plan-tips'
   | 'about'
   | 'privacy'
   | 'terms'
   | 'accuracy'
   | `tool:${Tool}`
+  /** What a planning word means: the guide, open at the word. */
+  | `term:${string}`
 
 export interface Entry {
   /** Unique across the whole menu; used in links, anchors and tests. */
@@ -737,7 +744,7 @@ export const HOMES: Home[] = [
         icon: 'undo',
         keywords: ['put back', 'oops', 'review', 'undo import', 'undo new plan', 'undo delete'],
         features: ['undo-toast', 'review-sheet'],
-        hint: 'Replace survey, Import plan, New plan, Open and deleting a project each show what will change first. Afterwards a note at the bottom offers Undo for a few seconds.',
+        hint: 'Replace survey, Import plan, Start the plan again, Open and deleting a project each show what will change first. Afterwards a note at the bottom offers Undo for a few seconds.',
       },
     ],
   },
@@ -749,6 +756,16 @@ export const HOMES: Home[] = [
     items: [
       { id: 'all-projects', label: 'All projects…', icon: 'list', keywords: ['projects', 'open', 'switch project', 'home'], features: ['projects-home'], action: 'projects', run: 'now' },
       { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey'], features: ['project-new'], action: 'new-project', run: 'now' },
+      {
+        // Always a new project, beside the others (src/example).
+        id: 'open-example',
+        label: 'Open an example',
+        icon: 'cube',
+        keywords: ['example', 'sample', 'demo', 'try it out', 'finished house', 'show me', 'split level', 'tutorial'],
+        features: ['example-project'],
+        action: 'open-example',
+        run: 'now',
+      },
       {
         // "Saved in this browser · 2:14 pm", while not signed in (src/cloud/LocalSave.tsx); signed in, the cloud item says it.
         id: 'save-state',
@@ -769,7 +786,7 @@ export const HOMES: Home[] = [
       },
       { id: 'project-name', label: 'Project name', icon: 'pencil', keywords: ['title', 'rename'], features: ['project-name'] },
       { id: 'survey-file', label: 'Survey file name', icon: 'file', keywords: ['DXF', 'survey'], features: ['survey-file-name'] },
-      { id: 'save-project', label: 'Save project file', icon: 'download', keywords: ['download', 'backup', 'keep a copy'], features: [], action: 'save-project', run: 'offer', at: 'share/send' },
+      { id: 'save-project', label: 'Download a backup (project file)', icon: 'download', keywords: ['download', 'backup', 'keep a copy', 'save project file', 'export project'], features: [], action: 'save-project', run: 'offer', at: 'share/send' },
       {
         id: 'open-file',
         label: 'Open…',
@@ -780,7 +797,8 @@ export const HOMES: Home[] = [
         run: 'menu',
       },
       { id: 'export-plan', label: 'Export plan', icon: 'download', keywords: ['save plan', 'json', 'backup'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
-      { id: 'new-plan', label: 'New plan', icon: 'plus', keywords: ['start again', 'empty', 'clear'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
+      // Clears the plan in this project (reviewed, with Undo); New project… is the one that starts another.
+      { id: 'new-plan', label: 'Start the plan again', icon: 'plus', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
       // The pages about the app (src/legal): they open on their own, with or without a project.
       { id: 'about', label: 'About Contour & Gable', icon: 'file', keywords: ['about us', 'who makes this', 'contact', 'email', 'hello', 'help', 'feedback', 'support', 'who is this for'], features: ['about-page'], action: 'about', run: 'now' },
       { id: 'privacy', label: 'Privacy policy', icon: 'file', keywords: ['privacy', 'data', 'my data', 'cookies', 'tracking', 'analytics', 'what do you keep', 'delete my data', 'personal information', 'APP', 'privacy act'], features: ['privacy-page'], action: 'privacy', run: 'now' },
@@ -979,7 +997,17 @@ export const HOMES: Home[] = [
         keywords: ['popup', 'card', 'ask', 'floor type', 'slab or piers', 'suggest retaining wall', 'retaining wall offer', 'gap from house', 'house wall retaining'],
         features: ['floor-type-ask', 'retaining-offer', 'retaining-offer-placement'],
         at: 'design/plan',
-        hint: 'When a new room appears on the ground floor, a card at the foot of the plan asks how that floor is built, once. On a slab that cuts deep or fills high, another card offers a retaining wall: out from the house, or the house wall itself.',
+        hint: 'When a new room appears on the ground floor, a card at the foot of the plan asks how that floor is built, once (after you finish drawing the walls). On a slab that cuts deep or fills high, another card offers a retaining wall: out from the house, or the house wall itself.',
+      },
+      {
+        id: 'plan-hints',
+        label: 'Tips on the plan',
+        icon: 'plan',
+        keywords: ['hints', 'what next', 'empty plan', 'how to draw walls', 'next step', 'show tips again', 'turn tips back on'],
+        features: ['plan-hints'],
+        action: 'plan-tips',
+        run: 'now',
+        hint: 'An empty floor shows how to draw its walls; after that, the next step. × hides one tip; Hide tips hides them all.',
       },
       {
         id: 'floor-from-contour',
@@ -1135,11 +1163,48 @@ export const HOMES: Home[] = [
           'sketch-without-survey',
           'sketch-block-size',
           'start-never-traps',
+          'start-what-it-does',
+          'street-side-ask',
         ],
         action: 'new-project',
         run: 'now',
         hint: 'New project opens the start screen: import a survey, or sketch the block without one and add the survey later.',
       },
+    ],
+  },
+  {
+    // The getting-started guide and the words it explains (src/guide). Each word is its own
+    // command, labelled "What … means" so it never outranks the place a word names.
+    id: 'help',
+    label: 'Help',
+    features: [],
+    items: [
+      {
+        id: 'guide',
+        label: 'Help: getting started guide',
+        icon: 'list',
+        keywords: ['how do I', 'how to', 'tutorial', 'getting started', 'learn', 'instructions', 'manual', 'first steps', 'what next'],
+        features: ['getting-started-guide'],
+        action: 'guide',
+        run: 'now',
+      },
+      {
+        id: 'glossary',
+        label: 'Words explained (glossary)',
+        icon: 'list',
+        keywords: ['help', 'jargon', 'what does it mean', 'definitions', 'terms', 'meaning', 'acronyms'],
+        features: ['glossary', 'term-tips'],
+        action: 'glossary',
+        run: 'now',
+      },
+      ...TERMS.map(t => ({
+        id: `term-${t.id}`,
+        label: `What “${t.short}” means`,
+        keywords: [t.short, ...(t.long ? [t.long] : [])],
+        features: [],
+        action: `term:${t.id}` as const,
+        run: 'now' as const,
+      })),
     ],
   },
   {
