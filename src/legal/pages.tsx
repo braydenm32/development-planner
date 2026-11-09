@@ -75,7 +75,7 @@ export function Privacy() {
           <li>your sign-in sessions, as hashes of their tokens;</li>
           <li>your projects and everything in them: survey, plan, site features, costs, and each project’s settings;</li>
           <li>your view-only links: a hash of each link’s token, when it was made, last opened and ended or expires (not who opened it);</li>
-          <li>short-lived counters to slow down guessing and abuse, which can include your IP address for a few minutes to an hour.</li>
+          <li>short-lived counters to slow down guessing and abuse, which can include your IP address and are cleared after a day or so.</li>
         </ul>
         <p>Like any web host, Cloudflare handles your IP address and the usual request details to deliver the page. We don’t use them to identify you.</p>
       </S>
