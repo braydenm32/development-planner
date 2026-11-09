@@ -27,6 +27,7 @@ import { projectActions, ProjectsHome, projectsNow, useProjects, useProjectSite 
 import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
+import { ColumnsSheet } from './formats/ColumnsSheet'
 import { SafetyLayer } from './safety/SafetyLayer'
 import { sayFileError } from './safety/surveyor'
 import { pickFile } from './safety/store'
@@ -209,6 +210,7 @@ export default function App() {
     <>
       {screen}
       <SafetyLayer />
+      <ColumnsSheet />
     </>
   )
   // The start screen shows alone until a site exists, real or sketched. Back and Esc leave it
@@ -384,6 +386,7 @@ export default function App() {
   return (
     <FoldingContext.Provider value={folding}>
       <SafetyLayer />
+      <ColumnsSheet />
       <AppShell
         canvas={canvas}
         projectsHome={home(true)}

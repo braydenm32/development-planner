@@ -1,4 +1,4 @@
-// The start screen: two equal ways in. Import the survey (DXF), or sketch the block without
+// The start screen: two equal ways in. Import the survey (DXF, LandXML or CSV), or sketch the block without
 // one and add the survey later. It shows alone until a site exists, real or sketched; a project
 // file or a saved plan opens here too. Esc and the back link leave whenever there's somewhere
 // to go back to, so nobody is ever stuck on it.
@@ -191,8 +191,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
             <div className="st-art">
               <SurveyArt />
             </div>
-            <h2 id="st-import">Import a survey (DXF)</h2>
-            <p>The contour survey from your surveyor. The file stays in this browser unless you sign in to save to the cloud.</p>
+            <h2 id="st-import">Import a survey</h2>
+            <p>The survey from your surveyor: a DXF (best), LandXML (.xml), or spot levels as a CSV or text file (.csv, .txt). The file stays in this browser unless you sign in to save to the cloud.</p>
             <div
               className={`st-drop${dragging ? ' dragging' : ''}`}
               onDragOver={e => {
@@ -210,7 +210,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               {!touch && (
                 <span className="st-drop-hint">
                   <Icon name="download" size={20} />
-                  Drop the DXF here
+                  Drop the survey here
                 </span>
               )}
               <button className="st-btn primary" onClick={() => input.current?.click()} disabled={busy}>
@@ -224,6 +224,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
             )}
             {fileError?.ask && <SurveyorRequest />}
             <p className="st-note">A project file or a saved plan opens here too. A plan on its own goes on a sketch block until the survey comes.</p>
+            <p className="st-note">Got a DWG? In AutoCAD, or the free DWG TrueView or ODA File Converter, save it as an ASCII DXF first.</p>
           </section>
 
           <section className="st-card" aria-labelledby="st-sketch">
@@ -298,7 +299,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
       <input
         ref={input}
         type="file"
-        accept=".dxf,.json,application/json"
+        accept=".dxf,.xml,.csv,.txt,.json,application/json"
         hidden
         onChange={e => {
           const f = e.target.files?.[0]
