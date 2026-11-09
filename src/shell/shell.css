@@ -209,6 +209,14 @@ body:has(.app-shell) {
   width: 42px;
 }
 
+.scroll-cue.narrow .scroll-arrow {
+  width: 20px;
+}
+
+.scroll-cue.narrow .tab-bar {
+  scroll-padding-inline: 20px;
+}
+
 .scroll-arrow:hover {
   background: var(--line-soft);
 }

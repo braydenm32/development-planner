@@ -5,8 +5,9 @@ import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type Re
 import { Icon } from '../nav/icons'
 import { overflowOf, pageTo, type Span } from './overflow'
 
-/** How wide an arrow is: an item under it hides. */
+/** How wide an arrow is: an item under it hides. A phone's top bar has little room, so its arrows are slimmer. */
 export const ARROW_W = 28
+const NARROW_W = 20
 
 function spans(row: HTMLElement): { kids: HTMLElement[]; items: Span[] } {
   const kids = [...row.children].filter((k): k is HTMLElement => k instanceof HTMLElement && k.offsetWidth > 0)
@@ -62,11 +63,11 @@ function useOverflow(row: RefObject<HTMLElement | null>, arrow: number) {
  * The row (`render` gets the ref to put on the scrolling element) with its arrows. With `count`,
  * the end arrow says how many are hidden (the strip's "+2"); `label` says what the items are.
  */
-export function ScrollCue({ className, label, count = false, render }: { className?: string; label: string; count?: boolean; render: (ref: RefObject<HTMLElement | null>) => ReactNode }) {
+export function ScrollCue({ className, label, count = false, narrow = false, render }: { className?: string; label: string; count?: boolean; narrow?: boolean; render: (ref: RefObject<HTMLElement | null>) => ReactNode }) {
   const row = useRef<HTMLElement | null>(null)
-  const { before, after, page } = useOverflow(row, count ? ARROW_W + 14 : ARROW_W)
+  const { before, after, page } = useOverflow(row, narrow ? NARROW_W : count ? ARROW_W + 14 : ARROW_W)
   return (
-    <div className={`scroll-cue${className ? ` ${className}` : ''}${before ? ' more-before' : ''}${after ? ' more-after' : ''}`}>
+    <div className={`scroll-cue${narrow ? ' narrow' : ''}${className ? ` ${className}` : ''}${before ? ' more-before' : ''}${after ? ' more-after' : ''}`}>
       {render(row)}
       {before > 0 && (
         // Mouse help only: the keyboard's Tab and a finger's swipe reach the hidden items themselves.

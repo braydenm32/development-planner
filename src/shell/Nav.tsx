@@ -9,6 +9,7 @@ import { AREAS, areaById, MORE } from '../nav/menu'
 import { PROJECTS, tabRoute, type AppRoute, type Route } from '../nav/route'
 import { linkTo, type Go } from './links'
 import { ScrollCue } from './ScrollCue'
+import { usePhone } from '../phone/device'
 
 /** The areas, as the side rail or the phone's bottom bar. */
 export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant: 'rail' | 'bottom' }) {
@@ -35,7 +36,9 @@ export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant:
 
 /** The current area's tabs, ending in More. Where they don't all fit, the ones that would be cut off hide behind an arrow. */
 export function TabBar({ route, go }: { route: AppRoute; go: Go }) {
-  return <ScrollCue className="tab-cue" label="tabs" count render={ref => <Tabs route={route} go={go} bar={ref} />} />
+  // A phone's bar has room for a tab or two: slim arrows, with no count.
+  const phone = usePhone()
+  return <ScrollCue className="tab-cue" label="tabs" count={!phone} narrow={phone} render={ref => <Tabs route={route} go={go} bar={ref} />} />
 }
 
 function Tabs({ route, go, bar }: { route: AppRoute; go: Go; bar: RefObject<HTMLElement | null> }) {
