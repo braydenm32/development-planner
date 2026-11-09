@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Heightfield } from '../lib/terrain'
-import { levelFloorText, levelFloorType, onGroundLevels, type LevelFloor } from './floorTypes'
+import { levelFloorAnswer, levelFloorText, levelFloorType, onGroundLevels, type LevelFloor } from './floorTypes'
 import { groundAtPlan } from './groundOverlay'
 import { floorRL, sortedLevels, type Plan } from './model'
 
@@ -34,6 +34,11 @@ export function groundedLevels(plan: Plan, survey?: Pick<Survey, 'origin' | 'bou
   return onGroundLevels(plan, survey && grid ? (p: Vec2) => groundAtPlan(p, plan.placement, survey, grid) : undefined)
 }
 
+/** A level's floor in a few words, as lists show it: "not chosen yet" for one on the ground still to be asked. */
+export function levelFloorWords(plan: Plan, levelId: string, onGround: boolean): string {
+  return onGround && levelFloorAnswer(plan, levelId) === undefined ? 'floor not chosen yet' : levelFloorText(plan, levelId)
+}
+
 /** Every level, highest first, as the level menu lists them. */
 export function levelRows(plan: Plan, active: string, hidden: ReadonlySet<string>, grounded: ReadonlySet<string>): LevelRow[] {
   const levels = sortedLevels(plan)
@@ -47,7 +52,7 @@ export function levelRows(plan: Plan, active: string, hidden: ReadonlySet<string
       name: l.name,
       rl: floorRL(plan, l.id),
       floor: levelFloorType(plan, l.id),
-      floorText: levelFloorText(plan, l.id),
+      floorText: levelFloorWords(plan, l.id, grounded.has(l.id)),
       onGround: grounded.has(l.id),
       active: l.id === active,
       steps: i - at,

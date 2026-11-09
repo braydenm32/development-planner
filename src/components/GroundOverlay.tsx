@@ -190,19 +190,6 @@ export function CornerOffsets({ pts, offsets, closed, atPointer, toScreen }: Cor
   )
 }
 
-/** Which level is being drawn on, and its floor level, in the corner of the plan; `action` is a small control after it (Pick a contour). */
-export function LevelChip({ name, rl, below, action }: { name: string; rl: number; below: string | null; action?: ReactNode }) {
-  return (
-    <div className="level-chip">
-      <span>
-        Drawing on <b>{name}</b> · floor RL {rl.toFixed(2)}
-        {action}
-      </span>
-      {below && <span className="muted">Dashed lines: {below} walls below</span>}
-    </div>
-  )
-}
-
 /** Turns the ground tint on and off, with a key to its colours. With no `floor` (Site, where there's no floor to draw on) only the other keys show. */
 export function GroundKey({ on, onChange, lowest, children, floor = true }: { on: boolean; onChange: (on: boolean) => void; lowest: boolean; children?: ReactNode; floor?: boolean }) {
   return (

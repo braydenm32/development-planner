@@ -7,6 +7,13 @@
   max-width: min(420px, calc(100% - 32px));
 }
 
+/* Open, it sits over the plan’s tip cards, solid. */
+.level-chip.level-menu.open {
+  z-index: 8;
+  background: #ffffff;
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.25);
+}
+
 .level-menu-line {
   display: flex;
   flex-wrap: wrap;

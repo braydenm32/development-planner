@@ -432,7 +432,7 @@ export const AREAS: Area[] = [
         id: 'rooms',
         label: 'Rooms & areas',
         icon: 'list',
-        subtitle: 'Room areas, floor area and outdoor areas.',
+        subtitle: 'Rooms and outdoor areas, level by level. Click one to see it on the plan.',
         shows: ['floor-area'],
         keywords: ['schedule', 'm2', 'square metres', 'floor area', 'size', 'outdoor', 'deck', 'patio', 'find a room', 'zoom to room'],
         features: ['room-area-schedule', 'gross-floor-area', 'outdoor-area-sizes'],

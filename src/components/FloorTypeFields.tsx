@@ -50,7 +50,7 @@ export function LevelFloorType({ plan, level, onGround }: { plan: Plan; level: s
   // Not chosen yet: on the ground that's asked for; well above it, framed is the answer already.
   const unset = answer === undefined && grounded
   const options: { id: LevelFloor | ''; label: string }[] = [
-    ...(unset ? [{ id: '' as const, label: `Not chosen yet (builds as ${t === 'framed' ? 'a framed floor' : 'a slab'})` }] : []),
+    ...(unset ? [{ id: '' as const, label: t === 'framed' ? 'Not chosen yet (framed for now)' : 'Not chosen yet (builds as a slab)' }] : []),
     ...choices,
   ]
   // Built as if on the ground (a slab or piers) though it's well above it.

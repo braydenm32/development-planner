@@ -7,10 +7,9 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import { deleteLevelWithReview } from '../plan/editActions'
-import { levelFloorText } from '../plan/floorTypes'
 import { planarFaces, roomShape } from '../plan/geometry'
 import { levelSummaries } from '../plan/keyNumbers'
-import { groundedLevels } from '../plan/levelMenu'
+import { groundedLevels, levelFloorWords } from '../plan/levelMenu'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { addLevelAbove, addLevelAt, addLevelBelow, setLevelRL, updateLevel } from '../plan/ops'
 import { focusPlan } from '../plan/planFocus'
@@ -48,7 +47,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
           <li key={l.id} className={l.id === level ? 'on' : ''}>
             <button className="level-btn" onClick={() => st.setActiveLevel(l.id)}>
               <span>
-                {l.name} <span className="muted small">· {levelFloorText(plan, l.id)}</span>
+                {l.name} <span className="muted small">· {levelFloorWords(plan, l.id, grounded.has(l.id))}</span>
               </span>
               <span className="muted">RL {floorRL(plan, l.id).toFixed(2)}</span>
             </button>

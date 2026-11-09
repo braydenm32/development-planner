@@ -248,7 +248,7 @@ describe('asking a split level on the ground', () => {
     const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
     const plan = split()
     const field = text(renderToStaticMarkup(createElement(LevelFloorType, { plan, level: MID, onGround: true })))
-    expect(field).toContain('Not chosen yet (builds as a framed floor)')
+    expect(field).toContain('Not chosen yet (framed for now)')
     expect(field).toContain('Slab on ground')
     expect(field).toContain('Framed floor')
     expect(field).toContain('within 1 m of the ground')
