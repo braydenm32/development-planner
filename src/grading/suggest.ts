@@ -12,6 +12,7 @@
 //    would (the rule: wider than WIDE_BATTER).
 // Neighbouring edge nodes with the same finding are joined into one straight wall along the edge.
 
+import { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
 import { crosses, type Barrier, type PreparedEarthworks, type PreparedPlatform } from '../lib/earthworks'
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { bearingName } from '../lib/terrain'
@@ -31,8 +32,8 @@ export const WIDE_BATTER = 3
 export const MIN_WALL_HEIGHT = 0.15
 /** Nor shorter than this (m). */
 export const MIN_WALL_LENGTH = 1
-/** Over this, a retaining wall needs a professional engineer's certificate: Housing Code cl 3.30 (hc-retaining) (m). */
-export const ENGINEER_OVER = 0.6
+/** From this, a retaining wall needs a professional engineer's certificate: the app's one figure (src/checks/engineer.ts) (m). */
+export const ENGINEER_OVER = ENGINEER_HEIGHT
 /** Levelled ground within this of the batter's level takes the batter in, rather than blocking it (m). */
 const ABSORB = 0.3
 /** The furthest a batter is walked (m). */
@@ -125,7 +126,7 @@ export interface WallSuggestion {
   /** Ground it holds back, at most (m). */
   height: number
   why: string
-  /** Over 600 mm: needs a professional engineer's certificate. */
+  /** Needs a professional engineer's certificate (needsEngineer). */
   engineer: boolean
 }
 
@@ -419,7 +420,7 @@ function joinPieces(pieces: Piece[], source: string, level: number): WallSuggest
       level,
       height,
       why: ruleOf(top.rule).why({ ...top.facts, wall: height }),
-      engineer: height > ENGINEER_OVER,
+      engineer: needsEngineer(height),
     })
   }
   return out
@@ -547,5 +548,5 @@ function groupHits(hits: Hit[], c: { cell: number; nx: number; reach: number; th
   return out
 }
 
-/** What the engineer note says, as the hc-retaining check does. */
-export const ENGINEER_NOTE = 'Over 600 mm: needs a professional engineer’s certificate.'
+/** What the engineer note says, as the hc-retaining check does: worded once, in src/checks/engineer.ts. */
+export { ENGINEER_NOTE } from '../checks/engineer'

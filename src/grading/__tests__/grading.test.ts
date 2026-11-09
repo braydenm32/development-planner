@@ -11,6 +11,10 @@ import { parsePlanFile, usePlan } from '../../plan/store'
 import { earthFrom, earthInputs } from '../../plan/useEarthworks'
 import { applyStroke, areaCells, areaM2, areaOutline, gradePlatformId, gradingPlatforms, paintPlan, rowsOf, strokeCells, type Grading } from '../model'
 import { addSuggestedWall, dismissSuggestion, planWallSuggestions } from '../walls'
+import { addedText, addSuggestion } from '../actions'
+import { ownVolumes } from '../ownVolumes'
+import { retainingProfiles } from '../../plan/retaining'
+import { useSafety } from '../../safety/store'
 
 /** Squares covering easting e0 to e1 and northing n0 to n1 (whole squares of 0.5 m). */
 function box(e0: number, n0: number, e1: number, n1: number): Set<string> {
@@ -212,5 +216,39 @@ describe('grading with a plan', () => {
     expect(left).toHaveLength(all.length - 1)
     expect(left.some(s => s.key === all[0].key)).toBe(false)
     expect(normalizePlan(JSON.parse(JSON.stringify(gone))).grading!.dismissed).toHaveLength(1)
+  })
+
+  it('says the height the added walls really hold, measured on the finished ground, and their return walls', () => {
+    const plan = paintPlan(bare, { mode: 'fill', rl: 84.5, cells: box(1012, 1010, 1018, 1016) })
+    const before = earthOf(plan)
+    const south = planWallSuggestions(plan, survey, before).find(s => s.rule === 'tall' && Math.abs(s.a[1] - s.b[1]) < 0.1)!
+    const st = usePlan.getState()
+    st.load(plan)
+    addSuggestion(south, survey, terrain.grid)
+    const after = usePlan.getState().plan!
+    const held = retainingProfiles(after, survey.origin, earthOf(after).result.grid)
+    const most = Math.max(...held.map(p => p.maxHeight))
+    const text = useSafety.getState().toast!.text
+    expect(text).toContain(`holding back up to ${most.toFixed(2)} m`)
+    expect(text).toMatch(after.walls.length > 1 ? /plus (a [\d.]+ m return|returns of )/ : /^Retaining wall added there, holding/)
+    // A suggestion of two runs is a wall and its return, and says so.
+    const w0 = after.walls[0]
+    const main = { ...w0, id: 'main', a: [w0.a[0], w0.a[1]] as Vec2, b: [w0.a[0] + 8, w0.a[1]] as Vec2 }
+    const walls = [main, { ...w0, id: 'ret', a: main.b, b: [main.b[0], main.b[1] + 4.6] as Vec2 }]
+    expect(addedText({ ...after, walls }, walls, survey, terrain.grid)).toMatch(/^Retaining wall added there, plus a 4\.6 m return, holding back up to \d\.\d\d m\./)
+  })
+
+  it('never gives painted ground a share of cut or fill below nothing', () => {
+    // Cut painted right up against the house, whose fill batter overlaps it, and a fill area overlapping the cut's batter.
+    const house: Plan = { ...garageFloor(), placement: { e: 1006, n: 1006, rotation: 0, ffl: 84 } }
+    let plan = paintPlan(house, { mode: 'cut', rl: 81.3, cells: box(1004, 1003, 1018, 1006) })
+    plan = paintPlan(plan, { mode: 'fill', rl: 83.5, cells: box(1018, 1003, 1022, 1008) })
+    const earth = earthOf(plan)
+    const own = ownVolumes(earth, plan.grading!.areas)
+    expect(own.size).toBe(3)
+    for (const v of own.values()) {
+      expect(v.cut).toBeGreaterThanOrEqual(0)
+      expect(v.fill).toBeGreaterThanOrEqual(0)
+    }
   })
 })

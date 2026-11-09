@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { pointInPolygon, signedArea } from '../../lib/geom'
-import { FLOOR_STRUCTURE, normalizePlan, SLAB_THICKNESS, type Plan } from '../model'
+import { FLOOR_STRUCTURE, normalizePlan, SLAB_THICKNESS, type Plan, type Wall } from '../model'
 import { addArea, addRoof, updateRoom } from '../ops'
-import { earthworksPlatforms, pierOutlines } from '../platforms'
+import { earthworksPlatforms, housePadRL, pierOutlines, retainingBenches, sideRL } from '../platforms'
 import { parsePlanFile } from '../store'
 import { garageFloor } from './fixtures'
 
@@ -54,5 +54,21 @@ describe('saved plans', () => {
     const plan = addRoof(garageFloor(), 'level_ground', [[0, 0], [10, 0], [10, 4], [0, 4]], { type: 'gable', pitch: 25, overhang: 0.45 })
     const back = parsePlanFile(JSON.stringify(plan))
     expect(back.roofs[0]).toMatchObject({ type: 'gable', pitch: 25, gables: [false, true, false, true], lowEdge: 0 })
+  })
+})
+
+describe('a wall beside an upper split level', () => {
+  it('is levelled to that level’s pad, not the lowest one’s', () => {
+    const plan = garageFloor()
+    const upper = { id: 'upper', name: 'Upper level', elevation: 1.5, height: 2.7 }
+    const two: Plan = { ...plan, levels: [...plan.levels, upper] }
+    const w: Wall = { id: 'rs', level: 'upper', a: [5.6, -1.1], b: [9.8, -1.1], thickness: 0.2, kind: 'retaining', retain: { high: 'left', lowLevel: 'pad', lowBench: 1 } }
+    expect(housePadRL(two, 'upper')).toBeCloseTo(84 + 1.5 - FLOOR_STRUCTURE, 9)
+    expect(housePadRL(two)).toBeCloseTo(84 - FLOOR_STRUCTURE, 9)
+    expect(sideRL(two, 'pad', 'upper')).toBeCloseTo(84 + 1.5 - FLOOR_STRUCTURE, 9)
+    // A level that isn't there falls back to the lowest floor's pad.
+    expect(sideRL(two, 'pad', 'gone')).toBeCloseTo(84 - FLOOR_STRUCTURE, 9)
+    const bench = retainingBenches({ ...two, walls: [...two.walls, w] }, [0, 0]).find(p => p.id?.endsWith(':right'))!
+    expect(bench.level).toBeCloseTo(84 + 1.5 - FLOOR_STRUCTURE, 9)
   })
 })

@@ -11,7 +11,7 @@ import { nearestContour, type ContourLine } from '../plan/contourPick'
 import type { ContourRun } from '../plan/finishedContours'
 import { fromSite, levelById, toSite, wallLength, type Plan, type Wall } from '../plan/model'
 import { retainingProfile } from '../plan/retaining'
-import { setEarthSide, sideOfWall, stopSidePick, useRetaining } from '../plan/retainingSession'
+import { setEarthSide, SIDE_PICK_CLEAR, sideOfWall, stopSidePick, useRetaining } from '../plan/retainingSession'
 import type { Tool } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import type { SiteFeature } from '../site/model'
@@ -164,10 +164,13 @@ export function usePlanFlow(a: PlanFlowArgs) {
   const click = (world: Vec2): boolean => {
     hideTip()
     if (sideWall) {
-      const side = sideOfWall(sideWall, world)
+      // A click on (or right beside) the wall's line is no answer: it's the second click of the
+      // double-click that finished the wall, so keep waiting.
+      const side = sideOfWall(sideWall, world, SIDE_PICK_CLEAR)
       if (side) {
         stopSidePick()
-        setEarthSide(sideWall.id, side, survey.origin, terrain.grid)
+        const ground = a.earth?.result.grid ?? terrain.grid
+        setEarthSide(sideWall.id, side, survey.origin, terrain.grid, retainingProfile(sideWall, plan, survey.origin, ground).maxHeight)
       }
       return true
     }
@@ -207,7 +210,7 @@ export function usePlanFlow(a: PlanFlowArgs) {
       </g>
     )
   } else if (sideWall && hover) {
-    const side = sideOfWall(sideWall, hover.world)
+    const side = sideOfWall(sideWall, hover.world, SIDE_PICK_CLEAR)
     if (side) over = <EarthSide wall={sideWall} side={side} S={S} k={k} at={[hover.sx, hover.sy]} size={size} />
   }
 

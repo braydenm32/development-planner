@@ -6,7 +6,8 @@ import { usePlacementInfo, useRetainingWalls } from '../components/planNumbers'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, tallestRoof, type PlacementInfo } from '../plan/keyNumbers'
+import { needsEngineer } from '../checks/engineer'
+import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, tallestRoof, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
 import { floorRL, levelById, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
@@ -94,7 +95,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
             length: walls.reduce((t, w) => t + w.length, 0),
             maxHeight: Math.max(...walls.map(w => w.maxHeight)),
             face: walls.reduce((t, w) => t + w.faceArea, 0),
-            engineer: walls.some(w => w.maxHeight > ENGINEER_HEIGHT),
+            engineer: walls.some(w => needsEngineer(w.maxHeight)),
           }
         : null,
       roof,

@@ -1,5 +1,5 @@
 import type { Barrier, Platform } from '../lib/earthworks'
-import type { Vec2 } from '../lib/geom'
+import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { WallStrip } from '../lib/terrainMesh'
 import { onNaturalGround } from './floorTypes'
 import { buildingOutline, faceAround, offsetPolygon, planarFaces } from './geometry'
@@ -47,11 +47,17 @@ export const PIERS_ID = 'piers'
 export const BENCH_PREFIX = 'bench:'
 export const slabPlatformId = (areaId: string) => `slab:${areaId}`
 
-/** RL of the levelled ground under the lowest floor's slab: the house pad. */
-export const housePadRL = (plan: Plan) => floorRL(plan) - FLOOR_STRUCTURE
+/**
+ * RL of the levelled ground under a floor's slab: the house pad. With no level given (or one that
+ * isn't in the plan), the lowest floor's.
+ */
+export const housePadRL = (plan: Plan, levelId?: string) => floorRL(plan, levelId !== undefined && levelById(plan, levelId) ? levelId : undefined) - FLOOR_STRUCTURE
 
-/** The RL a side of a retaining wall is levelled to. */
-export const sideRL = (plan: Plan, level: SideLevel) => (level === 'pad' ? housePadRL(plan) : level)
+/**
+ * The RL a side of a retaining wall is levelled to. 'pad' is the pad of the wall's own level, so a
+ * wall beside an upper split level is levelled to that level's floor, not the lowest one's.
+ */
+export const sideRL = (plan: Plan, level: SideLevel, wallLevel?: string) => (level === 'pad' ? housePadRL(plan, wallLevel) : level)
 
 /**
  * The level ground beside one face of a retaining wall, in the house frame: from the wall's
@@ -84,7 +90,7 @@ export function retainingBenches(plan: Plan, origin: Vec2): Platform[] {
         id: `${BENCH_PREFIX}${w.id}:${side}`,
         include: [benchRing(w, side, Math.max(bench ?? DEFAULT_BENCH, MIN_BENCH)).map(p => toSite(p, plan.placement, origin))],
         exclude: [],
-        level: sideRL(plan, level),
+        level: sideRL(plan, level, w.level),
         fill: true,
         margin: 0,
         // The house pad wins where they meet; a bench at the pad follows the floor when it's balanced.
@@ -92,6 +98,39 @@ export function retainingBenches(plan: Plan, origin: Vec2): Platform[] {
         fixed: level !== 'pad',
       })
     }
+  }
+  return out
+}
+
+/** How far past a retaining wall's face the house has to carry on for the wall to stand in its wall line (m). */
+const PAD_STOP_DEPTH = 0.5
+
+/**
+ * Where a retaining wall stands in the house's own wall line, the pad stops at the wall. The house's
+ * outline runs to the outside of its walls, so without this the strip of pad just past the wall's
+ * line (the house wall's outer skin) would level the open side too, and the wall would hold nothing.
+ * One strip for each such wall: from its centreline out past its face, on the side away from the house.
+ */
+function padStops(plan: Plan, level: string, outlines: Vec2[][]): Vec2[][] {
+  const inHouse = (p: Vec2) => outlines.some(r => pointInPolygon(p[0], p[1], r))
+  const out: Vec2[][] = []
+  for (const w of plan.walls) {
+    if (!isRetaining(w) || w.level !== level) continue
+    const d = wallDir(w)
+    const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])
+    if (len < 1e-3) continue
+    const reaches = (side: 'left' | 'right', reach: number) => {
+      const n: Vec2 = side === 'left' ? [-d[1], d[0]] : [d[1], -d[0]]
+      return [0.25, 0.5, 0.75].some(f => inHouse([w.a[0] + d[0] * len * f + n[0] * reach, w.a[1] + d[1] * len * f + n[1] * reach]))
+    }
+    const deep = w.thickness / 2 + PAD_STOP_DEPTH
+    const left = reaches('left', deep)
+    // Both sides in the house: it's inside the house, and holds nothing. Neither: it's clear of the house.
+    if (left === reaches('right', deep)) continue
+    const away = left ? 'right' : 'left'
+    // Only where the pad does run on past the wall's line: a wall just clear of the house changes nothing.
+    if (!reaches(away, 0.01)) continue
+    out.push(benchRing(w, away, PAD_STOP_DEPTH))
   }
   return out
 }
@@ -115,7 +154,8 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     const outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === ground.id))).outlines
     const piers = pierOutlines(plan)
     if (outlines.length) {
-      out.push({ id: PAD_ID, include: outlines.map(site), exclude: piers.map(site), level: floor - FLOOR_STRUCTURE, fill: true })
+      const stops = padStops(plan, ground.id, outlines)
+      out.push({ id: PAD_ID, include: outlines.map(site), exclude: [...piers, ...stops].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
     }
     if (piers.length) {
       out.push({ id: PIERS_ID, include: piers.map(site), exclude: [], level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })

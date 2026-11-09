@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react'
 import type { Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
 import { isRetaining, wallDir, wallLength, type Plan, type Wall } from '../plan/model'
-import { ENGINEER_HEIGHT, engineerNote, retainingProfile } from '../plan/retaining'
+import { engineerNote, needsEngineer, retainingProfile } from '../plan/retaining'
 import './retaining.css'
 
 interface Props {
@@ -29,7 +29,7 @@ function readable(a: Vec2, b: Vec2): number {
 
 /**
  * On the plan: "Holds back up to …" beside the selected or new retaining wall, on the side it holds,
- * with a marker at its tallest point; and a quiet amber flag on every wall over ENGINEER_HEIGHT.
+ * with a marker at its tallest point; and a quiet amber flag on every wall that needs an engineer (needsEngineer).
  */
 export function RetainingMarks({ plan, walls, origin, ground, show, toScreen: S, k }: Props) {
   const profiles = useMemo(
@@ -47,7 +47,7 @@ export function RetainingMarks({ plan, walls, origin, ground, show, toScreen: S,
         const len = p.length
         const t2 = w.thickness / 2
         const ang = readable(S(w.a), S(w.b))
-        const tall = p.maxHeight > ENGINEER_HEIGHT
+        const tall = needsEngineer(p.maxHeight)
         const labelled = w.id === show
         const tallest = p.samples.reduce((m, x) => (Math.abs(x.left - x.right) > Math.abs(m.left - m.right) ? x : m), p.samples[0])
         const out: ReactNode[] = []
