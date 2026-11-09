@@ -9,6 +9,7 @@ import { addFeatures, removeFeature, updateOverlay, useSiteFeatures, useSiteStor
 import { useSiteWarnings } from './sync'
 import { FeatureSymbol, LiveDim, Tag } from './FeatureSymbol'
 import { snapPoints } from './pdfVector'
+import { snapToEdges, touchesBlock } from './traceSnap'
 import { useAerialLayer } from '../map/aerial'
 import './site.css'
 
@@ -153,7 +154,13 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
 
   const snapAny = (raw: Vec2, free: boolean) => {
     const a = snapLocal(raw, free, [...surveyPoints, ...pts])
-    return a.snapped ? a : snapDrawing(raw, free)
+    if (a.snapped) return a
+    // An easement runs along the boundary: its corners snap onto the line itself, from a little further off.
+    if (!free && tool?.kind === 'trace' && tool.type === 'easement') {
+      const on = snapToEdges(raw, survey.boundary, (SNAP_PX * 1.5) / k)
+      if (on) return { p: on, snapped: true }
+    }
+    return snapDrawing(raw, free)
   }
 
   // ---- Lining a drawing up ----
@@ -222,6 +229,18 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
     addFeatures([f])
     useSiteStore.setState({ selected: f.id })
     setPts([])
+    // One traced wholly off the block says so: easily a slip, or the drawing lined up wrong.
+    const local = f.geom.kind === 'point' ? [worldToLocal(f.geom.at)] : f.geom.pts.map(worldToLocal)
+    if (!touchesBlock(local, f.geom.kind === 'area', survey.boundary)) {
+      const why =
+        f.type === 'tree'
+          ? 'That’s right for a neighbour’s tree; its root zone is still checked where it reaches in.'
+          : f.type === 'easement'
+            ? 'An easement on your title is on the block: check it against the title plan, or Undo and trace it again.'
+            : 'Check it’s where you meant, or Undo and trace it again.'
+      st().notify(`${featureName(f)} added, but it doesn’t touch the block. ${why}`)
+      return
+    }
     st().notify(`${featureName(f)} added. Its details are in Features, on the left; Esc stops tracing.`, true)
   }
 
@@ -548,6 +567,8 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
     if (traceTool.type === 'tree') return pts.length ? 'Move out to the edge of the canopy and click, or type its spread in mm and press Enter.' : 'Click the middle of the trunk.'
     if (traceTool.geom === 'point') return `Click to place the ${what}.`
     if (traceTool.geom === 'line') return `Click along the ${what}. Type a length in mm and press Enter for an exact side; double-click or Enter to finish. Shift turns off snapping.`
+    if (traceTool.type === 'easement')
+      return 'Click the corners of the easement, as the title plan shows it: along the boundary they snap onto it. Type a length in mm and press Enter for an exact side; click the first corner or press Enter to close it.'
     return `Click the corners of the ${what}. Type a length in mm and press Enter for an exact side; click the first corner or press Enter to close it.`
   })()
 

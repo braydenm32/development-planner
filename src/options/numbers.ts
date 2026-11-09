@@ -29,8 +29,16 @@ export interface OptionNumbers {
   /** Metres of retaining wall; null with none. */
   retainingLength: number | null
   cost: { total: number; low: number; high: number; /** Some of what it needs isn't drawn yet. */ incomplete: boolean }
-  /** The counts Design › Checks shows, and what they were checked against: the pathway, and the council on a DA. */
-  checks: { counts: CheckCounts; pathway: Pathway; council: string | null }
+  /** Highest point of the house above the natural ground (m), as the height checks measure it; null before there's a house. */
+  height: number | null
+  /** Levels with walls, and storeys as the Codes SEPP counts them (split levels side by side are one). */
+  levels: number
+  storeys: number
+  /**
+   * The counts Design › Checks shows, and what they were checked against: the pathway, and the
+   * council on a DA. With the titles of the checks to fix and to confirm, each option's own list.
+   */
+  checks: { counts: CheckCounts; pathway: Pathway; council: string | null; fix: string[]; confirm: string[] }
 }
 
 /** What Design › Checks knows besides the plan: the planning maps' facts, and whether the ground is the state's elevation data. */
@@ -71,6 +79,15 @@ export function optionNumbers(
     earth: r ? { cut: r.cut, fill: r.fill, net: r.cut - r.fill, deepestCut: r.maxCut, deepestFill: r.maxFill } : null,
     retainingLength: walls.length ? walls.reduce((t, w) => t + w.length, 0) : null,
     cost: { total: est.total, low: est.low, high: est.high, incomplete: isIncomplete(est.lines) },
-    checks: { counts: c.counts, pathway: c.pathway, council: c.pathway === 'da' ? (c.council?.name ?? null) : null },
+    height: c.measures.hasHouse ? c.measures.height : null,
+    levels: c.measures.levels,
+    storeys: c.measures.storeys,
+    checks: {
+      counts: c.counts,
+      pathway: c.pathway,
+      council: c.pathway === 'da' ? (c.council?.name ?? null) : null,
+      fix: c.results.filter(r => r.status === 'fail').map(r => r.title),
+      confirm: c.results.filter(r => r.status === 'warn').map(r => r.title),
+    },
   }
 }

@@ -219,3 +219,406 @@
   letter-spacing: 0.02em;
   color: var(--muted);
 }
+
+/* ---- The approval route: "CDC | DA with [council]" ---- */
+
+.app-shell .checks-route {
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell .checks-route p {
+  margin: 0;
+}
+
+.app-shell .cr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.app-shell .cr-label {
+  flex: 1 0 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.app-shell .cr-council {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.app-shell .checks-route .segmented-choice button {
+  min-width: 50px;
+  padding: 5px 12px;
+}
+
+.app-shell .cr-council select {
+  min-width: 0;
+  max-width: 150px;
+  padding: 5px 6px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font: inherit;
+}
+
+/* ---- The verdict card ---- */
+
+.app-shell .checks-verdict {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.app-shell .checks-verdict h4 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.app-shell .checks-verdict p {
+  margin: 2px 0 0;
+}
+
+.app-shell .cv-fix {
+  color: var(--danger);
+}
+
+.app-shell .cv-confirm {
+  color: var(--warn-ink);
+}
+
+.app-shell .cv-ok {
+  color: #2e7d4f;
+}
+
+/* The small plan in the card is for a phone, where the panel covers the plan. */
+.app-shell .checks-mini,
+.app-shell .checks-mini-hint {
+  display: none;
+}
+
+.app-shell.phone .checks-mini {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+}
+
+.app-shell.phone .checks-mini-hint {
+  display: block;
+}
+
+.checks-mini .cm-lot {
+  fill: #fafbfc;
+  stroke: var(--text, #16181b);
+  stroke-width: 1.2;
+}
+
+.checks-mini .cm-house {
+  fill: rgba(22, 24, 27, 0.08);
+  stroke: var(--text, #16181b);
+  stroke-width: 1.5;
+}
+
+.checks-mini .cm-tree {
+  fill: #dcebd9;
+  stroke: #5b8a55;
+  stroke-width: 1;
+}
+
+.checks-mini .cm-tree.removed {
+  fill: none;
+  stroke-dasharray: 2 2;
+}
+
+/* ---- Topic groups ---- */
+
+.app-shell .check-groups {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.app-shell .check-group {
+  border-bottom: 1px solid var(--line);
+}
+
+.app-shell .cg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell .cg-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-shell .cg-chev {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  border-left: 6px solid var(--muted);
+  transition: transform 0.12s;
+}
+
+.app-shell .check-group.open > .cg-head .cg-chev {
+  transform: rotate(90deg);
+}
+
+.app-shell .cg-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.app-shell .cg-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.app-shell .cg-action {
+  flex: none;
+}
+
+.app-shell .cg-note {
+  margin: 0 0 8px 14px;
+}
+
+.app-shell .cg-fold {
+  margin: 2px 0 8px 28px;
+  font-size: 12px;
+}
+
+.app-shell .check-group .check-list {
+  border-top: 0;
+}
+
+.app-shell .check-group .check-row:last-child {
+  border-bottom: 0;
+}
+
+/* Fix, Confirm, OK, and the quieter words beside them. */
+.app-shell .check-badge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--line-soft);
+  color: var(--muted);
+}
+
+.app-shell .check-badge.fix {
+  background: #fdecea;
+  color: var(--danger);
+}
+
+.app-shell .check-badge.confirm {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.app-shell .check-badge.ok {
+  background: #e8f3ec;
+  color: #2e7d4f;
+}
+
+.app-shell .check-badge.fact {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- A row ---- */
+
+.app-shell .check-group .check-row {
+  margin: 0 -8px;
+  padding: 8px;
+  border-radius: var(--r-lg);
+}
+
+.app-shell .check-row.pointed {
+  background: #fdf1f0;
+}
+
+.app-shell .check-row.pointed.w-confirm {
+  background: var(--warn-bg);
+}
+
+.app-shell .check-pin {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: -2px -3px -2px -6px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-shell .check-pin.confirm {
+  background: var(--warn-dot);
+}
+
+.app-shell .check-pin + .check-title {
+  margin-left: 2px;
+}
+
+.app-shell .check-differ {
+  margin: 4px 0 0 17px;
+  padding-left: 8px;
+  border-left: 2px solid var(--accent);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.app-shell .check-fact {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 17px;
+}
+
+.app-shell .check-fact .row {
+  margin: 0;
+}
+
+.app-shell .tree-removal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+}
+
+.app-shell .check-row .tree-removal {
+  margin-left: 17px;
+}
+
+.app-shell .lot-facts-body {
+  display: grid;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+
+.app-shell .lot-facts-body p {
+  margin: 0;
+}
+
+.app-shell.phone .cg-toggle {
+  min-height: 48px;
+}
+
+.app-shell.phone .check-badge {
+  font-size: 13px;
+}
+
+.app-shell.phone .cr-council select {
+  min-height: 44px;
+  max-width: none;
+}
+
+/* ---- On the plan: the pins, and what the row pointed at measures ---- */
+
+.checks-layer .ck-pin {
+  cursor: pointer;
+}
+
+.checks-layer .ck-pin circle,
+.checks-mini .ck-pin circle {
+  fill: var(--danger, #b3261e);
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.checks-layer .ck-pin.confirm circle,
+.checks-mini .ck-pin.confirm circle {
+  fill: var(--warn-dot, #d07a12);
+}
+
+.checks-layer .ck-pin.on circle,
+.checks-mini .ck-pin.on circle {
+  stroke: var(--text, #16181b);
+  stroke-width: 2.5;
+}
+
+.checks-layer .ck-pin text,
+.checks-mini .ck-pin text {
+  fill: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.checks-mini .ck-pin {
+  cursor: pointer;
+}
+
+.checks-target {
+  pointer-events: none;
+}
+
+.ck-line {
+  stroke: var(--danger, #b3261e);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.ck-gap {
+  stroke: var(--danger, #b3261e);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
+
+.ck-tpz {
+  fill: rgba(179, 38, 30, 0.06);
+  stroke: var(--danger, #b3261e);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.ck-srz {
+  fill: none;
+  stroke: var(--danger, #b3261e);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+/* The Costs highlight, in the checks' red. */
+.checks-highlight .costs-highlight .ch-fill,
+.checks-highlight .costs-highlight .ch-roof {
+  fill: rgba(179, 38, 30, 0.1);
+  stroke: var(--danger, #b3261e);
+}
+
+.checks-highlight .costs-highlight .ch-line {
+  stroke: var(--danger, #b3261e);
+}
+
+.checks-highlight .costs-highlight .ch-solid {
+  fill: var(--danger, #b3261e);
+  stroke: var(--danger, #b3261e);
+}

@@ -416,7 +416,7 @@ describe('routes', () => {
     expect(parseHash('#section-2')).toBeNull()
     expect(parseHash('#/nowhere/plan')).toBeNull()
     expect(parseHash('#/earthworks')).toEqual({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan' })
-    expect(parseHash('#/site/bogus')).toEqual({ kind: 'app', area: 'site', tab: '3d', view: '3d' })
+    expect(parseHash('#/site/bogus')).toEqual({ kind: 'app', area: 'site', tab: 'block', view: '3d' })
     expect(parseHash('#/design/plan?view=sideways')).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
     expect(parseHash('#/site/block')).toEqual({ kind: 'app', area: 'site', tab: 'block', view: '3d' })
   })

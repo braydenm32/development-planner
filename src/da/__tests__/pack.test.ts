@@ -14,7 +14,8 @@ import { projectTitle } from '../../share/project'
 import { earthFrom, earthInputs } from '../../plan/useEarthworks'
 import { checklistRows, DA_ITEMS, sheetRange, type ChecklistInput } from '../checklist'
 import { cleanRevision, daOf } from '../model'
-import { daPackLayout, daPackPdf, listedChecks, type DaPackInput } from '../pack'
+import { setDaDetail } from '../details'
+import { controlLines, daPackLayout, daPackPdf, type DaPackInput } from '../pack'
 import { NOT_SET, sheetOf, titleText, type TitleInfo } from '../titleBlock'
 
 const text = (b: Uint8Array) => new TextDecoder('latin1').decode(b)
@@ -209,15 +210,36 @@ describe('the DA pack', () => {
     expect(pdf).not.toContain(NOT_SET)
   })
 
-  it('lists every fail, missing fact and part not drawn, fails first, and never a pass', () => {
-    const check = (id: string, status: CheckResult['status']): CheckResult => ({ id, title: `Check ${id}`, status, source: { clause: 'Test DCP 1.1', confidence: 'read', asAt: 'test' } })
-    const checks = [check('a', 'pass'), check('b', 'unknown'), check('c', 'fail'), check('d', 'incomplete'), check('e', 'warn')]
-    expect(listedChecks(checks).map(c => c.id)).toEqual(['c', 'e', 'b', 'd'])
+  it('lists every control grouped as Checks groups them, passes too, with the parts not drawn folded to one line', () => {
+    const check = (id: string, title: string, status: CheckResult['status']): CheckResult => ({ id, title, status, value: `${title} value`, limit: `${title} limit`, source: { clause: 'Test DCP 1.1', confidence: 'read', asAt: 'test' } })
+    const checks = [
+      check('da-height', 'Building height', 'pass'),
+      check('da-fsr', 'Floor space ratio', 'unknown'),
+      check('da-batters', 'Batter slopes', 'fail'),
+      check('da-side', 'Side setbacks', 'incomplete'),
+      check('da-rear', 'Rear setback', 'incomplete'),
+      check('da-front', 'Front setback', 'pass'),
+      check('da-geotech', 'Geotechnical report', 'warn'),
+    ]
+    const lines = controlLines(checks)
+    // The group with something to fix first, then the rest, as the panel lists them.
+    expect(lines.map(l => (l.kind === 'group' ? `# ${l.title}` : l.kind === 'control' ? l.r.id : `undrawn: ${l.titles.join(', ')}`))).toEqual([
+      '# Earthworks & walls',
+      'da-batters',
+      'da-geotech',
+      '# Building size & height',
+      'da-fsr',
+      'da-height',
+      '# Setbacks',
+      'da-front',
+      'undrawn: Side setbacks, Rear setback',
+    ])
     const pdf = text(daPackPdf({ ...base({ ...garageFloor(), placement }), checks, council: COUNCIL_TABLES.wollongong }))
-    expect(pdf).toContain('(1 fail \\267 1 to check \\267 1 needs a fact \\267 1 not drawn yet \\267 1 pass) Tj')
-    for (const id of ['b', 'c', 'd', 'e']) expect(pdf).toContain(`(Check ${id}) Tj`)
-    expect(pdf).not.toContain('(Check a) Tj')
-    expect(pdf).toContain('(Fails) Tj')
+    expect(pdf).toContain('(1 to fix \\267 1 to confirm \\267 1 fact to add \\267 2 not drawn yet \\267 2 OK) Tj')
+    for (const t of ['Building height', 'Front setback', 'Batter slopes', 'Geotechnical report', 'Floor space ratio']) expect(pdf).toContain(`(${t}) Tj`)
+    expect(pdf).toContain('(Not drawn yet: Side setbacks, Rear setback) Tj')
+    for (const w of ['Yes', 'No', 'Confirm', 'Fact needed', 'COMPLIES']) expect(pdf).toContain(`(${w}) Tj`)
+    expect(pdf).toContain('(BUILDING SIZE & HEIGHT) Tj')
   })
 
   it('builds from the app for garageFloor(), with cut and fill and a stormwater concept', () => {
@@ -227,9 +249,28 @@ describe('the DA pack', () => {
     expect(f.name).toBe(`${fileSafe(projectTitle(plan))}-DA-pack.pdf`)
     const pdf = text(f.data as Uint8Array)
     expect(pdf).toContain('(Stormwater concept) Tj')
-    expect(pdf).toContain('(Checks summary) Tj')
+    expect(pdf).toContain('(Planning controls) Tj')
     if (earth.result.cut + earth.result.fill > 0.01) expect(pdf).toContain('(Cut and fill plan) Tj')
     // A4 landscape.
     expect(pdf).toContain('/MediaBox [0 0 841.89 595.28]')
+  })
+
+  it('puts the site details typed above Download on every title block, and only there', () => {
+    const plan: Plan = { ...garageFloor(), placement }
+    setDaDetail('address', '1 Example Street Sampleton 2000')
+    setDaDetail('lot', 'Lot 1 DP 123456')
+    setDaDetail('preparedBy', 'A. Designer')
+    try {
+      const f = daPackFile({ plan, survey, terrain, earth: null, up: 'house', paper: 'A4', pdfFurniture: true })
+      const pdf = text(f.data as Uint8Array)
+      const pages = (pdf.match(/\/Type \/Page\b/g) ?? []).length
+      expect(pages).toBeGreaterThan(1)
+      for (const t of ['1 Example Street Sampleton 2000', 'Lot 1 DP 123456', 'A. Designer']) expect(pdf.split(`(${t}) Tj`).length - 1).toBe(pages)
+      expect(pdf).not.toContain(NOT_SET)
+      // The plan carries none of it, so a share link can't either.
+      expect(JSON.stringify(plan)).not.toContain('Example Street')
+    } finally {
+      for (const k of ['address', 'lot', 'preparedBy'] as const) setDaDetail(k, '')
+    }
   })
 })

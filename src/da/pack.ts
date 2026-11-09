@@ -1,7 +1,8 @@
 // The DA document pack: one PDF to take to a town planner or designer as the start of a
 // development application. A cover with the checklist of what a DA for a new house usually needs,
 // then the drawings the plan set makes (src/share/plans.ts) in DA order, the cut and fill plan and
-// the stormwater concept, and a summary of the checks with every fail and gap listed. Each sheet
+// the stormwater concept, and the table of planning controls: every control checked, grouped as
+// Design › Checks groups them, with whether it complies, ready to copy into the SEE. Each sheet
 // carries the pack's title block (./titleBlock.ts). It's a concept pack, never ready to lodge.
 //
 // The pack is a file the owner downloads; it may carry the site's address from the map placement,
@@ -10,6 +11,7 @@
 import type { CheckResult, CheckStatus } from '../checks/types'
 import type { Council } from '../checks/councils'
 import { countChecks, countsWords } from '../checks/rules'
+import { groupChecks } from '../checks/topics'
 import type { PlanningFacts } from '../map/planning'
 import { areaKind } from '../plan/model'
 import { PdfDocument, textWidth, wrapText, type Font, type PdfPage, type RGB } from '../share/pdfWriter'
@@ -63,11 +65,9 @@ const ORDER: DaSheet[] = ['site', 'floor', 'roof', 'elevation', 'section', 'shad
 
 const ROW_INK: Record<RowStatus, RGB> = { 'in-pack': GREEN, 'not-drawn': AMBER, others: BLUE }
 
-/** The checks' words for each status, as Design › Checks shows them (src/shell/tabs/ChecksTab.tsx). */
-const CHECK_WORDS: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes', info: 'For info' }
-const CHECK_INK: Partial<Record<CheckStatus, RGB>> = { fail: RED, warn: AMBER, unknown: BLUE, incomplete: AMBER, pending: GREY }
-/** The order the summary lists them in: fails first, never hidden. */
-const LISTED: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending']
+/** Whether a control complies, in the table's words: what a planner writes in the SEE's table. */
+const COMPLIES: Record<CheckStatus, string> = { fail: 'No', warn: 'Confirm', unknown: 'Fact needed', incomplete: 'Not drawn yet', pending: 'To remove', pass: 'Yes', info: 'For info' }
+const COMPLIES_INK: Partial<Record<CheckStatus, RGB>> = { fail: RED, warn: AMBER, unknown: BLUE, incomplete: AMBER, pending: GREY, pass: GREEN, info: GREY }
 
 // ---------------------------------------------------------------------------
 // Tables of words, laid out before drawing so the pages can be counted (and numbered) first.
@@ -93,7 +93,10 @@ function cellLines(c: Cell, col: Col, width: number): string[] {
   return c.text ? wrapText(c.text, col.w * width - 2 * PAD, SIZE, c.font ?? col.font) : ['']
 }
 
-const rowHeight = (cells: Cell[], cols: Col[], width: number) => Math.max(...cells.map((c, i) => cellLines(c, cols[i], width).length)) * LINE + 2 * PAD
+/** A row of one cell spans the table: a group's heading. */
+const colsFor = (cells: Cell[], cols: Col[]): Col[] => (cells.length === 1 && cols.length > 1 ? [{ ...cols[0], w: 1 }] : cols)
+
+const rowHeight = (cells: Cell[], cols: Col[], width: number) => Math.max(...cells.map((c, i) => cellLines(c, colsFor(cells, cols)[i], width).length)) * LINE + 2 * PAD
 
 /** Split rows into pages: `first` mm of room on the first page, `next` on the rest (each after the header row). */
 function paginate(heights: number[], first: number, next: number): number[][] {
@@ -123,14 +126,15 @@ function drawTable(pg: PdfPage, x: number, top: number, width: number, cols: Col
   pg.lineWidth(0.3).line([x, y], [x + width, y])
   for (const cells of rows) {
     const h = rowHeight(cells, cols, width)
+    const cs = colsFor(cells, cols)
     cx = x
     cells.forEach((c, i) => {
       let ly = y - PAD - SIZE * 0.8
-      for (const l of cellLines(c, cols[i], width)) {
-        pg.text(cx + PAD, ly, l, { size: SIZE, font: c.font ?? cols[i].font, color: c.color ?? INK })
+      for (const l of cellLines(c, cs[i], width)) {
+        pg.text(cx + PAD, ly, l, { size: SIZE, font: c.font ?? cs[i].font, color: c.color ?? INK })
         ly -= LINE
       }
-      cx += cols[i].w * width
+      cx += cs[i].w * width
     })
     y -= h
     pg.lineWidth(0.15).stroke(LIGHT).line([x, y], [x + width, y])
@@ -166,10 +170,11 @@ const COVER_COLS: Col[] = [
 ]
 
 const CHECK_COLS: Col[] = [
-  { title: 'Result', w: 0.13, font: 'bold' },
-  { title: 'Check', w: 0.22, font: 'bold' },
-  { title: 'Design / allowed', w: 0.25 },
-  { title: 'Why, and the source', w: 0.4 },
+  { title: 'Control', w: 0.17, font: 'bold' },
+  { title: 'Proposed', w: 0.21 },
+  { title: 'Allowed', w: 0.21 },
+  { title: 'Complies', w: 0.09, font: 'bold' },
+  { title: 'Notes and source', w: 0.32 },
 ]
 
 function coverCells(r: ChecklistRow): Cell[] {
@@ -177,14 +182,33 @@ function coverCells(r: ChecklistRow): Cell[] {
 }
 
 function checkCells(r: CheckResult): Cell[] {
-  const value = [r.value?.replace(/\.$/, ''), r.limit ? `allowed: ${r.limit}` : ''].filter(Boolean).join('; ')
   const why = [r.note, `${r.source.clause} (${r.source.asAt})`].filter(Boolean).join(' ')
-  return [{ text: CHECK_WORDS[r.status], color: CHECK_INK[r.status] ?? INK }, { text: r.title }, { text: value }, { text: why, color: GREY }]
+  return [{ text: r.title }, { text: r.value?.replace(/\.$/, '') ?? '' }, { text: r.limit ?? '' }, { text: COMPLIES[r.status], color: COMPLIES_INK[r.status] ?? INK }, { text: why, color: GREY }]
 }
 
-/** The checks the summary lists, fails first. */
-export function listedChecks(checks: CheckResult[]): CheckResult[] {
-  return LISTED.flatMap(s => checks.filter(c => c.status === s))
+/** A line of the controls table: a group's heading, a control, or a group's controls not drawn yet, folded to one line. */
+export type ControlLine = { kind: 'group'; title: string } | { kind: 'control'; r: CheckResult } | { kind: 'undrawn'; titles: string[] }
+
+/**
+ * The table of planning controls: every control, grouped and ordered as Design › Checks lists them,
+ * so the compliant ones a planner copies into the SEE (height, setbacks, coverage) are there too.
+ * The controls waiting for a part of the design fold into one line per group.
+ */
+export function controlLines(checks: CheckResult[]): ControlLine[] {
+  return groupChecks(checks).flatMap(g => {
+    const undrawn = g.rows.filter(r => r.status === 'incomplete')
+    return [
+      { kind: 'group' as const, title: g.title },
+      ...g.rows.filter(r => r.status !== 'incomplete').map(r => ({ kind: 'control' as const, r })),
+      ...(undrawn.length ? [{ kind: 'undrawn' as const, titles: undrawn.map(r => r.title) }] : []),
+    ]
+  })
+}
+
+function lineCells(l: ControlLine): Cell[] {
+  if (l.kind === 'group') return [{ text: l.title.toUpperCase(), font: 'bold', color: GREY }]
+  if (l.kind === 'undrawn') return [{ text: `Not drawn yet: ${l.titles.join(', ')}` }, { text: '' }, { text: '' }, { text: 'Not drawn yet', color: AMBER }, { text: 'Checked once that part of the design is drawn.', color: GREY }]
+  return checkCells(l.r)
 }
 
 /** Every page of the pack in order, numbered, with the cover's checklist. Works for a plan with nothing drawn yet. */
@@ -202,9 +226,9 @@ function layout(input: DaPackInput) {
     .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
     .map(s => ({ kind: s.kind, name: s.name, north: s.north, draw: s.draw }))
 
-  // The checks summary, over as many pages as its rows need.
-  const listed = listedChecks(input.checks)
-  const checkRows = listed.map(checkCells)
+  // The controls table, over as many pages as its rows need.
+  const listed = controlLines(input.checks)
+  const checkRows = listed.map(lineCells)
   const checkHeights = checkRows.map(r => rowHeight(r, CHECK_COLS, area.w))
   const checkPages = paginate(checkHeights, area.h - CHECKS_HEAD - CHECKS_FOOT, area.h - 12 - CHECKS_FOOT)
 
@@ -237,7 +261,7 @@ function layout(input: DaPackInput) {
   checkPages.forEach((idx, i) =>
     pages.push({
       kind: 'checks',
-      name: i ? 'Checks summary (continued)' : 'Checks summary',
+      name: i ? 'Planning controls (continued)' : 'Planning controls',
       north: false,
       draw: pg => (checksSheet(pg, frame, input, listed, checkRows, idx, i, i === checkPages.length - 1), null),
     }),
@@ -356,25 +380,25 @@ function coverSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, rows: Checkl
 // ---------------------------------------------------------------------------
 // The checks summary
 
-function checksSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, listed: CheckResult[], cells: Cell[][], idx: number[], page: number, last: boolean) {
+function checksSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, listed: ControlLine[], cells: Cell[][], idx: number[], page: number, last: boolean) {
   const { area } = f
   const x = area.x
   let y = area.y + area.h - 2
   if (page === 0) {
-    pg.text(x, y - 7, 'Checks summary', { size: 6, font: 'bold' })
+    pg.text(x, y - 7, 'Planning controls', { size: 6, font: 'bold' })
     const against = input.council ? `Checked against ${input.council.rules} for a development application.` : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Design › Checks.'
     pg.text(x, y - 13, against, { size: 2.8 })
     const tally = countChecks(input.checks)
-    // Design › Checks' words, zeros too, so "0 fails" reads as checked rather than left out.
+    // Design › Checks' words, zeros too, so "0 to fix" reads as checked rather than left out.
     const counts = countsWords(tally, true).join(' · ')
     pg.text(x, y - 18.5, counts, { size: 2.8, font: 'bold', color: tally.fail ? RED : INK })
-    pg.text(x, y - 23, 'Every result that isn’t a pass is listed below, fails first. Passes are counted, not listed.', { size: 2.5, color: GREY })
+    pg.text(x, y - 23, 'Every control the app checks, grouped as in Design › Checks, with whether the design complies: for the table in the Statement of Environmental Effects.', { size: 2.5, color: GREY })
     y -= CHECKS_HEAD
   } else y -= 4
   let end = y
   if (listed.length) end = drawTable(pg, x, y, area.w, CHECK_COLS, idx.map(i => cells[i]))
   else {
-    pg.text(x, y - 4, input.checks.length ? 'Nothing fails, and nothing is waiting for a fact or a drawing.' : 'There are no checks to show yet.', { size: 2.8 })
+    pg.text(x, y - 4, 'There are no checks to show yet.', { size: 2.8 })
     end = y - 6
   }
   if (!last) return

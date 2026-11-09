@@ -6,6 +6,7 @@ import type { SavedProject } from '../lib/storage'
 import { confirmColumns } from '../formats/columns'
 import { isLandXml, readLandXml } from '../lib/landxml'
 import { NeedColumns, looksLikePoints, readPointsCsv } from '../lib/pointsCsv'
+import { withMadeContours } from '../lib/madeContours'
 import { analyzeLayers, buildSurvey, guessRoles, NoGroundError, type LayerInfo, type LayerRole } from '../lib/survey'
 import { buildTerrain } from '../lib/terrain'
 import type { Plan } from '../plan/model'
@@ -72,7 +73,9 @@ export function readSurvey(fileName: string, dxfText: string): SavedProject {
 /** The survey and ground a survey record makes, as the app builds them. Throws if it can't. */
 export function readSite(saved: SavedProject): Site {
   const survey = buildSurvey(parseDxf(saved.dxfText), saved.roles)
-  return { survey, terrain: buildTerrain(survey) }
+  const terrain = buildTerrain(survey)
+  // As the app builds it (src/lib/builtSite.ts): contours from the ground when the file has none.
+  return { survey: withMadeContours(survey, terrain.grid), terrain }
 }
 
 /** What a file is, from its name and text. Throws a plain message for anything else. */

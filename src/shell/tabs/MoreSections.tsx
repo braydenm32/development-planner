@@ -17,6 +17,9 @@ import { FineTuningFields, PrintInstructions } from '../../components/ShareSecti
 import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
+import { useEffect } from 'react'
+import { useProjects } from '../../projects/session'
+import { layersKey, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { usePlan } from '../../plan/store'
@@ -29,6 +32,9 @@ import { Waiting } from './Waiting'
 
 export function SurveyLayersSection() {
   const { layers, project, onRoleChange, survey } = useShell()
+  const id = useProjects().currentId
+  // Shown means seen: Site › Block's "guesses" badge goes.
+  useEffect(() => markLayersSeen(layersKey(id, project.fileName)), [id, project.fileName])
   return <SurveyLayers layers={layers} roles={project.roles} onRoleChange={onRoleChange} survey={survey} />
 }
 

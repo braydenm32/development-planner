@@ -2,7 +2,8 @@
 // Site panel a line on what the sketch is, with Add the survey and Change size. Both go
 // through Replace survey's review, so the plan is kept and nothing changes unconfirmed.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from '../nav/router'
 import { useProjects } from '../projects/session'
 import { replaceSurvey } from '../safety/flows'
 import { pickFile, showToast } from '../safety/store'
@@ -23,15 +24,23 @@ export function SketchChip() {
   )
 }
 
+/** A link's way to Site › Block's Change size (Site › Map's "Sketch the block instead"). */
+export const SKETCH_SIZE_ID = 'sketch-size'
+
 /** In Site › Block (and the old Site panel): what the sketch is, Add the survey, and Change size. */
 export function SketchNotice() {
   const sketch = useProjects().opened?.survey?.sketch
-  const [editing, setEditing] = useState(false)
-  const [width, setWidth] = useState('')
-  const [depth, setDepth] = useState('')
-  const [fall, setFall] = useState('')
-  const [street, setStreet] = useState<StreetSide>('S')
+  // Sent here to set the size by hand (the panel opens afresh for it): the fields start open.
+  const [sent] = useState(() => !!sketch && useRouter.getState().focus === SKETCH_SIZE_ID)
+  const [editing, setEditing] = useState(sent)
+  const [width, setWidth] = useState(sent && sketch && !sketch.rough ? String(sketch.width) : '')
+  const [depth, setDepth] = useState(sent && sketch && !sketch.rough ? String(sketch.depth) : '')
+  const [fall, setFall] = useState(sent && sketch?.fall ? String(sketch.fall) : '')
+  const [street, setStreet] = useState<StreetSide>(sent && sketch ? sketch.street : 'S')
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (sent) useRouter.setState({ focus: null })
+  }, [sent])
   if (!sketch) return null
 
   const edit = () => {
