@@ -10,7 +10,7 @@ import { TERMS } from '../guide/glossary'
 import type { Tool } from '../plan/store'
 import type { IconName } from './icons'
 
-export type AreaId = 'site' | 'design' | 'earthworks' | 'costs' | 'share'
+export type AreaId = 'site' | 'design' | 'earthworks' | 'approvals' | 'costs' | 'share'
 export type CanvasView = 'plan' | '3d'
 
 /** Numbers the summary strip shows; a tab that shows one in its panel makes the strip's chip step back. */
@@ -479,29 +479,12 @@ export const AREAS: Area[] = [
         features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan'],
       },
       {
-        id: 'checks',
-        label: 'Checks',
-        icon: 'check',
-        subtitle: 'The design against the planning rules, as you draw.',
-        shows: ['checks'],
-        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'lga', 'local government area', 'NSW only', 'Shellharbour', 'Kiama', 'Blue Mountains', 'Central Coast', 'Lake Macquarie', 'my council', 'outside the lot', 'over the boundary', 'not drawn yet', 'zone', 'heritage', 'flood', 'bushfire', 'overshadowing', 'solar access', 'driveway crossing', 'kerb', 'scrape', 'B85', 'B99', 'to fix', 'to confirm', 'verdict', 'approval route', 'pins', 'show on plan', 'go to fix', 'remove tree', 'plan to remove', 'wall spacing', 'walls 2 m apart', 'CDC vs DA'],
-        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal', 'checks-not-drawn-yet', 'checks-lot-inside', 'checks-cdc-land', 'sun-checks', 'checks-plan-pins', 'checks-go-to-fix', 'checks-route-differences', 'checks-wall-spacing'],
-      },
-      {
         id: 'options',
         label: 'Options',
         icon: 'layers',
         subtitle: 'Named versions of the design on the same survey, side by side.',
         keywords: ['option', 'options', 'version', 'variant', 'compare', 'alternative', 'scenario', 'slab vs piers', 'copy', 'duplicate design', 'try something', 'split level', 'what if', 'side by side', 'differences only', 'building height', 'storeys', 'levels'],
         features: ['options-list', 'options-open', 'options-copy', 'options-rename', 'options-delete', 'options-compare', 'options-undo-separate'],
-      },
-      {
-        id: 'basix',
-        label: 'BASIX',
-        icon: 'leaf',
-        subtitle: 'What the BASIX tool will ask for, gathered from the plan.',
-        keywords: ['basix', 'energy', 'glazing', 'windows', 'window area', 'insulation', 'hot water', 'sustainability', 'thermal', 'orientation', 'north', 'heating', 'cooling', 'lighting', 'pool', 'water target', 'NatHERS', 'certificate', 'csv'],
-        features: ['basix-checklist', 'basix-from-plan', 'basix-answers', 'basix-csv', 'basix-links'],
       },
     ],
     more: {
@@ -678,14 +661,6 @@ export const AREAS: Area[] = [
           'driveway-crossing-checks',
         ],
       },
-      {
-        id: 'stormwater',
-        label: 'Stormwater',
-        icon: 'drop',
-        subtitle: 'Roof water: the tank, then the street or the low corner.',
-        keywords: ['stormwater', 'drainage', 'downpipe', 'tank', 'rainwater', 'OSD', 'detention', 'runoff', 'catchment', 'roof area', 'gravity', 'easement', 'pump', 'low point', 'kerb', 'concept'],
-        features: ['stormwater-catchment', 'stormwater-tank', 'stormwater-fall', 'stormwater-plan-path', 'stormwater-sources'],
-      },
     ],
     more: {
       label: 'More',
@@ -745,6 +720,60 @@ export const AREAS: Area[] = [
           features: ['retaining-offer-settings'],
         },
       ],
+    },
+  },
+  {
+    // What council or a certifier will look at (C37): the checks, BASIX, stormwater and the DA pack,
+    // out of Design and Earthworks so those keep to drawing. Old links redirect (src/nav/route.ts).
+    id: 'approvals',
+    label: 'Approvals',
+    icon: 'check',
+    keywords: ['approval', 'council', 'certifier', 'lodge', 'DA', 'CDC', 'compliance', 'permit'],
+    features: [],
+    view: 'plan',
+    rail: false,
+    defaultTab: 'checks',
+    tabs: [
+      {
+        id: 'checks',
+        label: 'Checks',
+        icon: 'check',
+        subtitle: 'The design against the planning rules, as you draw.',
+        shows: ['checks'],
+        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'lga', 'local government area', 'NSW only', 'Shellharbour', 'Kiama', 'Blue Mountains', 'Central Coast', 'Lake Macquarie', 'my council', 'outside the lot', 'over the boundary', 'not drawn yet', 'zone', 'heritage', 'flood', 'bushfire', 'overshadowing', 'solar access', 'driveway crossing', 'kerb', 'scrape', 'B85', 'B99', 'to fix', 'to confirm', 'verdict', 'approval route', 'pins', 'show on plan', 'go to fix', 'remove tree', 'plan to remove', 'wall spacing', 'walls 2 m apart', 'CDC vs DA'],
+        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal', 'checks-not-drawn-yet', 'checks-lot-inside', 'checks-cdc-land', 'sun-checks', 'checks-plan-pins', 'checks-go-to-fix', 'checks-route-differences', 'checks-wall-spacing'],
+      },
+      {
+        id: 'basix',
+        label: 'BASIX',
+        icon: 'leaf',
+        subtitle: 'What the BASIX tool will ask for, gathered from the plan.',
+        keywords: ['basix', 'energy', 'glazing', 'windows', 'window area', 'insulation', 'hot water', 'sustainability', 'thermal', 'orientation', 'north', 'heating', 'cooling', 'lighting', 'pool', 'water target', 'NatHERS', 'certificate', 'csv'],
+        features: ['basix-checklist', 'basix-from-plan', 'basix-answers', 'basix-csv', 'basix-links'],
+      },
+      {
+        id: 'stormwater',
+        label: 'Stormwater',
+        icon: 'drop',
+        subtitle: 'Roof water: the tank, then the street or the low corner.',
+        keywords: ['stormwater', 'drainage', 'downpipe', 'tank', 'rainwater', 'OSD', 'detention', 'runoff', 'catchment', 'roof area', 'gravity', 'easement', 'pump', 'low point', 'kerb', 'concept'],
+        features: ['stormwater-catchment', 'stormwater-tank', 'stormwater-fall', 'stormwater-plan-path', 'stormwater-sources'],
+      },
+      {
+        id: 'da-pack',
+        label: 'DA pack',
+        icon: 'file',
+        subtitle: 'A concept pack to start a development application with.',
+        keywords: ['DA', 'DA pack', 'development application', 'lodgement', 'lodge', 'title block', 'revision', 'cover sheet', 'checklist', 'town planner', 'SEE', 'statement of environmental effects', 'planning controls'],
+        features: ['da-pack-pdf', 'da-pack-title-block', 'da-pack-checklist', 'da-pack-revision', 'da-pack-details', 'da-pack-checks'],
+      },
+    ],
+    // Nothing rare to put away here, so no More tab (tabIds leaves it out).
+    more: {
+      label: 'More',
+      icon: 'sliders',
+      subtitle: '',
+      items: [],
     },
   },
   {
@@ -820,7 +849,7 @@ export const AREAS: Area[] = [
         id: 'plans',
         label: 'Plans (PDF)',
         icon: 'file',
-        subtitle: 'A plan set for the builder or council, and a DA pack.',
+        subtitle: 'A plan set for the builder or council. The DA pack is in Approvals.',
         keywords: [
           'pdf',
           'print',
@@ -838,15 +867,6 @@ export const AREAS: Area[] = [
           'elevations',
           '1:100',
           'DA',
-          'DA pack',
-          'development application',
-          'lodgement',
-          'lodge',
-          'title block',
-          'revision',
-          'cover sheet',
-          'checklist',
-          'town planner',
           'cut and fill plan',
           'stormwater plan',
         ],
@@ -861,12 +881,6 @@ export const AREAS: Area[] = [
           'setback-dimensions-pdf',
           'shadow-diagram-pdf',
           'sections-pdf',
-          'da-pack-pdf',
-          'da-pack-title-block',
-          'da-pack-checklist',
-          'da-pack-revision',
-          'da-pack-details',
-          'da-pack-checks',
         ],
       },
       {
@@ -1629,7 +1643,8 @@ export function tabOf(area: Area, tab: string): Tab | undefined {
 }
 
 /** Every tab id an area has, More last. */
-export const tabIds = (area: Area) => [...area.tabs.map(t => t.id), MORE]
+/** An area's tab ids, ending in More when it has anything in it. */
+export const tabIds = (area: Area) => [...area.tabs.map(t => t.id), ...(area.more.items.length ? [MORE] : [])]
 
 export type Place =
   | { kind: 'area'; area: Area }

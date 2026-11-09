@@ -9,11 +9,11 @@ import { areaRoute, canvasOf } from '../nav/route'
 /** The numbers people look for on site (the usage audit's phone task), and the row of the Overview that shows each. */
 export const PHONE_NUMBERS = [
   { id: 'floor-area', label: 'Floor area', overview: 'Floor area (outside of walls)', peek: 'Floor' },
-  { id: 'ffl', label: 'FFL', overview: 'Floor level (FFL)', peek: 'FFL' },
+  { id: 'ffl', label: 'FFL', overview: 'Floor level (FFL)', peek: 'Floor level (FFL)' },
   { id: 'cut-fill', label: 'Cut and fill', overview: 'Fill', peek: null },
   { id: 'retaining', label: 'Tallest retaining wall', overview: 'Holds back up to', peek: null },
   { id: 'setbacks', label: 'Setbacks', overview: 'Distance to boundary', peek: null },
-  { id: 'roof-height', label: 'Roof height', overview: 'Height above ground', peek: 'Roof' },
+  { id: 'roof-height', label: 'Building height', overview: 'Building height', peek: 'Building height' },
   { id: 'site-area', label: 'Site area', overview: 'Area', peek: null },
 ] as const
 
@@ -40,7 +40,7 @@ export interface Screen {
  * Sections is for looking at drawings, so it stays open; it keeps its own line tools for Edit.
  */
 export const panelLocked = (phone: boolean, editing: boolean, tabKey: string) =>
-  phone && !editing && tabKey !== 'design/sections' && (tabKey.startsWith('design/') || tabKey.startsWith('earthworks/') || tabKey === 'site/features')
+  phone && !editing && tabKey !== 'design/sections' && tabKey !== 'approvals/da-pack' && (tabKey.startsWith('design/') || tabKey.startsWith('earthworks/') || tabKey.startsWith('approvals/') || tabKey === 'site/features')
 
 /** A phone's 3D view needs the whole screen, so there a tab's panel starts folded away as a pill. */
 export const panelStartsHidden = (phone: boolean, canvas: Canvas) => phone && canvas === '3d'

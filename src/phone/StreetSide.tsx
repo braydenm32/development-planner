@@ -1,7 +1,7 @@
 // Which side of the block the street is on, for Street view (and Rear, from the other side).
-// It's the same setting as Design › Checks' "Faces the street", kept with the plan; until it's
+// It's the same setting as Approvals › Checks' "Faces the street", kept with the plan; until it's
 // set, Street view looks from the low side. Its home is Site › Block, beside which way the block
-// falls; Site › 3D and Design › Checks link there.
+// falls; Site › 3D and Approvals › Checks link there.
 
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -38,7 +38,7 @@ export function StreetSideField({ survey, terrain }: { survey: Survey; terrain: 
   )
 }
 
-/** Elsewhere (Site › 3D, Design › Checks): which side it is now, and the way to Site › Block to change it. */
+/** Elsewhere (Site › 3D, Approvals › Checks): which side it is now, and the way to Site › Block to change it. */
 export function StreetSideLink({ survey, terrain, lead = 'Street view looks from' }: { survey: Survey; terrain: Terrain; lead?: string }) {
   const plan = usePlan(s => s.plan)
   const side = streetSideOf(plan, survey.boundary)

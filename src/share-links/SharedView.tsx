@@ -46,6 +46,7 @@ import { OverviewSheet } from '../shell/OverviewSheet'
 import { INSPECTOR_W } from '../shell/panelWidth'
 import { findSelection } from '../shell/selection'
 import { SummaryStrip } from '../shell/SummaryStrip'
+import { checksHeadline } from '../shell/headline'
 import { useKeyNumbers } from '../shell/useKeyNumbers'
 import { projectTitle } from '../share/project'
 import { useSiteWarnings, useSiteSource } from '../site/sync'
@@ -425,6 +426,7 @@ function Numbers({
   const plan = usePlan(s => s.plan)!
   const numbers = useKeyNumbers(plan, survey, terrain, earth)
   const checks = useChecks(plan, survey, terrain, earth)
+  const verdict = useMemo(() => checksHeadline(checks.pathway, checks.results), [checks.pathway, checks.results])
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   // A number already on the canvas steps back in the strip, as in the app (CALM 5).
   const shown: Partial<Record<NumberId, string>> = {}
@@ -434,11 +436,11 @@ function Numbers({
   return (
     <>
       {phone ? (
-        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} readOnly />
+        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} verdict={verdict} readOnly />
       ) : (
         <SummaryStrip readOnly route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
       )}
-      {overview && <OverviewSheet readOnly numbers={numbers} stats={terrain.stats} onBalance={() => {}} onClose={() => setOverview(false)} />}
+      {overview && <OverviewSheet readOnly numbers={numbers} stats={terrain.stats} verdict={verdict} onBalance={() => {}} onClose={() => setOverview(false)} />}
     </>
   )
 }

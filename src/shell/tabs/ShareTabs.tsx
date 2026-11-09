@@ -1,9 +1,11 @@
 // Share › Plans (PDF), Send and 3D print, from Share's sections (src/components/ShareSections.tsx),
-// with the DA pack under the plan set (src/da).
+// and Approvals › DA pack (src/da), which Plans points to.
 
 import { DaPackSection } from '../../da/DaPackSection'
 import { PaperSelect, PdfFurnitureToggle, PdfPlans, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
 import { usePhone } from '../../phone/device'
+import { tabRoute } from '../../nav/route'
+import { navigate, useRouter } from '../../nav/router'
 import { ShareFirst } from '../../phone/ShareFirst'
 import type { PrintSettings } from '../../print/build'
 import { ShareLinksSection } from '../../share-links/ShareLinks'
@@ -27,15 +29,40 @@ export function PlansTab() {
         </div>
         {furniture}
         <PlansContents />
-        <DaPackSection {...pdf} />
+        <DaPackPointer />
       </>
     )
   return (
     <>
       <PdfPlans {...pdf} furniture={furniture} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} onPaper={paper => changePrintPrefs({ paper })} />
-      <DaPackSection {...pdf} />
+      <DaPackPointer />
     </>
   )
+}
+
+/** The DA pack lives in Approvals now; the plan set still says where, since people look for it here. */
+function DaPackPointer() {
+  const go = () => {
+    const r = useRouter.getState().route
+    navigate(tabRoute(r, 'approvals', 'da-pack'))
+  }
+  return (
+    <>
+      <h3>DA pack (PDF)</h3>
+      <p className="muted small">A concept pack to start a development application with, with title blocks and a checklist. It’s with the checks now.</p>
+      <button className="secondary" onClick={go}>
+        Open Approvals › DA pack
+      </button>
+    </>
+  )
+}
+
+/** Approvals › DA pack: the details for the title blocks, and the download. */
+export function DaPackTab() {
+  const d = useLoaded()
+  if (!d) return <Waiting />
+  const { printPrefs } = d
+  return <DaPackSection plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} up={d.view.up} paper={printPrefs.paper} pdfFurniture={printPrefs.pdfFurniture} leaveOut={printPrefs.leaveOut} />
 }
 
 export function SendTab() {

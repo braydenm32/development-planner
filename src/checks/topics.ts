@@ -1,4 +1,4 @@
-// How Design › Checks lays the results out: three words for what to do (Fix, Confirm, OK, with
+// How Approvals › Checks lays the results out: three words for what to do (Fix, Confirm, OK, with
 // facts to add and parts not drawn yet beside them), the rows grouped by topic with each group's
 // worst first, passes folded to a count, and a number for every row to fix or confirm that has a
 // place on the plan. Pure, so the layout is tested without drawing it.

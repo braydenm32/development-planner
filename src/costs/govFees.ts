@@ -36,7 +36,7 @@ export interface FeeContext {
 /** No council known, as a DA: what a plan without check settings estimates against. */
 export const NO_FEE_CONTEXT: FeeContext = { council: null, da: true }
 
-/** The fee context a plan's check settings give (Design › Checks). */
+/** The fee context a plan's check settings give (Approvals › Checks). */
 export function feeContextOf(plan: Pick<Plan, 'checks'> | null | undefined): FeeContext {
   const s = checkSettingsOf(plan?.checks)
   const c = activeCouncil(s)

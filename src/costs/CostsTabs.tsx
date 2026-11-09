@@ -14,7 +14,7 @@ import { shareOrSave } from '../phone/share'
 import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
-import { m2, whereShown } from '../shell/format'
+import { m2 } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
@@ -911,13 +911,16 @@ export function CostsStrip({
     <div className="summary-strip costs-strip" role="region" aria-label="Costs">
       <div className="chips">
         {shown.cost ? (
+          // Already in the panel: still there to read, quieter (C33).
           <>
-            <span className="chip ghost">
-              Estimate <em>{whereShown(shown.cost)}</em>
+            <span className="chip echo" title={`Also ${shown.cost}.`}>
+              <span className="chip-label">Estimate</span> <b className="tnum">{e.ready ? money(e.total) : '–'}</b>
             </span>
-            <span className="chip ghost">
-              Per m² <em>{whereShown(shown.cost)}</em>
-            </span>
+            {e.perM2 !== null && (
+              <span className="chip echo" title={`Also ${shown.cost}.`}>
+                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
+              </span>
+            )}
           </>
         ) : (
           <>

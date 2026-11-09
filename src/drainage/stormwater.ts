@@ -174,7 +174,7 @@ export function edgeFacing(boundary: Vec2[], bearing: number): number | null {
 export type StreetFrom = 'set' | 'low-side'
 
 /**
- * Which side of the block the street is on: the plan's street side (set under Design › Checks ›
+ * Which side of the block the street is on: the plan's street side (set under Approvals › Checks ›
  * Lot facts, or for Street view in 3D) when there is one, else the low side, which is where most
  * blocks drain to.
  */

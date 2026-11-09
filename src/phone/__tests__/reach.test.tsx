@@ -74,7 +74,8 @@ describe('two taps to every number on a phone', () => {
     for (const r of appRoutes) {
       const key = `${r.area}/${r.tab}`
       // Design › Sections only shows drawings in View; its line tools wait for Edit (src/sections/SectionsTab.tsx).
-      const changes = (r.area === 'design' && key !== 'design/sections') || r.area === 'earthworks' || key === 'site/features'
+      // Approvals › DA pack only takes the title block's details and downloads, so it stays open too.
+      const changes = (r.area === 'design' && key !== 'design/sections') || r.area === 'earthworks' || (r.area === 'approvals' && key !== 'approvals/da-pack') || key === 'site/features'
       expect(panelLocked(true, false, key), key).toBe(changes)
       expect(panelLocked(true, true, key), key).toBe(false)
       expect(panelLocked(false, false, key), key).toBe(false)
@@ -110,8 +111,8 @@ describe('the numbers it reaches', () => {
     expect(peek).toContain('Showing people')
     expect(peek).toContain('Pull up for every number')
     for (const p of PHONE_NUMBERS) if (p.peek) expect(peek, p.label).toContain(p.peek)
-    expect(peek).toContain(`FFL RL ${n.ffl.toFixed(2)}`)
-    expect(peek).toContain(`Roof ${n.roof!.height.toFixed(2)} m above ground`)
+    expect(peek).toContain(`Floor level (FFL) RL ${n.ffl.toFixed(2)}`)
+    expect(peek).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     expect(peek).toContain(`RL ${terrain.stats.minRL.toFixed(2)}`)
     expect(peek).toContain(`RL ${terrain.stats.maxRL.toFixed(2)}`)
   })
@@ -149,6 +150,6 @@ describe('the numbers it reaches', () => {
   it('say when there is no roof yet, rather than leave a gap', () => {
     const bare = house({ roofs: [] })
     const m = numbersOf(bare, survey, terrain, null)
-    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Roof No roof yet')
+    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No roof yet')
   })
 })

@@ -1,4 +1,4 @@
-// Design › Checks: the design against the Housing Code (CDC), or a council's LEP and DCP (DA),
+// Approvals › Checks: the design against the Housing Code (CDC), or a council's LEP and DCP (DA),
 // live. A verdict card first ("4 to fix · 5 to confirm"), then the rows grouped by topic, each
 // group's worst first, with what was measured beside what's allowed on every row. Rows to fix or
 // confirm get a numbered pin on the plan, and pointing at a row draws what it measures there.

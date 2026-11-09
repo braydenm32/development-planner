@@ -58,10 +58,12 @@ function Tabs({ route, go, bar }: { route: AppRoute; go: Go; bar: RefObject<HTML
           </a>
         )
       })}
-      <a className={`tab more${route.tab === MORE ? ' on' : ''}`} aria-current={route.tab === MORE ? 'page' : undefined} {...linkTo(tabRoute(route, area.id, MORE), go)}>
-        <Icon name={area.more.icon} size={15} />
-        {area.more.label}
-      </a>
+      {area.more.items.length > 0 && (
+        <a className={`tab more${route.tab === MORE ? ' on' : ''}`} aria-current={route.tab === MORE ? 'page' : undefined} {...linkTo(tabRoute(route, area.id, MORE), go)}>
+          <Icon name={area.more.icon} size={15} />
+          {area.more.label}
+        </a>
+      )}
     </nav>
   )
 }

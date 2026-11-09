@@ -301,9 +301,9 @@ describe('the numbers in a shared view', () => {
     expect(n.earth?.outOfBalance).toBe(true)
     const route = areaRoute('design')
     const strip = (readOnly: boolean) => renderToStaticMarkup(<SummaryStrip readOnly={readOnly} route={route} numbers={n} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
-    expect(buttons(strip(false))).toContain('Balance')
+    expect(buttons(strip(false)).some(b => b.startsWith('Balance: '))).toBe(true)
     expect(words(strip(true))).toContain('Out of balance')
-    expect(words(strip(true))).toContain('FFL RL 82.00')
+    expect(words(strip(true))).toContain('Floor level (FFL) RL 82.00')
     expect(buttons(strip(true))).toEqual(['Overview'])
   })
 

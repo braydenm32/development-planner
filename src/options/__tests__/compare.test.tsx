@@ -92,7 +92,7 @@ describe('the table’s rows', () => {
     expect(row('net').text(a)).toMatch(/m³ (to take away|to bring in)$/)
     expect(row('floor-area').text(a)).toBe(`${a.floorArea!.toFixed(2)} m²`)
     expect(row('ffl').text(b)).toBe('RL 46.30')
-    // Design › Checks' summary, in its order: passes after what needs doing.
+    // Approvals › Checks' summary, in its order: passes after what needs doing.
     expect(checksText(a)).toMatch(/\d+ OK$/)
   })
 

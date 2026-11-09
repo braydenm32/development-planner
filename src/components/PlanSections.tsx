@@ -770,7 +770,7 @@ export function EarthworksResults({ plan, survey, earth, terrain, retaining = tr
       <DemFlag what="these volumes" />
       {crossed && (
         <p className="notice small">
-          Batters cross {crossed}. Add a suggested retaining wall below, or draw one there (Retaining wall tool), to hold them back, or move the house.
+          Earth slopes (batters) cross {crossed}. Add a suggested retaining wall below, or draw one there (Retaining wall tool), to hold them back, or move the house.
         </p>
       )}
       {retaining && walls.length > 0 && <RetainingTotals walls={walls} />}

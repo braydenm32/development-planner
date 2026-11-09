@@ -165,7 +165,7 @@ function useColumns(d: Loaded): Column[] | null {
   const rec = useOptions(s => s.rec)
   const costs = useCosts(s => s.data)
   const features = useCheckTrees()
-  // What Design › Checks counts besides the plan, so the checks row agrees with it.
+  // What Approvals › Checks counts besides the plan, so the checks row agrees with it.
   const planning = useMap(s => s.place?.planning ?? null)
   const dem = !!useProjects().opened?.survey?.dem
   const [cols, setCols] = useState<Column[] | null>(null)

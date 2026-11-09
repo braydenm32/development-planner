@@ -1,4 +1,4 @@
-// "Plan to remove this tree": the one toggle for it, in Design › Checks' tree rows and on the tree
+// "Plan to remove this tree": the one toggle for it, in Approvals › Checks' tree rows and on the tree
 // in Site › Features, so the two read the same. Removing a tree needs approval (the DA or CDC, or
 // council's tree permit), which the label after it says.
 

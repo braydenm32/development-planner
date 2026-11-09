@@ -3,7 +3,7 @@
 // low side is picked to start, since most blocks fall to the street; a side is picked here or by
 // clicking it on the plan, which shows the one picked (and the one pointed at), and Use confirms.
 // The card sits beside the block rather than over it. Each side can be set again later in
-// Site › Block or Design › Checks.
+// Site › Block or Approvals › Checks.
 
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -17,7 +17,7 @@ export function StreetAsk({ survey, terrain, phone = false }: { survey: Survey; 
   const plan = usePlan(s => s.plan)
   const open = useStreetAskOpen(plan, survey.boundary)
   const picked = useStreetAsk(s => s.chosen)
-  // Not asked for this project, or answered already in Site › Block or Design › Checks.
+  // Not asked for this project, or answered already in Site › Block or Approvals › Checks.
   if (!open || !plan) return null
   const choices = streetChoices(survey, plan.placement, terrain.stats.fallBearing)
   const chosen = choices.find(c => c.index === picked) ?? choices.find(c => c.low) ?? choices[0]

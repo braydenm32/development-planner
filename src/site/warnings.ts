@@ -5,7 +5,7 @@ import { isMajor, overlapArea, treeTitles, worksOf, zoneCover } from '../checks/
 import { featureName, type SiteFeature } from './model'
 
 // The zones and the works in them are worked out once, in src/checks/trees.ts, so these warnings
-// and Design › Checks always give a tree the same share. Re-exported for the code that reads them here.
+// and Approvals › Checks always give a tree the same share. Re-exported for the code that reads them here.
 export { circlePolygon, levelChanges, MAJOR_ENCROACHMENT, overlapArea, srzRadius, tpzRadius, worksOf, type Works } from '../checks/trees'
 
 /**
@@ -87,7 +87,7 @@ export function siteWarnings(
   const works = worksOf(plan, origin)
   const out: SiteWarning[] = []
   const isNeighbours = (at: Vec2) => !!boundary && boundary.length >= 3 && !pointInPolygon(at[0], at[1], boundary)
-  // The trees' names as Design › Checks gives them, so "Planted tree" isn't "Tree Planted tree" and two alike are numbered.
+  // The trees' names as Approvals › Checks gives them, so "Planted tree" isn't "Tree Planted tree" and two alike are numbered.
   const zoned = features.filter(f => f.type === 'tree' && f.geom.kind === 'point' && f.trunk)
   const titles = new Map(treeTitles(zoned.map(f => ({ label: f.label ?? '', neighbour: f.geom.kind === 'point' && isNeighbours(f.geom.at) }))).map((t, i) => [zoned[i].id, t.replace(/’/g, "'")]))
   for (const f of features) {
@@ -113,7 +113,7 @@ export function siteWarnings(
     }
     if (f.type === 'tree' && f.geom.kind === 'point' && !f.remove && f.trunk) {
       const at = f.geom.at
-      // The same cover Design › Checks measures (src/checks/trees.ts).
+      // The same cover Approvals › Checks measures (src/checks/trees.ts).
       const z = zoneCover(at, f.trunk, works, ground)
       if (!z.parts.length) continue
       const { tpz: r, srz: sr, zoneArea, share, srzHits } = z

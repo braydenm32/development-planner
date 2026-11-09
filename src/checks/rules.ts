@@ -1017,7 +1017,7 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
 }
 
 /**
- * The counts in Design › Checks' words, in its order: "1 to fix · 2 to confirm · 1 fact to add ·
+ * The counts in Approvals › Checks' words, in its order: "1 to fix · 2 to confirm · 1 fact to add ·
  * 2 to remove · 9 OK". Every status is there, so the parts add up to the rows listed; the summary
  * strip, Options › Compare and the DA pack word them the same. With `zeros`, the fixes,
  * confirmations, facts, drawings and OKs show even at 0, so "0 to fix" reads as checked rather than left out.

@@ -84,7 +84,7 @@ function LocationFields({ location, council }: { location: SiteLocation; council
       <p className="muted small">
         The survey doesn&rsquo;t say where on the map it is, so the sun works from {town === OTHER ? coordsText(location) : `${location.place} (${coordsText(location)})`}. A town nearby is close enough: 10 km moves the sun by about a tenth of a
         degree.{location === DEFAULT_LOCATION && ' Projects start in Sydney.'}
-        {council && ` ${council.endsWith('s') ? `${council}’` : `${council}’s`} rules are on in Design › Checks, so the sun works from there too.`}
+        {council && ` ${council.endsWith('s') ? `${council}’` : `${council}’s`} rules are on in Approvals › Checks, so the sun works from there too.`}
       </p>
       <p className="muted small">
         Times are Australian Eastern Standard Time (UTC+10), with no daylight saving. On 21 June that&rsquo;s the time on the clock; from October to April, clocks in NSW read an hour later.
@@ -146,7 +146,7 @@ function LivingSun({ facts }: { facts: SunFacts }) {
             </p>
           ))}
           <p className="muted small">
-            Hours of direct sun on the windows between {hourText(STUDY_FROM)} and {hourText(STUDY_TO)} on 21 June, with the house&rsquo;s own walls, roof and the ground in the way. Councils ask for different hours; see Design › Checks.
+            Hours of direct sun on the windows between {hourText(STUDY_FROM)} and {hourText(STUDY_TO)} on 21 June, with the house&rsquo;s own walls, roof and the ground in the way. Councils ask for different hours; see Approvals › Checks.
           </p>
         </>
       ) : (

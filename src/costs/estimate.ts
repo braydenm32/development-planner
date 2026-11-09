@@ -329,7 +329,7 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
     'Development application fee',
     fees.da ? daFee(feeBasis) : 0,
     fees.da ? `NSW scale ${DA_FEE_YEAR}, on ${basis} of work` : 'None for complying development (CDC): the certifier’s fee is in Fees',
-    'design/checks',
+    'approvals/checks',
   )
   gov('lsl', 'Long service levy', longServiceLevy(feeBasis), feeBasis >= LSL.from ? `0.25% of ${basis} of work` : `None for work under ${money0(LSL.from)}`)
   const c = contribution(fees.council?.id ?? null, feeBasis)
@@ -341,8 +341,8 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
       ? `${c.plan.plan}: ${Number((c.rate * 100).toFixed(2))}% of ${basis}${c.plan.except ? `, ${c.plan.except}` : ''}`
       : fees.council
         ? `No figure for ${fees.council.name} here yet: ask the council and add it`
-        : 'Switch on your council in Design › Checks, or ask the council and add it',
-    'design/checks',
+        : 'Switch on your council in Approvals › Checks, or ask the council and add it',
+    'approvals/checks',
   )
 
   // The summary under the groups: margin and contingency, each a share of what's above it.

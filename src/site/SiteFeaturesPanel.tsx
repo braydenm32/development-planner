@@ -702,7 +702,7 @@ function Inspector({ readOnly = false }: { readOnly?: boolean }) {
           <Num label="Trunk Ø" unit="mm" value={f.trunk ?? 0.3} min={0.02} max={4} onCommit={trunk => set({ trunk })} />
           <Num label="Canopy Ø" unit="mm" value={f.canopy ?? 6} min={0.2} max={60} onCommit={canopy => set({ canopy })} />
           <Num label="Height" unit="m" value={f.height ?? 8} min={0.5} max={80} onCommit={height => set({ height })} />
-          {/* The same toggle as the tree's row in Design › Checks. */}
+          {/* The same toggle as the tree's row in Approvals › Checks. */}
           <TreeRemoval remove={!!f.remove} onChange={remove => set({ remove })} />
           {!f.remove && f.trunk ? (
             <p className="muted small">

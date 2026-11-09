@@ -1,4 +1,4 @@
-// Design › Checks as drawn, on the made-up sample block with the made-up garage floor: the
+// Approvals › Checks as drawn, on the made-up sample block with the made-up garage floor: the
 // approval route as one control, the verdict card, the topic groups with Fix / Confirm / OK, what
 // was measured beside what's allowed, the street side asked in the row that waits for it, and the
 // pins on the plan. And the route's own rules: picking a council puts the route on DA, CDC keeps
@@ -38,7 +38,7 @@ const sample = (checks: Plan['checks']): Plan => normalizePlan({ ...garageFloor(
 const settings = () => checkSettingsOf(usePlan.getState().plan!.checks)
 const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
 
-describe('Design › Checks', () => {
+describe('Approvals › Checks', () => {
   beforeEach(() => clearCheckPins())
 
   it('shows the route as one control, the verdict, and the groups with three words', () => {

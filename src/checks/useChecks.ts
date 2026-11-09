@@ -27,7 +27,7 @@ export interface Checks {
 
 /**
  * The checks for measures already taken, on the plan's own pathway unless another is asked for.
- * Design › Checks and Options › Compare both come through here, so they count the same rows.
+ * Approvals › Checks and Options › Compare both come through here, so they count the same rows.
  */
 export function checksOf(measures: Measures, planning: PlanningFacts | null, pathway: Pathway = measures.settings.pathway): Checks {
   const council = activeCouncil(measures.settings)

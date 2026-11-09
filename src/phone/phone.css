@@ -288,6 +288,59 @@ body:has(.app-shell.phone) {
   font-variant-numeric: tabular-nums;
 }
 
+/* A split-level house's three floor levels fit in the column at a smaller size. */
+.peek-numbers dd.small {
+  font-size: 14px;
+}
+
+/* The checks' verdict and the estimate, side by side: what people open the app to find out. */
+.peek-verdicts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.peek-tile {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.peek-tile > span,
+.peek-tile > small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peek-tile > b {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peek-tile.w-fix {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+
+.peek-tile.w-fix > b,
+.peek-verdict.w-fix b {
+  color: var(--danger);
+}
+
+.peek-tile.w-confirm > b,
+.peek-verdict.w-confirm b {
+  color: var(--warn-ink);
+}
+
 .peek-status {
   display: flex;
   flex-wrap: wrap;
@@ -698,8 +751,8 @@ body:has(.app-shell.phone) {
     --top-h: 46px;
   }
 
-  .app-shell.phone .bottom-bar {
-    height: calc(48px + env(safe-area-inset-bottom));
+  .app-shell.phone {
+    --bottom-h: calc(48px + env(safe-area-inset-bottom));
   }
 
   .app-shell.phone .bottom-bar .area-link {
@@ -737,7 +790,7 @@ body:has(.app-shell.phone) {
   }
 
   .app-shell.phone .overview-sheet {
-    max-height: 86vh;
+    max-height: calc(100% - var(--bottom-h) - 8px);
   }
 }
 

@@ -1,4 +1,4 @@
-// Design › Checks on the plan: a numbered red pin where a check fails (amber where one needs
+// Approvals › Checks on the plan: a numbered red pin where a check fails (amber where one needs
 // confirming), and, for the row under the pointer or tapped, what it measures drawn in red: the
 // boundary and the setback's distance, the tree's protection zone, the walls over the limit (the
 // Costs highlight, in red). Clicking a pin brings its row into view in the panel.

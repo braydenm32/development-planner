@@ -1,4 +1,4 @@
-/* Design › Checks, in direction B: hairline rows, one status dot each, amber for warnings. */
+/* Approvals › Checks, in direction B: hairline rows, one status dot each, amber for warnings. */
 
 .app-shell .checks {
   display: grid;
