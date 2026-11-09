@@ -51,7 +51,7 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
   // Hatched as well as shaded, so this tint (the floor against the ground, over the whole block)
   // never reads as the cut and fill itself, which Earthworks › Cut & fill shows solid.
   const unit = Math.hypot(ex[0] - at[0], ex[1] - at[1]) || 1
-  const gap = 9 / unit
+  const gap = 12 / unit
   return (
     <g className="ground-overlay" mask={near ? 'url(#ground-near)' : undefined}>
       {near && (
@@ -75,7 +75,7 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
         <defs>
           {(['above', 'below'] as const).map(side => (
             <pattern key={side} id={`ground-hatch-${side}`} patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform="rotate(45)">
-              <line x1={0} y1={0} x2={0} y2={gap} stroke={side === 'above' ? FILL : CUT} strokeWidth={1.4 / unit} strokeOpacity={subtle ? 0.25 : 0.45} />
+              <line x1={0} y1={0} x2={0} y2={gap} stroke={side === 'above' ? FILL : CUT} strokeWidth={1.2 / unit} strokeOpacity={subtle ? 0.18 : 0.32} />
             </pattern>
           ))}
         </defs>

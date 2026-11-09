@@ -385,3 +385,35 @@
   border-color: var(--grade-ink);
   color: var(--grade-ink);
 }
+
+/* Earthworks › Place: each level's floor and the ground under it, on a split level. */
+.place-levels {
+  width: 100%;
+  margin: 10px 0 4px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.place-levels caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.place-levels th,
+.place-levels td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line-soft, #eef0f2);
+  text-align: right;
+  font-weight: 400;
+}
+
+.place-levels th:first-child {
+  text-align: left;
+}
+
+.place-levels thead th {
+  color: var(--muted);
+  font-size: 12px;
+}

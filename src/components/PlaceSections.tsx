@@ -11,6 +11,7 @@ import { fflForGroundRL, floorRL, sortedLevels, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { pickTool } from '../shell/useSite'
 import { Num } from './fields'
+import '../grading/grading.css'
 import { centreOnBlock, clockwiseOf, rotationFromClockwise, squareToBoundary, turnHouse } from './placeActions'
 
 const setFfl = (plan: Plan, rl: number) => usePlan.getState().commit(p => ({ ...p, placement: { ...p.placement, ffl: fflForGroundRL(plan, rl) } }))
@@ -47,9 +48,11 @@ export function FloorLevel({ plan, info }: { plan: Plan; info: PlacementInfo | n
 /** Each level's floor RL and the natural ground under it. */
 export function LevelsOnGround({ plan, survey, terrain }: { plan: Plan; survey: Survey; terrain: Terrain }) {
   const rows = useMemo(() => levelGrounds(plan, survey.origin, terrain.grid), [plan, survey, terrain])
+  // One level: Ground under the house below says it already.
+  if (rows.length < 2) return null
   return (
     <table className="place-levels">
-      <caption>{rows.length > 1 ? 'Each level on the ground' : 'The floor on the ground'}</caption>
+      <caption>Each level on the ground</caption>
       <thead>
         <tr>
           <th scope="col">Level</th>
