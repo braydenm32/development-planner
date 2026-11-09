@@ -30,10 +30,10 @@ export type DemInfo = typeof DEM
 /** Points in one request: the server answers at most 1000 (its maxRecordCount). */
 export const BATCH = 1000
 /**
- * How long one request may take before it's given up on (ms). The service is slow: 25 to 75 s a
+ * How long one request may take before it's given up on (ms). The service is slow: 25 to 110 s a
  * request when it was checked, however many points it held.
  */
-export const TIMEOUT = 120000
+export const TIMEOUT = 180000
 /** Requests in flight at once. */
 const PARALLEL = 3
 /** Levels outside this range (m AHD) are the service's NoData values, not ground. */

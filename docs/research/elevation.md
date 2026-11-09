@@ -14,13 +14,13 @@ Research notes (9 November 2026) for "start from an address": the lot's outline 
 
 ## How it answers (checked 9 November 2026)
 
-`scripts/probe-nsw-maps.mjs elevation`, run from GitHub's runners (the "Probe NSW map services" workflow, with `only: elevation`), runs 3 and 4 on branch `claude/elevation`:
+`scripts/probe-nsw-maps.mjs elevation`, run from GitHub's runners (the "Probe NSW map services" workflow, with `only: elevation`), runs 3, 4 and 5 on branch `claude/elevation`:
 
 - **CORS:** `Access-Control-Allow-Origin: *` on GET, POST and the OPTIONS preflight. The browser calls it directly; no Worker proxy needed.
 - **getSamples** with a multipoint in `wkid 4326`, `returnFirstValueOnly=true`, `interpolation=RSP_BilinearInterpolation`, posted as a form (a simple request). Each sample has `locationId` (the point's index), `value` as a string ("13.050188065"), `rasterId` and `resolution: 5`. Bilinear works: the nearest-neighbour value at the council offices was 13.128, bilinear 13.050.
 - **NoData:** a point at sea gets no sample at all (4 samples for 5 points, `locationId` 4 missing). The app also treats non-numbers and values outside −100 to 2300 m as no level.
 - **Limit:** at most **1000 samples a request** (`maxRecordCount` 1000: 1024, 1600 and 2500 points each came back with 1000). The app sends batches of 1000.
-- **Slow:** every request took **24 to 26 s**, and one 74 s, whatever its size (5, 100 or 1000 points); two of five-point requests passed a 30 s timeout on the second run. The app sends up to three batches at once, waits up to 120 s for each, and says the state's service can take a minute.
+- **Slow:** most requests took **24 to 26 s** whatever their size (5, 100 or 1000 points), but one took 74 s (run 3) and a five-point request 109 s (run 5, 9 November 2026). The app sends up to three batches at once, waits up to 3 minutes for each, and says the state's service can take a minute or two.
 - Values seen (public places): council offices, 41 Burelli St, 13.05 m; Crown St mall 15.61 m; foot of Mount Keira 52.12 m; Mount Keira lookout 241.54 m. Recorded in `src/map/__tests__/replies.ts`.
 - `identify` also answers (one point, with the catalogue item: `Wollongong-DEM-AHD_56_5m`, Category 1).
 

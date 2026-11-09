@@ -73,7 +73,7 @@ export function StateGround({ lot, into, buttonClass = 'primary', ask = true }: 
       ) : (
         <div className="state-ground-busy" role="status">
           <span>
-            Reading the ground levels… {Math.round(progress * 100)}%. The state’s service can take a minute.
+            Reading the ground levels… {Math.round(progress * 100)}%. The state’s service can take a minute or two.
           </span>
           <button className="link" onClick={() => ctrl.current?.abort()}>
             Stop
