@@ -176,7 +176,7 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
         aria-label={`Aerial map. Drag to move, ${pointWord().toLowerCase()} a lot to pick it.`}
       >
         {tiles.map(t => (
-          <img key={t.key} src={t.url} alt="" draggable={false} className="map-tile" style={{ left: t.x, top: t.y }} onLoad={() => tileDone(true)} onError={() => tileDone(false)} />
+          <img key={t.key} src={t.url} alt="" draggable={false} className="map-tile" style={{ left: t.x, top: t.y }} onLoad={() => tileDone(true)} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; tileDone(false) }} />
         ))}
         <svg className="map-lines" width={width} height={height}>
           {shown.map(l => (
