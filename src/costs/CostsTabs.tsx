@@ -14,7 +14,7 @@ import { shareOrSave } from '../phone/share'
 import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
-import { andList, m2, whereShown } from '../shell/format'
+import { m2, whereShown } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
@@ -465,7 +465,7 @@ export function FinishGuide({ e }: { e: Estimate }) {
         <span>
           {name} finish guide {money(g.low)} to {money(g.high)} per m² of the house
         </span>
-        <span className="ce-guide-wait">Compare once there are {andList(e.missing.length ? e.missing : ['outside walls'])}</span>
+        <span className="ce-guide-wait">Compare once the estimate is complete</span>
       </p>
     )
   const why =

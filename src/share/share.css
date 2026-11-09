@@ -158,6 +158,18 @@
   font-size: 12px;
 }
 
+/* A cut part's pieces: plain lines under it, not rows of their own. */
+.app-shell .parts .part-pieces li {
+  display: block;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.app-shell .parts .part-pieces li:hover {
+  color: var(--text);
+}
+
 .app-shell .print-hint {
   margin: 8px 0 0;
   font-size: 12.5px;
@@ -182,4 +194,9 @@
   flex-basis: 100%;
   margin: 0;
   font-size: 12px;
+}
+
+/* A phone's sheet is short: the two buttons are enough there. */
+.app-shell.phone .print-foot .muted {
+  display: none;
 }

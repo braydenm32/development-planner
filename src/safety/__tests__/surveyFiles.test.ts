@@ -84,6 +84,17 @@ describe('a survey file that can’t be read', () => {
     expect(() => parseDxf('0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF')).toThrow(/nothing drawn in it/)
   })
 
+  it('says an empty file is empty, rather than asking which layers hold the contours', async () => {
+    const blank = await readFile(file('site.dxf', '')).catch((e: unknown) => e)
+    expect((blank as Error).message).toBe('site.dxf is empty: there’s nothing in the file. Choose it again, or ask for it to be sent again.')
+    expect(askSurveyor(blank)).toBe(true)
+    // A DXF with an ENTITIES section and nothing in it.
+    const none = await readFile(file('site.dxf', dxf([]))).catch((e: unknown) => e)
+    expect(none).not.toBeInstanceOf(PickLayersError)
+    expect((none as Error).message).toMatch(/^site\.dxf is empty: it has no lines, points or text in it/)
+    expect(askSurveyor(none)).toBe(true)
+  })
+
   it('tells a DWG and a PDF apart: only the DWG needs the surveyor', async () => {
     const dwg = await readFile(file('site.dwg', 'AC1032')).catch((e: unknown) => e)
     expect((dwg as Error).message).toMatch(/That’s a DWG.*ASCII DXF/)

@@ -1051,11 +1051,13 @@ export const HOMES: Home[] = [
         run: 'now',
       },
       { id: 'project-name', label: 'Project name', icon: 'pencil', keywords: ['title', 'rename'], features: ['project-name'] },
-      { id: 'survey-file', label: 'Survey file name', icon: 'file', keywords: ['DXF', 'survey'], features: ['survey-file-name'] },
+      // The survey's file name, with Replace… beside it (the review keeps the plan).
+      { id: 'survey-file', label: 'Survey file name', icon: 'file', keywords: ['DXF', 'survey', 'replace survey', 'new survey'], features: ['survey-file-name'] },
+      // The one backup in the menu: the line above says where it's saved, and this keeps a copy.
       { id: 'save-project', label: 'Download a backup (project file)', icon: 'download', keywords: ['download', 'backup', 'keep a copy', 'save project file', 'export project'], features: [], action: 'save-project', run: 'offer', at: 'share/send' },
       {
         id: 'open-file',
-        label: 'Open…',
+        label: 'Open a project file…',
         icon: 'file',
         keywords: ['open project file', 'load', 'import', 'shared', 'json', 'from builder', 'survey', 'DXF', 'LandXML', 'xml', 'CSV', 'spot levels', 'points', 'survey file', 'DWG', 'total station', 'plan', 'import plan', 'add survey'],
         features: ['project-file-as-new', 'open-any-file', 'review-open-project', 'plan-without-survey'],
@@ -1064,7 +1066,7 @@ export const HOMES: Home[] = [
       },
       { id: 'export-plan', label: 'Export plan', icon: 'download', keywords: ['save plan', 'json', 'backup'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
       // Clears the plan in this project (reviewed, with Undo); New project… is the one that starts another.
-      { id: 'new-plan', label: 'Start the plan again', icon: 'plus', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
+      { id: 'new-plan', label: 'Start the plan again', icon: 'rotate', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
       // The pages about the app (src/legal): they open on their own, with or without a project.
       { id: 'about', label: 'About Contour & Gable', icon: 'file', keywords: ['about us', 'who makes this', 'contact', 'email', 'hello', 'help', 'feedback', 'support', 'who is this for'], features: ['about-page'], action: 'about', run: 'now' },
       { id: 'privacy', label: 'Privacy policy', icon: 'file', keywords: ['privacy', 'data', 'my data', 'cookies', 'tracking', 'analytics', 'what do you keep', 'delete my data', 'personal information', 'APP', 'privacy act'], features: ['privacy-page'], action: 'privacy', run: 'now' },

@@ -6,7 +6,7 @@
 import { emptyPlan, sortedLevels, type Plan } from '../plan/model'
 import { defaultPlacement } from '../plan/placement'
 import { usePlan } from '../plan/store'
-import { freeName, nameInProjectFile } from '../projects/ops'
+import { freeName, nameFromFile, nameInProjectFile } from '../projects/ops'
 import { projectActions, projectsNow } from '../projects/session'
 import { parseProjectFile } from '../share/project'
 import { costsSummary } from '../costs/model'
@@ -137,7 +137,7 @@ export async function openRead(f: OpenedFile, opts: OpenOptions = {}): Promise<v
   if (f.kind === 'project') return openProjectText(f.text, f.name)
   if (f.kind === 'survey') {
     if (hasSite) return replaceSurvey(f.survey)
-    return startWith(f.survey, null, opts.into)
+    return startWith(f.survey, null, opts.into, nameFromFile(f.name))
   }
   // A plan: into the project open now (with a review), or on a sketch block of its own.
   if (hasSite && plan()) return importPlan(f.plan, f.name)
@@ -145,7 +145,7 @@ export async function openRead(f: OpenedFile, opts: OpenOptions = {}): Promise<v
 }
 
 /** Start a project from a survey (and maybe a plan), or give the open project with no survey its first. Nothing is replaced. */
-async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into']) {
+async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into'], name?: string | null) {
   const opened = projectsNow().opened
   const records = { survey, ...(withPlan ? { plan: withPlan } : {}), prefs: { view: { mode: 'plan' as const } } }
   await busy(async () => {
@@ -154,7 +154,7 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
       if (withPlan) usePlan.getState().load(withPlan)
       await projectActions.savePrefs({ view: { ...opened.prefs.view, mode: 'plan' } })
       await projectActions.saveSurvey(survey)
-    } else await projectActions.create(records)
+    } else await projectActions.create(records, name)
   })
   // A new project is for drawing on, so a phone opens it in Edit rather than View.
   usePhoneMode.getState().setMode('edit')
@@ -182,14 +182,14 @@ async function openPlanWithoutSurvey(p: Plan, name: string, into: OpenOptions['i
   const block = sketchAround(b ? b.maxX - b.minX : 0, b ? b.maxY - b.minY : 0)
   const survey = sketchSurvey(block)
   const placed = placeOnSketch(p, readSite(survey))
-  await startWith(survey, placed, into)
+  await startWith(survey, placed, into, p.name?.trim() || nameFromFile(name))
   showToast({ text: `Opened ${name} on a ${survey.fileName.toLowerCase()}. Add the survey when it comes, from Site › More.`, project: true })
 }
 
 /** A new project (or the open one, with no survey yet) on ground levels from the state's model (src/map/demSite.ts), opened on Design › Plan. */
-export async function startFromGround(survey: SavedProject, into: OpenOptions['into'] = 'new'): Promise<void> {
+export async function startFromGround(survey: SavedProject, into: OpenOptions['into'] = 'new', name?: string | null): Promise<void> {
   const site = readSite(survey)
-  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into)
+  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into, name)
 }
 
 // ---------------------------------------------------------------------------

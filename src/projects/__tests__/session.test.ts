@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
+import { nameFromFile, nameFromLot } from '../ops'
 import { ensureProjects, projectActions, projectsNow, registerRecordKind } from '../session'
 
 // A feature's own per-project record (site features' `site`, say), through the session the app uses.
@@ -35,5 +36,27 @@ describe('a record kind of a feature’s own', () => {
   it('keeps the app’s own kinds to the app', () => {
     expect(() => registerRecordKind('plan', () => {})).toThrow()
     expect(() => registerRecordKind('survey', () => {})).toThrow()
+  })
+})
+
+describe('a new project’s name', () => {
+  it('comes from the file or the address it starts from', () => {
+    expect(nameFromFile('sample-block.dxf')).toBe('Sample block')
+    expect(nameFromFile('C:\\surveys\\job_204__contours.DXF')).toBe('Job 204 contours')
+    expect(nameFromFile('levels.xml')).toBe('Levels')
+    expect(nameFromFile('.dxf')).toBeNull()
+    expect(nameFromLot({ label: 'Lot 4 DP12345', address: '12 Example St, Sampletown NSW 2000' })).toBe('12 Example St')
+    expect(nameFromLot({ label: 'Lot 4 DP12345' })).toBe('Lot 4 DP12345')
+  })
+
+  it('is the one given, made free, or My house / New house without one', async () => {
+    await ensureProjects()
+    const survey = { fileName: 'sample-block.dxf', dxfText: '', roles: {} }
+    const a = await projectActions.create({ survey }, 'Sample block')
+    const b = await projectActions.create({ survey }, 'Sample block')
+    const c = await projectActions.create({ survey })
+    expect(a.name).toBe('Sample block')
+    expect(b.name).toBe('Sample block 2')
+    expect(c.name).toMatch(/^New house/)
   })
 })

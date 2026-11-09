@@ -69,6 +69,20 @@ function SurveyArt() {
   )
 }
 
+/** Lots along a street, one picked out with a pin: shown only when the three ways in sit side by side. */
+function AddressArt() {
+  return (
+    <svg viewBox="0 0 330 150" width="100%" height="100%" aria-hidden="true">
+      <path d="M40 112H290" stroke="#16181b" strokeWidth="10" opacity=".12" />
+      {[70, 120, 170, 220].map(x => (
+        <rect key={x} x={x} y={36} width={46} height={64} fill={x === 170 ? '#eef1fc' : '#ffffff'} stroke={x === 170 ? '#2346d0' : '#9aa0a6'} strokeWidth={x === 170 ? 1.6 : 1} />
+      ))}
+      <path d="M193 26c-7 0-12 5-12 11 0 9 12 21 12 21s12-12 12-21c0-6-5-11-12-11z" fill="#2346d0" />
+      <circle cx="193" cy="37" r="4" fill="#ffffff" />
+    </svg>
+  )
+}
+
 function SketchArt({ street }: { street: StreetSide }) {
   // The block drawn north up, with the street on the side picked and the fall towards it.
   const w = 330
@@ -294,6 +308,9 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
           </section>
 
           <section className="st-card st-wide" aria-labelledby="st-address">
+            <div className="st-art st-art-wide">
+              <AddressArt />
+            </div>
             <h2 id="st-address">No survey yet? Start from the address</h2>
             <p>Find the lot by its address, or its Lot and DP. The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
             <AddressStart into={into} />

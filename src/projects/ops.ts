@@ -10,6 +10,27 @@ import type { ProjectMeta, ProjectRecords, ProjectStore } from './types'
  * on any store (this browser now, the cloud later).
  */
 
+/**
+ * A project's name from the file it started from, so a new project isn't one more "My house":
+ * "sample-block.dxf" is "Sample block". Null when there's nothing left of it.
+ */
+export function nameFromFile(fileName: string): string | null {
+  const base = fileName
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.[a-z0-9]{1,5}$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60)
+    .trim()
+  return base ? base[0].toUpperCase() + base.slice(1) : null
+}
+
+/** A project's name from the street address its block was found by ("12 Example St"), or the lot. */
+export function nameFromLot(lot: { label: string; address?: string }): string | null {
+  return lot.address?.split(',')[0].trim() || lot.label.trim() || null
+}
+
 /** `name`, or `name 2`, `name 3`… if another project already has it. */
 export async function freeName(store: Pick<ProjectStore, 'list'>, name: string, except?: string): Promise<string> {
   const base = name.trim() || 'My house'

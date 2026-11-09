@@ -540,6 +540,6 @@ describe('the house against the finish guide', () => {
     const html = guide(e)
     expect(html).not.toContain('ce-guide-tag')
     expect(html).not.toContain('the guide<')
-    expect(html).toContain('Compare once there are ')
+    expect(html).toContain('Compare once the estimate is complete')
   })
 })
