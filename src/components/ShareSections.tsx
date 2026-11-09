@@ -179,7 +179,8 @@ export function PdfDownload(p: PdfInput & { note?: boolean }) {
       {p.note !== false && (
         <p className="muted small">
           A site plan with boundary distances, key numbers and the site features (with a key, and what to check with council), a floor
-          plan for each level with wall lengths, and a roof plan, all to a printed scale with a north arrow that follows the view.
+          plan for each level with wall lengths, a roof plan, and the sections and elevations, all to a printed scale. The plans have a north
+          arrow that follows the view.
         </p>
       )}
     </>

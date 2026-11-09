@@ -36,10 +36,11 @@ export interface Screen {
 
 /**
  * Whether View on a phone locks a tab's panel: the ones that change the plan (Design and
- * Earthworks) and the site's features. The rest of Site only sets what the views show.
+ * Earthworks) and the site's features. The rest of Site only sets what the views show. Design ›
+ * Sections is for looking at drawings, so it stays open; it keeps its own line tools for Edit.
  */
 export const panelLocked = (phone: boolean, editing: boolean, tabKey: string) =>
-  phone && !editing && (tabKey.startsWith('design/') || tabKey.startsWith('earthworks/') || tabKey === 'site/features')
+  phone && !editing && tabKey !== 'design/sections' && (tabKey.startsWith('design/') || tabKey.startsWith('earthworks/') || tabKey === 'site/features')
 
 /** A phone's 3D view needs the whole screen, so there a tab's panel starts folded away as a pill. */
 export const panelStartsHidden = (phone: boolean, canvas: Canvas) => phone && canvas === '3d'

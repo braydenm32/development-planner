@@ -65,6 +65,7 @@ import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan }
 import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
+import { useSectionMarks } from '../sections/SectionMarks'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
@@ -463,6 +464,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     siteActive: site.active,
     viewOnly,
   })
+  // Section lines: drawing one with two clicks, and their A–A marks while Design › Sections is open.
+  const sections = useSectionMarks({ plan, S, k: v.k, viewOnly })
   const path = (pts: Vec2[], close = true) =>
     pts.length ? `M${pts.map(p => S(p).map(n => n.toFixed(1)).join(' ')).join('L')}${close ? 'Z' : ''}` : ''
   const tol = 10 / v.k
@@ -717,7 +720,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     svgRef.current!.setPointerCapture(e.pointerId)
     if (!view || view.token !== fitToken) setView(v) // freeze the fitted view once the user interacts
 
-    if (e.button === 1 || e.button === 2 || site.active || flow.active) {
+    if (e.button === 1 || e.button === 2 || site.active || flow.active || sections.active) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
       return
@@ -888,6 +891,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const d = drag.current
     const free = e.shiftKey
     flow.move(world, sx, sy, { dragging: !!d || dragKind !== null, pointerType: e.pointerType, buttons: e.buttons })
+    sections.move(world, e.shiftKey)
 
     if (d?.type === 'pan') {
       if (Math.hypot(sx - d.sx, sy - d.sy) < (e.pointerType === 'touch' ? TAP_SLOP : 4)) return
@@ -899,7 +903,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     if (viewOnly) return
-    if (flow.active) return
+    if (flow.active || sections.active) return
     if (site.active) {
       site.move(world, free)
       return
@@ -1060,6 +1064,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
     const world = W(sx, sy)
     if (flow.click(world)) return
+    if (sections.click(world, e.shiftKey)) return
     if (site.active) {
       site.click(world, e.shiftKey)
       return
@@ -1199,6 +1204,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (flow.key(e)) {
+        e.preventDefault()
+        return
+      }
+      if (sections.key(e)) {
         e.preventDefault()
         return
       }
@@ -1573,7 +1582,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     <div className={`plan-editor${viewOnly ? ' view-only' : ''}`}>
       <svg
         ref={svgRef}
-        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active ? ' flow-picking' : ''}`}
+        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active ? ' flow-picking' : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -1821,6 +1830,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
         {site.over}
         {flow.over}
+        {sections.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
 
         {/* Drawing in progress */}
@@ -1893,7 +1903,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {site.notice || notice ? (
           <span className="notice">{site.notice || notice}</span>
         ) : (
-          <span className="muted">{viewOnly ? VIEW_HINT[touch?.phone ? 'phone' : 'desk'] : site.active ? site.hint : tool === 'roof' ? ROOF_HINTS[roofMode] : HINTS[tool]}</span>
+          <span className="muted">{viewOnly ? VIEW_HINT[touch?.phone ? 'phone' : 'desk'] : (sections.hint ?? (site.active ? site.hint : tool === 'roof' ? ROOF_HINTS[roofMode] : HINTS[tool]))}</span>
         )}
       </div>
     </div>

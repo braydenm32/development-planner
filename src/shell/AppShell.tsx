@@ -24,6 +24,7 @@ import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
+import { useSections } from '../sections/store'
 import { useSiteWarnings } from '../site/sync'
 import { runAction } from './actions'
 import { CanvasControls, Inspector, ToolCard, ToolRail } from './CanvasChrome'
@@ -458,6 +459,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
     lastPicking.current = picking
     if (phone) setPanelHidden(picking)
   }, [picking, phone, setPanelHidden])
+  // And drawing a section line from Design › Sections.
+  const drawingSection = useSections(s => s.drawing !== null)
+  const lastDrawingSection = useRef(drawingSection)
+  useEffect(() => {
+    if (lastDrawingSection.current === drawingSection) return
+    lastDrawingSection.current = drawingSection
+    if (phone) setPanelHidden(drawingSection)
+  }, [drawingSection, phone, setPanelHidden])
   // Picking a site feature on the plan elsewhere opens Site › Features, where its details are.
   const siteSel = useSiteStore(s => s.selected)
   useEffect(() => {

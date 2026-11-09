@@ -25,6 +25,21 @@ export interface Plan {
   earthworks?: Earthworks
   /** Facts about the block the checks need and the approval pathway to check; defaults apply when missing. */
   checks?: CheckSettings
+  /** Section lines drawn across the plan (Design › Sections). Missing in plans saved before them, which have none. */
+  sections?: SectionLine[]
+}
+
+/**
+ * A cut through the house and the ground, drawn as a line across the plan (in the house frame) and
+ * named like a cut A–A. Its drawing runs from `a` on the left to `b` on the right, looking to the
+ * line's left.
+ */
+export interface SectionLine {
+  id: string
+  /** The letter at both ends: A, B, … */
+  label: string
+  a: Vec2
+  b: Vec2
 }
 
 export interface Level {
@@ -311,7 +326,17 @@ export function normalizePlan(p: Plan): Plan {
     roofs: p.roofs ?? [],
     stairs: p.stairs ?? [],
     furniture: p.furniture ?? [],
+    // Kept only when there are some, so older plans load exactly as they were saved.
+    ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
   })
+}
+
+const isPoint = (v: unknown): v is Vec2 => Array.isArray(v) && v.length === 2 && v.every(n => typeof n === 'number' && Number.isFinite(n))
+
+/** A section line that can be drawn: an id, a label and two ends. */
+export const isSectionLine = (s: unknown): s is SectionLine => {
+  const x = s as SectionLine | null
+  return !!x && typeof x.id === 'string' && typeof x.label === 'string' && isPoint(x.a) && isPoint(x.b)
 }
 
 export function earthworksOf(plan: Plan): Earthworks {

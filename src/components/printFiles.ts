@@ -83,6 +83,7 @@ export function plansPdfFile(p: PdfInput): OutFile {
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
+    terrain: p.terrain,
   })
   return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
 }

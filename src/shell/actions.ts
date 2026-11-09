@@ -12,6 +12,7 @@ import { navigate } from '../nav/router'
 import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
 import { pickFile } from '../safety/store'
+import { beginSectionLine } from '../sections/SectionMarks'
 import type { ShellData } from './context'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
@@ -132,6 +133,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       // The next click on a contour sets the active floor's level; it needs the plan.
       if (!planShowing()) showPlan()
       startContourPick()
+      return true
+    case 'draw-section':
+      // Two clicks on the plan; Design › Sections opens beside it to show the drawing.
+      beginSectionLine()
       return true
   }
   return false

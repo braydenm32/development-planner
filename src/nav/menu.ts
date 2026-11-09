@@ -45,6 +45,7 @@ export type ActionId =
   | 'camera-above'
   | 'camera-rear'
   | 'pick-contour'
+  | 'draw-section'
   | `tool:${Tool}`
 
 export interface Entry {
@@ -349,6 +350,37 @@ export const AREAS: Area[] = [
         features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances'],
       },
       {
+        id: 'sections',
+        label: 'Sections',
+        icon: 'section',
+        view: 'plan',
+        subtitle: 'Cuts through the house and the slope, and the four elevations.',
+        keywords: [
+          'section',
+          'sections',
+          'cross section',
+          'cut through',
+          'A-A',
+          'elevation',
+          'elevations',
+          'north elevation',
+          'east elevation',
+          'south elevation',
+          'west elevation',
+          'facade',
+          'side view',
+          'profile',
+          'height',
+          'building height',
+          'natural ground',
+          'finished ground',
+          'ground line',
+          'slope',
+          'council drawings',
+        ],
+        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan'],
+      },
+      {
         id: 'checks',
         label: 'Checks',
         icon: 'check',
@@ -599,8 +631,8 @@ export const AREAS: Area[] = [
         label: 'Plans (PDF)',
         icon: 'file',
         subtitle: 'A plan set for the builder or council.',
-        keywords: ['pdf', 'print', 'sheets', 'drawings', 'site plan', 'floor plan', 'roof plan', 'paper'],
-        features: ['download-pdf', 'furniture-pdf', 'finished-contours-pdf', 'site-features-pdf', 'share-from-phone', 'setback-dimensions-pdf'],
+        keywords: ['pdf', 'print', 'sheets', 'drawings', 'site plan', 'floor plan', 'roof plan', 'paper', 'sections', 'elevations', '1:100'],
+        features: ['download-pdf', 'furniture-pdf', 'finished-contours-pdf', 'site-features-pdf', 'share-from-phone', 'setback-dimensions-pdf', 'sections-pdf'],
       },
       {
         id: 'send',
@@ -998,6 +1030,17 @@ export const HOMES: Home[] = [
       },
       { id: 'north-up', label: 'North up', icon: 'north', keywords: ['top of view', 'orientation', 'compass', 'square to the house'], features: ['top-of-view'], action: 'north-up', run: 'now' },
       {
+        id: 'draw-section',
+        label: 'Draw a section line',
+        icon: 'section',
+        keywords: ['section', 'cross section', 'cut through', 'section line', 'A-A', 'profile', 'slope'],
+        features: ['section-line-draw'],
+        action: 'draw-section',
+        run: 'now',
+        shortcut: 'X',
+        at: 'design/sections',
+      },
+      {
         id: 'finished-contours',
         label: 'Finished contours',
         icon: 'layers',
@@ -1125,7 +1168,7 @@ export const HOMES: Home[] = [
         label: 'Tool keys',
         keywords: ['shortcuts', 'V W T D N O G R A F S U M'],
         features: ['kbd-tool-shortcuts'],
-        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A area, F roof, S stair, U furniture, M move.',
+        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A area, F roof, S stair, U furniture, M move. X draws a section line.',
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
