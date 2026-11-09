@@ -35,6 +35,12 @@ interface PanelProps {
   survey: Survey | null
   /** Bring up the floor plan, where drawings are lined up and features traced. */
   onShowPlan: () => void
+  /**
+   * A phone in View: only what can be read shows (what to check, what's on the site, the one
+   * picked), under the one line that says Edit changes it, rather than a column of greyed-out
+   * buttons that read like a fault.
+   */
+  viewOnly?: boolean
 }
 
 const st = useSiteStore.getState
@@ -47,20 +53,38 @@ function takePlan(onShowPlan: () => void) {
   if (window.matchMedia?.('(max-width: 760px)').matches) requestAnimationFrame(() => document.querySelector('.viewport')?.scrollIntoView({ block: 'start' }))
 }
 
-export function SiteFeaturesPanel({ survey, onShowPlan }: PanelProps) {
+export function SiteFeaturesPanel({ survey, onShowPlan, viewOnly = false }: PanelProps) {
   const loaded = useSiteStore(s => s.loaded)
   if (!survey) return <p className="muted">Site features need a survey that reads.</p>
   if (!loaded) return <p className="muted">Loading…</p>
+  if (viewOnly)
+    return (
+      <div className="sf">
+        <Warnings />
+        <Inspector readOnly />
+        <FeatureList />
+        <NothingYet />
+      </div>
+    )
   return (
     <div className="sf">
       <Warnings />
+      {/* The trace buttons first, and staying put as you scroll, so picking a feature doesn't push them down. */}
+      <Trace onShowPlan={onShowPlan} />
       <Inspector />
       <Drawings survey={survey} onShowPlan={onShowPlan} />
-      <Trace onShowPlan={onShowPlan} />
       <FeatureList />
       <ExtraDxf />
     </div>
   )
+}
+
+/** In View, with nothing on the site yet: say so, rather than leave the panel empty. */
+function NothingYet() {
+  const features = useSiteFeatures({ includeHidden: true })
+  const drawings = useSiteStore(s => s.data.overlays.length)
+  if (features.length) return null
+  return <p className="muted small">{drawings ? `Nothing traced yet on the ${drawings === 1 ? 'drawing' : `${drawings} drawings`} laid over the plan.` : 'Nothing traced or read onto the block yet.'}</p>
 }
 
 function Warnings() {
@@ -458,7 +482,7 @@ function Trace({ onShowPlan }: { onShowPlan: () => void }) {
   const trace = tool?.kind === 'trace' ? tool : null
   const set = (patch: Partial<Extract<SiteTool, { kind: 'trace' }>>) => trace && st().setTool({ ...trace, ...patch })
   return (
-    <div className="sf-section">
+    <div className="sf-section sf-trace">
       <h3>Trace</h3>
       <div className="sf-tools">
         {FEATURE_TYPES.map(t => (
@@ -470,10 +494,17 @@ function Trace({ onShowPlan }: { onShowPlan: () => void }) {
             onClick={() => (trace?.type === t.type ? st().setTool(null) : startTrace(t.type, onShowPlan))}
             title={t.label}
           >
-            {SHORT[t.type]}
+            <Swatch type={t.type} />
+            <span>{SHORT[t.type]}</span>
           </button>
         ))}
       </div>
+      {trace?.type === 'easement' && (
+        <p className="muted small sf-guide">
+          An easement is a strip of the block someone else has a right over, such as a sewer or drainage line, shown on your title plan with its width. Trace
+          its outline as the title shows it: corners along the boundary snap onto it.
+        </p>
+      )}
       {trace && (
         <div className="sf-tool-options">
           {trace.type === 'service' && (
@@ -628,7 +659,7 @@ function FeatureList() {
 
 const lengthOf = (pts: Vec2[]) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0)
 
-function Inspector() {
+function Inspector({ readOnly = false }: { readOnly?: boolean }) {
   const selected = useSiteStore(s => s.selected)
   const data = useSiteStore(s => s.data)
   const main = useSiteStore(s => s.main)
@@ -735,7 +766,7 @@ function Inspector() {
       )}
       {f.type === 'kerb' && <Select label="Kind" value={f.edge ?? 'kerb'} options={EDGES.map(s => ({ id: s.id, label: s.label }))} onChange={edge => set({ edge })} />}
       {f.purpose && f.type !== 'easement' && <p className="muted small">{f.purpose}</p>}
-      <div className="sf-row">
+      {!readOnly && <div className="sf-row">
         <button
           type="button"
           className="sf-btn"
@@ -747,7 +778,7 @@ function Inspector() {
           Remove
         </button>
         {f.source !== 'trace' && <span className="muted small">{f.source === 'dxf' ? 'Changes are kept beside the DXF, not in it.' : ''}</span>}
-      </div>
+      </div>}
     </div>
   )
 }

@@ -62,8 +62,11 @@ function LayerGuesses() {
   if (seen || n === 0) return null
   return (
     <p className="layer-guesses">
+      <span className="badge">
+        Survey layers: {n} guess{n === 1 ? '' : 'es'}
+      </span>
       <button className="link" onClick={() => navigate(tabRoute(route, 'site', 'more'), { focus: 'survey-layers' })}>
-        <span className="badge">Survey layers: {n} guess{n === 1 ? '' : 'es'}</span> Check what each layer was read as
+        Check what each was read as
       </button>
     </p>
   )

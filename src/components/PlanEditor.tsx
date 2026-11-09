@@ -79,7 +79,7 @@ import { roomMade, wallsPlaced } from '../flow/store'
 import { PlanHints } from '../guide/PlanHints'
 import { useRouter } from '../nav/router'
 import { StreetAsk } from '../start/StreetAsk'
-import { useStreetAskOpen } from '../start/streetQuestion'
+import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
 import { useCommentsPlan } from '../comments/PlanComments'
@@ -234,6 +234,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }, [guarded, tool])
   // One thing at a time: the next-step tip waits while the street question is up.
   const askingStreet = useStreetAskOpen(plan, survey.boundary)
+  // While it's asked, the side picked (the low side to start) and the one pointed at show on the block.
+  const streetPicked = useStreetAsk(s => s.chosen)
+  const streetHover = useStreetAsk(s => s.hover)
+  const streetLow = useMemo(() => {
+    if (!askingStreet) return null
+    const cs = streetChoices(survey, plan.placement, terrain.stats.fallBearing)
+    return (cs.find(c => c.low) ?? cs[0])?.index ?? null
+  }, [askingStreet, survey, plan.placement, terrain.stats.fallBearing])
+  /** A press on a side of the block while the street question is up: a click (not a drag) picks it. */
+  const streetPress = useRef<number | null>(null)
   const newRetaining = useRetaining(s => s.newWall)
   const retainingThickness = useRetaining(s => s.thickness)
   const { commit, preview, beginGesture, endGesture, select, toggleSelect, notify } = usePlan.getState()
@@ -854,6 +864,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     svgRef.current!.setPointerCapture(e.pointerId)
     if (!view || view.token !== fitToken) setView(v) // freeze the fitted view once the user interacts
 
+    // The street question: a side of the block clicked is its answer (on pointer-up); a drag still pans.
+    streetPress.current = askingStreet && frame && !viewOnly ? streetEdgeAt(sx, sy) : null
+    if (streetPress.current !== null) {
+      drag.current = { type: 'pan', sx, sy, start: v }
+      return
+    }
     if (e.button === 1 || e.button === 2 || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
@@ -1014,6 +1030,15 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = { type: 'pan', sx, sy, start: v }
   }
 
+  /** The side of the block under a point on the screen (by its boundary index), for the street question. */
+  const streetEdgeAt = (sx: number, sy: number): number | null =>
+    edgeNear(
+      underlay.boundary.map(p => S(p) as [number, number]),
+      sx,
+      sy,
+      touch?.phone ? 22 : 10,
+    )
+
   /** Whether a press is on what's selected now, or one of its handles: the only things a press can move outside Design and Earthworks. */
   const grabsSelection = (world: Vec2, sx: number, sy: number): boolean => {
     if (!selection) return false
@@ -1074,6 +1099,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     setPointer(world)
     const d = drag.current
     const free = e.shiftKey
+    if (askingStreet && frame && !viewOnly && !d) hoverStreetEdge(streetEdgeAt(sx, sy))
     flow.move(world, sx, sy, { dragging: !!d || dragKind !== null || brush.active, pointerType: e.pointerType, buttons: e.buttons })
     sections.move(world, e.shiftKey)
     brush.move(world)
@@ -1267,6 +1293,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = null
     setDragKind(null)
     setBox(null)
+    const edge = streetPress.current
+    streetPress.current = null
+    if (edge !== null && d?.type === 'pan') {
+      const [sx, sy] = local(e)
+      if (Math.hypot(sx - d.sx, sy - d.sy) <= (e.pointerType === 'touch' ? TAP_SLOP : 4)) {
+        downAt.current = null
+        chooseStreetEdge(edge)
+        return
+      }
+    }
     if (d?.type === 'brush') {
       downAt.current = null
       brush.up()
@@ -1893,7 +1929,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     <div className={`plan-editor${viewOnly ? ' view-only' : ''}`}>
       <svg
         ref={svgRef}
-        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active || (brush.active && !brush.painting) ? ' flow-picking' : ''}${brush.painting ? ' grade-brush' : ''}`}
+        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active || (brush.active && !brush.painting) ? ' flow-picking' : ''}${brush.painting ? ' grade-brush' : ''}${askingStreet && streetHover !== null ? ' street-hover' : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -1931,6 +1967,15 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {site.backdrop}
         {/* Site */}
         <path className="site-boundary" d={path(underlay.boundary)} />
+        {askingStreet &&
+          frame &&
+          !viewOnly &&
+          [streetHover, streetPicked ?? streetLow].map((i, k) => {
+            if (i === null || i === undefined || (k === 0 && i === (streetPicked ?? streetLow))) return null
+            const a = S(underlay.boundary[i])
+            const b = S(underlay.boundary[(i + 1) % underlay.boundary.length])
+            return <line key={k} className={`street-edge${k === 1 ? ' picked' : ''}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />
+          })}
         {planContourLines ? (
           <FinishedContourLayer contours={planContourLines} S={S} viewKey={`${v.cx} ${v.cy} ${v.k} ${rho} ${size.w} ${size.h}`} />
         ) : (
@@ -2227,7 +2272,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {mn.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
-      {frame && !viewOnly && <StreetAsk survey={survey} terrain={terrain} />}
+      {frame && !viewOnly && <StreetAsk survey={survey} terrain={terrain} phone={!!touch?.phone} />}
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={noFloor ? null : floorRL} lowest={isLowest} />}
         {site.notice || notice ? (

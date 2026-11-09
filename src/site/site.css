@@ -776,8 +776,36 @@
 }
 
 .sf-tools .sf-btn {
-  text-align: center;
-  padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.sf-tools .sf-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The trace buttons stay at the top of the panel as it scrolls, above a tall feature's details. */
+.sf-trace {
+  position: sticky;
+  top: -14px;
+  z-index: 2;
+  padding-top: 14px;
+  padding-bottom: 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.sf-trace:first-child {
+  margin-top: -14px;
+}
+
+.sf-guide {
+  margin: 8px 0 0;
 }
 
 .sf-tool-options {

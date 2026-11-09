@@ -21,15 +21,12 @@
 
 /* "Survey layers: 5 guesses", until they've been looked at */
 .app-shell .layer-guesses {
-  margin: 12px 0 0;
-}
-
-.app-shell .layer-guesses .link {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-  text-align: left;
+  margin: 12px 0 0;
+  font-size: 13px;
 }
 
 .app-shell .layer-guesses .badge {
