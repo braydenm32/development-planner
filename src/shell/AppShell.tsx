@@ -3,7 +3,8 @@
 // with the tab's panel, the tools and the selection floating on it. Everything it shows
 // comes from the menu config (src/nav/menu.ts) and the section components in src/components.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { FoldingContext, foldKey, isUnfolded } from '../components/folding'
 import { LocalSaveChip } from '../cloud/LocalSave'
 import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
@@ -28,6 +29,7 @@ import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
 import { undoTarget } from './undoTarget'
+import { useFileStep } from '../safety/fileUndo'
 import { useSections } from '../sections/store'
 import { useSiteWarnings } from '../site/sync'
 import { SunCard } from '../sun/SunCard'
@@ -42,6 +44,7 @@ import { ProjectMenu } from './ProjectMenu'
 import { MORE_SECTIONS, TAB_ASIDES, TAB_PANELS, TAB_TOOL } from './sections'
 import { useChecks } from '../checks/useChecks'
 import { SummaryStrip } from './SummaryStrip'
+import { floorDrawn } from './drawn'
 import { useKeyNumbers } from './useKeyNumbers'
 import { useRouteSync } from './useRouteSync'
 import { switchView, type Loaded } from './useSite'
@@ -349,6 +352,7 @@ function UndoRedo() {
   useSiteStore(s => s.future)
   useCosts(s => s.past)
   useCosts(s => s.future)
+  useFileStep(s => s.step)
   const undo = undoTarget('undo')
   const redo = undoTarget('redo')
   return (
@@ -640,10 +644,12 @@ function NumbersHost({
   const checks = useChecks(d.plan, d.survey, d.terrain, d.earth)
   const level = usePlan(s => s.activeLevel)
   const selection = usePlan(s => s.selection)
+  const drawn = floorDrawn(d.plan)
   const shown: Partial<Record<NumberId, string>> = {}
   if (showPanel) for (const id of tabShows ?? []) shown[id] = 'in the panel'
   // The level chip on the plan shows the ground floor's RL while you draw on it.
-  if (!shown.ffl && canvasKind === 'plan' && sortedLevels(d.plan)[0]?.id === level) shown.ffl = 'on plan'
+  // (Site's plan has no level chip: it's the block, before the house.)
+  if (!shown.ffl && canvasKind === 'plan' && route.area !== 'site' && sortedLevels(d.plan)[0]?.id === level) shown.ffl = 'on plan'
   if (canvasKind === 'plan' && selection?.type === 'roof' && numbers.roof?.roof.id === selection.id) shown['roof-height'] = 'selected'
   // Costs has a line of its own: the estimate, per m² and quotes, on a phone too.
   if (route.area === 'costs')
@@ -668,7 +674,17 @@ function NumbersHost({
           />
         )
       ) : (
-        <SummaryStrip route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => run('balance')} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
+        <SummaryStrip
+          route={route}
+          // Nothing to count before a floor is drawn: no floor level of nothing, no checks all "not drawn yet".
+          numbers={drawn ? numbers : null}
+          emptyText="Key numbers show here once a floor is drawn."
+          checks={drawn ? { pathway: checks.pathway, council: checks.council, counts: checks.counts } : undefined}
+          shown={shown}
+          onBalance={() => run('balance')}
+          onOverview={() => setOverview(!overview)}
+          overviewOpen={overview}
+        />
       )}
       {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
     </>
@@ -681,10 +697,14 @@ function MorePanel() {
   const focus = useRouter(s => s.focus)
   const ref = useRef<HTMLDivElement>(null)
   const area = route.kind === 'app' ? areaById(route.area) : undefined
+  // Site's More starts folded: its layer list alone is taller than the screen.
+  const startsOpen = area?.id !== 'site'
+  const folding = useContext(FoldingContext)
 
-  // Scroll to the item ⌘K or a link asked for, and flash it.
+  // Scroll to the item ⌘K or a link asked for, unfold it, and flash it.
   useEffect(() => {
     if (!focus) return
+    if (!isUnfolded(folding.collapsed, `more-${focus}`, startsOpen)) folding.toggle(foldKey(`more-${focus}`, startsOpen))
     const el = ref.current?.querySelector<HTMLElement>(`#more-${focus}`)
     if (el) {
       el.scrollIntoView({ block: 'start', behavior: 'smooth' })
@@ -693,6 +713,8 @@ function MorePanel() {
       el.classList.add('flash')
     }
     useRouter.setState({ focus: null })
+    // Only a new focus unfolds; folding it again by hand stays folded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus])
 
   if (!area) return null
@@ -704,6 +726,7 @@ function MorePanel() {
           <div key={item.id} id={`more-${item.id}`} className="more-item">
             <Panel
               id={`more-${item.id}`}
+              startsOpen={startsOpen}
               title={
                 <>
                   {item.icon && <Icon name={item.icon} size={15} />} {item.label}

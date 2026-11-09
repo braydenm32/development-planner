@@ -6,6 +6,7 @@ import { asDriveway, driveSlabs } from '../plan/driveFromSlab'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { showToast } from '../safety/store'
+import '../grading/grading.css'
 
 function makeDriveway(id: string, name: string) {
   const st = usePlan.getState()

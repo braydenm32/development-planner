@@ -187,12 +187,8 @@ export default function App() {
     if (mode === '3d') setCameraKey(k => k + 1)
   }
 
-  /** Check the layers, after an import: Site › More › Survey layers, unfolded. */
-  const toLayers = () => {
-    const collapsed = view.collapsed.filter(c => c !== 'more-survey-layers')
-    if (collapsed.length !== view.collapsed.length) changeView({ ...view, collapsed })
-    navigate(tabRoute(useRouter.getState().route, 'site', MORE), { focus: 'survey-layers' })
-  }
+  /** Check the layers, after an import: Site › More › Survey layers (going to it there unfolds it). */
+  const toLayers = () => navigate(tabRoute(useRouter.getState().route, 'site', MORE), { focus: 'survey-layers' })
 
   // The file actions (src/safety) open projects and read the site the app has built.
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))

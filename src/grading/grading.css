@@ -417,3 +417,12 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+/* "Make it a driveway": a slab that looks like the driveway (Earthworks › Driveway; the driveway checks). */
+.drive-from-slab p {
+  margin: 8px 0;
+}
+
+.check-group .drive-from-slab {
+  margin: 0 0 8px 14px;
+}

@@ -244,7 +244,8 @@ export function LevelChip({ name, rl, below, action }: { name: string; rl: numbe
 
 /**
  * Turns the ground tint on and off, with a key to its colours. `works`: the tint is the cut and
- * fill itself (Earthworks › Cut & fill), not the floor against the ground.
+ * fill itself (Earthworks › Cut & fill), not the floor against the ground. With no `floor` (Site,
+ * where there's no floor to draw on) only the other keys show.
  */
 export function GroundKey({
   on,
@@ -252,20 +253,24 @@ export function GroundKey({
   lowest,
   works = false,
   children,
+  floor = true,
 }: {
   on: boolean
   onChange: (on: boolean) => void
   lowest: boolean
   works?: boolean
   children?: ReactNode
+  floor?: boolean
 }) {
   return (
     <div className="ground-key">
-      <label className="check">
-        <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-        {works ? 'Cut and fill' : 'Ground vs this floor'}
-      </label>
-      {on && works && (
+      {floor && (
+        <label className="check">
+          <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
+          {works ? 'Cut and fill' : 'Ground vs this floor'}
+        </label>
+      )}
+      {on && floor && works && (
         <ul>
           <li>
             <i className="solid" style={{ background: CUT }} /> Ground cut down
@@ -279,7 +284,7 @@ export function GroundKey({
           <li className="small">A shade darker every 0.5 m</li>
         </ul>
       )}
-      {on && !works && (
+      {on && floor && !works && (
         <ul>
           <li>
             <i className="hatch" style={{ backgroundColor: FILL }} /> Floor above ground{lowest ? ' (fill or piers)' : ''}
@@ -298,11 +303,17 @@ export function GroundKey({
   )
 }
 
-/** The natural ground under the pointer against this floor, for the plan's status bar. */
-export function GroundReadout({ ground, floor, lowest }: { ground: number; floor: number; lowest: boolean }) {
+/** The natural ground under the pointer against this floor, for the plan's status bar; the ground alone with no floor (Site). */
+export function GroundReadout({ ground, floor, lowest }: { ground: number; floor: number | null; lowest: boolean }) {
   return (
     <span className="ground-readout">
-      <b>Ground RL {ground.toFixed(2)}</b> · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+      <b>Ground RL {ground.toFixed(2)}</b>
+      {floor !== null && (
+        <>
+          {' '}
+          · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+        </>
+      )}
     </span>
   )
 }

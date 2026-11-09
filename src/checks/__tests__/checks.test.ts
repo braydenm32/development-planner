@@ -434,7 +434,7 @@ describe('trees', () => {
     const r = run(house(), [tree({ at: [9, 15.2], remove: true })])
     const da = byId(r.da, 'tree:t1')
     expect(da.status).toBe('pending')
-    expect(da.value).toBe('Marked for removal (pending DA or CDC)')
+    expect(da.value).toBe('To remove (needs approval)')
     // 2 m from the house: within E17's 3 m.
     expect(da.note).toContain('within 3 m')
     expect(byId(r.cdc, 'tree:t1').status).toBe('pending')
@@ -614,7 +614,7 @@ describe('checks that agree with themselves', () => {
     const c = countChecks(da)
     expect(c.pending).toBe(2)
     const words = countsWords(c)
-    expect(words).toContain('2 marked for removal')
+    expect(words).toContain('2 to remove')
     const total = words.reduce((t, w) => t + Number(w.split(' ')[0]), 0)
     expect(total).toBe(da.length)
   })

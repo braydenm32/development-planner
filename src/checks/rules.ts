@@ -148,7 +148,8 @@ const minClear = (es: Edge[], upper = false) => {
   return ds.length ? Math.min(...ds) : null
 }
 const closest = (es: Edge[]) => es.reduce<Edge | null>((b, e) => (e.clearance !== null && (!b || e.clearance < (b.clearance ?? Infinity)) ? e : b), null)
-const NEED_FRONT = 'Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.'
+/** A setback that waits for the street side: Checks puts the question in the row (and under Lot facts). */
+export const NEED_FRONT = 'Pick the side that faces the street (or the lot in front), and this can be checked.'
 /** A distance to the boundary, or how far over it the house goes: "1.20 m", "0.40 m over". */
 const dist = (d: number) => (d >= 0 ? m(d) : `${m(-d)} over`)
 /** "1.20 m to the west side", or "0.40 m over the west side" where the house goes past it. */
@@ -194,6 +195,9 @@ function cdcRemoval(height: number | undefined, toHouse: number | null): string 
   return `The CDC doesn’t cover removing it: ${why.join(' and ')} (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).`
 }
 
+/** What a tree planned for removal shows, in Checks and the DA pack. */
+export const TO_REMOVE = 'To remove (needs approval)'
+
 /** A council's note with {name} filled in from `vars`. */
 const fill = (note: string, vars: Record<string, string>) => note.replace(/\{(\w+)\}/g, (all, k: string) => vars[k] ?? all)
 
@@ -219,7 +223,7 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
         tree: t.id,
         removable: true,
         status: 'pending',
-        value: 'Marked for removal (pending DA or CDC)',
+        value: TO_REMOVE,
         note,
         source: da ? cite(da.c, da.rule.removal.source) : HC('cl 3.33(1)'),
       }
@@ -509,10 +513,12 @@ function housingCode(ms: Measures): CheckResult[] {
     title: 'Retaining walls',
     status: tall.length ? 'warn' : 'pass',
     value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
-    limit: 'Over 600 mm needs a professional engineer’s certificate; walls at least 2 m apart, no taller than the cut or fill they hold',
+    limit: 'Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold',
     note: tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over 600 mm: allowed with an engineer’s certificate.` : undefined,
     source: HC('cl 3.30'),
+    walls: tall.map(w => w.id),
   })
+  if (ms.walls.length > 1) out.push(wallSpacing(ms))
 
   return [lotCheck(ms), ...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
 }
@@ -521,6 +527,53 @@ function housingCode(ms: Measures): CheckResult[] {
 // A council's LEP and DCP (DA), from its data table in ./councils
 
 /** A small number as the limits write it: 6, 5.5, 0.9. */
+/** Housing Code cl 3.30: retaining walls at least this far apart (m). */
+export const CDC_WALL_SPACING = 2
+/** Walls closer than this (m) touch: a corner or a T, one wall bent, not two walls side by side. */
+const TOUCHING = 0.05
+
+/** The shortest distance between two segments (they don't cross, or they'd touch). */
+function segGap(a: Vec2, b: Vec2, c: Vec2, d: Vec2): number {
+  const to = (p: Vec2, q: Vec2, r: Vec2) => {
+    const dx = r[0] - q[0]
+    const dy = r[1] - q[1]
+    const l2 = dx * dx + dy * dy
+    const t = l2 ? Math.max(0, Math.min(1, ((p[0] - q[0]) * dx + (p[1] - q[1]) * dy) / l2)) : 0
+    return Math.hypot(p[0] - q[0] - t * dx, p[1] - q[1] - t * dy)
+  }
+  const o = (p: Vec2, q: Vec2, r: Vec2) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+  if (o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0) return 0
+  return Math.min(to(a, c, d), to(b, c, d), to(c, a, b), to(d, a, b))
+}
+
+/**
+ * hc-retaining-gap: the Housing Code's walls at least 2 m apart (cl 3.30), for walls side by side
+ * (tiered down a slope, say). Walls that touch are one wall turning a corner, so they don't count.
+ * Walls are named as Earthworks › Retaining walls lists them: Wall 1, Wall 2…
+ */
+function wallSpacing(ms: Measures): CheckResult {
+  const close: { i: number; j: number; gap: number }[] = []
+  ms.walls.forEach((w, i) =>
+    ms.walls.forEach((v, j) => {
+      if (j <= i) return
+      const gap = segGap(w.a, w.b, v.a, v.b)
+      if (gap > TOUCHING && gap + 1e-6 < CDC_WALL_SPACING) close.push({ i, j, gap })
+    }),
+  )
+  close.sort((x, y) => x.gap - y.gap)
+  const pairs = close.map(c => `Walls ${c.i + 1} and ${c.j + 1}, ${m(c.gap)}`)
+  return {
+    id: 'hc-retaining-gap',
+    title: 'Space between retaining walls',
+    status: close.length ? 'fail' : 'pass',
+    value: close.length ? `${pairs.slice(0, 3).join('; ')}${pairs.length > 3 ? `; and ${pairs.length - 3} more` : ''} apart` : 'Every pair at least 2 m apart, or joined',
+    limit: `At least ${m(CDC_WALL_SPACING)} apart`,
+    note: close.length ? 'Move the walls apart, or join them into one wall, under Earthworks › Retaining walls. Walls that meet at a corner count as one.' : 'Walls that meet at a corner count as one.',
+    source: HC('cl 3.30'),
+    walls: [...new Set(close.flatMap(c => [ms.walls[c.i].id, ms.walls[c.j].id]))],
+  }
+}
+
 const num = (v: number) => `${v}`
 /** A height as the limits write it: 600 mm, 1 m. */
 const len = (v: number) => (v < 1 ? `${Math.round(v * 1000)} mm` : `${v} m`)
@@ -657,7 +710,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       status: lepH === undefined ? 'unknown' : !ms.hasHouse ? 'pass' : atMost(H, lepH),
       value: ms.hasHouse ? `${m(H)} above existing ground` : undefined,
       limit: lepH === undefined ? 'The Height of Buildings Map value for this lot' : `${m(lepH)}${fallback ? ` (${fallback.says}; look up this lot’s map value)` : ' (Height of Buildings Map)'}`,
-      note: `${lepH === undefined ? 'Enter the map value under Lot facts once it’s looked up. ' : ''}Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.`,
+      note: `${lepH === undefined ? 'Enter the map value here once it’s looked up. ' : ''}Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.`,
       source: fallback ? cite(c, fallback.source, ' (LEP map value not looked up)') : cite(c, c.height.source),
     })
   }
@@ -700,7 +753,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)}`,
       limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
       note:
-        (s.lepFsr === undefined ? 'Enter the map value under Lot facts once it’s looked up. ' : '') +
+        (s.lepFsr === undefined ? 'Enter the map value here once it’s looked up. ' : '') +
         (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).'),
       source: cite(c, c.fsr.source),
     })
@@ -830,6 +883,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
           ? `${bad.length} wall${many} over these heights, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
           : `${bad.length} wall${many} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
       source: cite(c, rw.source),
+      walls: bad.map(w => w.id),
     })
   }
 
@@ -871,6 +925,7 @@ const NEEDS: Record<string, Part[]> = {
   'hc-fill': ['outline'],
   'hc-works-boundary': ['outline'],
   'hc-retaining': ['outline'],
+  'hc-retaining-gap': [],
   'da-height': ['outline', 'roof'],
   'da-storeys': ['outline'],
   'da-fsr': ['outline'],
@@ -962,20 +1017,20 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
 }
 
 /**
- * The counts in Design › Checks' words, in its order: "1 fail · 2 to check · 1 needs a fact ·
- * 2 marked for removal · 9 pass". Every status is there, so the parts add up to the rows listed;
- * Options › Compare and the DA pack word them the same. With `zeros`, the fails, checks, facts,
- * drawings and passes show even at 0, so "0 fails" reads as checked rather than left out.
+ * The counts in Design › Checks' words, in its order: "1 to fix · 2 to confirm · 1 fact to add ·
+ * 2 to remove · 9 OK". Every status is there, so the parts add up to the rows listed; the summary
+ * strip, Options › Compare and the DA pack word them the same. With `zeros`, the fixes,
+ * confirmations, facts, drawings and OKs show even at 0, so "0 to fix" reads as checked rather than left out.
  */
 export function countsWords(c: CheckCounts, zeros = false): string[] {
   const part = (n: number, text: string, always = false) => (n || (zeros && always) ? text : null)
   return [
-    part(c.fail, `${c.fail} fail${c.fail === 1 ? '' : 's'}`, true),
-    part(c.warn, `${c.warn} to check`, true),
-    part(c.unknown, `${c.unknown} need${c.unknown === 1 ? 's' : ''} a fact`, true),
+    part(c.fail, `${c.fail} to fix`, true),
+    part(c.warn, `${c.warn} to confirm`, true),
+    part(c.unknown, `${c.unknown} fact${c.unknown === 1 ? '' : 's'} to add`, true),
     part(c.incomplete, `${c.incomplete} not drawn yet`, true),
-    part(c.pending, `${c.pending} marked for removal`),
-    `${c.pass} pass`,
+    part(c.pending, `${c.pending} to remove`),
+    `${c.pass} OK`,
     part(c.info, `${c.info} for info`),
   ].filter((s): s is string => s !== null)
 }
