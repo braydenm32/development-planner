@@ -43,6 +43,8 @@ export interface EarthNumbers {
   cutFar: number
   /** Highest fill (m) outside the house's footprint. */
   fillOutside: number
+  /** Deepest cut (m) outside the house's footprint (inside it, the house's walls retain it). */
+  cutOutside: number
   /** Ground the works disturb: the cut and fill and the house's footprint (m²). */
   disturbed: number
   /** Closest any change to the ground (over 50 mm) comes to the boundary (m); null with none. */
@@ -177,7 +179,7 @@ export function rearEdgeOf(sides: { inward: Vec2 }[], front: number | undefined,
 function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksResult, boundary: Vec2[], footprint: Vec2[][]): EarthNumbers {
   const n = prep.natural
   const f = result.grid
-  const out = { cutNear: 0, cutMid: 0, cutFar: 0, fillOutside: 0, closestWorks: null as number | null, disturbed: 0 }
+  const out = { cutNear: 0, cutMid: 0, cutFar: 0, fillOutside: 0, cutOutside: 0, closestWorks: null as number | null, disturbed: 0 }
   const a = n.cell * n.cell
   for (let j = 0; j < n.ny; j++) {
     for (let i = 0; i < n.nx; i++) {
@@ -197,6 +199,7 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
         if (d <= 1) out.cutNear = Math.max(out.cutNear, c)
         else if (d <= 1.5) out.cutMid = Math.max(out.cutMid, c)
         else out.cutFar = Math.max(out.cutFar, c)
+        if (!footprint.some(r => pointInPolygon(p[0], p[1], r))) out.cutOutside = Math.max(out.cutOutside, c)
       } else if (!footprint.some(r => pointInPolygon(p[0], p[1], r))) {
         out.fillOutside = Math.max(out.fillOutside, dz)
       }

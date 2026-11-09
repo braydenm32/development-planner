@@ -6,8 +6,8 @@ import type { Vec2 } from '../lib/geom'
 /** CDC: complying development under the Housing Code. DA: development application under the council's LEP and DCP. */
 export type Pathway = 'cdc' | 'da'
 
-/** A council whose LEP and DCP the checks know (src/checks/councils.ts). */
-export type CouncilId = 'wollongong'
+/** A council whose LEP and DCP the checks know (src/checks/councils). */
+export type CouncilId = 'wollongong' | 'kiama' | 'blue-mountains' | 'central-coast'
 
 /**
  * How sure the research is of a rule, as marked in docs/research:
