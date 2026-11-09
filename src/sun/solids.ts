@@ -9,7 +9,7 @@ import { triangulate } from '../lib/triangulate'
 import { buildingOutline, planarFaces, wallPolygons } from '../plan/geometry'
 import { FLOOR_STRUCTURE, floorRL, houseWalls, toSite, type Plan } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
-import { roofEavesRL } from '../plan/roofline'
+import { roofEavesRL, wallTopRL } from '../plan/roofline'
 
 /** A polygon stood up between two RLs. */
 export interface Prism {
@@ -39,7 +39,15 @@ export function houseSolids(plan: Plan, origin: Vec2): HouseSolids {
     const z0 = floor - FLOOR_STRUCTURE
     const z1 = floor + level.height
     for (const ring of buildingOutline(planarFaces(walls)).outlines) if (ring.length >= 3) prisms.push({ ring: ring.map(site), z0, z1 })
-    for (const poly of wallPolygons(walls).values()) if (poly.length >= 3) prisms.push({ ring: poly.map(site), z0, z1 })
+    // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
+    const polys = wallPolygons(walls)
+    for (const w of walls) {
+      const poly = polys.get(w.id)
+      if (!poly || poly.length < 3) continue
+      const wz1 = wallTopRL(plan, w)
+      prisms.push({ ring: poly.map(site), z0, z1: wz1 })
+      top = Math.max(top, wz1)
+    }
     top = Math.max(top, z1)
   }
   for (const r of plan.roofs) {

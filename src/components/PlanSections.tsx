@@ -65,7 +65,7 @@ import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
 import { RoofLineFields } from './RoofLineFields'
 import './roofs-stairs.css'
-import { roofEavesRL, wallsUnderRoofline } from '../plan/roofline'
+import { roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -591,11 +591,21 @@ function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; ground
   const outside = w.kind === 'external'
   const earth = outside ? earthAgainstWall(w, floor, groundAt) : -Infinity
   const buried = earth > 0.05
+  // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
+  const top = wallTopRL(plan, w)
+  const raised = top > floor + level.height + 0.0005
   return (
     <>
       <dl className="stats">
         <FragmentRow label="On" value={`${level.name}, floor RL ${floor.toFixed(2)}`} />
-        <FragmentRow label="Height" value={`${Math.round(level.height * 1000)} mm, top RL ${(floor + level.height).toFixed(2)}`} />
+        <FragmentRow
+          label="Height"
+          value={
+            raised
+              ? `${Math.round((top - floor) * 1000)} mm, up to the roof at RL ${top.toFixed(2)}`
+              : `${Math.round(level.height * 1000)} mm, top RL ${(floor + level.height).toFixed(2)}`
+          }
+        />
         {outside && <FragmentRow label="Ground against it" value={buried ? `up to ${Math.round(earth * 1000)} mm above the floor` : 'below the floor'} strong={buried} />}
       </dl>
       {buried && (
@@ -604,7 +614,11 @@ function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; ground
           clear of it.
         </p>
       )}
-      <p className="muted small">Its height is {level.name}’s ceiling height; change it in Floors.</p>
+      <p className="muted small">
+        {raised
+          ? `It runs up past ${level.name}’s ceiling to meet the roof, whose eaves sit higher; change where the roof sits in Roofs.`
+          : `Its height is ${level.name}’s ceiling height; change it in Floors.`}
+      </p>
     </>
   )
 }

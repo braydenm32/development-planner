@@ -27,7 +27,7 @@ import { retainingProfile, topAt } from '../plan/retaining'
 import { roofGeometry, type RoofMesh } from '../plan/roof'
 import { stairLayout } from '../plan/stairs'
 import { compassWord, intersectSpans, postStations, spansInside, stations, subtractSpans, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
-import { roofEavesRL } from '../plan/roofline'
+import { roofEavesRL, wallTopRL } from '../plan/roofline'
 
 /** A floor where the cut passes through it. */
 export interface CutFloor {
@@ -243,6 +243,8 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
       const poly = polys.get(w.id)
       if (!poly) continue
       const d = wallDir(w)
+      // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
+      const height = wallTopRL(plan, w) - rl
       for (const [s0, s1] of spansInside(a, b, [poly])) {
         const m = at((s0 + s1) / 2)
         const along = (m[0] - w.a[0]) * d[0] + (m[1] - w.a[1]) * d[1]
@@ -250,9 +252,9 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
         const pieces: [number, number][] = op
           ? [
               ...(op.sill > 0 ? [[0, op.sill] as [number, number]] : []),
-              ...(op.sill + op.height < level.height ? [[op.sill + op.height, level.height] as [number, number]] : []),
+              ...(op.sill + op.height < height ? [[op.sill + op.height, height] as [number, number]] : []),
             ]
-          : [[0, level.height]]
+          : [[0, height]]
         for (const [z0, z1] of pieces) walls.push({ s0, s1, z0: rl + z0, z1: rl + z1 })
       }
     }
