@@ -26,6 +26,7 @@ import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
+import { undoTarget } from './undoTarget'
 import { useSections } from '../sections/store'
 import { useSiteWarnings } from '../site/sync'
 import { SunCard } from '../sun/SunCard'
@@ -180,9 +181,8 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       const k = e.key.toLowerCase()
       if (k === 'z' || k === 'y') {
         e.preventDefault()
-        const h = undoHistory()
-        if (k === 'y' || e.shiftKey) h.redo()
-        else h.undo()
+        if (k === 'y' || e.shiftKey) undoTarget('redo').redo()
+        else undoTarget('undo').undo()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -337,27 +337,24 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   )
 }
 
-/** Whose undo history the top bar's Undo and Redo work on: the costs' while Costs is open, Site features' while its tab is open, else the plan's. */
-const undoHistory = () => (useCosts.getState().focus ? useCosts.getState() : useSiteStore.getState().focus ? useSiteStore.getState() : usePlan.getState())
-
 function UndoRedo() {
-  const site = useSiteStore(s => s.focus)
-  const costs = useCosts(s => s.focus)
-  const planUndo = usePlan(s => s.past.length > 0)
-  const planRedo = usePlan(s => s.future.length > 0)
-  const siteUndo = useSiteStore(s => s.past.length > 0)
-  const siteRedo = useSiteStore(s => s.future.length > 0)
-  const costsUndo = useCosts(s => s.past.length > 0)
-  const costsRedo = useCosts(s => s.future.length > 0)
-  const canUndo = costs ? costsUndo : site ? siteUndo : planUndo
-  const canRedo = costs ? costsRedo : site ? siteRedo : planRedo
-  const st = undoHistory()
+  // Read so the buttons draw again when any history or the open tab changes; undoTarget picks among them.
+  useSiteStore(s => s.focus)
+  useCosts(s => s.focus)
+  usePlan(s => s.past)
+  usePlan(s => s.future)
+  useSiteStore(s => s.past)
+  useSiteStore(s => s.future)
+  useCosts(s => s.past)
+  useCosts(s => s.future)
+  const undo = undoTarget('undo')
+  const redo = undoTarget('redo')
   return (
     <div className="undo-redo" role="group" aria-label="History">
-      <button onClick={st.undo} disabled={!canUndo} aria-label={`Undo (${shortcutText('mod+Z')})`} data-tip={`Undo ${shortcutText('mod+Z')}`}>
+      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={`Undo (${shortcutText('mod+Z')})`} data-tip={`Undo ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button onClick={st.redo} disabled={!canRedo} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>

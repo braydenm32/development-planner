@@ -6718,7 +6718,7 @@
     "tree": "kept-near",
     "removable": true,
     "status": "fail",
-    "value": "39% of its 6.00 m protection zone, and into its root zone",
+    "value": "0.90 m E of the house; 40% of its 6.00 m protection zone, and into its root zone",
     "limit": "Up to 10%, and none in the 2.47 m root zone",
     "note": "More than a minor encroachment needs root investigation by an AQF level 5 arborist, a design change, or the tree marked for removal.",
     "source": {
@@ -6733,7 +6733,7 @@
     "tree": "kept-far",
     "removable": true,
     "status": "pass",
-    "value": "Clear of its 3.60 m protection zone",
+    "value": "12.35 m N of the house; clear of its 3.60 m protection zone",
     "limit": "Up to 10%, and none in the 2.00 m root zone",
     "source": {
      "clause": "Wollongong DCP E17 13.2, 13.4; AS 4970-2009",
@@ -6775,7 +6775,7 @@
     "tree": "next-door",
     "removable": false,
     "status": "pass",
-    "value": "Clear of its 6.00 m protection zone",
+    "value": "8.90 m E of the house; clear of its 6.00 m protection zone",
     "limit": "Up to 10%, and none in the 2.47 m root zone",
     "source": {
      "clause": "Wollongong DCP E17 13.2, 13.4; AS 4970-2009",
@@ -6998,7 +6998,7 @@
     "tree": "kept-near",
     "removable": true,
     "status": "fail",
-    "value": "0.90 m from the house; 39% of its 6.00 m protection zone",
+    "value": "0.90 m E of the house; 40% of its 6.00 m protection zone",
     "limit": "3.00 m from the trunk",
     "note": "The house must be at least 3 m from every protected tree on the lot or next door. Driveways, paths and paving may come closer if they cut or fill no more than 150 mm.",
     "source": {
@@ -7013,7 +7013,7 @@
     "tree": "kept-far",
     "removable": true,
     "status": "pass",
-    "value": "12.35 m from the house; clear of its 3.60 m protection zone",
+    "value": "12.35 m N of the house; clear of its 3.60 m protection zone",
     "limit": "3.00 m from the trunk",
     "source": {
      "clause": "Housing Code cl 3.33(2), (3)",
@@ -7055,7 +7055,7 @@
     "tree": "next-door",
     "removable": false,
     "status": "pass",
-    "value": "8.90 m from the house; clear of its 6.00 m protection zone",
+    "value": "8.90 m E of the house; clear of its 6.00 m protection zone",
     "limit": "3.00 m from the trunk",
     "source": {
      "clause": "Housing Code cl 3.33(2), (3)",
@@ -7290,7 +7290,7 @@
     "tree": "kept-near",
     "removable": true,
     "status": "fail",
-    "value": "97% of its 6.00 m protection zone, and into its root zone",
+    "value": "0.90 m E of the house; 97% of its 6.00 m protection zone, and into its root zone",
     "limit": "Up to 10%, and none in the 2.47 m root zone",
     "note": "More than a minor encroachment needs root investigation by an AQF level 5 arborist, a design change, or the tree marked for removal.",
     "source": {
@@ -7305,7 +7305,7 @@
     "tree": "kept-far",
     "removable": true,
     "status": "fail",
-    "value": "34% of its 3.60 m protection zone, and into its root zone",
+    "value": "12.35 m N of the house; 34% of its 3.60 m protection zone, and into its root zone",
     "limit": "Up to 10%, and none in the 2.00 m root zone",
     "note": "More than a minor encroachment needs root investigation by an AQF level 5 arborist, a design change, or the tree marked for removal.",
     "source": {
@@ -7348,7 +7348,7 @@
     "tree": "next-door",
     "removable": false,
     "status": "fail",
-    "value": "19% of its 6.00 m protection zone",
+    "value": "8.90 m E of the house; 20% of its 6.00 m protection zone",
     "limit": "Up to 10%, and none in the 2.47 m root zone",
     "note": "More than a minor encroachment needs root investigation by an AQF level 5 arborist or a design change. It’s the neighbour’s tree, so removing it is theirs to apply for, not yours.",
     "source": {
@@ -7572,7 +7572,7 @@
     "tree": "kept-near",
     "removable": true,
     "status": "fail",
-    "value": "0.90 m from the house; 97% of its 6.00 m protection zone",
+    "value": "0.90 m E of the house; 97% of its 6.00 m protection zone",
     "limit": "3.00 m from the trunk",
     "note": "The house must be at least 3 m from every protected tree on the lot or next door. Driveways, paths and paving may come closer if they cut or fill no more than 150 mm.",
     "source": {
@@ -7587,7 +7587,7 @@
     "tree": "kept-far",
     "removable": true,
     "status": "warn",
-    "value": "12.35 m from the house; 34% of its 3.60 m protection zone",
+    "value": "12.35 m N of the house; 34% of its 3.60 m protection zone",
     "limit": "3.00 m from the trunk",
     "note": "Clear of the 3 m, but inside the tree’s AS 4970 protection zone: expect the arborist to ask for protection or a design change.",
     "source": {
@@ -7630,7 +7630,7 @@
     "tree": "next-door",
     "removable": false,
     "status": "warn",
-    "value": "8.90 m from the house; 19% of its 6.00 m protection zone",
+    "value": "8.90 m E of the house; 20% of its 6.00 m protection zone",
     "limit": "3.00 m from the trunk",
     "note": "Clear of the 3 m, but inside the tree’s AS 4970 protection zone: expect the arborist to ask for protection or a design change.",
     "source": {

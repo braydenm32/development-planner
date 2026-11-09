@@ -1,4 +1,5 @@
 import { usePlan } from '../plan/store'
+import { locationForCouncil } from '../sun/location'
 import { checkSettingsOf, switchCouncil, type Council } from './councils'
 import type { CheckSettings, CouncilId, Pathway } from './types'
 
@@ -23,10 +24,17 @@ export function setCheckSettings(patch: Partial<CheckSettings>) {
   usePlan.getState().commit(p => ({ ...p, checks: { ...checkSettingsOf(p.checks), ...patch } }))
 }
 
-/** Switch a council's rules on (switching any other off) or off, as one undoable step. */
+/**
+ * Switch a council's rules on (switching any other off) or off, as one undoable step. Switching
+ * one on also puts the sun at its town (Site › Sun), unless another place was picked there, so the
+ * DA checks and the shadows are for the same place.
+ */
 export function setCouncil(id: CouncilId, on: boolean) {
   usePlan.getState().commit(p => {
     const s = checkSettingsOf(p.checks)
-    return { ...p, checks: { ...s, ...switchCouncil(s, id, on) } }
+    const next = { ...p, checks: { ...s, ...switchCouncil(s, id, on) } }
+    if (!on) return next
+    const location = locationForCouncil(p, id)
+    return location ? { ...next, location } : next
   })
 }

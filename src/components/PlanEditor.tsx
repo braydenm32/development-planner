@@ -69,6 +69,7 @@ import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan }
 import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
+import { undoTarget } from '../shell/undoTarget'
 import { useSectionMarks } from '../sections/SectionMarks'
 import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
@@ -1424,15 +1425,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       const st = usePlan.getState()
       const mod = e.ctrlKey || e.metaKey
+      // The history the top bar's Undo works on (src/shell/undoTarget.ts): a tree marked for removal from Checks is the site's.
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
-        if (e.shiftKey) st.redo()
-        else st.undo()
+        if (e.shiftKey) undoTarget('redo').redo()
+        else undoTarget('undo').undo()
         return
       }
       if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault()
-        st.redo()
+        undoTarget('redo').redo()
         return
       }
       if (mod) {

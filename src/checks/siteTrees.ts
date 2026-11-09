@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import { pointInPolygon } from '../lib/geom'
 import type { SiteFeature } from '../site/model'
 import { updateFeature, useSiteFeatures, useSiteStore } from '../site/store'
+import { dismissToast, showToast } from '../safety/store'
 import type { CheckTree } from './types'
 
 /** Trees drawn as a point with a trunk size: the ones a protection zone can be worked out for. */
@@ -40,7 +41,27 @@ export function useUnsizedTrees(): number {
   return features.filter(f => f.type === 'tree' && f.geom.kind === 'point' && !f.trunk).length
 }
 
-/** Mark a tree for removal (pending the DA or CDC), or keep it. */
+/**
+ * Mark a tree for removal (pending the DA or CDC), or keep it. It's a step in Site features'
+ * history, which ⌘Z and the top bar's Undo follow (src/shell/undoTarget.ts); the toast's Undo
+ * says so where the row has moved away from under the pointer.
+ */
 export function setTreeRemoval(id: string, remove: boolean): void {
   updateFeature(id, { remove })
+  const after = useSiteStore.getState().data
+  let unsub = () => {}
+  const id = showToast({
+    text: remove ? 'Tree marked for removal.' : 'Tree kept.',
+    undo: () => {
+      const st = useSiteStore.getState()
+      if (st.data === after) st.undo()
+    },
+    settle: () => unsub(),
+  })
+  // Once anything else changes the site features (⌘Z included), the toast's Undo would undo something else: it goes.
+  unsub = useSiteStore.subscribe(s => {
+    if (s.data === after) return
+    unsub()
+    dismissToast(id)
+  })
 }

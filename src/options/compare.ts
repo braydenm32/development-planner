@@ -3,6 +3,7 @@
 
 import { m2, netText } from '../shell/format'
 import { money } from '../costs/format'
+import { countsWords } from '../checks/rules'
 import type { OptionNumbers } from './numbers'
 
 export interface Row {
@@ -53,26 +54,18 @@ export const ROWS: Row[] = [
     id: 'checks',
     label: 'Checks',
     text: n => checksText(n),
+    note: n => pathwayText(n),
     // Fewest fails, then warnings, then what can't be told yet (a fact missing, or not drawn yet).
     value: n => n.checks.counts.fail * 1000 + n.checks.counts.warn * 100 + n.checks.counts.unknown + n.checks.counts.incomplete,
     best: 'low',
   },
 ]
 
-/** "9 pass · 1 fail · 2 to check · 1 can’t tell yet · 3 not drawn yet" (the summary strip's words for each). */
-export function checksText(n: OptionNumbers): string {
-  const c = n.checks.counts
-  const cant = c.unknown + c.pending
-  return [
-    `${c.pass} pass`,
-    c.fail ? `${c.fail} fail${c.fail > 1 ? 's' : ''}` : null,
-    c.warn ? `${c.warn} to check` : null,
-    cant ? `${cant} can’t tell yet` : null,
-    c.incomplete ? `${c.incomplete} not drawn yet` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
+/** "1 fail · 2 to check · 1 needs a fact · 2 marked for removal · 9 pass": Design › Checks' own summary. */
+export const checksText = (n: OptionNumbers): string => countsWords(n.checks.counts).join(' · ')
+
+/** What the checks were run against: "DA (Wollongong)", or "CDC (Housing Code)". */
+export const pathwayText = (n: OptionNumbers): string => (n.checks.pathway === 'cdc' ? 'CDC (Housing Code)' : `DA (${n.checks.council ?? 'no council’s rules on'})`)
 
 /**
  * Which options hold the best value in a row. Nothing is marked when the row has no better

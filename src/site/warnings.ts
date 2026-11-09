@@ -1,8 +1,12 @@
-import { pointInPolygon, signedArea, unionArea, type Vec2 } from '../lib/geom'
+import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
-import { buildingOutline, planarFaces, wallPolygons } from '../plan/geometry'
-import { areaKind, houseWalls, isRetaining, toSite, type Plan } from '../plan/model'
+import type { Plan } from '../plan/model'
+import { isMajor, overlapArea, treeTitles, worksOf, zoneCover } from '../checks/trees'
 import { featureName, type SiteFeature } from './model'
+
+// The zones and the works in them are worked out once, in src/checks/trees.ts, so these warnings
+// and Design › Checks always give a tree the same share. Re-exported for the code that reads them here.
+export { circlePolygon, levelChanges, MAJOR_ENCROACHMENT, overlapArea, srzRadius, tpzRadius, worksOf, type Works } from '../checks/trees'
 
 /**
  * Warnings about the house and works meeting site features: building over an easement,
@@ -35,99 +39,6 @@ export interface SiteWarning {
   parts?: { works: string; share: number }[]
   /** Trees: the trunk stands outside the block, on the neighbour's land. */
   neighbour?: boolean
-}
-
-/** AS 4970-2009 rule of thumb: the tree protection zone's radius is 12 × trunk diameter (at 1.4 m), kept between 2 m and 15 m. */
-export function tpzRadius(trunk: number): number {
-  return Math.min(15, Math.max(2, 12 * trunk))
-}
-
-/**
- * AS 4970-2009 structural root zone: R = (D × 50)^0.42 × 0.64, at least 1.5 m. D is the trunk
- * diameter just above the root buttress; the trunk diameter at 1.4 m stands in for it.
- */
-export function srzRadius(trunk: number): number {
-  return Math.max(1.5, Math.pow(Math.max(trunk, 0) * 50, 0.42) * 0.64)
-}
-
-/** Over this share of its protection zone, AS 4970-2009 calls the encroachment major. */
-export const MAJOR_ENCROACHMENT = 0.1
-
-/** A circle as a polygon with enough sides that its area is within 0.2% of the circle's. */
-export function circlePolygon(c: Vec2, r: number, n = 96): Vec2[] {
-  const pts: Vec2[] = []
-  for (let i = 0; i < n; i++) {
-    const t = (i / n) * 2 * Math.PI
-    pts.push([c[0] + r * Math.cos(t), c[1] + r * Math.sin(t)])
-  }
-  return pts
-}
-
-/** Area where a polygon and a set of polygons overlap: |A| + |∪W| − |A ∪ W|, all exact. */
-export function overlapArea(a: Vec2[], with_: Vec2[][]): number {
-  const ws = with_.filter(w => w.length >= 3)
-  if (a.length < 3 || !ws.length) return 0
-  const v = Math.abs(signedArea(a)) + unionArea(ws) - unionArea([a, ...ws])
-  return v > 1e-6 ? v : 0
-}
-
-export interface Works {
-  name: string
-  /** Outlines in the survey's local frame. */
-  polys: Vec2[][]
-}
-
-/** What is being built, in the survey's local frame: the house, slabs, decks, driveways and retaining walls. */
-export function worksOf(plan: Plan, origin: Vec2): Works[] {
-  const site = (ring: Vec2[]) => ring.map(p => toSite(p, plan.placement, origin))
-  const out: Works[] = []
-  const house = plan.levels.flatMap(l => buildingOutline(planarFaces(houseWalls(plan.walls.filter(w => w.level === l.id)))).outlines).map(site)
-  if (house.length) out.push({ name: 'The house', polys: house })
-  const names = { slab: 'Slab', deck: 'Deck', driveway: 'Driveway' } as const
-  for (const kind of ['slab', 'deck', 'driveway'] as const) {
-    for (const a of plan.areas.filter(x => areaKind(x) === kind)) out.push({ name: a.name?.trim() || names[kind], polys: [site(a.pts)] })
-  }
-  const retaining = [...wallPolygons(plan.walls.filter(isRetaining)).values()].map(site)
-  if (retaining.length) out.push({ name: 'Retaining wall', polys: retaining })
-  return out
-}
-
-/** Change in ground level that counts as digging or filling (m). */
-const LEVEL_CHANGE = 0.05
-
-/**
- * Where the ground is cut or filled, within a box, as strips of grid cells (local frame).
- * Pads, batters and anything else the earthworks reshape.
- */
-export function levelChanges(natural: Heightfield, finished: Heightfield, box: { minX: number; minY: number; maxX: number; maxY: number }): Vec2[][] {
-  const { cell, x0, y0, nx, ny } = finished
-  const out: Vec2[][] = []
-  const h = cell / 2
-  const i0 = Math.max(0, Math.floor((box.minX - x0) / cell))
-  const i1 = Math.min(nx - 1, Math.ceil((box.maxX - x0) / cell))
-  const j0 = Math.max(0, Math.floor((box.minY - y0) / cell))
-  const j1 = Math.min(ny - 1, Math.ceil((box.maxY - y0) / cell))
-  for (let j = j0; j <= j1; j++) {
-    const y = y0 + j * cell
-    let run = -1
-    for (let i = i0; i <= i1 + 1; i++) {
-      const x = x0 + i * cell
-      const changed = i <= i1 && Math.abs(finished.at(i, j) - natural.sample(x, y)) > LEVEL_CHANGE
-      if (changed && run < 0) run = i
-      if (!changed && run >= 0) {
-        const xa = x0 + run * cell - h
-        const xb = x0 + (i - 1) * cell + h
-        out.push([
-          [xa, y - h],
-          [xb, y - h],
-          [xb, y + h],
-          [xa, y + h],
-        ])
-        run = -1
-      }
-    }
-  }
-  return out
 }
 
 /** "Deck" stays "Deck" mid-sentence only when it reads as a name: "BBQ" does, "Open area" becomes "open area". */
@@ -175,6 +86,10 @@ export function siteWarnings(
   if (!plan) return []
   const works = worksOf(plan, origin)
   const out: SiteWarning[] = []
+  const isNeighbours = (at: Vec2) => !!boundary && boundary.length >= 3 && !pointInPolygon(at[0], at[1], boundary)
+  // The trees' names as Design › Checks gives them, so "Planted tree" isn't "Tree Planted tree" and two alike are numbered.
+  const zoned = features.filter(f => f.type === 'tree' && f.geom.kind === 'point' && f.trunk)
+  const titles = new Map(treeTitles(zoned.map(f => ({ label: f.label ?? '', neighbour: f.geom.kind === 'point' && isNeighbours(f.geom.at) }))).map((t, i) => [zoned[i].id, t.replace(/’/g, "'")]))
   for (const f of features) {
     if (f.type === 'easement' && f.geom.kind === 'area') {
       const pts = f.geom.pts
@@ -198,37 +113,21 @@ export function siteWarnings(
     }
     if (f.type === 'tree' && f.geom.kind === 'point' && !f.remove && f.trunk) {
       const at = f.geom.at
-      const r = tpzRadius(f.trunk)
-      const zone = circlePolygon(at, r)
-      const zoneArea = Math.abs(signedArea(zone))
-      const box = { minX: at[0] - r, minY: at[1] - r, maxX: at[0] + r, maxY: at[1] + r }
-      const all: Works[] = [...works]
-      const dug = ground ? levelChanges(ground.natural, ground.finished, box) : []
-      if (dug.length) all.push({ name: 'Cut and fill', polys: dug })
-      const hits = all.map(w => ({ w, overlap: overlapArea(zone, w.polys) })).filter(x => x.overlap >= 0.01)
-      if (!hits.length) continue
-      // Each works' part: what it adds to the zone's cover over the works named before it, so
-      // the parts add up to the whole and the house's footprint isn't counted again as cut and fill.
-      const parts: { works: string; overlap: number }[] = []
-      let covered = 0
-      for (let i = 0; i < hits.length; i++) {
-        const upTo = i === 0 ? hits[0].overlap : overlapArea(zone, hits.slice(0, i + 1).flatMap(x => x.w.polys))
-        parts.push({ works: hits[i].w.name, overlap: Math.max(0, upTo - covered) })
-        covered = Math.max(covered, upTo)
-      }
-      // The share of the zone under any of the works, counting overlaps between them once.
-      const overlap = covered
-      const share = overlap / zoneArea
-      const sr = srzRadius(f.trunk)
-      const srzHits = hits.filter(x => overlapArea(circlePolygon(at, sr, 48), x.w.polys) >= 0.01).map(x => x.w.name)
-      const severity = share > MAJOR_ENCROACHMENT || srzHits.length ? 'attn' : 'note'
-      const neighbour = !!boundary && boundary.length >= 3 && !pointInPolygon(at[0], at[1], boundary)
+      // The same cover Design › Checks measures (src/checks/trees.ts).
+      const z = zoneCover(at, f.trunk, works, ground)
+      if (!z.parts.length) continue
+      const { tpz: r, srz: sr, zoneArea, share, srzHits } = z
+      const overlap = share * zoneArea
+      const severity = isMajor(share, srzHits.length > 0) ? 'attn' : 'note'
+      const neighbour = isNeighbours(at)
       const tree = neighbour ? "neighbour's tree" : 'tree'
-      const whose = f.label ? `${tree[0].toUpperCase()}${tree.slice(1)} ${f.label}'s` : `A ${tree}'s`
-      const shown = parts.filter(x => x.overlap >= 0.01)
-      const pcts = splitPercents(share, shown.map(x => x.overlap / zoneArea))
-      const split = shown.length > 1 ? ` (${shown.map((x, i) => `${shortName(x.works)} ${pcts[i] ? `${pcts[i]}%` : 'under 1%'}`).join(', ')})` : ` (${shortName(shown[0]?.works ?? hits[0].w.name)})`
-      const who = joinNames(hits.map(x => x.w.name))
+      const title = titles.get(f.id)!
+      // An unnamed tree on its own is "a tree"; otherwise it goes by its name.
+      const whose = !f.label && title.toLowerCase() === tree ? `A ${tree}'s` : `${title}'s`
+      const shown = z.parts.filter(x => x.overlap >= 0.01)
+      const pcts = splitPercents(share, shown.map(x => x.share))
+      const split = shown.length > 1 ? ` (${shown.map((x, i) => `${shortName(x.works)} ${pcts[i] ? `${pcts[i]}%` : 'under 1%'}`).join(', ')})` : ` (${shortName(shown[0]?.works ?? z.parts[0].works)})`
+      const who = joinNames(z.parts.map(x => x.works))
       out.push({
         id: `${f.id}|tpz`,
         kind: 'tree',
@@ -242,14 +141,14 @@ export function siteWarnings(
           (neighbour ? "The trunk is over the boundary, so it is the neighbour's tree; its roots are protected on your side all the same. " : '') +
           (srzHits.length
             ? `${joinNames(srzHits)} reach${srzHits.length === 1 ? 'es' : ''} the structural root zone, which usually rules works out there. `
-            : share > MAJOR_ENCROACHMENT
+            : severity === 'attn'
               ? 'Over 10% is a major encroachment: an arborist usually has to show the tree will survive. '
               : 'Under 10% and clear of the structural root zone is usually a minor encroachment. ') +
           'Check with an arborist and council: trees 5 m or taller are usually protected.',
         overlap,
         share,
         srz: srzHits.length > 0,
-        parts: shown.map(x => ({ works: x.works, share: x.overlap / zoneArea })),
+        parts: shown.map(x => ({ works: x.works, share: x.share })),
         neighbour,
       })
     }
