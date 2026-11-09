@@ -26,6 +26,7 @@ import { usePlan } from '../../plan/store'
 import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
+import { goToStreetSide } from '../../phone/streetSideWords'
 import '../../checks/checks.css'
 
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
@@ -405,6 +406,13 @@ function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: 
             options={edgeOptions}
             onChange={v => setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })}
           />
+          <p className="muted small">
+            The same as the street side in{' '}
+            <button className="link" onClick={goToStreetSide}>
+              Site › Block
+            </button>
+            , which Street view in 3D looks from.
+          </p>
           <Select
             label="Rear"
             value={m.edges.find(e => e.role === 'rear')?.index ?? -1}

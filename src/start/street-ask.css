@@ -1,0 +1,88 @@
+/* "Which side faces the street?": docked beside the block rather than over it, with the side
+   picked (and the one pointed at) drawn on the plan. */
+
+.plan-editor .flow-card.street-ask {
+  top: 64px;
+  right: 84px;
+  bottom: auto;
+  left: auto;
+  width: 300px;
+  transform: none;
+}
+
+.plan-editor .street-ask .street-choices {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plan-editor .street-ask .flow-choice {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.plan-editor .street-ask .flow-choice.on {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.plan-editor .street-ask .street-low {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* The sides on the plan: the one picked, and the one pointed at. */
+.plan-editor .street-edge {
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-opacity: 0.35;
+  pointer-events: none;
+}
+
+.plan-editor .street-edge.picked {
+  stroke-opacity: 0.9;
+}
+
+/* A side can be clicked while the question is up. */
+.plan-editor .plan-svg.street-hover {
+  cursor: pointer;
+}
+
+/* Phones: a low sheet at the foot of the plan, the sides two to a row, so the block stays in view above it. */
+@media (max-width: 760px) {
+  .plan-editor .flow-card.street-ask {
+    top: auto;
+    right: auto;
+    bottom: 12px;
+    left: 50%;
+    width: calc(100% - 24px);
+    max-height: 46%;
+    transform: translateX(-50%);
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  /* Clear of the note about what the import found, while it shows. */
+  body:has(.sf-toast) .plan-editor .flow-card.street-ask {
+    bottom: 150px;
+  }
+
+  .plan-editor .street-ask header p {
+    display: none;
+  }
+
+  .plan-editor .street-ask .street-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-editor .street-ask .flow-choice {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 6px 10px;
+  }
+}

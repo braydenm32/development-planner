@@ -1,12 +1,12 @@
 // Sheets that follow the finger: how far down closes one, and the street side picker in
-// Site › 3D, which turns Street view to the side picked.
+// Site › Block, which Street view in 3D looks from.
 
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { useCamera } from '../cameraStore'
 import { release, sheetOffset, SHEETS, shouldClose, shouldGrow } from '../sheetDrag'
-import { StreetSidePicker } from '../StreetSide'
+import { StreetSideField, StreetSideLink } from '../StreetSide'
 import { usePlan } from '../../plan/store'
 import { withStreetSide } from '../../plan/streetSide'
 import { house, loadBlock, words } from './block'
@@ -79,17 +79,18 @@ describe('the street side', () => {
   const { survey, terrain } = loadBlock()
 
   it('starts on the low side, and says which way that faces', () => {
-    const html = renderToStaticMarkup(<StreetSidePicker survey={survey} terrain={terrain} />)
-    expect(words(html)).toContain('The low side faces north.')
-    expect(html).toMatch(/<button class="on" aria-pressed="true">Low side<\/button>/)
+    const html = renderToStaticMarkup(<dl><StreetSideField survey={survey} terrain={terrain} /></dl>)
+    expect(html).toMatch(/<option value="auto" selected="">Auto \(low side: north\)<\/option>/)
+    expect(words(renderToStaticMarkup(<StreetSideLink survey={survey} terrain={terrain} />))).toContain('Street view looks from the north side (the low side, until you set it).')
   })
 
   it("shows the plan's street side, the one the checks use", () => {
     usePlan.getState().load(withStreetSide(house(), survey.boundary, 'E'))
     // A static render reads the store's server snapshot, its initial state.
     Object.assign(usePlan.getInitialState(), usePlan.getState())
-    const html = renderToStaticMarkup(<StreetSidePicker survey={survey} terrain={terrain} />)
-    expect(html).toMatch(/<button class="on" aria-pressed="true">E<\/button>/)
+    const html = renderToStaticMarkup(<dl><StreetSideField survey={survey} terrain={terrain} /></dl>)
+    expect(html).toMatch(/<option value="E" selected="">East side<\/option>/)
+    expect(words(renderToStaticMarkup(<StreetSideLink survey={survey} terrain={terrain} />))).toContain('Street view looks from the east side.')
     expect(usePlan.getState().plan?.checks?.frontEdge).toBe(1)
     usePlan.getState().load(null)
     Object.assign(usePlan.getInitialState(), usePlan.getState())

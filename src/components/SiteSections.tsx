@@ -1,6 +1,7 @@
 // The Site area's sections: the block's facts, the survey's warnings, the 3D view's settings
 // and the survey layers. Site › Block, Site › 3D and Site's More render them (src/shell/tabs).
 
+import { useState, type ReactNode } from 'react'
 import type { LayerInfo, LayerRole, Survey } from '../lib/survey'
 import { FEATURE_ROLES, ROLE_LABELS, SURVEY_ROLES } from '../lib/survey'
 import type { ViewSettings } from '../lib/storage'
@@ -20,8 +21,8 @@ function describeLayer(l: LayerInfo): string {
 
 const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })
 
-/** Site area, perimeter, RL range, fall and slope. */
-export function SiteFacts({ stats }: { stats: SiteStats }) {
+/** Site area, perimeter, RL range, fall and slope; `children` are more rows after which way it falls (Site › Block's street side). */
+export function SiteFacts({ stats, children }: { stats: SiteStats; children?: ReactNode }) {
   return (
     <dl className="stats">
       <dt>Area</dt>
@@ -42,6 +43,7 @@ export function SiteFacts({ stats }: { stats: SiteStats }) {
       <dd>{fmt(stats.maxSlopePct, 0)}%</dd>
       <dt>Falls towards</dt>
       <dd>{stats.maxSlopePct < 0.05 ? 'Level (no fall)' : `${bearingName(stats.fallBearing)} (${fmt(stats.fallBearing, 0)}°)`}</dd>
+      {children}
     </dl>
   )
 }
@@ -118,6 +120,9 @@ export function ResetCameraButton({ onReset }: { onReset: () => void }) {
   )
 }
 
+/** Past this many layers, the rest wait behind a link, so a long list doesn't push everything else away. */
+export const LAYERS_SHOWN = 5
+
 export function SurveyLayers({
   layers,
   roles,
@@ -130,6 +135,13 @@ export function SurveyLayers({
   /** The survey these layers make, to say what they gave. */
   survey?: Survey | null
 }) {
+  const [all, setAll] = useState(false)
+  // The layers the planner uses come first; ignored ones (labels, title blocks) after them.
+  const used = (l: LayerInfo) => (roles[l.name] ?? 'ignore') !== 'ignore'
+  const ordered = [...layers.filter(used), ...layers.filter(l => !used(l))]
+  const cut = !all && ordered.length > LAYERS_SHOWN + 1
+  const shown = cut ? ordered.slice(0, LAYERS_SHOWN) : ordered
+  const rest = ordered.slice(LAYERS_SHOWN)
   return (
     <>
       {survey && (
@@ -137,7 +149,7 @@ export function SurveyLayers({
       )}
       <p className="muted">Tell the planner what each layer in your survey file holds: the ground, or site features such as trees and easements.</p>
       <ul className="layers">
-        {layers.map(l => (
+        {shown.map(l => (
           <li key={l.name}>
             <div>
               <span className="layer-name">{l.name}</span>
@@ -162,6 +174,11 @@ export function SurveyLayers({
           </li>
         ))}
       </ul>
+      {cut && (
+        <button type="button" className="link layers-more" onClick={() => setAll(true)}>
+          Show the other {rest.length} layers{rest.every(l => !used(l)) ? ', all ignored' : ''}
+        </button>
+      )}
     </>
   )
 }

@@ -741,23 +741,6 @@ body:has(.app-shell.phone) {
   }
 }
 
-/* Site › 3D: which side the street is on */
-.app-shell .street-side {
-  margin: 14px 0;
-}
-.app-shell .street-side h3 {
-  margin: 0 0 4px;
-  font-size: 13px;
-}
-.app-shell .street-side .segmented {
-  display: inline-flex;
-  margin-top: 8px;
-}
-.app-shell .street-side .segmented button {
-  min-width: 40px;
-  min-height: 32px;
-}
-
 /* ---- Share on a phone: the two files first, one tap each ---- */
 
 .app-shell .share-first {

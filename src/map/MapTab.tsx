@@ -1,14 +1,18 @@
-// Site › Map: put the survey on the NSW map. Find the lot (an address, a Lot and DP, or a tap on
+// Site › Map: put the survey on the NSW map. Find the lot (an address, a Lot and DP, or a click on
 // the aerial), fit the survey's boundary to it, nudge it if needed, and read what the NSW planning
-// maps say about the lot. The aerial photo and the lot's lines then show under the plan, and the
-// land's flags join Design › Checks.
+// maps say about the lot. While the lot is being found the aerial fills the canvas, beside the
+// panel; once it's placed the photo and the lot's lines show under the plan, and the land's flags
+// join Design › Checks.
 
 import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { tabRoute } from '../nav/route'
+import { SKETCH_SIZE_ID } from '../start/SketchNotice'
 import { activeCouncil, checkSettingsOf, councilFor } from '../checks/councils'
 import { setCheckSettings, setCouncil } from '../checks/settings'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
-import { navigate } from '../nav/router'
+import { navigate, useRouter } from '../nav/router'
 import { usePlan } from '../plan/store'
 import { useShell } from '../shell/context'
 import { gridToMga } from './fit'
@@ -21,7 +25,7 @@ import { LotSearch } from './LotSearch'
 import { StateGround } from './StateGround'
 import { PLANNING_CREDIT, type Lot } from './services'
 import { adjustPlace, placeOnLot, refreshPlanning, removePlace, setMapOptions, useMap, type SurveyOutline } from './store'
-import { fitWords } from './words'
+import { fitWords, pointWord } from './words'
 import './map.css'
 
 /** Wollongong, where the app starts looking. */
@@ -37,6 +41,9 @@ export function MapTab() {
   const [found, setFound] = useState<Lot[]>([])
   const [picked, setPicked] = useState<Lot | null>(null)
   const [moving, setMoving] = useState(!place)
+  const [trouble, setTrouble] = useState(false)
+  const canvas = useCanvasHost()
+  const sketch = isSketch(project)
 
   if (!survey) return <p className="muted">The survey needs to open before it can go on the map.</p>
   const outline = outlineOf(survey)
@@ -69,7 +76,24 @@ export function MapTab() {
             Find your block to see it on the aerial photo and read its zone and hazards from the NSW planning maps. What you type, and where the block is, go to NSW Government map services; nothing else leaves this browser.
           </p>
           <LotSearch onLots={show} />
-          <MapPicker view={view} onView={setView} lots={found} selected={picked?.id ?? place?.lot.id ?? null} onPick={pick} />
+          {trouble && (
+            <p className="notice small map-trouble" role="alert">
+              The map isn’t loading: this browser can’t reach the NSW map service just now. Check the connection, or try again in a minute.
+              {sketch && (
+                <>
+                  {' '}
+                  <button className="link" onClick={() => navigate(tabRoute(useRouter.getState().route, 'site', 'block'), { focus: SKETCH_SIZE_ID })}>
+                    Sketch the block instead
+                  </button>
+                </>
+              )}
+            </p>
+          )}
+          {(() => {
+            const map = <MapPicker view={view} onView={setView} lots={found} selected={picked?.id ?? place?.lot.id ?? null} onPick={pick} height={canvas ? 'fill' : 300} onTrouble={setTrouble} />
+            // On the canvas beside the panel, where there's room to find the lot; in the panel if the canvas isn't there.
+            return canvas ? createPortal(<div className="map-canvas">{map}</div>, canvas) : map
+          })()}
           {picked ? (
             <div className="map-picked">
               <b>{picked.label}</b>
@@ -88,7 +112,7 @@ export function MapTab() {
               )}
             </div>
           ) : (
-            <p className="muted small">Tap your lot on the map to pick it.</p>
+            <p className="muted small">{pointWord()} your lot on the map to pick it.</p>
           )}
           {place && (
             <div className="row">
@@ -101,6 +125,13 @@ export function MapTab() {
       )}
     </div>
   )
+}
+
+/** The canvas the panel floats over, for the map to fill while the lot is being found. */
+function useCanvasHost(): HTMLElement | null {
+  // The panel renders inside it, so it's there by the time the panel's tab opens.
+  const [host] = useState(() => (typeof document === 'undefined' ? null : document.querySelector<HTMLElement>('.shell-main.viewport')))
+  return host
 }
 
 function Placed({ place, outline, view, onView, onMove, fromLot }: { place: MapPlace; outline: SurveyOutline; view: MapViewState; onView: (v: MapViewState) => void; onMove: () => void; fromLot: boolean }) {

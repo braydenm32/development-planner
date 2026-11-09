@@ -13,3 +13,8 @@ export function fitWords(p: MapPlace): { text: string; loose: boolean } {
   }
 }
 
+
+/** The word for picking something on the map: Tap with a finger, Click with a mouse. */
+export function pointWord(): 'Tap' | 'Click' {
+  return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'
+}

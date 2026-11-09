@@ -1,0 +1,45 @@
+/* Site › Block and Site › 3D */
+
+/* The street side, as a row of the block's facts */
+.app-shell .stats .street-side-pick {
+  width: 100%;
+  max-width: 200px;
+  height: 30px;
+  padding: 0 6px;
+  font: inherit;
+  font-weight: 500;
+  text-align: right;
+}
+
+.app-shell .stats dt label {
+  cursor: pointer;
+}
+
+.app-shell .street-side-link {
+  margin: 14px 0;
+}
+
+/* "Survey layers: 5 guesses", until they've been looked at */
+.app-shell .layer-guesses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.app-shell .layer-guesses .badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* Survey layers: the rest of a long list, behind a link */
+.app-shell .layers-more {
+  margin-top: 8px;
+}
