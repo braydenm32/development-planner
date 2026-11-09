@@ -395,7 +395,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       rows.push(['Retaining wall face', `${profiles.reduce((t, p) => t + p.faceArea, 0).toFixed(1)} m²`])
     }
     // Grade along each driveway on the finished ground, as its panel shows it.
-    const drives = plan.areas.filter(a => a.level === ground?.id && areaKind(a) === 'driveway')
+    const drives = plan.areas.filter(a => areaKind(a) === 'driveway')
     for (const a of drives) {
       const name = drives.length > 1 ? `${a.name}: ` : ''
       // Built to its own levels: the grade between them, as Earthworks › Driveway shows it.

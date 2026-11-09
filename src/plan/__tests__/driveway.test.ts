@@ -299,3 +299,41 @@ describe('street end levels', () => {
     expect(nearestKerbPoint([], [9, 2])).toBeNull()
   })
 })
+
+/**
+ * The same house and drive on a made-up split level: the garage and the drive on its upper level,
+ * with a lower wing 1.5 m down behind it (to the north), so the garage's level isn't the lowest.
+ */
+function onUpperLevel(plan: Plan): Plan {
+  const low = 'level_low'
+  const c: Vec2[] = [
+    [0, 9],
+    [10, 9],
+    [10, 15],
+    [0, 15],
+  ]
+  let p: Plan = { ...plan, levels: [{ id: low, name: 'Lower level', elevation: -1.5, height: 2.7 }, ...plan.levels] }
+  for (let i = 0; i < 4; i++) p = addWall(p, low, c[i], c[(i + 1) % 4], style)
+  return p
+}
+
+describe('a driveway on an upper split level', () => {
+  const drive: DriveLevels = { street: { rl: 81, from: 'typed' }, garage: 'slab' }
+
+  it('is graded by the cut and fill just as on the lowest level', () => {
+    const { plan } = site(drive)
+    const [flat] = drivewayPlatforms(plan, origin, boundary)
+    const [upper] = drivewayPlatforms(onUpperLevel(plan), origin, boundary)
+    expect(upper).toBeDefined()
+    expect(upper).toEqual(flat)
+  })
+
+  it('reads the same grade between its levels', () => {
+    const { plan, area } = site(drive)
+    const split = onUpperLevel(plan)
+    const flat = driveDesign(plan, area, driveEndPoints(plan, area, origin, boundary)!, graded(plan).ground)!
+    const upper = driveDesign(split, area, driveEndPoints(split, area, origin, boundary)!, graded(split).ground)!
+    expect(upper.garage).toBe(84)
+    expect(upper.grade.average).toBeCloseTo(flat.grade.average, 6)
+  })
+})

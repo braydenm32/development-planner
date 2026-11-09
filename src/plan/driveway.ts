@@ -8,7 +8,7 @@ import { otherGroundAt, setsGroundAt, type EarthworksResult, type Platform, type
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { SurveyPoint } from '../lib/survey'
 import { buildingOutline, planarFaces } from './geometry'
-import { areaKind, floorRL, sortedLevels, toSite, type Area, type DriveLevels, type Plan } from './model'
+import { areaKind, floorRL, houseWalls, toSite, type Area, type DriveLevels, type Plan } from './model'
 
 export { MAX_DRIVE_GRADE }
 
@@ -33,11 +33,14 @@ export function distToRings(p: Vec2, rings: Vec2[][]): number {
   return best
 }
 
-/** The ground floor's outline in the survey's local frame. */
+/**
+ * The house's outline on every level, in the survey's local frame. On a split level the garage a
+ * drive serves can be on any of them, and each sits on its own part of the ground.
+ */
 export function houseRings(plan: Plan, origin: Vec2): Vec2[][] {
-  const lowest = sortedLevels(plan)[0]
-  if (!lowest) return []
-  return buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines.map(r => r.map(p => toSite(p, plan.placement, origin)))
+  return plan.levels.flatMap(l =>
+    buildingOutline(planarFaces(houseWalls(plan.walls.filter(w => w.level === l.id)))).outlines.map(r => r.map(p => toSite(p, plan.placement, origin))),
+  )
 }
 
 export interface DriveEndPoints {
@@ -111,16 +114,16 @@ export function driveGround(earth: { prep: PreparedEarthworks; result: Earthwork
 }
 
 /**
- * The ground to grade for each driveway on the lowest level with a level at either end: a ramp
+ * The ground to grade for each driveway with a level at either end, whichever level it's drawn
+ * on (a drive is always on the ground; its ends' levels set it): a ramp
  * between its ends' levels along its long axis, flat across, with batters to the natural ground
  * at its edges. It gives way to the house pad and the level ground beside retaining walls.
  * An end without a level follows the finished ground there. In the survey's local frame.
  */
 export function drivewayPlatforms(plan: Plan, origin: Vec2, boundary: Vec2[]): Platform[] {
-  const lowest = sortedLevels(plan)[0]
   const out: Platform[] = []
   for (const area of plan.areas) {
-    if (areaKind(area) !== 'driveway' || area.level !== lowest?.id) continue
+    if (areaKind(area) !== 'driveway') continue
     const street = streetRL(area.drive)
     const garage = garageRL(plan, area.drive)
     if (street === null && garage === null) continue

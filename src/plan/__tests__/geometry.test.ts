@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { signedArea } from '../../lib/geom'
 import { buildingOutline, planarFaces, roomShape, wallPieces, wallPolygons } from '../geometry'
 import { fromSite, toSite, type Wall } from '../model'
-import { garageFloor } from './fixtures'
+import { houseBounds, planBounds } from '../ops'
+import { garageFloor, splitLevels } from './fixtures'
 
 const w = (id: string, a: [number, number], b: [number, number], thickness = 0.2): Wall => ({
   id,
@@ -87,6 +88,25 @@ describe('openings', () => {
       { s0: 2.9, s1: 4.1, z0: 2.1, z1: 2.7 },
       { s0: 4.1, s1: 5, z0: 0, z1: 2.7 },
     ].map(p => ({ ...p, s0: expect.closeTo(p.s0, 9), s1: expect.closeTo(p.s1, 9), z0: expect.closeTo(p.z0, 9), z1: expect.closeTo(p.z1, 9) })))
+  })
+})
+
+describe('house bounds (Fit house)', () => {
+  it('frame the house walls on every level, not a far-off driveway, a lawn or a retaining wall', () => {
+    const p = splitLevels()
+    const drive = { id: 'drive', level: 'level_low', name: 'Driveway', kind: 'driveway' as const, pts: [[20, -30], [24, -30], [24, 0], [20, 0]] as [number, number][] }
+    const lawn = { id: 'lawn', level: 'level_top', name: 'Lawn', kind: 'garden' as const, pts: [[-20, 20], [-5, 20], [-5, 35], [-20, 35]] as [number, number][] }
+    const retaining = { id: 'rw', level: 'level_low', a: [-15, -5] as [number, number], b: [-15, 15] as [number, number], thickness: 0.2, kind: 'retaining' as const }
+    const plan = { ...p, areas: [...p.areas, drive, lawn], walls: [...p.walls, retaining] }
+    expect(houseBounds(plan)).toEqual({ minX: 0, minY: 0, maxX: 8, maxY: 12 })
+    // Everything drawn reaches the drive and the lawn.
+    expect(planBounds(plan)).toMatchObject({ minX: -20, minY: -30, maxX: 24, maxY: 35 })
+  })
+
+  it('fall back to everything drawn before there are house walls', () => {
+    const p = splitLevels()
+    const plan = { ...p, walls: [], stairs: [] }
+    expect(houseBounds(plan)).toEqual(planBounds(plan))
   })
 })
 
