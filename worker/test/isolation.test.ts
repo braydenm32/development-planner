@@ -1,5 +1,6 @@
 // One person can't reach another's data, whatever they know or guess: their projects (by id),
-// their records (by hash, in D1 or KV), their share links (by id), or their account. Each test
+// their records (by hash, in D1 or KV), their share links (by id), the comments on those links
+// (by id, or with a link of their own), or their account. Each test
 // has two people on one Worker, Ana and Ben, and Ben tries everything he can with what he knows of
 // Ana's; at the end Ana's rows and KV keys are exactly as they were.
 
@@ -7,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { CSRF_HEADER } from '../src/api'
 import { GRACE_MS, INLINE_MAX } from '../src/projects'
 import { post } from './fakes'
-import { linkBlob, meta, openLink, person, rowsOf, server } from './people'
+import { commenter, linkBlob, meta, openLink, person, pin, rowsOf, server } from './people'
 
 /** Ana with a project holding a small record (kept in D1) and a large one (kept in KV), and a share link to it. */
 async function twoPeople() {
@@ -88,6 +89,46 @@ describe('keeping each person’s data to themselves', () => {
     expect((await ben.fetch(`/api/projects/p_home/shares/${link.id}/extend`, post({}))).status).toBe(404)
     expect(rowsOf(s, ana.id)).toEqual(before)
     expect((await openLink(s, link.token)).status).toBe(200)
+  })
+
+  it('doesn’t list, resolve, delete or change the comments on another person’s links', async () => {
+    const { s, ana, ben } = await twoPeople()
+    const open = await ana.share('p_home', { comments: 'all' })
+    const id = (await (await commenter(s, open.token).add(pin('For Ana only'))).json()).comment.id
+    const before = rowsOf(s, ana.id)
+    const tryAll = async () => {
+      expect(await (await ben.fetch('/api/projects/p_home/comments')).json()).toEqual({ comments: [], links: {} })
+      expect((await ben.fetch(`/api/projects/p_home/comments/${id}/resolve`, post({}))).status).toBe(404)
+      expect((await ben.fetch(`/api/projects/p_home/comments/${id}/resolve`, post({ resolved: false }))).status).toBe(404)
+      expect((await del(ben.fetch, `/api/projects/p_home/comments/${id}`)).status).toBe(404)
+      expect((await ben.fetch(`/api/projects/p_home/shares/${open.id}/comments`, post({ comments: 'off' }))).status).toBe(404)
+    }
+    await tryAll()
+    // Even with a project of his own by the same id, and links of his own.
+    await ben.save('p_home', 'Ben’s', {})
+    await ben.share('p_home', { comments: 'all' })
+    await tryAll()
+    expect(rowsOf(s, ana.id)).toEqual(before)
+    expect((await (await ana.fetch('/api/projects/p_home/comments')).json()).comments.map((c: { text: string }) => c.text)).toEqual(['For Ana only'])
+  })
+
+  it('shows with a link only that link’s comments, never another link’s or another person’s', async () => {
+    const { s, ana, ben } = await twoPeople()
+    const hers = await ana.share('p_home', { comments: 'all' })
+    const herOther = await ana.share('p_home', { comments: 'all' })
+    await ben.save('p_ben', 'Ben’s', {})
+    const his = await ben.share('p_ben', { comments: 'all' })
+    // One browser comments on all three, with the same token.
+    const token = 'T'.repeat(43)
+    await commenter(s, hers.token, { token }).add(pin('On Ana’s'))
+    await commenter(s, herOther.token, { token, ip: '203.0.113.21' }).add(pin('On Ana’s other'))
+    await commenter(s, his.token, { token, ip: '203.0.113.22' }).add(pin('On Ben’s'))
+    const texts = async (link: string) => (await (await commenter(s, link, { ip: '203.0.113.23' }).list()).json()).comments.map((c: { text: string }) => c.text)
+    expect(await texts(hers.token)).toEqual(['On Ana’s'])
+    expect(await texts(herOther.token)).toEqual(['On Ana’s other'])
+    expect(await texts(his.token)).toEqual(['On Ben’s'])
+    expect((await (await ben.fetch('/api/projects/p_ben/comments')).json()).comments.map((c: { text: string }) => c.text)).toEqual(['On Ben’s'])
+    expect(JSON.stringify(await (await ben.fetch('/api/projects/p_ben/comments')).json())).not.toContain('Ana')
   })
 
   it('opens with a link only that project’s records, never another person’s', async () => {

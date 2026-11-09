@@ -57,7 +57,7 @@ async function project(f: typeof fetch, id: string, name: string, tag = name) {
 }
 
 const DAY = 24 * 60 * 60 * 1000
-type Link = { id: string; created: number; lastOpened: number | null; expires: number | null }
+type Link = { id: string; created: number; lastOpened: number | null; expires: number | null; comments: 'off' | 'own' | 'all' }
 const make = async (f: typeof fetch, id: string, body: Record<string, unknown> = {}) => f(`/api/projects/${id}/shares`, post(body))
 async function link(f: typeof fetch, id: string, body: Record<string, unknown> = {}) {
   const res = await make(f, id, body)
@@ -101,9 +101,10 @@ describe('making share links (signed in)', () => {
     const { token, link: l } = await link(s.fetch, 'p_house')
     // 32 random bytes, base64url: well past 128 bits.
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    expect(l).toEqual({ id: hashOf(token), created: s.clock.now, lastOpened: null, expires: s.clock.now + 30 * DAY })
+    // Comments are off unless asked for (worker/test/comments.test.ts).
+    expect(l).toEqual({ id: hashOf(token), created: s.clock.now, lastOpened: null, expires: s.clock.now + 30 * DAY, comments: 'off' })
     const rows = s.env.DB.sqlite.prepare('SELECT * FROM share_links').all() as Record<string, unknown>[]
-    expect(rows).toEqual([{ token_hash: hashOf(token), user_id: s.user.id, project_id: 'p_house', created: s.clock.now, revoked: null, last_opened: null, expires: s.clock.now + 30 * DAY }])
+    expect(rows).toEqual([{ token_hash: hashOf(token), user_id: s.user.id, project_id: 'p_house', created: s.clock.now, revoked: null, last_opened: null, expires: s.clock.now + 30 * DAY, comments: 0 }])
     expect(JSON.stringify(rows)).not.toContain(token)
     // Each link is its own.
     const second = await link(s.fetch, 'p_house')
@@ -119,7 +120,7 @@ describe('making share links (signed in)', () => {
     expect((await list(s.fetch, 'p_a')).map(l => l.id)).toEqual([second.link.id, first.link.id])
     await viewer(s).open(first.token)
     const [, opened] = await list(s.fetch, 'p_a')
-    expect(opened).toEqual({ id: first.link.id, created: first.link.created, lastOpened: s.clock.now, expires: first.link.expires })
+    expect(opened).toEqual({ id: first.link.id, created: first.link.created, lastOpened: s.clock.now, expires: first.link.expires, comments: 'off' })
   })
 
   it('needs the project in the cloud, the session and the app’s header', async () => {

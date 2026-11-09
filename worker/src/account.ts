@@ -5,7 +5,8 @@
 //            those 30 days (passkey or recovery code) still works, to keep it.
 //   keep     signed in, within the 30 days → as it was: saving and its links work again.
 //   purge    hourly (the Worker's cron trigger): accounts past their 30 days go for good, with
-//            every project, record, blob (D1 and KV), share link, passkey and session of theirs.
+//            every project, record, blob (D1 and KV), share link, comment on their links,
+//            passkey and session of theirs.
 //
 // Nothing of another account is touched: every statement names the account it works on.
 
@@ -99,6 +100,7 @@ export async function purgeAccounts(env: Env, now: number): Promise<string[]> {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM blobs WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM project_records WHERE user_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM share_comments WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM share_links WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM projects WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),

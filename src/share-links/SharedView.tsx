@@ -1,7 +1,9 @@
 // A project opened from its share link: no sign-in, nothing to edit, and nothing kept in this
 // browser. The calm view for showing people: the plan, the 3D view (Street view, From above,
 // Rear), the key numbers with the Overview, and the PDF plans. It reads the latest saved
-// revision from the cloud, and looks again when the page comes back.
+// revision from the cloud, and looks again when the page comes back. Where the owner lets people
+// comment, Add a comment pins one on the plan (src/comments); sending one is the only thing that
+// keeps anything here, a token so this browser can see its own comments again.
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlanEditor } from '../components/PlanEditor'
@@ -17,6 +19,8 @@ import { DEFAULT_VIEW, type ViewSettings } from '../lib/storage'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildSiteSolid } from '../lib/terrainMesh'
+import { useSharedComments } from '../comments/hooks'
+import { AddCommentButton } from '../comments/ViewerComments'
 import { Icon, Logo } from '../nav/icons'
 import type { ActionId, NumberId } from '../nav/menu'
 import type { AppRoute } from '../nav/route'
@@ -101,6 +105,8 @@ export function SharedView({ address, api: given }: { address: ShareAddress; api
     const metas = [meta('robots', 'noindex, nofollow'), meta('referrer', 'no-referrer')]
     return () => metas.forEach(m => m.remove())
   }, [])
+
+  useSharedComments(token, phase.kind === 'ready' ? phase.project : null)
 
   const name = phase.kind === 'ready' ? phase.project.meta.name : null
   useEffect(() => {
@@ -256,6 +262,7 @@ function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared: Share
                 </button>
               ))}
             </div>
+            {ready && <AddCommentButton phone={phone} toPlan={() => setView('plan')} />}
             <button className={phone ? 'icon-button shared-pdf' : 'secondary shared-pdf'} onClick={() => void pdf()} disabled={!ready} aria-label={phone ? (canShareFiles() ? 'Send PDF plans' : 'Download PDF plans') : undefined}>
               <Icon name={phone && canShareFiles() ? 'phoneShare' : 'download'} size={phone ? 20 : 16} />
               {!phone && 'PDF plans'}

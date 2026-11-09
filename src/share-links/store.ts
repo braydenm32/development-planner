@@ -24,11 +24,13 @@ export interface ShareLinksState {
   fresh: { projectId: string; linkId: string; url: string } | null
   /** How long the next link lasts. */
   days: LinkDays
+  /** Whether the next link takes comments, and who sees them (off unless ticked, or missing). */
+  comments?: ShareLink['comments']
   /** The link being extended now. */
   extending: string | null
 }
 
-export const useShareLinks = create<ShareLinksState>(() => ({ projectId: null, links: null, making: null, problem: null, fresh: null, days: 30, extending: null }))
+export const useShareLinks = create<ShareLinksState>(() => ({ projectId: null, links: null, making: null, problem: null, fresh: null, days: 30, comments: 'off', extending: null }))
 
 const set = useShareLinks.setState
 const get = useShareLinks.getState
@@ -75,6 +77,11 @@ export const shareLinkActions = {
     set({ days })
   },
 
+  /** Whether the next link takes comments. */
+  setComments(comments: ShareLinksState['comments']) {
+    set({ comments })
+  },
+
   /** Make a link for the project, putting it in the cloud first if it is on this device only. */
   async make(projectId: string): Promise<boolean> {
     if (get().making) return false
@@ -86,7 +93,7 @@ export const shareLinkActions = {
       set({ making: 'make' })
       let made
       try {
-        made = await api.make(projectId, get().days)
+        made = await api.make(projectId, get().days, get().comments ?? 'off')
       } catch (e) {
         // On its way up still: say so plainly.
         if (e instanceof CloudError && e.code === 'not-in-cloud') throw new Error('This project is still on its way to the cloud. Try again in a moment.')

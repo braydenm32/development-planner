@@ -68,6 +68,7 @@ import { usePlanFlow } from '../flow/PlanFlow'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
+import { useCommentsPlan } from '../comments/PlanComments'
 import { costsUndoKey } from '../costs/store'
 
 interface View {
@@ -462,6 +463,17 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     finished: planContourLines ? (contours?.finished ?? null) : null,
     siteActive: site.active,
     viewOnly,
+  })
+  // Comments from share links: their pins, and on a shared view, tapping a spot for a new one.
+  const comments = useCommentsPlan({
+    plan,
+    level,
+    S,
+    size,
+    fitTo: pts => {
+      setAround({ pts, token: fitToken })
+      setView(null)
+    },
   })
   const path = (pts: Vec2[], close = true) =>
     pts.length ? `M${pts.map(p => S(p).map(n => n.toFixed(1)).join(' ')).join('L')}${close ? 'Z' : ''}` : ''
@@ -1031,6 +1043,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const moved = downAt.current ? Math.hypot(s[0] - downAt.current.x, s[1] - downAt.current.y) : Infinity
       downAt.current = null
       if (moved > TAP_SLOP) settle()
+      if (moved <= TAP_SLOP && comments.click(W(s[0], s[1]))) return
       if (moved > TAP_SLOP || doubleTapped(e, s)) return
       const hit = pickAt(W(s[0], s[1]), s[0], s[1], true)
       select(hit ? { type: hit.type, id: hit.item.id } : null)
@@ -1852,6 +1865,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <SnapMarker p={S(cursor.p)} kind={cursor.kind} />
         )}
       </svg>
+      {comments.pins}
 
       <div className="plan-compass" title="North">
         <div className="needle" style={{ transform: `rotate(${northDeg}deg)` }}>
@@ -1878,6 +1892,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
+            {comments.key}
           </GroundKey>
         </KeyChip>
       </div>
@@ -1888,6 +1903,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {site.bar}
       {site.chips}
       {flow.html}
+      {comments.html}
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={floorRL} lowest={isLowest} />}
         {site.notice || notice ? (
