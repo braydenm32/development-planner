@@ -148,7 +148,7 @@ export const AREAS: Area[] = [
         id: 'block',
         label: 'Block',
         icon: 'block',
-        subtitle: 'The block as surveyed.',
+        subtitle: 'Its size, levels and fall.',
         keywords: ['site facts', 'area', 'perimeter', 'slope', 'fall', 'levels', 'RL range', 'aspect', 'size', 'sketch block', 'block size'],
         features: ['site-area-perimeter', 'site-levels-fall', 'site-slope-aspect', 'sketch-block-notice', 'sketch-change-size', 'dem-block-notice'],
       },

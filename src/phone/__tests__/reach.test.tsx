@@ -2,6 +2,7 @@
 // are all in the Overview, the peek sheet opens it with one tap, and whatever covers the
 // peek is one tap away from gone (or Site in the bottom bar clears it).
 
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { areaById, AREAS } from '../../nav/menu'
@@ -121,6 +122,28 @@ describe('the numbers it reaches', () => {
     expect(peek(2)).not.toContain('Out of balance')
     if (n.earth?.outOfBalance) expect(peek(0)).toContain('Out of balance')
     expect(peek(0)).not.toContain('to check')
+  })
+
+  it('give the distances to the boundary in metres, like every other length in the Overview', () => {
+    const overview = words(
+      renderToStaticMarkup(
+        <ShellContext.Provider value={shellData(survey, terrain, earth)}>
+          <OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} />
+        </ShellContext.Provider>,
+      ),
+    )
+    const sides = n.placement!.sides.filter(sd => sd.over <= 0)
+    expect(sides.length).toBeGreaterThan(0)
+    for (const sd of sides) expect(overview).toContain(`${sd.dist.toFixed(2)} m`)
+    expect(overview).not.toMatch(/\d mm\b/)
+  })
+
+  it("gives the Overview's Open links a whole finger's worth of room on a phone", () => {
+    const css = readFileSync(new URL('../../shell/shell.css', import.meta.url), 'utf8')
+    const rule = /\.app-shell\.phone \.ov-group > h3 > button\.link \{([^}]*)\}/.exec(css)
+    expect(rule).not.toBeNull()
+    expect(rule![1]).toMatch(/min-height: 44px/)
+    expect(rule![1]).toMatch(/min-width: 44px/)
   })
 
   it('say when there is no roof yet, rather than leave a gap', () => {

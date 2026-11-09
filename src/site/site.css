@@ -443,6 +443,16 @@
   max-width: calc(100% - var(--free-left, 0px) - 32px);
 }
 
+/* Under the level chip (two lines at most) in the same corner, so neither covers the other; and
+   under the hidden panel's pill too when there is one. */
+.app-shell:not(.phone) .plan-editor:has(.level-chip) .site-toolbar {
+  top: 70px;
+}
+
+.app-shell:not(.phone) .has-pill .plan-editor:has(.level-chip) .site-toolbar {
+  top: 114px;
+}
+
 /* On a phone, clear of the view buttons down the right. */
 .app-shell.phone .site-toolbar {
   top: 8px;

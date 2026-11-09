@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { useCamera } from '../cameraStore'
-import { sheetOffset, SHEETS, shouldClose } from '../sheetDrag'
+import { release, sheetOffset, SHEETS, shouldClose, shouldGrow } from '../sheetDrag'
 import { StreetSidePicker } from '../StreetSide'
 import { usePlan } from '../../plan/store'
 import { withStreetSide } from '../../plan/streetSide'
@@ -40,6 +40,38 @@ describe('dragging a sheet down', () => {
 
   it('serves the Overview, the selection and the tab panels', () => {
     expect(SHEETS.map(s => s.sheet)).toEqual(['.overview-sheet', '.inspector', '.tab-panel'])
+  })
+})
+
+describe('pulling a tab panel up', () => {
+  it('is the tab panels that grow, not the Overview or the selection', () => {
+    expect(SHEETS.filter(s => s.grow).map(s => s.sheet)).toEqual(['.tab-panel'])
+  })
+
+  it('follows the finger all the way up where the sheet can grow', () => {
+    expect(sheetOffset(-200, true)).toBe(-200)
+    expect(sheetOffset(-20, true)).toBe(-20)
+    expect(sheetOffset(120, true)).toBe(120)
+  })
+
+  it('goes tall past 48 px up, or with a quick flick', () => {
+    expect(shouldGrow(-47, 1000)).toBe(false)
+    expect(shouldGrow(-48, 1000)).toBe(true)
+    expect(shouldGrow(-30, 20)).toBe(true)
+    expect(shouldGrow(30, 20)).toBe(false)
+    expect(release(-200, 300, 400, true, false)).toBe('grow')
+  })
+
+  it('comes back down to its usual height before a drag down closes it', () => {
+    expect(release(150, 600, 400, true, true)).toBe('shrink')
+    expect(release(150, 600, 400, true, false)).toBe('close')
+    expect(release(20, 600, 400, true, true)).toBe('stay')
+  })
+
+  it("leaves the Overview and the selection as they were: a drag up doesn't grow them", () => {
+    expect(release(-200, 300, 400, false, false)).toBe('stay')
+    expect(release(150, 600, 400, false, false)).toBe('close')
+    expect(release(-200, 300, 400, true, true)).toBe('stay')
   })
 })
 

@@ -3,7 +3,10 @@
 // the cost per m², quotes in place of estimates, owner-builder's materials and labour, what a
 // material choice adds or saves, and the CSV.
 
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { FinishGuide } from '../CostsTabs'
 import type { DesignQuantities } from '../../plan/quantities'
 import { CHOICE_LINES, choiceDeltas, estimate, rateFor, type Estimate } from '../estimate'
 import { CAVEAT_LINE } from '../../legal/caveat'
@@ -464,5 +467,25 @@ describe('a project’s costs', () => {
   it('say in a few words what they hold', () => {
     expect(costsSummary(emptyCosts())).toBe('Material choices')
     expect(costsSummary({ ...emptyCosts(), who: 'owner', rates: { cut: 60 }, quotes: { cut: quote(1), fill: quote(2) } })).toBe('2 quotes, 1 changed rate, built by the owner')
+  })
+})
+
+describe('the house against the finish guide', () => {
+  const guide = (e: Estimate) => renderToStaticMarkup(createElement(FinishGuide, { e }))
+
+  it('says where a complete estimate sits', () => {
+    const e = estimate(quantities(), emptyCosts())
+    expect(e.missing).toEqual([])
+    expect(guide(e)).toMatch(/ce-guide-tag (in|under|over)/)
+  })
+
+  it("holds back the comparison while the estimate is missing things, so cheap doesn't read as good news", () => {
+    const e = estimate({ ...quantities(), windows: none(), externalDoors: none(), finishes: none() }, emptyCosts())
+    expect(e.missing.length).toBeGreaterThan(0)
+    expect(e.housePerM2).not.toBeNull()
+    const html = guide(e)
+    expect(html).not.toContain('ce-guide-tag')
+    expect(html).not.toContain('the guide<')
+    expect(html).toContain('Compare once there are ')
   })
 })

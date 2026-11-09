@@ -361,7 +361,9 @@ describe('roof height above the ground', () => {
     expect(n.roof!.top).toBeCloseTo(top, 9)
     expect(n.roof!.area).toBeCloseTo(13.5 * 10.5, 6)
     expect(Math.abs(n.roof!.height - (top - lowest))).toBeLessThan(0.01)
-    expect(words(strip(n))).toContain(`Roof ${n.roof!.height.toFixed(2)} m above ground`)
+    expect(words(strip(n))).toContain(`Roof ${n.roof!.height.toFixed(2)} m`)
+    // "above ground" is in the chip's tip, which says what the number is.
+    expect(strip(n)).toContain('The most the roof rises above the natural ground under it')
   })
 
   it('has none to show without a roof', () => {

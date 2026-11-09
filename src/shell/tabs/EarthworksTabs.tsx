@@ -59,7 +59,7 @@ function CutFill({ d }: { d: Loaded }) {
       <GradingPanel plan={d.plan} survey={d.survey} earth={d.earth} />
       {walls.length > 0 && (
         <p className="muted small">
-          {walls.length} retaining wall{walls.length > 1 ? 's' : ''} hold back the batters.{' '}
+          {walls.length} retaining wall{walls.length > 1 ? 's hold' : ' holds'} back the batters.{' '}
           <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'retaining-walls', view: 'plan' })}>
             See retaining walls
           </button>

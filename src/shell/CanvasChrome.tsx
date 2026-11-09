@@ -1,6 +1,7 @@
 // What floats on the canvas: the tool rail with the current tool's options beside it, the
 // selection inspector, and the fit and orientation controls.
 
+import { useLayoutEffect, useRef } from 'react'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
 import { TOOLS } from '../components/tools'
 import { ZoomButtons } from '../components/ZoomButtons'
@@ -92,11 +93,41 @@ function SunCtl() {
   return <Ctl icon="sun" label="Sun" pressed={on} onClick={() => useSun.getState().setOn(!on)} />
 }
 
+/** The name of the CSS variable that holds the view bar's width, which the hint at the foot keeps clear of. */
+const CONTROLS_W = '--controls-w'
+
+/**
+ * Tells the canvas how wide the view bar is (as `--controls-w`), so the hint beside it wraps
+ * before it runs underneath: the bar's width changes with the canvas, the window and the screen.
+ */
+function useControlsWidth() {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const host = el?.parentElement
+    if (!el || !host) return
+    const set = () => host.style.setProperty(CONTROLS_W, `${Math.ceil(el.getBoundingClientRect().width)}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      host.style.removeProperty(CONTROLS_W)
+    }
+  }, [])
+  return ref
+}
+
 /** Zoom out and in (desktop), Fit block, Fit house and North up on the plan; Reset camera, Sun and North up in 3D. On a phone, the Plan/3D switch too. */
 export function CanvasControls({ canvas, up, run }: ControlsProps) {
   if (canvas === 'print') return null
+  return <ViewBar canvas={canvas} up={up} run={run} />
+}
+
+function ViewBar({ canvas, up, run }: ControlsProps) {
+  const ref = useControlsWidth()
   return (
-    <div className="canvas-controls" role="group" aria-label="View">
+    <div ref={ref} className="canvas-controls" role="group" aria-label="View">
       <span className="phone-only">
         <Ctl icon={canvas === 'plan' ? 'cube' : 'plan'} label={canvas === 'plan' ? '3D' : 'Plan'} onClick={() => run(canvas === 'plan' ? 'view-3d' : 'view-plan')} />
       </span>

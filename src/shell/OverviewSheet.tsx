@@ -101,7 +101,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                     <h4>Distance to boundary</h4>
                     <dl className="stats">
                       {n.placement.sides.map((s, i) => (
-                        <FragmentRow key={i} label={sideLabel(n.placement!.sides, s)} value={s.over > 0 ? overText(s.over) : `${Math.round(s.dist * 1000)} mm`} bad={s.over > 0} />
+                        <FragmentRow key={i} label={sideLabel(n.placement!.sides, s)} value={s.over > 0 ? overText(s.over) : `${s.dist.toFixed(2)} m`} bad={s.over > 0} />
                       ))}
                     </dl>
                   </>

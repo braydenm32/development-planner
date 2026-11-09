@@ -45,6 +45,7 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
   const selected = useSiteStore(s => s.selected)
   const highlight = useSiteStore(s => s.highlight)
   const notice = useSiteStore(s => s.notice)
+  const noticeOk = useSiteStore(s => s.noticeOk)
   const focus = useSiteStore(s => s.focus)
   const features = useSiteFeatures()
   const warnings = useSiteWarnings()
@@ -221,7 +222,7 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
     addFeatures([f])
     useSiteStore.setState({ selected: f.id })
     setPts([])
-    st().notify(`${featureName(f)} added. Its details are in the Site features panel; Esc stops tracing.`)
+    st().notify(`${featureName(f)} added. Its details are in Features, on the left; Esc stops tracing.`, true)
   }
 
   const newFeature = (geom: SiteFeature['geom'], extra: Partial<SiteFeature> = {}): SiteFeature | null => {
@@ -593,7 +594,7 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
     </div>
   ) : null
 
-  return { active, hint, notice: active || focus ? notice : null, move, click, dblclick, deselect, key, backdrop, under, over, bar, chips }
+  return { active, hint, notice: active || focus ? notice : null, noticeOk, move, click, dblclick, deselect, key, backdrop, under, over, bar, chips }
 }
 
 /** Easements named again by a strip of the same name within a few metres (one easement either side of a line): named once. */

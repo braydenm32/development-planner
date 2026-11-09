@@ -13,7 +13,7 @@ import { shareOrSave } from '../phone/share'
 import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
-import { m2, whereShown } from '../shell/format'
+import { andList, m2, whereShown } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
@@ -335,8 +335,12 @@ function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
   )
 }
 
-/** Where the house itself sits against the rough guide for the finish picked. */
-function FinishGuide({ e }: { e: Estimate }) {
+/**
+ * Where the house itself sits against the rough guide for the finish picked. While the estimate
+ * is missing things (no windows, say) the house reads cheap for the wrong reason, so it says
+ * what to draw instead of "Under the guide".
+ */
+export function FinishGuide({ e }: { e: Estimate }) {
   const finish = useCosts(s => s.data.choices.finish)
   if (e.housePerM2 === null) return null
   const g = finishGuide(finish)
@@ -348,7 +352,11 @@ function FinishGuide({ e }: { e: Estimate }) {
         House only <b>{money(e.housePerM2)}</b> per m² · {name} finish guide {money(g.low)} to {money(g.high)}
         {e.who === 'owner' && ', which has a builder’s margin in it'}
       </span>
-      <span className={`ce-guide-tag ${where}`}>{where === 'in' ? 'Within the guide' : where === 'under' ? 'Under the guide' : 'Over the guide'}</span>
+      {e.missing.length > 0 ? (
+        <span className="ce-guide-wait">Compare once there are {andList(e.missing)}</span>
+      ) : (
+        <span className={`ce-guide-tag ${where}`}>{where === 'in' ? 'Within the guide' : where === 'under' ? 'Under the guide' : 'Over the guide'}</span>
+      )}
     </p>
   )
 }

@@ -10,7 +10,7 @@ import { MORE_SECTIONS, TAB_PANELS } from '../../shell/sections'
 import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
-import { areaRoute, canvasOf, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, tabRoute, type AppRoute, type Route } from '../route'
+import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, tabRoute, type AppRoute, type Route } from '../route'
 import { buildIndex, search, type SearchItem } from '../search'
 
 const places = allPlaces()
@@ -435,6 +435,24 @@ describe('routes', () => {
     expect(tabRoute(in3d, 'site', '3d')).toMatchObject({ area: 'site', tab: '3d', view: '3d', level: 'L1', sel: 's1' })
     expect(tabRoute(in3d, 'design', 'plan')).toMatchObject({ area: 'design', tab: 'plan', view: 'plan', level: 'L1', sel: 's1' })
     expect(tabRoute(PROJECTS, 'share', 'plans')).toEqual(areaRoute('share', 'plans'))
+  })
+
+  it("put down a selection in an area that doesn't work on it", () => {
+    const wall: AppRoute = { kind: 'app', area: 'earthworks', tab: 'retaining-walls', view: 'plan', level: 'L1', sel: 'w3' }
+    // A retaining wall picked in Earthworks doesn't follow you to Design › Roofs, where its card has no place…
+    expect(carriesSelection(wall, tabRoute(wall, 'design', 'roofs'), 'retaining')).toBe(false)
+    expect(carriesSelection(wall, tabRoute(wall, 'site', '3d'), 'retaining')).toBe(false)
+    // …but it does to Design › Plan, which edits everything, and around Earthworks.
+    expect(carriesSelection(wall, tabRoute(wall, 'design', 'plan'), 'retaining')).toBe(true)
+    expect(carriesSelection(wall, tabRoute(wall, 'earthworks', 'cut-fill'), 'retaining')).toBe(true)
+    // A roof goes to Design › Roofs from anywhere (Stormwater's links do that), and a room to Rooms & areas.
+    const drain: AppRoute = { kind: 'app', area: 'earthworks', tab: 'stormwater', view: 'plan', sel: 'roof1' }
+    expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'roofs' }, 'roof')).toBe(true)
+    expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'rooms' }, 'room')).toBe(true)
+    expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'roofs' }, 'room')).toBe(false)
+    // Within an area a selection always stays.
+    const roofs: AppRoute = { kind: 'app', area: 'design', tab: 'roofs', view: 'plan', sel: 'w1' }
+    expect(carriesSelection(roofs, tabRoute(roofs, 'design', 'checks'), 'wall')).toBe(true)
   })
 
   it('show the print preview only on Share › 3D print', () => {

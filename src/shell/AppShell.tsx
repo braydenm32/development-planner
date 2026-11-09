@@ -21,7 +21,7 @@ import { shortcutText, typingIn } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
-import { canvasOf, tabRoute, type AppRoute } from '../nav/route'
+import { canvasOf, carriesSelection, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
@@ -53,7 +53,7 @@ import { useNativeFeel } from '../phone/native'
 import { PeekSheet } from '../phone/PeekSheet'
 import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../phone/reach'
 import { ViewLock } from '../phone/ViewLock'
-import { useSheetDrag } from '../phone/sheetDrag'
+import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
 import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -418,6 +418,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const [sunH, setSunH] = useState(0)
   const sunClear = canvasKind === '3d' && sunH > 0 ? sunH + 70 : 0
   const wide = WIDE_TABS.has(tabKey)
+  // On a phone, a tab's panel pulled up to full height stays so from tab to tab (src/phone/sheetDrag.ts).
+  const tall = useSheetSize(s => s.tall) && phone
   const wideInspector = selRetaining
   // What floats on the right of the plan for this tab (Costs › Estimate's materials), on a window wide enough.
   const Aside = TAB_ASIDES[tabKey]
@@ -491,6 +493,19 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
     if (r.kind === 'app' && !(r.area === 'site' && r.tab === 'features')) navigate(tabRoute(r, 'site', 'features'))
   }, [siteSel])
 
+  // Into another area, a selection goes only where it can be worked on; elsewhere it's put down,
+  // so its card doesn't stay open beside a panel that has nothing to do with it.
+  const lastRoute = useRef(route)
+  useEffect(() => {
+    const from = lastRoute.current
+    lastRoute.current = route
+    const st = usePlan.getState()
+    const sel = st.selection
+    if (!sel || !st.plan || from.area === route.area) return
+    const retaining = sel.type === 'wall' && st.plan.walls.some(w => w.id === sel.id && isRetaining(w))
+    if (!carriesSelection(from, route, retaining ? 'retaining' : sel.type)) st.select(null)
+  }, [route])
+
   // Drawing or picking a retaining wall in Earthworks opens its tab. Only a new selection does,
   // so Back from the tab, or a reload, stays where it was.
   const selId = selection?.id
@@ -531,7 +546,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         !phone && <SummaryStrip route={route} numbers={null} shown={{}} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={false} />
       )}
       <main
-        className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${inspector ? ' has-inspector' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
+        className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
         style={{ ['--free-left' as string]: `${insets.l}px` }}
       >
         <TouchCanvas.Provider value={touch}>
@@ -542,7 +557,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail />}
-          <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}`}>
+          <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>
             {toolCard && <ToolCard />}
             {hasPanel &&
               (showPanel ? (

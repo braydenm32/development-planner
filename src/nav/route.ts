@@ -112,6 +112,29 @@ export function tabRoute(from: Route, area: AreaId, tab: string): AppRoute {
   return { ...target, view, level: from.level, sel: from.sel }
 }
 
+/** What can be selected on the plan, with a retaining wall told apart from the house's walls. */
+export type SelectionKind = 'wall' | 'retaining' | 'opening' | 'room' | 'area' | 'roof' | 'stair' | 'furniture'
+
+/** The tabs (other than Design › Plan, which edits everything) whose panels work on each kind. */
+const EDITED_IN: Partial<Record<SelectionKind, string[]>> = {
+  retaining: ['earthworks/*'],
+  room: ['design/rooms'],
+  area: ['design/rooms'],
+  roof: ['design/roofs'],
+  furniture: ['design/furniture'],
+}
+
+/**
+ * Whether a selection goes with you from one area into another: only to a tab that works on
+ * it, so (say) a retaining wall picked in Earthworks doesn't leave its card open beside
+ * Design › Roofs. Within an area it always stays.
+ */
+export function carriesSelection(from: AppRoute, to: AppRoute, kind: SelectionKind): boolean {
+  if (from.area === to.area) return true
+  if (to.area === 'design' && to.tab === 'plan') return true
+  return (EDITED_IN[kind] ?? []).some(t => t === `${to.area}/${to.tab}` || t === `${to.area}/*`)
+}
+
 /** The canvas a route shows: the plan, the 3D view, or the print preview. */
 export function canvasOf(r: AppRoute): CanvasView | 'print' {
   const area = areaById(r.area)
