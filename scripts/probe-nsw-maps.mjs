@@ -20,7 +20,7 @@ const cut = (s, n = 900) => (s.length > n ? `${s.slice(0, n)}… (${s.length} ch
 async function get(name, url, init) {
   console.log(`\n=== ${name}`)
   try {
-    const r = await fetch(url, { ...init, headers: { Origin: ORIGIN, ...(init?.headers ?? {}) } })
+    const r = await fetch(url, { signal: AbortSignal.timeout(30000), ...init, headers: { Origin: ORIGIN, ...(init?.headers ?? {}) } })
     const acao = r.headers.get('access-control-allow-origin')
     const text = await r.text()
     console.log(`status ${r.status} · CORS ${acao}`)
