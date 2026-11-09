@@ -1,0 +1,96 @@
+/* The stormwater concept: on the plan (DrainageLayer.tsx) and in Earthworks › Stormwater (StormwaterTab.tsx). */
+
+.drainage {
+  pointer-events: none;
+}
+
+.drainage-path {
+  fill: none;
+  stroke: #1f6fb2;
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.drainage-end {
+  fill: #1f6fb2;
+}
+
+.drainage-dp {
+  fill: #fbfbf9;
+  stroke: #1f6fb2;
+  stroke-width: 1.6;
+}
+
+.drainage-label,
+.drainage-fall text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #1f6fb2;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.drainage-fall path {
+  fill: none;
+  stroke: #7a6b55;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.drainage-fall text {
+  fill: #7a6b55;
+  font-weight: 500;
+}
+
+/* The panel's legend: a swatch of each mark beside its words. */
+.drainage-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.drainage-legend li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.drainage-legend .swatch {
+  flex: none;
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  margin-top: 0.55em;
+  border-top: 2px dashed #1f6fb2;
+}
+
+.drainage-legend .swatch.dp {
+  width: 9px;
+  height: 9px;
+  margin-top: 0.25em;
+  border: 1.6px solid #1f6fb2;
+  border-radius: 50%;
+  background: #fbfbf9;
+}
+
+.drainage-legend .swatch.arrow {
+  border-top: 2px solid #7a6b55;
+}
+
+.drainage-sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.app-shell .stormwater h3 {
+  margin-top: 14px;
+}

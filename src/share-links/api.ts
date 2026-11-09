@@ -15,6 +15,8 @@ export interface ShareLink {
   lastOpened: number | null
   /** When it stops working; null for a link made before links had an end, which works until turned off. */
   expires: number | null
+  /** Whether people with it can comment on the plan, and see each other's (src/comments); off when missing. */
+  comments?: 'off' | 'own' | 'all'
 }
 
 /** How long a new link can last, in days: 30 unless the owner picks longer. */
@@ -32,8 +34,8 @@ export interface SharedIndex {
 
 export interface ShareApi {
   list(projectId: string): Promise<ShareLink[]>
-  /** A new link that lasts `days`. Its token is only in this answer. */
-  make(projectId: string, days: LinkDays): Promise<{ token: string; link: ShareLink }>
+  /** A new link that lasts `days`, taking comments or not. Its token is only in this answer. */
+  make(projectId: string, days: LinkDays, comments?: ShareLink['comments']): Promise<{ token: string; link: ShareLink }>
   /** Push a link's end 30 days on, to at most a year from now. */
   extend(projectId: string, linkId: string): Promise<ShareLink>
   turnOff(projectId: string, linkId: string): Promise<void>
@@ -68,7 +70,7 @@ export function createShareApi(opts: { base?: string; fetch?: typeof fetch } = {
 
   return {
     list: async id => (await json<{ links: ShareLink[] }>(`projects/${enc(id)}/shares`)).links,
-    make: (id, days) => json(`projects/${enc(id)}/shares`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ days }) }),
+    make: (id, days, comments = 'off') => json(`projects/${enc(id)}/shares`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ days, comments }) }),
     extend: async (id, link) => (await json<{ link: ShareLink }>(`projects/${enc(id)}/shares/${enc(link)}/extend`, { method: 'POST' })).link,
     turnOff: async (id, link) => void (await call(`projects/${enc(id)}/shares/${enc(link)}`, { method: 'DELETE' })),
     turnOn: async (id, link) => (await json<{ link: ShareLink }>(`projects/${enc(id)}/shares/${enc(link)}/restore`, { method: 'POST' })).link,

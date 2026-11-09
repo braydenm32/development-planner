@@ -6,6 +6,7 @@ name: Deploy to Cloudflare
 # Runs on pushes to main and by hand, never on pull requests, and only in this repository.
 # Needs the CLOUDFLARE_API_TOKEN secret; CLOUDFLARE_ACCOUNT_ID is optional when the token can
 # see only one account. SIGNUP_INVITE_CODE (optional) lets anyone with that code make an account.
+# RESEND_API_KEY (optional) turns on emailed sign-in codes, the backup to passkeys.
 
 on:
   push:
@@ -51,13 +52,16 @@ jobs:
       - name: Bring the database up to date
         run: worker/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.deploy.toml
 
+      # Secrets go in a file node writes from the environment, so neither is ever echoed. The file
+      # adds to the Worker's secrets: one left out (not set here) keeps the value it had.
       - name: Deploy the Worker
         env:
           INVITE: ${{ secrets.SIGNUP_INVITE_CODE }}
+          RESEND: ${{ secrets.RESEND_API_KEY }}
         run: |
           args=(deploy --config wrangler.deploy.toml)
-          if [ -n "$INVITE" ]; then
-            node -e 'require("fs").writeFileSync(process.env.RUNNER_TEMP + "/secrets.json", JSON.stringify({ INVITE_CODE: process.env.INVITE }))'
+          if [ -n "$INVITE" ] || [ -n "$RESEND" ]; then
+            node -e 'const e = process.env, s = {}; if (e.INVITE) s.INVITE_CODE = e.INVITE; if (e.RESEND) s.RESEND_API_KEY = e.RESEND; require("fs").writeFileSync(e.RUNNER_TEMP + "/secrets.json", JSON.stringify(s))'
             args+=(--secrets-file "$RUNNER_TEMP/secrets.json")
           fi
           worker/node_modules/.bin/wrangler "${args[@]}"

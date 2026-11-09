@@ -29,15 +29,18 @@ import { driveDesign, driveEndPoints, driveGround, type DriveGround } from '../p
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { setbackDims } from '../plan/setbacks'
 import { retainingProfiles } from '../plan/retaining'
-import type { Heightfield } from '../lib/terrain'
+import type { Heightfield, Terrain } from '../lib/terrain'
 import { roofGeometry } from '../plan/roof'
 import { stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { drawFeatureAreas, drawFeatureLegend, drawFeatureMarks, sheetFeatures, type SheetArgs } from '../site/sheet'
 import type { SiteWarning } from '../site/warnings'
+import type { StormwaterSheet } from '../drainage/stormwater'
 import type { ShadowDiagram } from '../sun/facts'
 import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
 import { PdfDocument, textWidth, type PdfPage, type RGB } from './pdfWriter'
+import { sectionsOf } from '../sections/lines'
+import { drawingSheets, drawSectionMarks } from '../sections/sheets'
 
 export type Paper = 'A3' | 'A4'
 
@@ -62,6 +65,10 @@ export interface PlanSetInput {
   date: string
   /** Site features to draw on the site plan (survey local frame), and the warnings about them. */
   site?: { features: SiteFeature[]; warnings: SiteWarning[] }
+  /** The stormwater concept: a dashed path on the site plan and its key numbers (src/drainage). */
+  stormwater?: StormwaterSheet | null
+  /** The natural ground, for the sections and elevations; without it they're left out. */
+  terrain?: Terrain
   /** The house's shadows on 21 June, for a shadow diagram sheet (src/sun); none without. */
   shadows?: ShadowDiagram | null
 }
@@ -146,10 +153,16 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
   const retainingPolys = wallPolygons(retaining)
   const profiles = input.ground ? retainingProfiles(plan, survey.origin, input.ground) : []
 
-  const sheets: { name: string; draw: (pg: PdfPage) => View }[] = []
+  const sheets: { name: string; draw: (pg: PdfPage) => View; north?: boolean }[] = []
   sheets.push({ name: 'Site plan', draw: pg => siteSheet(pg) })
   for (const l of levels) sheets.push({ name: `${l.name} plan`, draw: pg => floorSheet(pg, l) })
   if (roofs.length) sheets.push({ name: 'Roof plan', draw: pg => roofSheet(pg) })
+  // Sections and elevations (src/sections), at their own scale, with no north arrow.
+  if (input.terrain) {
+    for (const s of drawingSheets({ plan, survey, terrain: input.terrain, finished: input.ground }, area)) {
+      sheets.push({ name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
+    }
+  }
   const shadows = input.shadows
   if (shadows?.shadows.some(x => x.shadow)) sheets.push({ name: 'Shadow diagram, 21 June', draw: pg => shadowSheet(pg, shadows) })
 
@@ -157,13 +170,13 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     const pg = doc.addPage(W, H)
     pg.round()
     const view = sheet.draw(pg)
-    titleBlock(pg, sheet.name, view, i + 1, sheets.length)
+    titleBlock(pg, sheet.name, view, i + 1, sheets.length, sheet.north !== false)
   })
   return doc.output()
 
   // ---------------------------------------------------------------------------
 
-  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number) {
+  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number, northArrow = true) {
     const x0 = margin
     const y0 = margin
     const w = W - 2 * margin
@@ -195,7 +208,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(bx, by + 3.2, '0', { size: 2.4 * t, align: 'center' })
     pg.text(bx + bw, by + 3.2, `${L} m`, { size: 2.4 * t, align: 'center' })
 
-    // North arrow
+    // North arrow (sections and elevations have none)
+    if (!northArrow) return
     const north = view.angle(northInPlan()) * (Math.PI / 180)
     const ax = bx + bw + 22
     const ay = y0 + strip / 2
@@ -352,6 +366,24 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       along(pg, view, a, b, c.text, 1.6, 2.4, ACCENT)
     }
 
+    // Stormwater concept: a dashed line from the house to where the water goes, named as a concept.
+    const storm = input.stormwater
+    if (storm && storm.path.length === 2) {
+      const a = tf(storm.path[0])
+      const b = tf(storm.path[1])
+      const pa = view.P(a)
+      const pb = view.P(b)
+      const STORM: RGB = [0.12, 0.44, 0.7]
+      pg.lineWidth(0.4).stroke(STORM).dash([1.6, 1]).line(pa, pb)
+      pg.dash()
+      // An arrow head at the discharge point.
+      const ang = Math.atan2(pb[1] - pa[1], pb[0] - pa[0])
+      const wing = (t: number): [number, number] => [pb[0] - Math.cos(ang) * 2 - Math.sin(ang) * t, pb[1] - Math.sin(ang) * 2 + Math.cos(ang) * t]
+      pg.lineWidth(0.4).line(wing(1.1), pb).line(wing(-1.1), pb)
+      pg.fill(STORM).stroke(STORM).circle(pa[0], pa[1], 0.8, 'both')
+      along(pg, view, a, b, storm.label, 1.8, 2.4, STORM)
+    }
+
     // Key numbers
     const footprint = buildingFootprint(plan)
     const rows: [string, string][] = [
@@ -383,6 +415,7 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       rows.push([`${name}Average grade along the drive`, gradeText(g.average)])
       rows.push([`${name}Steepest ${DRIVE_RUN} m along the drive`, gradeText(g.steepest)])
     }
+    for (const row of input.stormwater?.rows ?? []) rows.push(row)
     // Wide enough for the longest label and value side by side.
     const every = fc ? (fc.minor < 1 ? `${Math.round(fc.minor * 1000)} mm` : `${fc.minor} m`) : ''
     const legend = fc ? [`Contours every ${every}, labelled every ${fc.major} m`, 'Finished ground, proposed', 'Natural ground, existing (dashed where cut or filled)'] : []
@@ -540,6 +573,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       }
       for (const o of plan.openings.filter(x => x.wall === w.id)) openingSymbol(pg, view, o, w)
     }
+    // Where the sections cut, on every floor.
+    drawSectionMarks(pg, view.P, sectionsOf(plan), area)
 
     // Wall lengths: outside for external walls, on the left for internal ones.
     for (const w of walls) {

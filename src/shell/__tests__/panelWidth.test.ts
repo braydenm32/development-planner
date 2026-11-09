@@ -25,12 +25,12 @@ describe('panel widths', () => {
     expect(rule(shell, '.inspector')).toContain(`width: ${INSPECTOR_W}px;`)
   })
 
-  it('give Site › Features and the retaining wall card 420–480 px on a desktop', () => {
+  it('give Site › Features, the retaining wall card and the sections’ drawings 420–480 px on a desktop', () => {
     expect(WIDE_W).toBeGreaterThanOrEqual(420)
     expect(WIDE_W).toBeLessThanOrEqual(480)
     expect(rule(shell, '.float-col.wide')).toContain(`width: min(${WIDE_W}px`)
     expect(rule(shell, '.inspector.wide')).toContain(`width: min(${WIDE_W}px`)
-    expect([...WIDE_TABS].sort()).toEqual(['earthworks/retaining-walls', 'site/features'])
+    expect([...WIDE_TABS].sort()).toEqual(['design/sections', 'earthworks/retaining-walls', 'site/features'])
     for (const t of WIDE_TABS) expect(TAB_PANELS[t], t).toBeDefined()
     // the phone's sheets stay full width
     expect(rule(shell, '.app-shell.phone .float-col')).toContain('width: auto;')

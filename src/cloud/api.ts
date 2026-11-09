@@ -36,6 +36,8 @@ export interface RemoteProject {
 
 export interface Account {
   user: CloudUser
+  /** The address sign-in codes go to; null (or missing, from an older Worker) when there's none. */
+  email?: string | null
   passkeys: { created: number; lastUsed: number | null; synced: boolean }[]
   recoveryCodeCreated: number | null
   /** What the account keeps in the cloud, and the most it may, in bytes. */
@@ -78,8 +80,14 @@ export class OfflineError extends Error {
 export const isOffline = (e: unknown) => e instanceof OfflineError
 export const isSignedOut = (e: unknown) => e instanceof CloudError && e.status === 401
 
+export interface Health {
+  signup: Signup
+  /** Whether this cloud can email sign-in codes (worker/src/emailAuth.ts). */
+  email: boolean
+}
+
 export interface CloudApi {
-  health(): Promise<{ signup: Signup } | null>
+  health(): Promise<Health | null>
   session(): Promise<CloudUser | null>
   signupOptions(name: string, invite?: string): Promise<{ challengeId: string; options: unknown }>
   signupVerify(challengeId: string, response: unknown, invite?: string): Promise<{ user: CloudUser; recoveryCode: string }>
@@ -90,6 +98,15 @@ export interface CloudApi {
   passkeyOptions(): Promise<{ challengeId: string; options: unknown }>
   passkeyVerify(challengeId: string, response: unknown): Promise<void>
   newRecoveryCode(): Promise<string>
+  /** Signed out: email a sign-in code to the address, if an account has it (the reply can't say). */
+  emailCode(email: string): Promise<void>
+  /** Signed out: the address and its code start a session. */
+  emailSignIn(email: string, code: string): Promise<{ user: CloudUser }>
+  /** Signed in: email a code to an address being added, to check it's theirs. The address as kept. */
+  emailAdd(email: string): Promise<string>
+  /** Signed in: that code makes the address the account's. */
+  emailConfirm(email: string, code: string): Promise<string>
+  emailRemove(): Promise<void>
   account(): Promise<Account>
   /** Ask for the account to be deleted (30 days on); signs out everywhere. When it goes. */
   deleteAccount(): Promise<number>
@@ -147,8 +164,8 @@ export function createCloudApi(opts: ApiOptions = {}): CloudApi {
     async health() {
       const res = await call('health')
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null
-      const body = (await res.json().catch(() => null)) as { app?: string; signup?: Signup } | null
-      return body?.app === 'block-and-house-planner' ? { signup: body.signup ?? 'closed' } : null
+      const body = (await res.json().catch(() => null)) as { app?: string; signup?: Signup; email?: boolean } | null
+      return body?.app === 'block-and-house-planner' ? { signup: body.signup ?? 'closed', email: body.email === true } : null
     },
     session: async () => (await json<{ user: CloudUser | null }>('session')).user,
     signupOptions: (name, invite) => post('auth/signup/options', { name, invite }),
@@ -160,6 +177,11 @@ export function createCloudApi(opts: ApiOptions = {}): CloudApi {
     passkeyOptions: () => post('auth/passkey/options'),
     passkeyVerify: async (challengeId, response) => void (await post('auth/passkey/verify', { challengeId, response })),
     newRecoveryCode: async () => (await post<{ recoveryCode: string }>('auth/recovery-code')).recoveryCode,
+    emailCode: async email => void (await post('auth/email/start', { email })),
+    emailSignIn: (email, code) => post('auth/email/verify', { email, code }),
+    emailAdd: async email => (await post<{ email: string }>('account/email/start', { email })).email,
+    emailConfirm: async (email, code) => (await post<{ email: string }>('account/email/confirm', { email, code })).email,
+    emailRemove: async () => void (await post('account/email/remove')),
     account: () => json('account'),
     deleteAccount: async () => (await post<{ deleteAfter: number }>('account/delete')).deleteAfter,
     keepAccount: async () => (await post<{ user: CloudUser }>('account/keep')).user,

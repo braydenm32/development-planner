@@ -1,0 +1,491 @@
+/* Comments on share links (src/comments): pins on the plan, the card to read or write one, the
+   plan key's switch, the badge where the share links live, and the list in Share › Send. The
+   calm look: ink on white, hairlines, one cobalt accent for what's new. */
+
+:root {
+  --cm-ink: #16181b;
+  --cm-muted: #6b7077;
+  --cm-line: #e1e4e7;
+  --cm-accent: #2346d0;
+  --cm-accent-soft: #eef1fc;
+  --cm-done: #8b9097;
+}
+
+/* ---- Pins: a numbered bubble whose tail sits on the spot ---- */
+
+/* No z-index: drawn just after the plan, so the plan's buttons, key and sheets sit over the pins. */
+.cm-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 2px solid #ffffff;
+  border-radius: 13px 13px 13px 3px;
+  background: var(--cm-accent);
+  color: #ffffff;
+  font: 600 12.5px/1 Inter, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(22, 24, 27, 0.28);
+  transform: translate(-2px, -100%);
+  cursor: pointer;
+}
+
+.cm-pin:hover,
+.cm-pin.on {
+  box-shadow:
+    0 0 0 3px rgba(35, 70, 208, 0.25),
+    0 2px 6px rgba(22, 24, 27, 0.28);
+}
+
+.cm-pin:focus-visible {
+  outline: 2px solid var(--cm-ink);
+  outline-offset: 2px;
+}
+
+.cm-pin.resolved {
+  border-color: #ffffff;
+  background: #e4e7eb;
+  color: #4d5259;
+  box-shadow:
+    0 0 0 1px #c3c8ce,
+    0 1px 4px rgba(22, 24, 27, 0.22);
+}
+
+.cm-pin.draft {
+  width: 26px;
+  border: 2px dashed var(--cm-accent);
+  background: var(--cm-accent-soft);
+  pointer-events: none;
+}
+
+/* While Add a comment waits for a tap, the plan says so. */
+.plan-editor:has(.cm-bar.placing) .plan-svg {
+  cursor: crosshair;
+}
+
+.cm-bar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-bar .ic {
+  color: var(--cm-accent);
+}
+
+/* ---- The card: reading one, or writing a new one ---- */
+
+.cm-card {
+  position: absolute;
+  left: var(--cm-left, 12px);
+  top: var(--cm-top, 64px);
+  z-index: 9;
+  width: 300px;
+  max-width: calc(100% - 24px);
+  padding: 12px 14px 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--cm-ink);
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.45);
+}
+
+.cm-card p {
+  margin: 0;
+}
+
+.cm-card .cm-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.cm-meta {
+  padding-right: 26px;
+  color: var(--cm-muted);
+  font-size: 12.5px;
+}
+
+.cm-meta b {
+  color: var(--cm-ink);
+  font-weight: 600;
+}
+
+/* What someone wrote, as they wrote it: text only, line breaks kept, long words wrapped. */
+.cm-text {
+  margin: 6px 0 0;
+  max-height: 11.5em;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cm-from {
+  margin-top: 8px !important;
+  color: var(--cm-muted);
+  font-size: 12px;
+}
+
+.cm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px !important;
+  color: #2f6f62;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cm-acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 3px;
+  background: #ffffff;
+  color: var(--cm-ink);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cm-btn:hover:not(:disabled) {
+  border-color: var(--cm-ink);
+}
+
+.cm-btn.quiet {
+  font-weight: 500;
+}
+
+.cm-btn.primary {
+  border-color: var(--cm-ink);
+  background: var(--cm-ink);
+  color: #ffffff;
+}
+
+.cm-btn.primary:hover:not(:disabled) {
+  background: #000000;
+}
+
+.cm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cm-btn:focus-visible,
+.cm-compose :is(textarea, input):focus-visible {
+  outline: 2px solid var(--cm-accent);
+  outline-offset: 1px;
+}
+
+.cm-compose {
+  display: grid;
+}
+
+.cm-label {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.cm-label + textarea {
+  margin-bottom: 2px;
+}
+
+.cm-compose textarea,
+.cm-compose input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #cfd4da;
+  border-radius: 3px;
+  background: #ffffff;
+  color: var(--cm-ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.cm-compose textarea {
+  min-height: 72px;
+}
+
+.cm-compose input {
+  height: 34px;
+}
+
+.cm-compose input::placeholder,
+.cm-compose textarea::placeholder {
+  color: #9aa0a7;
+}
+
+.cm-count {
+  justify-self: end;
+  color: var(--cm-muted);
+  font-size: 11.5px;
+}
+
+.cm-count.over {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+.cm-compose .cm-label:not(:first-of-type) {
+  margin-top: 10px;
+}
+
+.cm-who {
+  margin-top: 8px !important;
+  color: var(--cm-muted);
+  font-size: 12px;
+}
+
+.cm-problem {
+  margin-top: 8px !important;
+  padding: 6px 9px;
+  border-radius: 3px;
+  background: #fdecea;
+  color: #b3261e;
+  font-size: 12.5px;
+}
+
+/* On a phone the card sits along the bottom, clear of the thumb's reach to the plan above. */
+@media (max-width: 760px), (pointer: coarse) {
+  .cm-card {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 70;
+    width: auto;
+    max-width: none;
+    padding: 14px 16px;
+    font-size: 15px;
+    box-shadow: 0 -6px 30px -12px rgba(0, 0, 0, 0.4);
+  }
+
+  .cm-meta,
+  .cm-label,
+  .cm-who,
+  .cm-from,
+  .cm-problem {
+    font-size: 14px;
+  }
+
+  .cm-btn {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  .cm-compose textarea,
+  .cm-compose input {
+    font-size: 16px; /* no zoom on focus */
+  }
+
+  .cm-compose input {
+    height: 44px;
+  }
+
+  .cm-card .cm-close {
+    top: 8px;
+    right: 8px;
+  }
+
+  .cm-pin {
+    min-width: 30px;
+    height: 30px;
+    border-radius: 15px 15px 15px 4px;
+    font-size: 14px;
+  }
+}
+
+/* ---- The plan key's switch, and "2 new" ---- */
+
+.cm-key {
+  margin-top: 2px;
+}
+
+.cm-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--cm-accent);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+  vertical-align: 1px;
+}
+
+/* ---- The badge on Share and Send ---- */
+
+.cm-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cm-accent);
+  color: #ffffff;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+}
+
+.area-link .cm-badge {
+  position: absolute;
+  top: 5px;
+  left: calc(50% + 6px);
+  margin: 0;
+  border: 2px solid #ffffff;
+  min-width: 19px;
+  height: 19px;
+}
+
+/* ---- The shared view's Add a comment ---- */
+
+.shared-view .cm-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.shared-view .cm-add.on {
+  border-color: var(--cm-accent);
+  background: var(--cm-accent-soft);
+  color: var(--cm-accent);
+}
+
+/* ---- Share › Send: each link's ticks, and the list of comments ---- */
+
+.share-links .sl-cm {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 2px;
+  margin: 2px 0 10px;
+  font-size: 12.5px;
+}
+
+.share-links .sl-list li .sl-cm {
+  margin: 4px 0 0;
+}
+
+.share-links .sl-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  cursor: pointer;
+}
+
+.share-links .sl-check input {
+  margin: 0;
+  accent-color: var(--sl-accent);
+}
+
+.share-links .sl-check-sub {
+  padding-left: 22px;
+  color: var(--sl-muted);
+}
+
+.share-links .sl-cm-count {
+  color: var(--sl-ink);
+  font-weight: 500;
+}
+
+.cm-list .sl-title .cm-new {
+  margin-left: 2px;
+}
+
+.cm-list ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-list li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--sl-line-soft);
+}
+
+.cm-list li:first-child {
+  border-top: 0;
+}
+
+.cm-list .cm-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--cm-accent);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cm-list li.resolved .cm-num {
+  background: #ffffff;
+  color: var(--cm-done);
+  box-shadow: 0 0 0 1px var(--cm-line);
+}
+
+.cm-list li.resolved .cm-text {
+  color: var(--sl-muted);
+}
+
+.cm-list .cm-text {
+  margin: 1px 0 0;
+  max-height: 8.8em;
+}
+
+.cm-list .cm-from {
+  margin: 4px 0 6px !important;
+  font-size: 12px;
+}
+
+.cm-list .sl-acts {
+  flex-wrap: wrap;
+}
+
+.share-links .cm-list .sl-acts .sl-btn {
+  padding: 0 9px;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .share-links .sl-cm,
+  .cm-list .cm-from {
+    font-size: 14px;
+  }
+
+  .share-links .sl-check {
+    min-height: 44px;
+  }
+
+  .share-links .cm-list .sl-acts .sl-btn {
+    flex: 1;
+    padding: 0 10px;
+  }
+}

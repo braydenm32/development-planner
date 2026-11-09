@@ -11,6 +11,9 @@
 // reads that one project's index entry and the records a viewer needs, nothing else. The only
 // thing it writes is when the link was last opened. A link stops opening while its account is
 // being deleted, and opens again if the account is kept.
+//
+// Each link also says whether people with it can comment on the plan (worker/src/comments.ts):
+// off unless the owner ticks it when making the link, or later.
 
 import type { Env } from './env'
 import { HttpError, json, randomId, readBytes, sha256Hex } from './http'
@@ -41,6 +44,14 @@ export const DEFAULT_DAYS = 30
 export const EXTEND_DAYS = 30
 export const MAX_DAYS = 365
 
+/**
+ * Comments on a link (share_links.comments, by position): off, on with each person seeing only
+ * their own, or on with everyone with the link seeing all of them.
+ */
+export const COMMENT_MODES = ['off', 'own', 'all'] as const
+export type CommentMode = (typeof COMMENT_MODES)[number]
+export const commentMode = (n: number | null | undefined): CommentMode => COMMENT_MODES[n ?? 0] ?? 'off'
+
 /** Links one project can have turned on at once. */
 export const LINKS_MAX = 50
 /** A link turned off can be turned back on (the toast's Undo) for this long. */
@@ -69,30 +80,46 @@ interface LinkRow {
   last_opened: number | null
   /** When it stops working; null for a link made before links had an end. */
   expires: number | null
+  /** Its comments setting (COMMENT_MODES). */
+  comments: number
 }
 
-const linkOut = (r: LinkRow) => ({ id: r.token_hash, created: r.created, lastOpened: r.last_opened, expires: r.expires })
+/** The link's columns linkOut needs, for a SELECT or RETURNING. */
+export const LINK_COLUMNS = 'token_hash, created, last_opened, expires, comments'
+
+export const linkOut = (r: LinkRow) => ({ id: r.token_hash, created: r.created, lastOpened: r.last_opened, expires: r.expires, comments: commentMode(r.comments) })
 
 /** A link that still works at `now` (as SQL, with `now` bound for the ?). */
 const WORKS = '(expires IS NULL OR expires > ?)'
 
-/** How long the new link should last: the body's `days`, or 30 days with no body. */
-async function daysAsked(req: Request): Promise<number> {
+/** Comments as a request asks for them: one of COMMENT_MODES, as its number; off when not said. */
+export function modeAsked(v: unknown): number {
+  if (v === undefined || v === null) return 0
+  const i = (COMMENT_MODES as readonly unknown[]).indexOf(v)
+  if (i < 0) throw new HttpError(400, 'bad-request', 'Comments can be off, each person’s own, or everyone’s.')
+  return i
+}
+
+/** What the new link should be: the body's `days` (30 with no body) and `comments` (off unless asked). */
+async function linkAsked(req: Request): Promise<{ days: number; comments: number }> {
   const bytes = await readBytes(req, 1024)
-  let days: unknown
+  type Body = { days?: unknown; comments?: unknown } | null
+  let body: Body = null
   if (bytes.length) {
     try {
-      days = (JSON.parse(new TextDecoder().decode(bytes)) as { days?: unknown } | null)?.days
+      body = JSON.parse(new TextDecoder().decode(bytes)) as Body
     } catch {
       throw new HttpError(400, 'bad-json', 'The request was not readable.')
     }
   }
-  if (days === undefined || days === null) return DEFAULT_DAYS
+  const days = body?.days
+  const comments = modeAsked(body?.comments)
+  if (days === undefined || days === null) return { days: DEFAULT_DAYS, comments }
   if (!(LINK_DAYS as readonly unknown[]).includes(days)) throw new HttpError(400, 'bad-length', 'A link can last 30 days, 90 days or a year.')
-  return days as number
+  return { days: days as number, comments }
 }
 
-const linkId = (id: string) => {
+export const linkId = (id: string) => {
   if (!LINK_ID_RE.test(id)) throw new HttpError(400, 'bad-request', 'That link was not readable.')
   return id
 }
@@ -107,7 +134,8 @@ async function liveProject(env: Env, user: string, id: string): Promise<boolean>
 /** Make a link for one of the owner's projects (it has to be in the cloud). The token is in this reply only. */
 export async function createShare(env: Env, req: Request, user: string, rawId: string, now: number): Promise<Response> {
   const id = checkId(rawId)
-  const expires = now + (await daysAsked(req)) * DAY
+  const asked = await linkAsked(req)
+  const expires = now + asked.days * DAY
   await rateLimit(env, `share-make:${user}`, 60, 60 * MINUTE, now)
   if (!(await liveProject(env, user, id))) throw new HttpError(404, 'not-in-cloud', 'This project isn’t in the cloud yet. Upload it, then make a link.')
   const count = await env.DB.prepare(`SELECT COUNT(*) AS n FROM share_links WHERE user_id = ? AND project_id = ? AND revoked IS NULL AND ${WORKS}`).bind(user, id, now).first<{ n: number }>()
@@ -116,18 +144,18 @@ export async function createShare(env: Env, req: Request, user: string, rawId: s
   const hash = await sha256Hex(token)
   // The project could go between the check and here: the link is made only while it is there.
   const res = await env.DB.prepare(
-    'INSERT INTO share_links (token_hash, user_id, project_id, created, revoked, last_opened, expires) SELECT ?, ?, ?, ?, NULL, NULL, ? WHERE EXISTS (SELECT 1 FROM projects WHERE user_id = ? AND id = ? AND deleted = 0)',
+    'INSERT INTO share_links (token_hash, user_id, project_id, created, revoked, last_opened, expires, comments) SELECT ?, ?, ?, ?, NULL, NULL, ?, ? WHERE EXISTS (SELECT 1 FROM projects WHERE user_id = ? AND id = ? AND deleted = 0)',
   )
-    .bind(hash, user, id, now, expires, user, id)
+    .bind(hash, user, id, now, expires, asked.comments, user, id)
     .run()
   if (!res.meta.changes) throw new HttpError(404, 'not-in-cloud', 'This project isn’t in the cloud yet. Upload it, then make a link.')
-  return json({ token, link: linkOut({ token_hash: hash, created: now, last_opened: null, expires }) }, 201)
+  return json({ token, link: linkOut({ token_hash: hash, created: now, last_opened: null, expires, comments: asked.comments }) }, 201)
 }
 
 /** The project's links that work now (on, and not ended), newest first. */
 export async function listShares(env: Env, user: string, rawId: string, now: number): Promise<Response> {
   const id = checkId(rawId)
-  const rows = await env.DB.prepare(`SELECT token_hash, created, last_opened, expires FROM share_links WHERE user_id = ? AND project_id = ? AND revoked IS NULL AND ${WORKS} ORDER BY created DESC`)
+  const rows = await env.DB.prepare(`SELECT ${LINK_COLUMNS} FROM share_links WHERE user_id = ? AND project_id = ? AND revoked IS NULL AND ${WORKS} ORDER BY created DESC`)
     .bind(user, id, now)
     .all<LinkRow>()
   return json({ links: rows.results.map(linkOut) })
@@ -145,7 +173,7 @@ export async function extendShare(env: Env, user: string, rawId: string, rawLink
   )
     .bind(EXTEND_DAYS * DAY, now + MAX_DAYS * DAY, link, user, id, now)
     .run()
-  const row = await env.DB.prepare('SELECT token_hash, created, last_opened, expires, revoked FROM share_links WHERE token_hash = ? AND user_id = ? AND project_id = ?')
+  const row = await env.DB.prepare(`SELECT ${LINK_COLUMNS}, revoked FROM share_links WHERE token_hash = ? AND user_id = ? AND project_id = ?`)
     .bind(link, user, id)
     .first<LinkRow & { revoked: number | null }>()
   if (!row) throw new HttpError(404, 'not-found', 'That link isn’t one of this project’s.')
@@ -177,27 +205,29 @@ export async function restoreShare(env: Env, user: string, rawId: string, rawLin
     .bind(link, user, id, now - UNDO_MS, user, id)
     .run()
   if (!res.meta.changes) {
-    const row = await env.DB.prepare('SELECT token_hash, created, last_opened, expires, revoked FROM share_links WHERE token_hash = ? AND user_id = ? AND project_id = ?')
+    const row = await env.DB.prepare(`SELECT ${LINK_COLUMNS}, revoked FROM share_links WHERE token_hash = ? AND user_id = ? AND project_id = ?`)
       .bind(link, user, id)
       .first<LinkRow & { revoked: number | null }>()
     if (!row) throw new HttpError(404, 'not-found', 'That link isn’t one of this project’s.')
     if (row.revoked !== null) throw new HttpError(409, 'too-late', 'That link was turned off a while ago and stays off. Make a new one instead.')
     return json({ link: linkOut(row) })
   }
-  const row = await env.DB.prepare('SELECT token_hash, created, last_opened, expires FROM share_links WHERE token_hash = ?').bind(link).first<LinkRow>()
+  const row = await env.DB.prepare(`SELECT ${LINK_COLUMNS} FROM share_links WHERE token_hash = ?`).bind(link).first<LinkRow>()
   return json({ link: linkOut(row!) })
 }
 
 // ---------------------------------------------------------------------------
 // The viewer's side.
 
-interface OpenLink {
+export interface OpenLink {
   token_hash: string
   user_id: string
   project_id: string
   last_opened: number | null
   expires: number | null
   name: string
+  /** Its comments setting (COMMENT_MODES). */
+  comments: number
 }
 
 const turnedOff = () => new HttpError(404, 'link-off', 'This link doesn’t open anything now. It may have been turned off, or copied wrong.')
@@ -210,8 +240,8 @@ async function over(env: Env, key: string, limit: number, windowMs: number, now:
   return !!row && row.win === Math.floor(now / windowMs) * windowMs && row.count >= limit
 }
 
-/** The link this request's token opens, if it is on and its project is there. */
-async function openLink(env: Env, req: Request, now: number): Promise<OpenLink> {
+/** The link this request's token opens, if it is on and its project is there (comments open it the same way). */
+export async function openLink(env: Env, req: Request, now: number): Promise<OpenLink> {
   const ip = clientIp(req)
   await rateLimit(env, `share:${ip}`, SHARE_LIMIT, SHARE_WINDOW, now)
   const missKey = `share-miss:${ip}`
@@ -222,7 +252,7 @@ async function openLink(env: Env, req: Request, now: number): Promise<OpenLink> 
   const token = req.headers.get(SHARE_HEADER) ?? ''
   const row = TOKEN_RE.test(token)
     ? await env.DB.prepare(
-        'SELECT s.token_hash AS token_hash, s.user_id AS user_id, s.project_id AS project_id, s.last_opened AS last_opened, s.expires AS expires, u.name AS name FROM share_links s JOIN users u ON u.id = s.user_id JOIN projects p ON p.user_id = s.user_id AND p.id = s.project_id WHERE s.token_hash = ? AND s.revoked IS NULL AND p.deleted = 0 AND u.delete_after IS NULL',
+        'SELECT s.token_hash AS token_hash, s.user_id AS user_id, s.project_id AS project_id, s.last_opened AS last_opened, s.expires AS expires, s.comments AS comments, u.name AS name FROM share_links s JOIN users u ON u.id = s.user_id JOIN projects p ON p.user_id = s.user_id AND p.id = s.project_id WHERE s.token_hash = ? AND s.revoked IS NULL AND p.deleted = 0 AND u.delete_after IS NULL',
       )
         .bind(await sha256Hex(token))
         .first<OpenLink>()

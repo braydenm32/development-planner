@@ -163,8 +163,8 @@ let picker: HTMLInputElement | null = null
 let pickMode: PickMode = 'any'
 
 export const ACCEPT: Record<PickMode, string> = {
-  any: '.dxf,.json,application/json',
-  survey: '.dxf',
+  any: '.dxf,.xml,.csv,.txt,.json,application/json',
+  survey: '.dxf,.xml,.csv,.txt',
   plan: '.json,application/json',
 }
 

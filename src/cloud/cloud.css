@@ -308,6 +308,33 @@
   color: #b4b9bf;
 }
 
+/* The emailed code: six digits, big enough to check at a glance. */
+.cl-field input.cl-otp {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 20px;
+  letter-spacing: 0.3em;
+  max-width: 12em;
+}
+
+/* An address shown back: it can be long, so it breaks anywhere rather than widen the sheet. */
+.cl-email {
+  font-weight: 500;
+  color: var(--cl-ink);
+  overflow-wrap: anywhere;
+}
+
+/* "Email me a code instead", under the passkey button. */
+.cl-instead {
+  margin: 12px 0 0 !important;
+  text-align: center;
+}
+
+.cl-instead .cl-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .cl-check {
   display: flex;
   align-items: center;
@@ -486,6 +513,17 @@
 
 .cl-section p {
   margin-bottom: 8px;
+}
+
+.cl-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cl-inline > span {
+  flex-basis: 100%;
 }
 
 /* ---- The chip and its popover ---- */

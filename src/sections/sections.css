@@ -1,0 +1,491 @@
+/* Sections and elevations, in the plan's drafting look: ink on white, hairlines, the ground's
+   natural line dashed and its finished line solid, cut and fill in the retaining section's colours. */
+
+.sec-svg-box {
+  width: 100%;
+  overflow: hidden;
+}
+
+.sec-svg-box.scrolls {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sec-svg {
+  display: block;
+  margin: 0 auto;
+  background: #ffffff;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ---- Shapes ---- */
+
+.sec-s {
+  stroke-linejoin: round;
+}
+
+.sec-earth {
+  fill: #f2f0ea;
+}
+
+.sec-cut {
+  fill: #e3874a;
+  fill-opacity: 0.3;
+}
+
+.sec-fill {
+  fill: #5d8fca;
+  fill-opacity: 0.3;
+}
+
+.sec-slab {
+  fill: #9aa0a8;
+  stroke: #2b3036;
+  stroke-width: 0.8;
+}
+
+.sec-framing {
+  fill: #e9e3d7;
+  stroke: #5f6874;
+  stroke-width: 0.8;
+}
+
+.sec-pier {
+  fill: #6b7077;
+}
+
+.sec-wall-cut {
+  fill: #474c54;
+}
+
+.sec-retaining {
+  fill: #b9aa8f;
+  stroke: #6e5f4b;
+  stroke-width: 0.9;
+}
+
+.sec-roof-cut {
+  fill: #cdd1d6;
+  stroke: #2b3036;
+  stroke-width: 1;
+}
+
+.sec-wall-face {
+  fill: #ffffff;
+  stroke: #2b3036;
+  stroke-width: 1;
+}
+
+/* Roof faces hide their own seams; their edges are drawn on top. */
+.sec-roof-face {
+  fill: #e7e9ec;
+  stroke: #e7e9ec;
+  stroke-width: 0.6;
+}
+
+.sec-window {
+  fill: #dde7f1;
+  stroke: #2b3036;
+  stroke-width: 0.8;
+}
+
+.sec-door {
+  fill: #f3efe6;
+  stroke: #2b3036;
+  stroke-width: 0.8;
+}
+
+.sec-garage {
+  fill: #eef0f2;
+  stroke: #2b3036;
+  stroke-width: 0.8;
+}
+
+.sec-opening {
+  fill: #cdd1d6;
+  stroke: #2b3036;
+  stroke-width: 0.8;
+}
+
+.sec-scale-dark {
+  fill: #16181b;
+}
+
+.sec-scale-light {
+  fill: #ffffff;
+  stroke: #16181b;
+  stroke-width: 0.8;
+}
+
+/* ---- Lines ---- */
+
+.sec-l {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sec-l-natural {
+  stroke: #6b7077;
+  stroke-width: 1.3;
+  stroke-dasharray: 5 3.5;
+}
+
+.sec-l-finished {
+  stroke: #16181b;
+  stroke-width: 1.8;
+}
+
+.sec-l-ceiling {
+  stroke: #9aa0a8;
+  stroke-width: 1;
+}
+
+.sec-l-level {
+  stroke: #b8bec6;
+  stroke-width: 0.8;
+  stroke-dasharray: 2 3;
+}
+
+.sec-l-boundary {
+  stroke: #3c4a3a;
+  stroke-width: 1.2;
+  stroke-dasharray: 9 3 2 3;
+  stroke-linecap: butt;
+}
+
+.sec-l-dim,
+.sec-l-axis {
+  stroke: #8a9099;
+  stroke-width: 0.9;
+}
+
+.sec-l-roof-edge {
+  stroke: #2b3036;
+  stroke-width: 1;
+}
+
+.sec-l-detail {
+  stroke: #2b3036;
+  stroke-width: 0.6;
+}
+
+.sec-l-height {
+  stroke: var(--accent, #2346d0);
+  stroke-width: 1.3;
+}
+
+/* ---- Labels ---- */
+
+.sec-t {
+  fill: #16181b;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.sec-t.bold {
+  font-weight: 600;
+}
+
+.sec-t-muted {
+  fill: #6b7077;
+}
+
+.sec-t-accent {
+  fill: var(--accent, #2346d0);
+}
+
+.sec-t-boundary {
+  fill: #3c4a3a;
+}
+
+/* ---- On the plan ---- */
+
+.sec-marks {
+  pointer-events: none;
+}
+
+.sec-line {
+  fill: none;
+  stroke: #2b3036;
+  stroke-width: 1.4;
+  stroke-dasharray: 12 4 2 4;
+}
+
+.sec-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+}
+
+.sec-line.preview {
+  stroke: var(--accent, #2346d0);
+  stroke-width: 1.8;
+}
+
+.sec-arrow {
+  fill: #2b3036;
+  stroke: #2b3036;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.sec-tag {
+  fill: #ffffff;
+  stroke: #2b3036;
+  stroke-width: 1.4;
+}
+
+.sec-tag-text {
+  fill: #2b3036;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sec-mark.on .sec-line {
+  stroke: var(--accent, #2346d0);
+  stroke-width: 2;
+}
+
+.sec-mark.on .sec-arrow {
+  fill: var(--accent, #2346d0);
+  stroke: var(--accent, #2346d0);
+}
+
+.sec-mark.on .sec-tag {
+  fill: var(--accent, #2346d0);
+  stroke: var(--accent, #2346d0);
+}
+
+.sec-mark.on .sec-tag-text {
+  fill: #ffffff;
+}
+
+.sec-start {
+  fill: var(--accent, #2346d0);
+}
+
+/* ---- Design › Sections ---- */
+
+.sec-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.sec-panel > h3 {
+  margin: 8px 0 0;
+}
+
+.sec-panel > p {
+  margin: 0;
+}
+
+.sec-picks-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A choice of drawings: the one showing is ink. */
+.sec-picks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--field-line, #cfd3d8);
+  border-radius: var(--r, 3px);
+  overflow: hidden;
+}
+
+.sec-picks button {
+  min-width: 48px;
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 0;
+  background: #ffffff;
+  color: var(--text, #16181b);
+  font: inherit;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.sec-picks button + button {
+  border-left: 1px solid var(--field-line, #cfd3d8);
+}
+
+.sec-picks button.on {
+  background: var(--text, #16181b);
+  color: #ffffff;
+}
+
+.sec-picks button:focus-visible,
+.sec-open:focus-visible,
+.sec-x:focus-visible {
+  outline: 2px solid var(--accent, #2346d0);
+  outline-offset: 1px;
+}
+
+.sec-figure {
+  margin: 0;
+  border: 1px solid var(--line-soft, #eef0f2);
+  border-radius: var(--r, 3px);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.sec-open {
+  display: block;
+  width: 100%;
+  padding: 6px 4px 2px;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.sec-empty {
+  margin: 0;
+  padding: 18px 14px;
+}
+
+.sec-actions {
+  flex-wrap: wrap;
+}
+
+.sec-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sec-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted, #6b7077);
+  font-size: 12px;
+}
+
+.sec-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sec-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 9px;
+  border-radius: 1px;
+}
+
+.sec-swatch.cut {
+  background: rgba(227, 135, 74, 0.35);
+}
+
+.sec-swatch.fill {
+  background: rgba(93, 143, 202, 0.35);
+}
+
+.sec-drawing-now {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent, #2346d0);
+  border-radius: var(--r, 3px);
+  background: var(--accent-soft, #eef1fc);
+}
+
+.sec-drawing-now p {
+  margin: 0;
+}
+
+/* ---- Large ---- */
+
+.sec-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 24, 28, 0.28);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text, #16181b);
+}
+
+.sec-large {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1400px, 100%);
+  max-height: 100%;
+  padding: 16px 20px 18px;
+  border: 1px solid var(--line, #e1e4e7);
+  border-radius: var(--r-lg, 4px);
+  background: #ffffff;
+  box-shadow:
+    0 18px 50px -12px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  overflow: auto;
+}
+
+.sec-large:focus {
+  outline: none;
+}
+
+.sec-large > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sec-large h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.sec-x {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--r, 3px);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sec-x:hover {
+  background: var(--line-soft, #eef0f2);
+}
+
+.sec-large-body {
+  min-height: 0;
+}
+
+.sec-scrim:has(.sec-large.phone) {
+  padding: 0;
+  place-items: stretch;
+}
+
+.sec-large.phone {
+  width: 100%;
+  height: 100%;
+  padding: 12px 14px 16px;
+  border: 0;
+  border-radius: 0;
+}
+
+.sec-large.phone .sec-picks button {
+  min-height: 40px;
+}

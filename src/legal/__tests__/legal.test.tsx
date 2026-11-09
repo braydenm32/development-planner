@@ -50,6 +50,12 @@ describe('the pages', () => {
     for (const s of ['IndexedDB', 'Cloudflare', 'passkey', 'recovery code', 'no analytics', 'no tracking cookies', 'one session cookie', '30 days', 'Australian Privacy Principles', 'Resend']) expect(t.toLowerCase(), s).toContain(s.toLowerCase())
   })
 
+  it('say what email sign-in keeps, where it goes and how it goes away', () => {
+    const t = textOf(html('privacy'))
+    for (const s of ['the email address you add for sign-in', 'only to send you 6-digit sign-in codes', 'Resend, a US company', 'United States', 'only as a hash', '10 minutes', 'Remove the email from your account', 'Resend (to email your sign-in codes']) expect(t, s).toContain(s)
+    expect(t).not.toContain('is on its way')
+  })
+
   it('keep the terms to a planning aid, estimates, a storage limit and NSW law', () => {
     const t = textOf(html('terms'))
     for (const s of ['not professional advice', 'surveyor, engineer, certifier, architect or building designer', '50 MB', 'Australian Consumer Law', 'New South Wales', 'suspend', 'by invite']) expect(t, s).toContain(s)

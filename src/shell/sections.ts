@@ -2,7 +2,9 @@
 // that every tab (bar the canvas-only ones) and every More item has something here.
 
 import type { ComponentType } from 'react'
+import { BasixTab } from '../basix/BasixTab'
 import { AboutCostsSection, EstimateAside, EstimateTab, MaterialsTab, QuotesTab, RatesSection } from '../costs/CostsTabs'
+import { StormwaterTab } from '../drainage/StormwaterTab'
 import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
@@ -15,6 +17,7 @@ import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+import { SectionsTab } from '../sections/SectionsTab'
 import { SiteSunTab } from '../sun/SunTab'
 import { MapTab } from '../map/MapTab'
 
@@ -29,12 +32,15 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/rooms': RoomsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
+  'design/sections': SectionsTab,
   'design/checks': ChecksTab,
+  'design/basix': BasixTab,
   'design/options': OptionsTab,
   'earthworks/place': PlaceTab,
   'earthworks/cut-fill': CutFillTab,
   'earthworks/retaining-walls': RetainingWallsTab,
   'earthworks/driveway': DrivewayTab,
+  'earthworks/stormwater': StormwaterTab,
   'costs/estimate': EstimateTab,
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,

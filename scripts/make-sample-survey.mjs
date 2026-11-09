@@ -4,13 +4,18 @@
 //
 //   node scripts/make-sample-survey.mjs
 //
+// It also writes sample-block.xml (LandXML: a TIN, the spot levels as points, the lot as a parcel) and
+// sample-block.csv (the spot levels, with a header, and the lot corners coded BDY), from the same
+// made-up points, so every format can be checked against the DXF.
+//
 // The output is deterministic, so running it again gives the same file.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'samples', 'sample-block.dxf')
+const samples = join(dirname(fileURLToPath(import.meta.url)), '..', 'samples')
+const out = join(samples, 'sample-block.dxf')
 
 // Local survey coordinates, metres; the block's south-west corner is near (5000, 8000).
 const E0 = 5000
@@ -75,12 +80,14 @@ for (let q = 4 * 36; q <= 4 * 51; q++) {
 }
 
 // 60 surveyed spot levels inside the block on a staggered grid, within ±8 mm of the ground.
+const spots = []
 let n = 0
 for (let row = 0; n < 60 && row < 20; row++) {
   for (let col = 0; col < 8 && n < 60; col++) {
     const p = [1.5 + col * 3 + (row % 2) * 1.5, 1.5 + row * 3.1]
     if (!inside(p)) continue
-    ents.push(point('PRO_SPOTS', [p[0], p[1], ground(p[0], p[1]) + wobble(n, 0.008)]))
+    spots.push([p[0], p[1], ground(p[0], p[1]) + wobble(n, 0.008)])
+    ents.push(point('PRO_SPOTS', spots[spots.length - 1]))
     ents.push(text('LABELS', [p[0] + 0.3, p[1] + 0.3], (ground(p[0], p[1]) + wobble(n, 0.008)).toFixed(2)))
     n++
   }
@@ -112,3 +119,60 @@ const dxf = [
 mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, dxf + '\n')
 console.log(`Wrote ${out}: ${ents.length} entities, ${n} spot levels.`)
+
+// LandXML 1.2: coordinates are written northing, easting, elevation. The TIN is a grid of
+// ground points a little past the lot, split into triangles.
+const TIN_X = Array.from({ length: 8 }, (_, i) => -2 + i * 4)
+const TIN_Y = Array.from({ length: 10 }, (_, j) => -2 + j * 4)
+const tinPts = TIN_Y.flatMap(y => TIN_X.map(x => [x, y, ground(x, y)]))
+const tinFaces = []
+for (let j = 0; j < TIN_Y.length - 1; j++) {
+  for (let i = 0; i < TIN_X.length - 1; i++) {
+    const a = j * TIN_X.length + i + 1
+    const b = a + 1
+    const c = a + TIN_X.length
+    const d = c + 1
+    tinFaces.push([a, b, d], [a, d, c])
+  }
+}
+const ne = ([x, y]) => `${r3(N0 + y)} ${r3(E0 + x)}`
+const xml = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2" date="2026-01-01" time="09:00:00">',
+  '  <Units><Metric areaUnit="squareMeter" linearUnit="meter" volumeUnit="cubicMeter" temperatureUnit="celsius" pressureUnit="milliBars" diameterUnit="millimeter" angularUnit="decimal degrees" directionUnit="decimal degrees" /></Units>',
+  '  <Project name="Sample block (made up)" />',
+  '  <Application name="make-sample-survey" />',
+  '  <CgPoints>',
+  ...spots.map(([x, y, z], i) => `    <CgPoint name="${i + 1}" code="SPOT">${ne([x, y])} ${r3(z)}</CgPoint>`),
+  '  </CgPoints>',
+  '  <Surfaces>',
+  '    <Surface name="Existing ground">',
+  '      <Definition surfType="TIN">',
+  '        <Pnts>',
+  ...tinPts.map(([x, y, z], i) => `          <P id="${i + 1}">${ne([x, y])} ${r3(z)}</P>`),
+  '        </Pnts>',
+  '        <Faces>',
+  ...tinFaces.map(f => `          <F>${f.join(' ')}</F>`),
+  '        </Faces>',
+  '      </Definition>',
+  '    </Surface>',
+  '  </Surfaces>',
+  '  <Parcels>',
+  '    <Parcel name="Sample lot" area="0">',
+  '      <CoordGeom>',
+  ...BOUNDARY.map((p, i) => `        <Line><Start>${ne(p)}</Start><End>${ne(BOUNDARY[(i + 1) % BOUNDARY.length])}</End></Line>`),
+  '      </CoordGeom>',
+  '    </Parcel>',
+  '  </Parcels>',
+  '</LandXML>',
+].join('\n')
+writeFileSync(join(samples, 'sample-block.xml'), xml + '\n')
+
+// CSV: a header, then point number, easting, northing, RL and a code; the lot corners are coded BDY.
+const csv = [
+  'Point,Easting,Northing,RL,Code',
+  ...spots.map(([x, y, z], i) => `${i + 1},${r3(E0 + x)},${r3(N0 + y)},${r3(z)},SPOT`),
+  ...BOUNDARY.map(([x, y], i) => `${100 + i},${r3(E0 + x)},${r3(N0 + y)},${r3(ground(x, y))},BDY`),
+].join('\n')
+writeFileSync(join(samples, 'sample-block.csv'), csv + '\n')
+console.log(`Wrote sample-block.xml (${tinPts.length} TIN points) and sample-block.csv.`)

@@ -28,6 +28,11 @@ export interface KVNamespace {
   delete(key: string): Promise<void>
 }
 
+/** The part of the Worker's ExecutionContext used here: work that carries on after the reply. */
+export interface WaitUntil {
+  waitUntil(p: Promise<unknown>): void
+}
+
 export interface Fetcher {
   fetch(request: Request): Promise<Response>
 }
@@ -57,4 +62,15 @@ export interface Env {
   RP_ID?: string
   /** The most one person may keep, in MB (default 50, so 20 people fit in the free plan's 1 GB of KV). */
   QUOTA_MB?: string
+  /**
+   * Resend's API key (wrangler secret put RESEND_API_KEY), for emailing 6-digit sign-in codes, the
+   * backup to passkeys (./emailAuth.ts). Without it email sign-in is off: /api/health says
+   * `email: false` and the app shows no email option.
+   */
+  RESEND_API_KEY?: string
+  /**
+   * Who the codes come from (default `Contour & Gable <sign-in@contourandgable.com>`). Its domain
+   * has to be one verified in Resend.
+   */
+  EMAIL_FROM?: string
 }

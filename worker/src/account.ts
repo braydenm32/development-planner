@@ -2,10 +2,11 @@
 //
 //   delete   signed in → the account goes in 30 days. Every browser is signed out, its share
 //            links stop opening and nothing more is saved to the cloud. Signing in again in
-//            those 30 days (passkey or recovery code) still works, to keep it.
+//            those 30 days (passkey, recovery code or email code) still works, to keep it.
 //   keep     signed in, within the 30 days → as it was: saving and its links work again.
 //   purge    hourly (the Worker's cron trigger): accounts past their 30 days go for good, with
-//            every project, record, blob (D1 and KV), share link, passkey and session of theirs.
+//            every project, record, blob (D1 and KV), share link, comment on their links,
+//            passkey, session, email address and email code of theirs.
 //
 // Nothing of another account is touched: every statement names the account it works on.
 
@@ -40,8 +41,11 @@ export async function account(env: Env, req: Request, now: number): Promise<Resp
   const user = await requireUser(env, req, now)
   const keys = await env.DB.prepare('SELECT created, last_used, backed_up FROM credentials WHERE user_id = ? ORDER BY created').bind(user.id).all<{ created: number; last_used: number | null; backed_up: number }>()
   const code = await env.DB.prepare('SELECT created FROM recovery_codes WHERE user_id = ?').bind(user.id).first<{ created: number }>()
+  const row = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(user.id).first<{ email: string | null }>()
   return json({
     user,
+    /** The address sign-in codes go to (./emailAuth.ts), or null. */
+    email: row?.email ?? null,
     passkeys: keys.results.map(k => ({ created: k.created, lastUsed: k.last_used, synced: !!k.backed_up })),
     recoveryCodeCreated: code?.created ?? null,
     storage: { used: await storageUsed(env, user.id), limit: quota(env) },
@@ -99,13 +103,15 @@ export async function purgeAccounts(env: Env, now: number): Promise<string[]> {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM blobs WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM project_records WHERE user_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM share_comments WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM share_links WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM projects WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM credentials WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM recovery_codes WHERE user_id = ?').bind(id),
       env.DB.prepare('DELETE FROM challenges WHERE user_id = ?').bind(id),
-      env.DB.prepare('DELETE FROM rate_limits WHERE key = ?').bind(`share-make:${id}`),
+      env.DB.prepare('DELETE FROM email_codes WHERE user_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM rate_limits WHERE key IN (?, ?)').bind(`share-make:${id}`, `email-add:${id}`),
       env.DB.prepare('DELETE FROM users WHERE id = ? AND delete_after IS NOT NULL AND delete_after <= ?').bind(id, now),
     ])
     done.push(id)

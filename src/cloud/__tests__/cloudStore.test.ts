@@ -130,7 +130,7 @@ describe('the cloud store on the Worker', () => {
         return server.fetch(input, init)
       },
     })
-    expect(await api.health()).toEqual({ signup: 'open' })
+    expect(await api.health()).toEqual({ signup: 'open', email: false })
     expect(await api.session()).toBeNull()
     expect(seen).toEqual(['GET /api/health', 'GET /api/session'])
   })
