@@ -59,6 +59,7 @@ import { shortcutText } from '../nav/keys'
 import { Num, Select, TextField } from './fields'
 import { LevelFloorType, RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
+import { RoomSun } from '../sun/RoomSun'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { balanceCutFill, lowestOutline, retainedText, useRetainingWalls } from './planNumbers'
@@ -485,6 +486,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <TextField label="Name" value={r.name} onCommit={name => st.commit(p => updateRoom(p, r.id, { name }))} />
         <RoomFloorType key={r.id} plan={plan} room={r} />
         <RoomGround plan={plan} room={r} survey={survey} terrain={terrain} />
+        <RoomSun plan={plan} room={r} survey={survey} terrain={terrain} earth={earth} />
         <p className="muted small">
           The room's shape comes from the walls around its label. Drag the label to move it.
           {isLowest(r.level) && onNaturalGround(plan, r) && ` ${piersGroundNote(earthworksOf(plan))}`}

@@ -195,6 +195,19 @@ describe('features.json', () => {
       'cost-owner-builder-rules',
       'cost-project-file',
       'cost-undo',
+      // sun and shadow
+      'sun-location',
+      'sun-true-north',
+      'sun-study-3d',
+      'sun-day-time',
+      'sun-play-day',
+      'sun-living-hours',
+      'plan-shadow-diagram',
+      'shadow-over-boundary',
+      'room-living-area',
+      'sun-checks',
+      'shadow-diagram-pdf',
+      'overview-sun',
     ]
     expect(added.filter(id => !featureIds.has(id))).toEqual([])
   })
@@ -225,7 +238,7 @@ describe('the menu', () => {
   it('has the five areas, each with its tabs in order and a More', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
-      ['block', 'features', '3d', MORE],
+      ['block', 'features', '3d', 'sun', MORE],
       ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['estimate', 'materials', 'quotes', MORE],
@@ -271,6 +284,21 @@ describe('the menu', () => {
     expect(homeOf('site-features-project-file')?.entry.id).toBe('send')
     expect(homeOf('site-feature-layer-roles')?.entry.id).toBe('survey-layers')
     expect(homeOf('site-checks-chip')?.entry).toMatchObject({ id: 'site-checks', at: 'site/features' })
+  })
+
+  it('gives the sun its own Site tab, found by the words people use for it', () => {
+    const tab = areaById('site')!.tabs.find(t => t.id === 'sun')!
+    expect(tab).toMatchObject({ label: 'Sun', view: '3d' })
+    expect(TAB_PANELS['site/sun']).toBeDefined()
+    expect(homeOf('plan-shadow-diagram')?.entry.id).toBe('plan-shadows')
+    expect(homeOf('room-living-area')?.entry.id).toBe('inspect-room')
+    expect(homeOf('shadow-diagram-pdf')?.entry.id).toBe('plans')
+    expect(homeOf('sun-checks')?.entry.id).toBe('checks')
+    const index = buildIndex(features)
+    for (const word of ['sun', 'overshadowing', 'solar']) expect(search(index, word)[0]?.place, word).toMatchObject({ kind: 'tab', area: { id: 'site' }, tab: { id: 'sun' } })
+    // "shadow" finds the plan's shadows first, and the Sun tab too.
+    expect(search(index, 'shadow')[0]?.entry.id).toBe('plan-shadows')
+    expect(search(index, 'shadow').some(r => r.place.kind === 'tab' && r.place.tab.id === 'sun')).toBe(true)
   })
 
   it('puts Costs between Earthworks and Share, with its rates in More and ⌘K words for money', () => {

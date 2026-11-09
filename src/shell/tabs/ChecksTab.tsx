@@ -16,8 +16,8 @@ import { useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 import '../../checks/checks.css'
 
-const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass']
-const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes' }
+const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass', 'info']
+const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes', info: 'For info' }
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
 const CONFIDENCE_TIP = {
   read: 'Read from the official text',
@@ -41,6 +41,7 @@ function Checks({ d }: { d: Loaded }) {
     c.counts.unknown && `${c.counts.unknown} need${c.counts.unknown > 1 ? '' : 's'} a fact`,
     c.counts.incomplete && `${c.counts.incomplete} not drawn yet`,
     `${c.counts.pass} pass`,
+    c.counts.info && `${c.counts.info} for info`,
   ].filter(Boolean)
   return (
     <div className="checks">

@@ -1,5 +1,6 @@
 import type { CheckSettings } from '../checks/types'
 import type { Vec2 } from '../lib/geom'
+import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
 
 /**
@@ -27,6 +28,8 @@ export interface Plan {
   earthworks?: Earthworks
   /** Facts about the block the checks need and the approval pathway to check; defaults apply when missing. */
   checks?: CheckSettings
+  /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
+  location?: SiteLocation
 }
 
 export interface Level {
@@ -118,6 +121,8 @@ export interface Room {
   at: Vec2
   /** Lowest level only: this room's own floor type. Missing follows its level's (see roomFloorType). */
   foundation?: Foundation
+  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's name (see isLiving). */
+  living?: boolean
 }
 
 /**

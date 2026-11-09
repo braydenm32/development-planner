@@ -18,6 +18,7 @@ import type { Heightfield, Terrain } from '../lib/terrain'
 import type { SiteSolid } from '../lib/terrainMesh'
 import type { Plan } from '../plan/model'
 import { SiteFeatures3D } from '../site/SiteFeatures3D'
+import { SceneLights } from '../sun/SceneLights'
 import { House3D } from './House3D'
 import { SnapshotGrab } from '../export/SnapshotGrab'
 
@@ -78,17 +79,8 @@ export function SiteView(props: Props) {
       onPointerMissed={touch ? () => setPin(null) : undefined}
     >
       <color attach="background" args={['#eef1f4']} />
-      <hemisphereLight args={['#ffffff', '#8d8270', 1.6]} />
-      <directionalLight
-        position={[cx - span, span * 1.5, -cy - span * 0.6]}
-        intensity={1.5}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-span}
-        shadow-camera-right={span}
-        shadow-camera-top={span}
-        shadow-camera-bottom={-span}
-      />
+      {/* A fixed light, or the real sun with the sun study on (src/sun). */}
+      <SceneLights cx={cx} cy={cy} midY={midY} span={span} exaggeration={props.view.exaggeration} phone={!!touch?.phone} />
       <OrbitControls
         makeDefault
         target={[cx, midY, -cy]}

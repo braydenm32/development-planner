@@ -14,12 +14,14 @@ import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+import { SiteSunTab } from '../sun/SunTab'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
   'site/block': SiteBlockTab,
   'site/features': SiteFeaturesTab,
   'site/3d': Site3dTab,
+  'site/sun': SiteSunTab,
   'design/floors': FloorsTab,
   'design/rooms': RoomsTab,
   'design/roofs': RoofsTab,

@@ -19,9 +19,10 @@ export type Confidence = 'read' | 'secondary' | 'unverified'
 /**
  * pass, warn, fail; unknown when the app can't tell yet (it needs an input); incomplete when the
  * design doesn't have what the check measures yet (a closed outline, a roof, rooms), so it can't
- * pass; pending for a tree marked for removal.
+ * pass; pending for a tree marked for removal; info for something worth knowing that no rule
+ * passes or fails (the winter sun on your own living areas).
  */
-export type CheckStatus = 'pass' | 'warn' | 'fail' | 'unknown' | 'incomplete' | 'pending'
+export type CheckStatus = 'pass' | 'warn' | 'fail' | 'unknown' | 'incomplete' | 'pending' | 'info'
 
 export interface Source {
   /** "Housing Code cl 3.9", "Wollongong DCP B1 4.4.2(2)". */
