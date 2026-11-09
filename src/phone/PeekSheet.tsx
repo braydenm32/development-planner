@@ -176,7 +176,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
         <div className="peek-verdicts">
           {verdict && (
             <div className={`peek-tile w-${verdict.word}`}>
-              <span>{verdict.name} checks</span>
+              <span data-term={verdict.term}>{verdict.name === 'CDC' ? 'Fast-track (CDC) checks' : 'Council (DA) checks'}</span>
               <b>{verdict.head}</b>
               {verdict.rest && <small>{verdict.rest}</small>}
             </div>

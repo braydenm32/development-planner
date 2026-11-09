@@ -16,6 +16,7 @@ import type { SiteStats } from '../lib/terrain'
 import { shortMoney } from '../costs/format'
 import { m2, netText } from './format'
 import type { ChecksHeadline, CostHeadline } from './headline'
+import { balanceWords } from './SummaryStrip'
 import type { KeyNumbers, RoofNumbers } from './useKeyNumbers'
 import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
@@ -92,7 +93,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
             {verdict && (
               <Verdict
                 className={`w-${verdict.word}`}
-                label={`${verdict.name} checks`}
+                label={verdict.name === 'CDC' ? 'Complying development (CDC) checks' : 'Development application (DA) checks'}
                 term={verdict.term}
                 value={verdict.head}
                 note={verdict.rest}
@@ -172,8 +173,8 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                           <Icon name="warn" size={14} /> Out of balance · {netText(n.earth.net)}
                         </span>
                         {!readOnly && (
-                          <button className="primary" onClick={onBalance}>
-                            Balance
+                          <button className="primary" onClick={onBalance} title="Moves the floor to where cut and fill are about equal, so less earth is trucked away or brought in">
+                            {balanceWords(n.ffl, n.earth.balancedRL)}
                           </button>
                         )}
                       </div>

@@ -11,7 +11,7 @@ import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
 import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, type AppRoute, type Route } from '../route'
-import { buildIndex, search, type SearchItem } from '../search'
+import { buildIndex, featureLabel, search, specOnly, type SearchItem } from '../search'
 
 const places = allPlaces()
 const entries = places.map(p => p.entry)
@@ -665,12 +665,27 @@ describe('⌘K search', () => {
   const index = buildIndex(features)
 
   it("finds every feature by its name, among the results it shows", () => {
-    const missed = features.filter(f => !search(index, f.name).some(r => r.featureId === f.id)).map(f => f.id)
+    // A row that only records a timing is left out; its name still finds its home.
+    const missed = features.filter(f => !search(index, f.name).some(r => (specOnly(f.name) ? r.entry.features.includes(f.id) : r.featureId === f.id))).map(f => f.id)
     expect(missed).toEqual([])
+  })
+
+  it('ranks tabs and actions before features, and what a word means last (C35)', () => {
+    const easement = search(index, 'easement')
+    expect(easement[0]).toMatchObject({ kind: 'tab', key: 'tab:site/features' })
+    const term = easement.findIndex(r => r.kind === 'term')
+    expect(term).toBeGreaterThan(-1)
+    expect(easement.slice(term).every(r => r.kind === 'term')).toBe(true)
+    expect(easement.findIndex(r => r.kind === 'feature')).toBeGreaterThan(easement.findIndex(r => r.kind === 'tab'))
+    // Feature rows are short labels, and timings aren't rows at all.
+    for (const r of index.filter(i => i.kind === 'feature')) expect(r.label.length, r.key).toBeLessThanOrEqual(61)
+    expect(index.some(i => i.featureId === 'plan-autosave')).toBe(false)
+    expect(featureLabel('Plan saves automatically to its project in the browser (400 ms debounce)')).toBe('Plan saves automatically to its project in the browser')
   })
 
   it('leads every feature to its home', () => {
     for (const f of features) {
+      if (specOnly(f.name)) continue
       const item = index.find(i => i.featureId === f.id)!
       expect(item.entry.features, f.id).toContain(f.id)
     }
@@ -767,7 +782,9 @@ describe('⌘K search', () => {
       expect(search(index, q).slice(0, 8).some(atFeatures), q).toBe(true)
     }
     expect(search(index, 'tree protection zone').some(r => r.featureId === 'site-tree-zones')).toBe(true)
-    expect(search(index, 'line up drawing')[0]).toMatchObject({ featureId: 'site-drawing-line-up' })
+    // Its tab first (C35), then the feature itself.
+    expect(search(index, 'line up drawing')[0]).toMatchObject({ key: 'tab:site/features' })
+    expect(search(index, 'line up drawing').slice(0, 4).some(r => r.featureId === 'site-drawing-line-up')).toBe(true)
     expect(search(index, 'trace').some(r => r.featureId === 'site-trace')).toBe(true)
     expect(search(index, 'pdf').some(r => r.featureId === 'site-drawing-add')).toBe(true)
   })

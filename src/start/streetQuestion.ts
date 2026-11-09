@@ -18,12 +18,19 @@ interface StreetAsk {
   chosen: number | null
   /** The side the pointer is over, on the card or the plan, shown on the plan. */
   hover: number | null
+  /**
+   * The question is open in the plan's question list (src/flow/QuestionTray.tsx). Only then do
+   * clicks on the block's sides answer it: before, they belong to the plan (C19).
+   */
+  answering: boolean
 }
 
-export const useStreetAsk = create<StreetAsk>(() => ({ project: null, chosen: null, hover: null }))
+export const useStreetAsk = create<StreetAsk>(() => ({ project: null, chosen: null, hover: null, answering: false }))
 
-export const askStreetSide = (project: string | null) => useStreetAsk.setState({ project, chosen: null, hover: null })
-export const streetAsked = () => useStreetAsk.setState({ project: null, chosen: null, hover: null })
+export const askStreetSide = (project: string | null) => useStreetAsk.setState({ project, chosen: null, hover: null, answering: false })
+export const streetAsked = () => useStreetAsk.setState({ project: null, chosen: null, hover: null, answering: false })
+/** Open or close the question in the list. */
+export const answerStreet = (answering: boolean) => useStreetAsk.setState({ answering, ...(answering ? {} : { hover: null }) })
 /** Pick a side, on the card or by clicking it on the plan. */
 export const chooseStreetEdge = (edge: number) => useStreetAsk.setState({ chosen: edge })
 export const hoverStreetEdge = (edge: number | null) => {
@@ -50,10 +57,16 @@ export function edgeNear(pts: [number, number][], x: number, y: number, tol: num
   return best
 }
 
-/** Whether the question is up on this plan now: asked for the project open, and not yet answered. */
-export function useStreetAskOpen(plan: Plan | null, boundary: Survey['boundary']) {
+/** Whether the question waits on this plan: asked for the project open, and not yet answered. */
+export function useStreetPending(plan: Plan | null, boundary: Survey['boundary']) {
   const project = useStreetAsk(s => s.project)
   return !!project && !!plan && project === projectsNow().currentId && frontEdgeOf(plan, boundary) === undefined
+}
+
+/** Whether the question is open now, in the question list, so the block's sides can be clicked to answer it. */
+export function useStreetAskOpen(plan: Plan | null, boundary: Survey['boundary']) {
+  const answering = useStreetAsk(s => s.answering)
+  return useStreetPending(plan, boundary) && answering
 }
 
 /** The block's sides as the checks name them, longest first, with the low one marked. */

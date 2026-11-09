@@ -67,19 +67,25 @@ export function RetainingMarks({ plan, walls, origin, ground, show, toScreen: S,
         const tallest = p.samples.reduce((m, x) => (Math.abs(x.left - x.right) > Math.abs(m.left - m.right) ? x : m), p.samples[0])
         const out: ReactNode[] = []
         // The height label sits on the side the wall holds, clear of its length.
-        const text = `Holds back up to ${p.maxHeight.toFixed(2)} m`
+        // No longer than the wall on screen (C20): the short form, then nothing, on a short wall.
+        const wallPx = len * k
         const fs = 12
-        const pill = text.length * fs * 0.56 + 22
+        const width = (t: string) => t.length * fs * 0.56 + 22
+        const long = `Holds back up to ${p.maxHeight.toFixed(2)} m`
+        const short = `${p.maxHeight.toFixed(2)} m held`
+        const text = width(long) <= wallPx ? long : width(short) <= Math.max(wallPx, 64) ? short : ''
+        const pill = text ? width(text) : 0
         const [lx, ly] = S(at(len / 2, t2 + 34 / k))
         if (labelled) {
-          out.push(
-            <g key="label" className="rw-label" transform={`translate(${lx} ${ly}) rotate(${ang})`}>
-              <rect x={-pill / 2} y={-11} width={pill} height={22} rx={11} />
-              <text textAnchor="middle" dominantBaseline="central">
-                {text}
-              </text>
-            </g>,
-          )
+          if (text)
+            out.push(
+              <g key="label" className="rw-label" transform={`translate(${lx} ${ly}) rotate(${ang})`}>
+                <rect x={-pill / 2} y={-11} width={pill} height={22} rx={11} />
+                <text textAnchor="middle" dominantBaseline="central">
+                  {text}
+                </text>
+              </g>,
+            )
           if (p.maxHeight > 0.05) {
             const s = Math.min(Math.max(tallest.s, 0.3), len - 0.3)
             const [mx, my] = S(at(s, t2 + 12 / k))

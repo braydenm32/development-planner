@@ -1,5 +1,6 @@
 // ⌘K search over the menu: every area, tab, More item and command by its name and plain
-// words, and every feature (features.json) by its name, each leading to its home.
+// words, and every feature (features.json) by its name, each leading to its home. Places and
+// actions rank first, then features (by a short label), then what a word means (C35).
 
 import { allPlaces, homeOf, placeName, type ActionId, type Entry, type Place } from './menu'
 
@@ -8,7 +9,7 @@ export interface Feature {
   name: string
 }
 
-export type ResultKind = 'area' | 'tab' | 'more' | 'command' | 'feature'
+export type ResultKind = 'area' | 'tab' | 'more' | 'command' | 'feature' | 'term'
 
 export interface SearchItem {
   key: string
@@ -43,7 +44,8 @@ export function buildIndex(features: Feature[]): SearchItem[] {
   for (const { entry, place } of allPlaces()) {
     // The global homes themselves (Top bar, Keyboard…) aren't destinations; their items are.
     if (place.kind === 'home' && !place.item) continue
-    const kind: ResultKind = place.kind === 'area' ? 'area' : place.kind === 'tab' ? 'tab' : place.kind === 'more' ? 'more' : 'command'
+    // What a planning word means is a glossary entry, not somewhere to go: it lists last.
+    const kind: ResultKind = place.kind === 'area' ? 'area' : place.kind === 'tab' ? 'tab' : place.kind === 'more' ? 'more' : entry.action?.startsWith('term:') ? 'term' : 'command'
     out.push({
       key: `${kind}:${place.kind === 'tab' ? place.area.id + '/' : ''}${entry.id}`,
       kind,
@@ -59,12 +61,14 @@ export function buildIndex(features: Feature[]): SearchItem[] {
   }
   for (const f of features) {
     const home = homeOf(f.id)
-    if (!home) continue
+    // Rows that only record how something is built (a debounce, a toast's timing) aren't
+    // something to look for; their home still finds them by their words.
+    if (!home || specOnly(f.name)) continue
     const at = home.place.kind === 'home' && home.place.item ? `${home.place.home.label} › ${home.place.item.label}` : placeName(home.place)
     out.push({
       key: `feature:${f.id}`,
       kind: 'feature',
-      label: f.name,
+      label: featureLabel(f.name),
       where: at,
       entry: home.entry,
       place: home.place,
@@ -75,7 +79,24 @@ export function buildIndex(features: Feature[]): SearchItem[] {
   return out
 }
 
-const KIND_ORDER: Record<ResultKind, number> = { area: 5, tab: 4, command: 3, more: 2, feature: 0 }
+/** A feature as a short row: its name without the asides in brackets, cut at a word near 60 characters. */
+export function featureLabel(name: string): string {
+  const plain = name.replace(/\s*\([^)]*\)?/g, '').replace(/\s+/g, ' ').trim() || name
+  if (plain.length <= 60) return plain
+  const cut = plain.slice(0, 60)
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 40)).replace(/[,:;·]$/, '')}…`
+}
+
+/** A feature row that records an implementation detail rather than something to find: a timing in ms or seconds, a debounce. */
+export const specOnly = (name: string) => /\b\d+\s?(ms|s)\b|debounce/i.test(name)
+
+const KIND_ORDER: Record<ResultKind, number> = { area: 5, tab: 4, command: 3, more: 2, feature: 0, term: -1 }
+
+/**
+ * Places and actions first, features after, words explained last: a tab found by one of its
+ * words outranks a feature named with it, and a glossary entry comes after both (C35).
+ */
+const KIND_WEIGHT: Record<ResultKind, number> = { area: 30, tab: 30, command: 30, more: 30, feature: 0, term: -50 }
 
 /** How well an item matches, or 0. Every query word must start a word of the item. */
 function score(item: SearchItem, q: string[], phrase: string): number {
@@ -94,12 +115,15 @@ export function search(index: SearchItem[], query: string, limit = 40): SearchIt
   const q = words(query)
   if (!q.length) return []
   const phrase = q.join(' ')
-  return index
+  const ranked = index
     .map(item => ({ item, s: score(item, q, phrase) }))
     .filter(r => r.s > 0)
+    .map(r => ({ ...r, s: r.s + KIND_WEIGHT[r.item.kind] }))
     .sort((a, b) => b.s - a.s || KIND_ORDER[b.item.kind] - KIND_ORDER[a.item.kind] || a.item.label.length - b.item.label.length)
-    .slice(0, limit)
     .map(r => r.item)
+  // What a word means comes after everything else, but always comes: a long list doesn't push it off the end.
+  const terms = ranked.filter(r => r.kind === 'term').slice(0, 3)
+  return [...ranked.filter(r => r.kind !== 'term').slice(0, limit - terms.length), ...terms]
 }
 
 /** What ⌘K suggests before you type: the areas and their tabs. */

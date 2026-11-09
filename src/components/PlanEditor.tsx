@@ -79,8 +79,8 @@ import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { PlanHints } from '../guide/PlanHints'
+import { PHONE_LABELS_K, useLabelDeclutter } from './declutter'
 import { useRouter } from '../nav/router'
-import { StreetAsk } from '../start/StreetAsk'
 import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
@@ -137,6 +137,7 @@ type Drag =
 const AREA_HINTS: Record<string, string> = {
   site: 'Drag to pan, scroll to zoom. This is the block as surveyed; the house is drawn in Design.',
   share: 'Drag to pan, scroll to zoom. Click a room, wall or roof to read it; the house is changed in Design.',
+  approvals: 'Drag to pan, scroll to zoom. The pins are the checks to fix or confirm; the house is changed in Design.',
 }
 const GUARDED_HINT = 'Drag to pan, scroll to zoom. Click something to select it; once selected, it can be dragged.'
 
@@ -1666,6 +1667,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   // ---- rendering ----
   const k = v.k
+  // Labels that would pile up hide the lower of each pair; a phone zoomed out drops the small numbers (C20).
+  useLabelDeclutter(svgRef, !!touch?.phone && k < PHONE_LABELS_K)
   const selWall = !group && selection?.type === 'wall' ? walls.find(w => w.id === selection.id) : undefined
   const roomShapes = plan.rooms.filter(r => r.level === level).map(r => ({ room: r, shape: roomShape(r, faces) }))
 
@@ -2042,15 +2045,21 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             const sel = isSel('area', a.id)
             const c = centroid(a.pts)
             const [x, y] = S(c)
+            // An area under the house (a slab, a deck under a room) leaves its name to the rooms, until it's selected.
+            const underRoom = !sel && faces.some(f => f.area > 0 && pointInPolygon(c[0], c[1], f.pts))
             return (
               <g key={a.id}>
                 <path className={`area kind-${areaKind(a)}${sel ? ' selected' : ''}`} d={path(a.pts)} />
-                <text className="room-name" x={x} y={y - 7} textAnchor="middle">
-                  {a.name}
-                </text>
-                <text className="room-area" x={x} y={y + 9} textAnchor="middle">
-                  {Math.abs(signedArea(a.pts)).toFixed(2)} m²
-                </text>
+                {!underRoom && (
+                  <g className="area-label">
+                    <text className="room-name" x={x} y={y - 7} textAnchor="middle">
+                      {a.name}
+                    </text>
+                    <text className="room-area" x={x} y={y + 9} textAnchor="middle">
+                      {Math.abs(signedArea(a.pts)).toFixed(2)} m²
+                    </text>
+                  </g>
+                )}
                 {sel && !group && !viewOnly && tool === 'select' && a.pts.map((p, i) => <circle key={i} className="handle" cx={S(p)[0]} cy={S(p)[1]} r={5} />)}
               </g>
             )
@@ -2307,7 +2316,6 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {mn.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
-      {frame && !viewOnly && <StreetAsk survey={survey} terrain={terrain} phone={!!touch?.phone} />}
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={noFloor ? null : floorRL} lowest={isLowest} />}
         {site.notice || notice ? (

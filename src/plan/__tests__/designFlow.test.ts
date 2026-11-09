@@ -6,7 +6,9 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { LevelFloorType, RoomFloorType } from '../../components/FloorTypeFields'
-import { FlowCards } from '../../flow/FlowCards'
+import { FloorTypeCard, OfferCard } from '../../flow/FlowCards'
+import { questionsFor, waiting } from '../../flow/questions'
+import { NO_PREFS } from '../../guide/hints'
 import { parseDxf } from '../../lib/dxf'
 import { analyzeLayers, buildSurvey, guessRoles } from '../../lib/survey'
 import { buildTerrain } from '../../lib/terrain'
@@ -100,7 +102,7 @@ function finishedProfile(plan: Plan, w: Wall) {
 function resetStores(plan: Plan | null) {
   usePlan.getState().load(plan)
   useRetaining.setState({ newWall: null, sidePick: null })
-  useFlow.setState({ ask: null, offer: null, picking: null, dismissed: new Set(), settings: DEFAULT_SETTINGS })
+  useFlow.setState({ ask: null, offer: null, picking: null, dismissed: new Set(), later: new Set(), settings: DEFAULT_SETTINGS })
   setFlowGround({ survey, natural })
 }
 
@@ -467,11 +469,17 @@ describe('offering a retaining wall', () => {
     offerFor({ level: L, room: 'room', keys: ['room'] })
     dismissOffer()
     expect(useFlow.getState().offer).toBeNull()
+    // "Not now" sticks for this visit: making the room again doesn't bring it straight back (C19)
     offerFor({ level: L, room: 'room', keys: ['room'] })
+    expect(useFlow.getState().offer).toBeNull()
+    // a plan opened afresh offers again; "Don't ask for this room" is for good
+    usePlan.getState().load({ ...usePlan.getState().plan! })
+    offerFor({ level: L, room: 'room', keys: ['room'] })
+    expect(useFlow.getState().offer).not.toBeNull()
     quietOffer()
     offerFor({ level: L, room: 'room', keys: ['room'] })
     expect(useFlow.getState().offer).toBeNull()
-    expect(usePlan.getState().plan).toBe(before)
+    expect(usePlan.getState().plan!.walls).toEqual(before.walls)
     // turned off altogether
     setFlowSettings({ quiet: [], offers: false })
     offerFor({ level: L, room: 'room', keys: ['room'] })
@@ -642,8 +650,37 @@ describe('where the floor type is shown and asked', () => {
   const cards = () => {
     Object.assign(usePlan.getInitialState(), usePlan.getState())
     Object.assign(useFlow.getInitialState(), useFlow.getState())
-    return text(renderToStaticMarkup(createElement(FlowCards)))
+    const { ask, offer } = useFlow.getState()
+    return text(renderToStaticMarkup(ask ? createElement(FloorTypeCard, { level: ask.space.level }) : offer ? createElement(OfferCard, { o: offer }) : createElement('i')))
   }
+  const listed = () => {
+    const f = useFlow.getState()
+    return questionsFor({ plan: usePlan.getState().plan!, level: L, street: false, ask: f.ask && { level: f.ask.space.level }, dismissed: f.dismissed, offer: f.offer, hints: NO_PREFS, facts: 0 })
+  }
+
+  it('lists the questions instead of popping them up, and keeps an unchosen floor type as a to-do (C19)', () => {
+    resetStores(boxHouse(83))
+    // Before anything is asked, the floor's missing type is already on the list: after a reload too.
+    expect(listed().map(q => q.id)).toEqual(['floor-type:' + L, 'next:openings'])
+    expect(listed()[0].title).toBe('Floor type not chosen: Ground floor')
+    expect(listed()[0].fresh).toBeFalsy()
+    roomMade('room')
+    expect(listed()[0].fresh).toBe(true)
+    // Decide later: still listed, quietly, as put off.
+    putOffFloorType()
+    expect(listed()[0]).toMatchObject({ kind: 'floor-type', fresh: false })
+    expect(listed()[0].detail).toContain('Put off for now')
+    // Answered from the list, for that level, with no question open: gone from the list.
+    answerFloorType('slab', L)
+    expect(levelFloorType(usePlan.getState().plan!, L)).toBe('slab')
+    expect(listed().some(q => q.kind === 'floor-type')).toBe(false)
+    // A retaining wall offer waits in the list too; a tip isn't counted as waiting.
+    offerFor({ level: L, room: 'room', keys: ['room'] })
+    expect(listed().map(q => q.kind)).toEqual(['retain-offer', 'next-step'])
+    expect(waiting(listed())).toBe(1)
+    const other = questionsFor({ plan: usePlan.getState().plan!, level: L, street: true, ask: null, dismissed: new Set(), offer: null, hints: { hidden: [], off: true }, facts: 2 })
+    expect(other.map(q => q.title)).toEqual(['Which side faces the street?', '2 facts the checks need'])
+  })
 
   it('asks in a card with what each type does to the ground, and offers the wall either way', () => {
     resetStores(boxHouse(83))

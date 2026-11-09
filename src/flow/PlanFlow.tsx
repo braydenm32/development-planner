@@ -1,6 +1,7 @@
 // What the design flow adds to the plan editor, kept out of PlanEditor itself: the hover tooltip,
-// picking a contour for a floor level, clicking a retaining wall's earth side, and the small cards
-// that ask a new room's floor type and offer a retaining wall. PlanEditor hands it the pointer,
+// picking a contour for a floor level, clicking a retaining wall's earth side, and the list of
+// questions (a new room's floor type, a retaining wall, the street side…) at the plan's foot.
+// PlanEditor hands it the pointer,
 // clicks and keys first, and renders what it returns.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -17,7 +18,9 @@ import type { Tool } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import type { SiteFeature } from '../site/model'
 import { useSiteFeatures } from '../site/store'
-import { FlowCards } from './FlowCards'
+import { useRouter } from '../nav/router'
+import { usePhone } from '../phone/device'
+import { QuestionTray } from './QuestionTray'
 import { EarthSide, Tag } from './PlanMarks'
 import { cancelContourPick, pickContour, setFlowGround, startContourPick, useFlow } from './store'
 import { tooltipText, type TipSubject } from './tooltip'
@@ -93,6 +96,9 @@ export function usePlanFlow(a: PlanFlowArgs) {
   const offer = useFlow(s => s.offer)
   const sidePick = useRetaining(s => s.sidePick)
   const features = useSiteFeatures()
+  const phone = usePhone()
+  // The questions are about the house: they wait in Design and Earthworks, where it's drawn.
+  const drawing = useRouter(s => s.route.kind === 'app' && (s.route.area === 'design' || s.route.area === 'earthworks'))
   const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null)
   const [hover, setHover] = useState<{ world: Vec2; sx: number; sy: number } | null>(null)
   const timer = useRef(0)
@@ -252,7 +258,7 @@ export function usePlanFlow(a: PlanFlowArgs) {
           </button>
         </div>
       )}
-      <FlowCards />
+      {drawing && !a.viewOnly && !a.siteActive && !picking && !sideWall && <QuestionTray plan={plan} level={level} survey={survey} terrain={terrain} phone={phone} />}
     </>
   )
 

@@ -46,6 +46,8 @@ interface FlowState {
   picking: { level: string } | null
   /** Levels whose floor type question was put off this visit. */
   dismissed: Set<string>
+  /** Rooms and spaces whose retaining wall offer got "Not now" this visit: not offered again (C19). */
+  later: Set<string>
   ground: FlowGround | null
   settings: FlowSettings
 }
@@ -89,6 +91,7 @@ export const useFlow = create<FlowState>(() => ({
   offer: null,
   picking: null,
   dismissed: new Set(),
+  later: new Set(),
   ground: null,
   settings: loadSettings(),
 }))
@@ -151,23 +154,30 @@ export function wallsPlaced(before: Plan, level: string) {
   spaceMade({ level, room: room?.id, keys: [...(room ? [room.id] : []), faceKey(face)] })
 }
 
-/** The floor type card's answer, for the level (one undoable step). Then the retaining wall question, on a slab. */
-export function answerFloorType(type: FloorTypeId) {
+/**
+ * The floor type's answer, for a level (one undoable step). Then, when it was just asked about a
+ * new room, the retaining wall question, on a slab. A level asked about earlier (or before a
+ * reload) is set as it is.
+ */
+export function answerFloorType(type: FloorTypeId, level = get().ask?.space.level) {
   const a = get().ask
-  if (!a) return
+  if (!level) return
+  if (!a || a.space.level !== level) {
+    usePlan.getState().commit(p => setLevelFloorType(p, level, type))
+    return
+  }
   set({ ask: null })
   usePlan.getState().commit(p => setLevelFloorType(p, a.space.level, type))
   if (floorTypeInfo(type).ground === 'pad') offerFor(a.space)
 }
 
-/** "Decide later": not asked again this visit; the floor builds as a slab until it's set. */
-export function putOffFloorType() {
+/** "Decide later": not asked again this visit; the floor builds as a slab until it's set, and the question list keeps it as a to-do. */
+export function putOffFloorType(level = get().ask?.space.level) {
+  if (!level) return
   const a = get().ask
-  if (!a) return
-  set({ ask: null, dismissed: new Set([...get().dismissed, a.space.level]) })
+  set({ ask: a?.space.level === level ? null : a, dismissed: new Set([...get().dismissed, level]) })
 }
 
-export const showMoreFloorTypes = () => set(s => ({ ask: s.ask && { ...s.ask, more: true } }))
 
 /** Is this space on a levelled pad (its room's own floor type, else its level's)? */
 function spaceOnPad(p: Plan, space: Space): boolean {
@@ -183,7 +193,7 @@ export function offerFor(space: Space) {
   const p = plan()
   const { ground, settings } = get()
   if (!p || !ground || !settings.offers) return
-  if (space.keys.some(k => settings.quiet.includes(k))) return
+  if (space.keys.some(k => settings.quiet.includes(k) || get().later.has(k))) return
   if (!spaceOnPad(p, space)) return
   const face = faceOf(p, space)
   if (!face) return
@@ -203,8 +213,12 @@ export function acceptOffer() {
   placeKeptRetainingWall(offeredWall(o.offer, o.placement, o.gap))
 }
 
-/** "Not now". */
-export const dismissOffer = () => set({ offer: null })
+/** "Not now": put away, and not offered again for this room this visit (it used to come straight back). */
+export function dismissOffer() {
+  const o = get().offer
+  if (!o) return
+  set({ offer: null, later: new Set([...get().later, ...o.space.keys]) })
+}
 
 /** "Don't ask for this room". */
 export function quietOffer() {
@@ -234,7 +248,7 @@ export function pickContour(rl: number) {
 
 // A plan opened afresh (another project, an import) starts with no questions pending.
 usePlan.subscribe((s, prev) => {
-  if (s.fitToken !== prev.fitToken && s.plan !== prev.plan) set({ ask: null, offer: null, picking: null, dismissed: new Set() })
+  if (s.fitToken !== prev.fitToken && s.plan !== prev.plan) set({ ask: null, offer: null, picking: null, dismissed: new Set(), later: new Set() })
   // Undo can take away the space a question was about.
   const { ask, offer } = get()
   if (s.plan && s.plan !== prev.plan) {

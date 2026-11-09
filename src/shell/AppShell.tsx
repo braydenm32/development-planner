@@ -47,6 +47,7 @@ import { SummaryStrip } from './SummaryStrip'
 import { floorDrawn } from './drawn'
 import { useKeyNumbers } from './useKeyNumbers'
 import { checksHeadline, costHeadline } from './headline'
+import { setQuestionFacts } from '../flow/questions'
 import { useRouteSync } from './useRouteSync'
 import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
@@ -652,6 +653,9 @@ function NumbersHost({
   const drawn = floorDrawn(d.plan)
   // The two answers people open the app for: the checks' verdict and the estimate (C02).
   const verdict = useMemo(() => checksHeadline(checks.pathway, checks.results), [checks.pathway, checks.results])
+  // The plan's question list asks for the facts the checks can't work out (src/flow/questions.ts).
+  const facts = drawn ? checks.counts.unknown : 0
+  useEffect(() => setQuestionFacts(facts), [facts])
   const estimate = useEstimate(d)
   const cost = useMemo(() => costHeadline(estimate), [estimate])
   const shown: Partial<Record<NumberId, string>> = {}

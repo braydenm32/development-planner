@@ -348,3 +348,254 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
   stroke-dasharray: 9 6;
   stroke-linecap: round;
 }
+
+/* ---- The plan's questions (QuestionTray.tsx) ----
+   At the foot of the plan, clear of the drawing's middle, over nothing it would take clicks from:
+   a small pill until it's opened, then a card that lists them and answers one at a time. */
+
+.plan-editor .q-pill,
+.plan-editor .q-tray {
+  position: absolute;
+  bottom: 64px;
+  left: calc(var(--free-left, 0px) + 4px);
+  z-index: 7;
+}
+
+.plan-editor .q-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.plan-editor .q-pill:hover {
+  border-color: var(--field-line, #8e959d);
+}
+
+.q-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn-dot, #d07a12);
+}
+
+/* Something just asked: one gentle pulse, once the tool is down. */
+.plan-editor .q-pill.fresh {
+  border-color: var(--warn-dot, #d07a12);
+  animation: q-pulse 1.6s ease-out 2;
+}
+
+@keyframes q-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(208, 122, 18, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(208, 122, 18, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-editor .q-pill.fresh {
+    animation: none;
+  }
+}
+
+.plan-editor .q-tray {
+  display: grid;
+  gap: 10px;
+  width: min(380px, calc(100% - var(--free-left, 0px) - 90px));
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.35);
+}
+
+.q-tray > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.q-tray h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.q-count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--line-soft, #eef0f2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.plan-editor .q-x,
+.plan-editor .q-back,
+.plan-editor .q-hide {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-editor .q-back {
+  color: var(--accent);
+}
+
+.q-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.q-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+
+.q-list li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.q-list li.fresh .q-text b::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 6px 1px 0;
+  border-radius: 50%;
+  background: var(--warn-dot, #d07a12);
+}
+
+.q-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.q-text b {
+  font-weight: 600;
+}
+
+.q-text span {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.q-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.plan-editor .q-go {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-editor .q-go:hover {
+  border-color: var(--text);
+}
+
+/* A question opened in the list: its card, without a card's own float. */
+.plan-editor .q-tray .flow-card,
+.plan-editor .q-tray .flow-card.street-ask {
+  position: static;
+  inset: auto;
+  width: auto;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  transform: none;
+  box-shadow: none;
+}
+
+.plan-editor .q-pill:focus-visible,
+.plan-editor .q-go:focus-visible,
+.plan-editor .q-x:focus-visible,
+.plan-editor .q-back:focus-visible,
+.plan-editor .q-hide:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Phones: above the peek sheet, the open list a sheet across the foot of the plan. */
+@media (max-width: 760px) {
+  .plan-editor .q-pill,
+  .plan-editor .q-tray {
+    left: 12px;
+    bottom: calc(var(--peek-h, 0px) + 12px);
+  }
+
+  .plan-editor .q-pill {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .plan-editor .q-tray {
+    right: 12px;
+    width: auto;
+    max-height: 62%;
+    font-size: 14px;
+  }
+
+  .q-text span {
+    font-size: 14px;
+  }
+
+  .plan-editor .q-go,
+  .plan-editor .q-x,
+  .plan-editor .q-back,
+  .plan-editor .q-hide {
+    min-height: 44px;
+    font-size: 15px;
+  }
+}

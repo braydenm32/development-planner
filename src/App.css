@@ -1359,3 +1359,19 @@ button.danger {
 .furniture-thumb .fill {
   fill: #fff;
 }
+
+/* Labels that would pile up (src/components/declutter.ts): the lower of two hides, and comes back
+   under the pointer. On a phone zoomed out, contour numbers and wall lengths wait to be zoomed in. */
+.plan-svg .crowded {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.plan-svg .crowded:hover {
+  opacity: 1;
+}
+
+.plan-svg.labels-far .contour-label,
+.plan-svg.labels-far text.dim {
+  display: none;
+}

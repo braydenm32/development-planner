@@ -26,7 +26,7 @@ function useFeatures(): Feature[] | null {
   return features
 }
 
-const KIND_LABEL: Record<SearchItem['kind'], string> = { area: 'Area', tab: 'Tab', more: 'More', command: 'Command', feature: 'Feature' }
+const KIND_LABEL: Record<SearchItem['kind'], string> = { area: 'Area', tab: 'Tab', more: 'More', command: 'Command', feature: 'Feature', term: 'Word' }
 
 export type Choice = 'done' | 'offer'
 
@@ -109,7 +109,11 @@ export function CommandPalette({ choose, run, onClose }: Props) {
               setActive(0)
             }}
           />
-          <kbd>Esc</kbd>
+          <kbd className="desk-only">Esc</kbd>
+          {/* A phone has no Esc key: the sheet needs a way out of its own. */}
+          <button type="button" className="palette-close phone-only" onClick={() => onClose(true)}>
+            Close
+          </button>
         </div>
         <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : 'Areas and tabs'}>
           {results.length === 0 && <li className="palette-empty muted">Nothing matches “{query}”.</li>}
@@ -120,7 +124,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
               data-i={i}
               role="option"
               aria-selected={i === current}
-              className={i === current ? 'on' : ''}
+              className={`${i === current ? 'on' : ''}${r.kind === 'feature' ? ' pi-feature' : ''}`}
               onMouseMove={() => i !== current && setActive(i)}
               onClick={e => pick(r, e.metaKey || e.ctrlKey)}
             >
@@ -130,7 +134,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
                 <span className="pi-where">{r.kind === 'area' ? 'Area' : r.where}</span>
               </span>
               {r.shortcut && <kbd>{shortcutText(r.shortcut)}</kbd>}
-              {r.action && r.kind !== 'feature' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
+              {r.action && r.kind !== 'feature' && r.kind !== 'term' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
             </li>
           ))}
         </ul>

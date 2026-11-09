@@ -1578,6 +1578,21 @@ button.ov-verdict:hover {
   color: var(--muted);
 }
 
+/* Close, on a phone's search sheet (no Esc key there). */
+.app-shell.phone .palette-input .palette-close {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .palette-input input:focus-visible {
   outline: none;
 }
@@ -1648,6 +1663,28 @@ button.ov-verdict:hover {
 .pi-where {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* A feature is one line: its short label, then where it lives (C35). */
+.pi-feature .pi-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pi-feature .pi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.pi-feature .pi-where {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pi-kind {
