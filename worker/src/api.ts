@@ -4,7 +4,9 @@
 
 import { account, canSave, deleteAccount, keepAccount } from './account'
 import { loginOptions, loginVerify, logout, newCode, passkeyOptions, passkeyVerify, recoverOptions, recoverVerify, signupOptions, signupState, signupVerify } from './auth'
-import type { Env } from './env'
+import { emailOn } from './email'
+import { emailAddConfirm, emailAddStart, emailRemove, emailSigninStart, emailSigninVerify } from './emailAuth'
+import type { Env, WaitUntil } from './env'
 import { errorResponse, HttpError, json } from './http'
 import { commitProject, deleteProject, getBlob, getProject, listProjects, missingBlobs, putBlob } from './projects'
 import { readSession, requireUser } from './session'
@@ -24,7 +26,7 @@ function checkSameOrigin(req: Request, url: URL) {
   if (site && site !== 'same-origin') throw new HttpError(403, 'csrf', 'This request didn’t come from the app.')
 }
 
-type Handler = (env: Env, req: Request, now: number, params: string[]) => Promise<Response>
+type Handler = (env: Env, req: Request, now: number, params: string[], ctx?: WaitUntil) => Promise<Response>
 
 const withUser =
   (fn: (env: Env, req: Request, user: string, now: number, params: string[]) => Promise<Response>): Handler =>
@@ -38,7 +40,8 @@ const toSave =
     fn(env, req, canSave(await requireUser(env, req, now)).id, now, params)
 
 const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
-  ['GET', /^\/api\/health$/, async env => json({ ok: true, app: 'block-and-house-planner', api: 1, signup: await signupState(env) })],
+  // `email`: whether sign-in codes can be emailed here (RESEND_API_KEY is set); the app shows email options only then.
+  ['GET', /^\/api\/health$/, async env => json({ ok: true, app: 'block-and-house-planner', api: 1, signup: await signupState(env), email: emailOn(env) })],
   ['GET', /^\/api\/session$/, async (env, req, now) => json({ user: await readSession(env, req, now) })],
   ['POST', /^\/api\/auth\/signup\/options$/, signupOptions],
   ['POST', /^\/api\/auth\/signup\/verify$/, signupVerify],
@@ -49,10 +52,15 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/auth\/passkey\/options$/, passkeyOptions],
   ['POST', /^\/api\/auth\/passkey\/verify$/, passkeyVerify],
   ['POST', /^\/api\/auth\/recovery-code$/, newCode],
+  ['POST', /^\/api\/auth\/email\/start$/, (env, req, now, _params, ctx) => emailSigninStart(env, req, now, ctx)],
+  ['POST', /^\/api\/auth\/email\/verify$/, emailSigninVerify],
   ['POST', /^\/api\/auth\/logout$/, (env, req) => logout(env, req)],
   ['GET', /^\/api\/account$/, account],
   ['POST', /^\/api\/account\/delete$/, deleteAccount],
   ['POST', /^\/api\/account\/keep$/, keepAccount],
+  ['POST', /^\/api\/account\/email\/start$/, emailAddStart],
+  ['POST', /^\/api\/account\/email\/confirm$/, emailAddConfirm],
+  ['POST', /^\/api\/account\/email\/remove$/, emailRemove],
   ['GET', /^\/api\/projects$/, withUser((env, _req, user) => listProjects(env, user))],
   ['GET', /^\/api\/projects\/([^/]+)$/, withUser((env, _req, user, _now, [id]) => getProject(env, user, id))],
   ['POST', /^\/api\/projects\/([^/]+)\/commit$/, toSave((env, req, user, now, [id]) => commitProject(env, req, user, id, now))],
@@ -82,13 +90,14 @@ function decodePart(s: string): string {
   }
 }
 
-export async function handleApi(req: Request, env: Env, now = Date.now()): Promise<Response> {
-  const res = await route(req, env, now)
+/** `ctx`: the Worker's, for work after the reply (tests leave it out, and that work is done first). */
+export async function handleApi(req: Request, env: Env, now = Date.now(), ctx?: WaitUntil): Promise<Response> {
+  const res = await route(req, env, now, ctx)
   if (isPublic(new URL(req.url).pathname)) for (const [k, v] of Object.entries(PUBLIC_HEADERS)) res.headers.set(k, v)
   return res
 }
 
-async function route(req: Request, env: Env, now: number): Promise<Response> {
+async function route(req: Request, env: Env, now: number, ctx?: WaitUntil): Promise<Response> {
   const url = new URL(req.url)
   try {
     checkSameOrigin(req, url)
@@ -97,7 +106,7 @@ async function route(req: Request, env: Env, now: number): Promise<Response> {
       const m = path.exec(url.pathname)
       if (!m) continue
       pathKnown = true
-      if (method === req.method || (method === 'GET' && req.method === 'HEAD')) return await handler(env, req, now, m.slice(1).map(decodePart))
+      if (method === req.method || (method === 'GET' && req.method === 'HEAD')) return await handler(env, req, now, m.slice(1).map(decodePart), ctx)
     }
     throw pathKnown ? new HttpError(405, 'method', 'That isn’t allowed here.') : new HttpError(404, 'not-found', 'There is nothing here.')
   } catch (e) {

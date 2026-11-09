@@ -76,7 +76,8 @@ export async function endSession(env: Env, req: Request): Promise<void> {
 // ---------------------------------------------------------------------------
 // Rate limits: a fixed window per key, one D1 row each.
 
-export async function rateLimit(env: Env, key: string, limit: number, windowMs: number, now: number): Promise<void> {
+/** Throws 429 once `key` is used more than `limit` times in a window; `message` says so in other words than the usual. */
+export async function rateLimit(env: Env, key: string, limit: number, windowMs: number, now: number, message?: string): Promise<void> {
   // The window's start, in ms, so one clean-up works for every key's window.
   const win = Math.floor(now / windowMs) * windowMs
   const row = await env.DB.prepare(
@@ -87,7 +88,7 @@ export async function rateLimit(env: Env, key: string, limit: number, windowMs: 
   if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM rate_limits WHERE win < ?').bind(now - DAY).run()
   if ((row?.count ?? 0) > limit) {
     const wait = Math.max(1, Math.ceil((win + windowMs - now) / 60000))
-    throw new HttpError(429, 'slow-down', `Too many tries. Wait ${wait} minute${wait === 1 ? '' : 's'} and try again.`)
+    throw new HttpError(429, 'slow-down', message ?? `Too many tries. Wait ${wait} minute${wait === 1 ? '' : 's'} and try again.`)
   }
 }
 

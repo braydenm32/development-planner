@@ -88,6 +88,7 @@ export function rowsOf(s: TestServer, user: string) {
     ['project_records', 'user_id'],
     ['blobs', 'user_id'],
     ['share_links', 'user_id'],
+    ['email_codes', 'user_id'],
   ] as const)
     out[table] = db.prepare(`SELECT * FROM ${table} WHERE ${col} = ? ORDER BY 1, 2`).all(user)
   out.kv = [...s.env.BLOBS.map.keys()].filter(k => k.startsWith(`b:${user}:`)).sort()
