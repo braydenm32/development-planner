@@ -1,11 +1,13 @@
-// A small aerial map for finding the block: NSW imagery with the cadastre's lots on top. Drag to
-// move, the buttons or the wheel to zoom, tap a lot to pick it. Once the survey is placed, its
-// boundary is drawn over the lot so the fit can be seen.
+// An aerial map for finding the block: NSW imagery with the cadastre's lots on top. Drag to
+// move, the buttons or the wheel to zoom, click (or tap) a lot to pick it. While the lot is being
+// found it fills the canvas (`height="fill"`); once the survey is placed it's a small map in the
+// panel, with the survey's boundary drawn over the lot so the fit can be seen.
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { pointInPolygon } from '../lib/geom'
 import { tileLonLat, tileXY, type LonLat } from './geo'
 import { imageryTile, IMAGERY_CREDIT, lotsInBox, type Lot } from './services'
+import { pointWord } from './words'
 
 const TILE = 256
 export const MIN_ZOOM = 15
@@ -27,23 +29,47 @@ interface Props {
   onPick: (lot: Lot) => void
   /** The survey boundary, laid on the map (lon/lat). */
   outline?: LonLat[] | null
-  height?: number
+  /** Pixels, or the whole of what it sits in. */
+  height?: number | 'fill'
+  /** The map can't be reached (no photo tiles load, or the lots don't come): true, and false once it can. */
+  onTrouble?: (trouble: boolean) => void
 }
 
-export function MapPicker({ view, onView, lots, selected, onPick, outline, height = 300 }: Props) {
+export function MapPicker({ view, onView, lots, selected, onPick, outline, height: asked = 300, onTrouble }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(320)
+  const [boxH, setBoxH] = useState(300)
+  const fill = asked === 'fill'
+  const height = fill ? boxH : asked
   const [nearby, setNearby] = useState<Lot[]>([])
   const [drag, setDrag] = useState<{ x: number; y: number; moved: boolean } | null>(null)
 
   useEffect(() => {
     const el = box.current
     if (!el) return
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth || 320))
+    const size = () => {
+      setWidth(el.clientWidth || 320)
+      if (el.clientHeight) setBoxH(el.clientHeight)
+    }
+    const ro = new ResizeObserver(size)
     ro.observe(el)
-    setWidth(el.clientWidth || 320)
+    size()
     return () => ro.disconnect()
   }, [])
+
+  // Tiles that came and that failed, to tell a dead connection from a slow one.
+  const tileState = useRef({ ok: 0, failed: 0 })
+  const [lotsFailed, setLotsFailed] = useState(false)
+  const tileDone = (ok: boolean) => {
+    const t = tileState.current
+    if (ok) t.ok++
+    else t.failed++
+    report()
+  }
+  const report = () => {
+    const t = tileState.current
+    onTrouble?.((t.ok === 0 && t.failed >= 2) || lotsFailed)
+  }
 
   const z = view.zoom
   const [cx, cy] = tileXY(view.center, z).map(v => v * TILE)
@@ -66,7 +92,15 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
     const t = setTimeout(() => {
       const [w, n] = tileLonLat(left / TILE, top / TILE, z)
       const [e, s] = tileLonLat((left + width) / TILE, (top + height) / TILE, z)
-      lotsInBox([w, s, e, n], ctrl.signal).then(setNearby, () => {})
+      lotsInBox([w, s, e, n], ctrl.signal).then(
+        l => {
+          setNearby(l)
+          setLotsFailed(false)
+        },
+        () => {
+          if (!ctrl.signal.aborted) setLotsFailed(true)
+        },
+      )
     }, 350)
     return () => {
       clearTimeout(t)
@@ -74,6 +108,9 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewKey])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(report, [lotsFailed])
 
   const shown = useMemo(() => {
     const byId = new Map<string, Lot>()
@@ -123,7 +160,7 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
   const sel = shown.find(l => l.id === selected)
 
   return (
-    <div className="map-picker" style={{ height }}>
+    <div className={`map-picker${fill ? ' fill' : ''}`} style={fill ? undefined : { height }}>
       <div
         ref={box}
         className={`map-surface${drag?.moved ? ' dragging' : ''}`}
@@ -136,10 +173,10 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
           zoomTo(z + (e.deltaY < 0 ? 1 : -1), [e.clientX - r.left, e.clientY - r.top])
         }}
         role="application"
-        aria-label="Aerial map. Drag to move, tap a lot to pick it."
+        aria-label={`Aerial map. Drag to move, ${pointWord().toLowerCase()} a lot to pick it.`}
       >
         {tiles.map(t => (
-          <img key={t.key} src={t.url} alt="" draggable={false} className="map-tile" style={{ left: t.x, top: t.y }} />
+          <img key={t.key} src={t.url} alt="" draggable={false} className="map-tile" style={{ left: t.x, top: t.y }} onLoad={() => tileDone(true)} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; tileDone(false) }} />
         ))}
         <svg className="map-lines" width={width} height={height}>
           {shown.map(l => (

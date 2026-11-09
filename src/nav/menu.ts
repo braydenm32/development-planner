@@ -142,15 +142,18 @@ export const AREAS: Area[] = [
     features: [],
     view: '3d',
     rail: false,
-    defaultTab: '3d',
+    // Site opens on the block's facts (and the street side) rather than the 3D view's settings.
+    defaultTab: 'block',
     tabs: [
       {
         id: 'block',
         label: 'Block',
         icon: 'block',
+        // Its own canvas, so Site in a phone's bottom bar still lands where nothing covers the numbers.
+        view: '3d',
         subtitle: 'Its size, levels and fall.',
-        keywords: ['site facts', 'area', 'perimeter', 'slope', 'fall', 'levels', 'RL range', 'aspect', 'size', 'sketch block', 'block size'],
-        features: ['site-area-perimeter', 'site-levels-fall', 'site-slope-aspect', 'sketch-block-notice', 'sketch-change-size', 'dem-block-notice'],
+        keywords: ['site facts', 'area', 'perimeter', 'slope', 'fall', 'levels', 'RL range', 'aspect', 'size', 'sketch block', 'block size', 'street side', 'front', 'faces the street', 'low side'],
+        features: ['site-area-perimeter', 'site-levels-fall', 'site-slope-aspect', 'sketch-block-notice', 'sketch-change-size', 'dem-block-notice', 'street-side-block', 'survey-layers-badge'],
       },
       {
         id: 'features',
@@ -198,6 +201,9 @@ export const AREAS: Area[] = [
           'site-features-plan',
           'site-features-3d',
           'site-extra-dxf',
+          'site-trace-easement',
+          'site-trace-off-block',
+          'site-features-view',
         ],
       },
       {
@@ -238,7 +244,7 @@ export const AREAS: Area[] = [
           'DEM',
           'no survey',
         ],
-        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove'],
+        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove', 'map-on-canvas', 'map-trouble'],
       },
       {
         id: '3d',
@@ -307,7 +313,7 @@ export const AREAS: Area[] = [
           label: 'Survey layers',
           icon: 'layers',
           keywords: ['DXF', 'layer', 'roles', 'contours', 'boundary', 'mapping', 'trees', 'easements', 'fences', 'check the layers', 'what was found', 'read back', 'import summary', 'spot levels'],
-          features: ['survey-layer-summary', 'survey-layer-role', 'site-feature-layer-roles', 'survey-read-back'],
+          features: ['survey-layer-summary', 'survey-layer-role', 'site-feature-layer-roles', 'survey-read-back', 'contours-from-levels'],
         },
         {
           id: 'exaggeration',
@@ -335,7 +341,7 @@ export const AREAS: Area[] = [
           label: 'Replace survey',
           icon: 'file',
           keywords: ['new survey', 'DXF', 'import', 'add survey', 'survey arrived', 'put back', 'earlier survey', 'line up'],
-          features: ['replace-survey', 'replace-survey-keep', 'review-replace-survey', 'add-survey-later', 'previous-survey-kept'],
+          features: ['replace-survey', 'replace-survey-keep', 'review-replace-survey', 'add-survey-later', 'previous-survey-kept', 'replace-survey-top-undo'],
           action: 'replace-survey',
           run: 'offer',
         },
@@ -361,6 +367,7 @@ export const AREAS: Area[] = [
         keywords: ['draw', 'floor plan', 'walls', 'canvas', 'edit', 'select', 'drag', 'snap', 'zoom', 'pan', 'where I left off', 'remember view'],
         features: [
           'plan-pan',
+          'plan-look-only-drag',
           'plan-wheel-zoom',
           'plan-view-remembered',
           'click-select',
@@ -1202,7 +1209,7 @@ export const HOMES: Home[] = [
         label: 'Site features to check',
         icon: 'warn',
         keywords: ['easement', 'tree protection zone', 'TPZ', 'warnings', 'council', 'arborist'],
-        features: ['site-checks-chip'],
+        features: ['site-checks-chip', 'strip-waits-for-floor'],
         at: 'site/features',
       },
       { id: 'balance', label: 'Balance cut and fill', icon: 'scale', keywords: ['equal', 'earthworks', 'FFL', 'out of balance'], features: [], action: 'balance', run: 'offer', at: 'earthworks/cut-fill' },
@@ -1504,6 +1511,7 @@ export const HOMES: Home[] = [
           'start-never-traps',
           'start-what-it-does',
           'street-side-ask',
+          'street-side-ask-plan',
         ],
         action: 'new-project',
         run: 'now',

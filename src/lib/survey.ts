@@ -96,6 +96,8 @@ export interface Survey {
   levels: SurveyPoint[]
   reference: SurveyPoint[]
   warnings: string[]
+  /** The file had no contours, so they were drawn from its spot levels (src/lib/madeContours.ts). */
+  madeContours?: boolean
 }
 
 function isClosedRing(pts: Vec3[], closedFlag: boolean): boolean {

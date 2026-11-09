@@ -44,6 +44,8 @@ interface Props {
   overviewOpen: boolean
   /** A shared view (src/share-links): the same numbers, as plain labels, with nothing to go to or change. */
   readOnly?: boolean
+  /** What the strip says in place of the numbers while there are none (see ./drawn.ts). */
+  emptyText?: string
 }
 
 function Chip({ id, label, shown, children, title, term, route, readOnly }: { id: NumberId; label: string; shown?: string; children: ReactNode; title?: string; term?: string; route: AppRoute; readOnly?: boolean }) {
@@ -70,7 +72,7 @@ function Chip({ id, label, shown, children, title, term, route, readOnly }: { id
   )
 }
 
-export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOverview, overviewOpen, readOnly = false }: Props) {
+export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOverview, overviewOpen, readOnly = false, emptyText = 'Key numbers show once the survey and plan load.' }: Props) {
   // Easements and tree zones the plan reaches into: the amber ones only, as Site features counts them.
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   return (
@@ -82,7 +84,7 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
         render={ref => (
           <div className="chips" ref={ref as RefObject<HTMLDivElement | null>}>
             {!n ? (
-              <span className="chip ghost">Key numbers show once the survey and plan load.</span>
+              <span className="chip ghost">{emptyText}</span>
             ) : (
               <>
                 {n.floorArea !== null && (
