@@ -10,7 +10,7 @@ import {
   areaKind,
   fromSite,
   houseWalls,
-  levelById,
+  isRetaining,
   pointOnWall,
   sortedLevels,
   wallDir,
@@ -57,7 +57,10 @@ import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
 import { finishedContours, finishedShown, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
-import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
+import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout } from './GroundOverlay'
+import { LevelMenu } from './LevelMenu'
+import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
+import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
@@ -219,16 +222,23 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const svgRef = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ w: 800, h: 600 })
   // Where the plan was left on this floor of this project, or a fit asked for there; nothing, and it fits as before.
+  // Something a list asked to see, just before the plan opened (src/plan/planFocus.ts), wins over where it was left.
+  const [focusOnOpen] = useState(() => {
+    const f = usePlanFocus.getState()
+    return f.n && Date.now() - f.at <= FOCUS_WAIT_MS ? f.pts : null
+  })
   const [view, setView] = useState<View | null>(() => {
-    const r = viewKey ? loadPlanView(viewKey, level) : null
+    const r = viewKey && !focusOnOpen ? loadPlanView(viewKey, level) : null
     return isPlace(r) ? { ...r, token: fitToken } : null
   })
   const [fitAs, setFitAs] = useState<{ target: 'house' | 'block'; token: number } | null>(() => {
-    const r = viewKey ? loadPlanView(viewKey, level) : null
+    const r = viewKey && !focusOnOpen ? loadPlanView(viewKey, level) : null
     return r && !isPlace(r) ? { target: r.fit, token: fitToken } : null
   })
   /** Points to keep fitted (a drawing being lined up) in place of the plan, until the user moves the view. */
-  const [around, setAround] = useState<{ pts: Vec2[]; token: number } | null>(null)
+  const [around, setAround] = useState<{ pts: Vec2[]; token: number } | null>(() => (focusOnOpen ? { pts: focusOnOpen, token: fitToken } : null))
+  /** When a list last asked for something to be framed. */
+  const focusedAt = useRef(0)
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
@@ -261,23 +271,43 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const walls = useMemo(() => plan.walls.filter(w => w.level === level), [plan.walls, level])
   const polys = useMemo(() => wallPolygons(walls), [walls])
   const faces = useMemo(() => planarFaces(walls), [walls])
-  const levelBelow = useMemo(() => {
-    const ls = sortedLevels(plan)
-    const i = ls.findIndex(l => l.id === level)
-    return i > 0 ? ls[i - 1] : null
-  }, [plan, level])
-  const ghostPolys = useMemo(
-    () => (levelBelow ? [...wallPolygons(houseWalls(plan.walls.filter(w => w.level === levelBelow.id))).values()] : []),
-    [plan.walls, levelBelow],
+  // The levels as the level menu lists them, and which of them show faintly under this one.
+  const ghostsOff = useGhosts(s => s.off)
+  const grounded = useMemo(() => groundedLevels(plan, survey, terrain.grid), [plan, survey, terrain])
+  const levelMenu = useMemo(() => levelRows(plan, level, new Set(ghostsOff), grounded), [plan, level, ghostsOff, grounded])
+  // Every other level's walls, faint, fainter the further away: to line up with, and to snap to.
+  const ghostLevels = useMemo(
+    () =>
+      levelMenu
+        .filter(r => r.ghost)
+        .map(r => {
+          const ws = houseWalls(plan.walls.filter(w => w.level === r.id))
+          return { id: r.id, opacity: ghostOpacity(r.steps), walls: ws, polys: [...wallPolygons(ws).values()] }
+        }),
+    [plan.walls, levelMenu],
   )
+  // Retaining walls, driveways and lawns are on the site, not a floor: those drawn on other levels
+  // show on this one too, greyed with their level's name, and a click goes to them there.
+  const siteLayer = useMemo(() => {
+    const names = new Map(plan.levels.map(l => [l.id, l.name]))
+    const ws = plan.walls.filter(w => w.level !== level && isRetaining(w))
+    return {
+      names,
+      walls: ws,
+      polys: wallPolygons(ws),
+      areas: plan.areas.filter(a => a.level !== level && a.pts.length > 2 && (areaKind(a) === 'driveway' || areaKind(a) === 'garden')),
+    }
+  }, [plan.walls, plan.areas, plan.levels, level])
+  // What drawing snaps to: this level's walls, the ghosts showing, and the site layer's walls.
+  const snapWalls = useMemo(() => [...walls, ...ghostLevels.flatMap(g => g.walls), ...siteLayer.walls], [walls, ghostLevels, siteLayer])
   const roofs = useMemo(() => plan.roofs.filter(r => r.level === level), [plan.roofs, level])
   const stairs = useMemo(() => plan.stairs.filter(s => s.level === level), [plan.stairs, level])
   // Stairs that come up through this floor are drawn as the hole they climb into, over the rooms;
   // the level below's other stairs show faintly under them, for lining up.
   const arrivingStairs = useMemo(() => plan.stairs.filter(s => s.level !== level && stairArrivesAt(plan, s, level)), [plan, level])
   const ghostStairs = useMemo(
-    () => (levelBelow ? plan.stairs.filter(s => s.level === levelBelow.id && !arrivingStairs.includes(s)) : []),
-    [plan.stairs, levelBelow, arrivingStairs],
+    () => ghostLevels.map(g => ({ opacity: g.opacity, stairs: plan.stairs.filter(s => s.level === g.id && !arrivingStairs.includes(s)) })),
+    [plan.stairs, ghostLevels, arrivingStairs],
   )
   const isLowest = sortedLevels(plan)[0]?.id === level
   // This floor against the natural ground: worked out again only when the floor level or the survey changes.
@@ -451,7 +481,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const was = shownFor.current
     if (was.at === viewFor) return
     shownFor.current = { key: viewKey, at: viewFor }
-    if (!viewKey) return
+    // Just framed for a list's row: that's what to see on this level now.
+    if (!viewKey || Date.now() - focusedAt.current < 1000) return
     const r = loadPlanView(viewKey, level, was.key === viewKey)
     if (isPlace(r)) {
       setView({ ...r, token: fitToken })
@@ -461,6 +492,18 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       setFitAs({ target: r.fit, token: fitToken })
     }
   }, [viewFor, viewKey, level, fitToken])
+  // A list's row asks for something to be framed (src/plan/planFocus.ts), often on another level:
+  // the level's own view (above) gives way to it.
+  useEffect(
+    () =>
+      usePlanFocus.subscribe(f => {
+        focusedAt.current = Date.now()
+        setView(null)
+        setFitAs(null)
+        setAround({ pts: f.pts, token: live.current.fitToken })
+      }),
+    [],
+  )
 
   // The + and − buttons, their keys and ⌘K: zoom about the middle of the part of the plan nothing covers.
   useEffect(() => {
@@ -981,8 +1024,30 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         drag.current = { type: 'pan', sx, sy, start: v }
         return
     }
-    select(null)
     drag.current = { type: 'pan', sx, sy, start: v }
+    if (pickOtherLevelSite(world)) return
+    select(null)
+  }
+
+  /** A retaining wall, driveway or lawn drawn on another level, under a point: the site layer. */
+  const siteItemAt = (world: Vec2): { level: string; sel: Selection } | null => {
+    const w = siteLayer.walls.find(x => {
+      const poly = siteLayer.polys.get(x.id)
+      return (poly && pointInPolygon(world[0], world[1], poly)) || closestOnSegment(world, x.a, x.b).dist < x.thickness / 2 + 3 / v.k
+    })
+    if (w) return { level: w.level, sel: { type: 'wall', id: w.id } }
+    const a = siteLayer.areas.find(x => pointInPolygon(world[0], world[1], x.pts))
+    return a ? { level: a.level, sel: { type: 'area', id: a.id } } : null
+  }
+
+  /** Go to the site item under a point on its own level, and pick it there. */
+  const pickOtherLevelSite = (world: Vec2): boolean => {
+    const hit = siteItemAt(world)
+    if (!hit) return false
+    const st = usePlan.getState()
+    st.setActiveLevel(hit.level)
+    st.select(hit.sel)
+    return true
   }
 
   /** The roof under a point on this level: the top one whose outline holds it, or whose edge it's on. */
@@ -1157,12 +1222,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     // Hover feedback for drawing tools
     if (tool === 'wall' || tool === 'retaining') {
       const anchor = chain.at(-1) ?? null
-      setCursor(snap(world, { walls, anchor, points: chain.slice(0, 1), tol, free }))
+      setCursor(snap(world, { walls: snapWalls, anchor, points: chain.slice(0, 1), tol, free }))
     } else if (tool === 'area' || tool === 'roof') {
-      setCursor(snap(world, { walls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free }))
+      setCursor(snap(world, { walls: snapWalls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free }))
     } else if (tool === 'stair') {
       // once the start is down, 'free' vs 'angle' records whether Shift is held
-      setCursor(stairStart ? { p: world, kind: free ? 'free' : 'angle', guides: [] } : snap(world, { walls, tol, free }))
+      setCursor(stairStart ? { p: world, kind: free ? 'free' : 'angle', guides: [] } : snap(world, { walls: snapWalls, tol, free }))
     } else if (isOpeningTool(tool)) {
       const h = nearestWall(world)
       setHoverOpening(h ? { ...h, key: draftKey } : null)
@@ -1207,6 +1272,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         noteStack(hit.stack, pick.id)
         return
       }
+      if (!hit && pickOtherLevelSite(W(s[0], s[1]))) return
       select(hit ? { type: hit.type, id: hit.item.id } : null)
       return
     }
@@ -1284,13 +1350,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     site.deselect()
     if (mn.click(world, e.shiftKey)) return
     if (tool === 'wall') {
-      const s = snap(world, { walls, anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), tol, free: e.shiftKey })
+      const s = snap(world, { walls: snapWalls, anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), tol, free: e.shiftKey })
       placeWallPoint(s.p)
     } else if (tool === 'retaining') {
-      const s = snap(world, { walls, anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), tol, free: e.shiftKey })
+      const s = snap(world, { walls: snapWalls, anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), tol, free: e.shiftKey })
       placeRetainingPoint(s.p)
     } else if (tool === 'area') {
-      const s = snap(world, { walls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free: e.shiftKey })
+      const s = snap(world, { walls: snapWalls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free: e.shiftKey })
       if (areaPts.length >= 3 && near(s.p, areaPts[0])) closeArea(areaPts)
       else setAreaPts([...areaPts, s.p])
     } else if (tool === 'roof' && roofMode === 'building') {
@@ -1310,11 +1376,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       notify(null)
     } else if (tool === 'roof') {
       // Draw roof outline: every click is a corner.
-      const s = snap(world, { walls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free: e.shiftKey })
+      const s = snap(world, { walls: snapWalls, anchor: areaPts.at(-1) ?? null, points: areaPts, tol, free: e.shiftKey })
       if (areaPts.length >= 3 && near(s.p, areaPts[0])) closeRoof(areaPts)
       else setAreaPts([...areaPts, s.p])
     } else if (tool === 'stair') {
-      const s = snap(world, { walls, tol, free: e.shiftKey })
+      const s = snap(world, { walls: snapWalls, tol, free: e.shiftKey })
       if (!stairStart) {
         updateDraft(() => ({ stairStart: s.p }))
         return
@@ -1434,6 +1500,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       const st = usePlan.getState()
       const mod = e.ctrlKey || e.metaKey
+      if ((e.key === 'PageUp' || e.key === 'PageDown') && !mod && !e.altKey && st.plan) {
+        e.preventDefault()
+        const next = stepLevel(st.plan, st.activeLevel, e.key === 'PageUp' ? 1 : -1)
+        if (next) st.setActiveLevel(next)
+        return
+      }
       // The history the top bar's Undo works on (src/shell/undoTarget.ts): a tree marked for removal from Checks is the site's.
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
@@ -1910,11 +1982,42 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {/* The house's shadows on 21 June, when the key's switch is on (src/sun) */}
         <ShadowPlanLayer plan={plan} survey={survey} terrain={terrain} earth={earth ?? null} toScreen={p => S(fromSite(p, plan.placement, survey.origin))} />
 
-        {/* Level below, for lining up */}
-        {ghostPolys.map((p, i) => (
-          <path key={i} className="wall ghost" d={path(p)} />
+        {/* Other levels, faint, for lining up and snapping to */}
+        {ghostLevels.map(g => (
+          <g key={g.id} className="level-ghost" opacity={g.opacity}>
+            {g.polys.map((p, i) => (
+              <path key={i} className="wall ghost" d={path(p)} />
+            ))}
+          </g>
         ))}
-        {ghostStairs.map(st => stairSymbol(st, true))}
+        {ghostStairs.map((g, i) => (
+          <g key={i} opacity={g.opacity}>
+            {g.stairs.map(st => stairSymbol(st, true))}
+          </g>
+        ))}
+
+        {/* The site layer: retaining walls, driveways and lawns drawn on other levels */}
+        <g className="site-layer">
+          {siteLayer.areas.map(a => {
+            const [x, y] = S(centroid(a.pts))
+            return (
+              <g key={a.id}>
+                <path className={`area kind-${areaKind(a)} other-level`} d={path(a.pts)} />
+                <text className="other-level-tag" x={x} y={y} textAnchor="middle">
+                  {a.name} · on {siteLayer.names.get(a.level)}
+                </text>
+              </g>
+            )
+          })}
+          {siteLayer.walls.map(w => {
+            const p = siteLayer.polys.get(w.id)
+            return p ? (
+              <path key={w.id} className="wall retaining other-level" d={path(p)}>
+                <title>Retaining wall on {siteLayer.names.get(w.level)}: click to change it there</title>
+              </path>
+            ) : null
+          })}
+        </g>
 
         {/* Outdoor areas */}
         {plan.areas
@@ -2151,7 +2254,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {touch?.phone || viewOnly ? (
         <PhoneLevelChip plan={plan} level={level} rl={floorRL} />
       ) : (
-        <LevelChip name={levelById(plan, level)?.name ?? ''} rl={floorRL} below={levelBelow?.name ?? null} action={viewOnly ? undefined : flow.chipAction} />
+        <LevelMenu rows={levelMenu} action={viewOnly ? undefined : flow.chipAction} />
       )}
       <div className="plan-actions">
         {frame ? (

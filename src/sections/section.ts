@@ -21,6 +21,7 @@ import {
   type SectionLine,
 } from '../plan/model'
 import { pierOutlines } from '../plan/platforms'
+import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { roofGeometry, type RoofMesh } from '../plan/roof'
 import { compassWord, intersectSpans, postStations, spansInside, stations, subtractSpans, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
@@ -197,13 +198,11 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
   }
 
   const levels = sortedLevels(plan)
-  const lowest = levels[0]
   const floors: CutFloor[] = []
   const slabs: Box[] = []
   const framing: Box[] = []
   const piers: Box[] = []
   const walls: Box[] = []
-  const pierSpans = spansInside(a, b, pierOutlines(plan))
   const post = (s: number, top: number, w: number) => {
     const g = groundAt(finished, s)
     if (top - g > 0.02) piers.push({ s0: s - w / 2, s1: s + w / 2, z0: g, z1: top })
@@ -214,11 +213,12 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     const rl = floorRL(plan, level.id)
     const spans = spansInside(a, b, buildingOutline(planarFaces(lw)).outlines)
     if (spans.length) floors.push({ level: level.id, name: level.name, rl, ceiling: rl + level.height, spans })
-    // The floor itself: a slab on the ground under the lowest level (bar its rooms on piers), framing elsewhere.
-    const onPiers = level === lowest ? intersectSpans(spans, pierSpans) : []
-    const solid = level === lowest ? subtractSpans(spans, onPiers) : []
+    // The floor itself: a slab on the ground under each level built on it (bar its rooms on piers), framing elsewhere.
+    const grounded = levelBuildsAs(plan, level.id) !== 'framed'
+    const onPiers = grounded ? intersectSpans(spans, spansInside(a, b, pierOutlines(plan, level.id))) : []
+    const solid = grounded ? subtractSpans(spans, onPiers) : []
     for (const [s0, s1] of solid) slabs.push({ s0, s1, z0: rl - FLOOR_STRUCTURE, z1: rl })
-    for (const [s0, s1] of level === lowest ? onPiers : spans) framing.push({ s0, s1, z0: rl - FLOOR_STRUCTURE, z1: rl })
+    for (const [s0, s1] of grounded ? onPiers : spans) framing.push({ s0, s1, z0: rl - FLOOR_STRUCTURE, z1: rl })
     for (const [s0, s1] of onPiers) for (const s of postStations(s0, s1)) post(s, rl - FLOOR_STRUCTURE, PIER_W)
 
     // Walls the line passes through, with the gap where it passes through an opening.

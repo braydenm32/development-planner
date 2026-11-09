@@ -1,7 +1,8 @@
 // Design › Floors, Rooms & areas, Roofs and Furniture, from the plan's sections (src/components/PlanSections.tsx).
 
 import { FurniturePicker } from '../../components/FurniturePanel'
-import { AreasBody, LevelsBody, RoofOptions } from '../../components/PlanSections'
+import { AreasBody, LevelsBody } from '../../components/LevelsPanel'
+import { RoofOptions } from '../../components/PlanSections'
 import { levelById, type Plan } from '../../plan/model'
 import { roofGeometry } from '../../plan/roof'
 import { usePlan } from '../../plan/store'
@@ -10,7 +11,7 @@ import { Waiting } from './Waiting'
 
 export function FloorsTab() {
   const d = useLoaded()
-  return d ? <LevelsBody plan={d.plan} beforePick={() => planShowing() || showPlan()} /> : <Waiting />
+  return d ? <LevelsBody plan={d.plan} survey={d.survey} terrain={d.terrain} beforePick={() => planShowing() || showPlan()} /> : <Waiting />
 }
 
 export function RoomsTab() {

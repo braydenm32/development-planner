@@ -142,10 +142,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         if (g) slabs.push(g)
       }
 
-      // Piers under the parts of the lowest floor that aren't slab on ground.
-      if (level.id === levels[0]?.id) {
-        for (const ring of pierOutlines(plan)) for (const p of postGrid(ring, 1.8)) post(p, floorY - FLOOR_STRUCTURE, 0.2)
-      }
+      // Piers under the parts of each floor built on the ground that aren't a slab.
+      for (const ring of pierOutlines(plan, level.id)) for (const p of postGrid(ring, 1.8)) post(p, floorY - FLOOR_STRUCTURE, 0.2)
 
       for (const a of plan.areas.filter(x => x.level === level.id)) {
         const kind = areaKind(a)

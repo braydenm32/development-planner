@@ -2,7 +2,7 @@
 // retaining wall where a slab room cuts deep or fills high. Never the browser's confirm().
 
 import { useMemo, useState } from 'react'
-import { FLOOR_TYPES, floorTypeChoices } from '../plan/floorTypes'
+import { FLOOR_TYPES, FRAMED_FLOOR, floorTypeChoices, isLowestLevel } from '../plan/floorTypes'
 import { levelById } from '../plan/model'
 import { HOUSE_WALL_NOTE, OFFER_PLACEMENT, offeredHeight, offeredWall, type OfferPlacement } from '../plan/retainOffer'
 import { usePlan } from '../plan/store'
@@ -19,6 +19,8 @@ export function FlowCards() {
 function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
   const name = usePlan(s => (s.plan ? levelById(s.plan, level)?.name : undefined)) ?? 'this floor'
   const hidden = FLOOR_TYPES.length - floorTypeChoices(false).length
+  // A split level near the ground can also be framed over it, as levels above are.
+  const split = usePlan(s => !!s.plan && !isLowestLevel(s.plan, level))
   return (
     <section className="flow-card" aria-label="Floor type">
       <header>
@@ -32,6 +34,12 @@ function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
             <span>{t.earthworks}</span>
           </button>
         ))}
+        {split && (
+          <button type="button" className="flow-choice" onClick={() => answerFloorType(FRAMED_FLOOR.id)}>
+            <b>{FRAMED_FLOOR.label}</b>
+            <span>{FRAMED_FLOOR.earthworks}</span>
+          </button>
+        )}
       </div>
       <footer>
         {!more && hidden > 0 && (

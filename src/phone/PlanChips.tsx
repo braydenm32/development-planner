@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../nav/icons'
 import { sortedLevels, type Plan } from '../plan/model'
+import { levelFloorText } from '../plan/floorTypes'
 import { levelFloorRL } from '../plan/groundOverlay'
 import { usePlan } from '../plan/store'
 
@@ -62,7 +63,9 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
                 }}
               >
                 <span>{l.name}</span>
-                <span className="muted">RL {levelFloorRL(plan, l.id).toFixed(2)}</span>
+                <span className="muted">
+                  RL {levelFloorRL(plan, l.id).toFixed(2)} · {levelFloorText(plan, l.id)}
+                </span>
               </button>
             </li>
           ))}

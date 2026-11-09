@@ -1,0 +1,217 @@
+/* Levels: the plan's level menu, other levels' ghosts and site items, Design › Floors and Rooms & areas. */
+
+/* ---- The level menu (the "Drawing on …" chip) ---- */
+
+.level-chip.level-menu {
+  pointer-events: auto;
+  max-width: min(420px, calc(100% - 32px));
+}
+
+.level-menu-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.level-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: -3px -6px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-menu-button:hover,
+.level-menu.open .level-menu-button {
+  background: var(--accent-soft);
+}
+
+.level-menu-button:focus-visible,
+.level-menu-pick:focus-visible,
+.level-menu-ghost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.level-menu-list {
+  display: grid;
+  gap: 2px;
+  min-width: 260px;
+  margin: 8px -6px -2px;
+  padding: 0;
+  list-style: none;
+}
+
+.level-menu-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+}
+
+.level-menu-list li.on {
+  background: var(--accent-soft);
+}
+
+.level-menu-pick {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-menu-pick:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.level-menu-name {
+  font-weight: 600;
+}
+
+.level-menu-list li.on .level-menu-name {
+  color: var(--accent);
+}
+
+.level-menu-here {
+  padding: 0 10px;
+}
+
+.level-menu-ghost {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.level-menu-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Off: faded, with a line through the eye. */
+.level-menu-ghost.off {
+  color: var(--muted, #8a8f96);
+}
+
+.level-menu-ghost.off::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 1.6px;
+  background: currentColor;
+  transform: rotate(-40deg);
+}
+
+.level-menu-foot {
+  display: block !important;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--line);
+  white-space: normal;
+}
+
+/* ---- On the plan: other levels' site items ---- */
+
+.area.other-level {
+  opacity: 0.45;
+  stroke-dasharray: 3 3;
+}
+
+.wall.retaining.other-level {
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.other-level-tag {
+  fill: #6b737d;
+  font-size: 11px;
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* ---- Design › Floors ---- */
+
+.add-levels {
+  flex-wrap: wrap;
+}
+
+.add-level-at {
+  margin-top: 8px;
+}
+
+.floor-type-warn {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+/* ---- Design › Rooms & areas, folded level by level ---- */
+
+.level-fold + .level-fold {
+  margin-top: 10px;
+}
+
+.level-fold h3 {
+  margin: 0 0 6px;
+}
+
+.level-fold-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-fold-head .muted {
+  margin-left: auto;
+  font-weight: 400;
+}
+
+.level-fold-caret {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  transition: transform 0.15s;
+}
+
+.level-fold.open .level-fold-caret {
+  transform: rotate(90deg);
+}
+
+.area-picks {
+  margin-bottom: 8px;
+}
