@@ -1,23 +1,20 @@
-// Earthworks › Place, Cut & fill (with the grading brush) and Driveway, from the plan's position and cut and fill sections.
+// Earthworks › Place (the floor, the ground under each level, moving and turning the house), Cut &
+// fill (with the grading brush) and Driveway, from the plan's position and cut and fill sections.
 
 import {
-  BatterFields,
   BoundaryDistances,
   DrivewayGrade,
-  EarthworksIntro,
-  EarthworksResults,
-  FloorLevelField,
   GroundUnderHouse,
 } from '../../components/PlanSections'
+import { FloorLevel, LevelsOnGround, PlaceHouse } from '../../components/PlaceSections'
 import { DrivewayCrossing } from '../../components/DrivewayCrossing'
 import { DrivewayLevels } from '../../components/DrivewayLevels'
-import { GradingPanel } from '../../grading/GradingPanel'
-import { usePlacementInfo, useRetainingWalls } from '../../components/planNumbers'
+import { CutFillPanel } from '../../grading/CutFillPanel'
+import { usePlacementInfo } from '../../components/planNumbers'
 import { areaKind } from '../../plan/model'
 import { usePlan } from '../../plan/store'
 import { Caveat } from '../../legal/Caveat'
 import { DemFlag } from '../../map/DemNotes'
-import { navigate } from '../../nav/router'
 import { pickTool, selectOnPlan, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 
@@ -30,15 +27,20 @@ function Place({ d }: { d: Loaded }) {
   const info = usePlacementInfo(d.plan, d.survey, d.terrain)
   return (
     <>
-      <FloorLevelField plan={d.plan} />
+      <FloorLevel plan={d.plan} info={info} />
       <DemFlag what="these levels" />
+      <LevelsOnGround plan={d.plan} survey={d.survey} terrain={d.terrain} />
       {info ? (
         <>
           <GroundUnderHouse plan={d.plan} info={info} />
+          <PlaceHouse plan={d.plan} survey={d.survey} info={info} />
           <BoundaryDistances plan={d.plan} survey={d.survey} info={info} />
         </>
       ) : (
-        <p className="muted small">Draw some walls to see ground levels and boundary distances.</p>
+        <>
+          <p className="muted small">Draw some walls to see ground levels and boundary distances.</p>
+          <PlaceHouse plan={d.plan} survey={d.survey} info={info} />
+        </>
       )}
     </>
   )
@@ -50,21 +52,9 @@ export function CutFillTab() {
 }
 
 function CutFill({ d }: { d: Loaded }) {
-  const walls = useRetainingWalls(d.plan, d.survey, d.terrain, d.earth)
   return (
     <>
-      <EarthworksIntro />
-      <BatterFields plan={d.plan} />
-      <EarthworksResults plan={d.plan} survey={d.survey} earth={d.earth} terrain={d.terrain} retaining={false} />
-      <GradingPanel plan={d.plan} survey={d.survey} earth={d.earth} />
-      {walls.length > 0 && (
-        <p className="muted small">
-          {walls.length} retaining wall{walls.length > 1 ? 's hold' : ' holds'} back the batters.{' '}
-          <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'retaining-walls', view: 'plan' })}>
-            See retaining walls
-          </button>
-        </p>
-      )}
+      <CutFillPanel plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} />
       <Caveat />
     </>
   )

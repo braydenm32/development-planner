@@ -156,6 +156,16 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
       at: 'earthworks/retaining-walls',
     })
   }
+  // Walls nobody has drawn yet but the cut and fill need: its vertical edges, priced as block walls.
+  const im = q.impliedRetaining
+  if (im?.count)
+    add('retaining-implied', 'retaining-block', im.face, {
+      label: 'Retaining walls the cut and fill imply (not drawn)',
+      from: `${plural(im.count, 'implied wall')}, ${im.length.toFixed(1)} m long, holding back up to ${im.maxHeight.toFixed(2)} m`,
+      dp: 1,
+      target: { kind: 'cut' },
+      at: 'earthworks/cut-fill',
+    })
 
   // Slab and floor
   if (q.ground)

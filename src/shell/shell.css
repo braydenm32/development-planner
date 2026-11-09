@@ -585,6 +585,12 @@ button.chip:hover .chip-label {
   font-weight: 600;
 }
 
+/* "implied": the tallest wall is a vertical edge of the cut and fill, not one drawn. */
+.chip .chip-note {
+  font-style: normal;
+  color: var(--muted);
+}
+
 .chip .badge.warn {
   margin-left: 4px;
   color: var(--warn-ink);

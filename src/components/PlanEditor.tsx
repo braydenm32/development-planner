@@ -60,6 +60,7 @@ import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
+import { floorToFirstWalls } from './placeActions'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
@@ -570,7 +571,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const askAfterChain = () => {
     const c = chainStart.current
     chainStart.current = null
-    if (c) wallsPlaced(c.plan, c.level)
+    if (!c) return
+    // A house's first walls: its floor starts at the mean ground under them (src/plan/levelGround.ts).
+    floorToFirstWalls(c.plan, survey, terrain.grid)
+    wallsPlaced(c.plan, c.level)
   }
   // Switching tool or level drops the run, and leaving the plan ends it: ask then.
   useEffect(() => askAfterChain, [draftKey])
