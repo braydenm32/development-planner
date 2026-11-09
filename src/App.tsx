@@ -35,6 +35,7 @@ import { pickFile } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
+import { DemChip } from './map/DemNotes'
 import { isSketch } from './start/sketch'
 import { StartScreen } from './start/StartScreen'
 import { LegalPage } from './legal/LegalPage'
@@ -230,6 +231,7 @@ export default function App() {
   const canvas = (
     <>
       {isSketch(project) && mode !== 'print' && <SketchChip />}
+      {project.dem && mode !== 'print' && <DemChip in3d={mode === '3d'} />}
       {(projects.saveError || projects.memoryOnly) && (
         <p className="bhp-save-problem" role="status">
           {projects.memoryOnly

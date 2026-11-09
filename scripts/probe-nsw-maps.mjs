@@ -5,20 +5,22 @@
 //   node scripts/probe-nsw-maps.mjs
 //
 // It looks up public places only (Wollongong's council offices and the land around the city),
-// never a user's block.
+// never a user's block. `node scripts/probe-nsw-maps.mjs elevation` checks only the elevation
+// services (src/map/elevation.ts); `maps` only the rest.
 
 const ORIGIN = 'https://contourandgable.com'
 const SIX = 'https://maps.six.nsw.gov.au/arcgis/rest/services/public'
 const PORTAL = 'https://api.apps1.nsw.gov.au/planning/viewersf/V1/ePlanningApi'
 const EPLAN = 'https://mapprod3.environment.nsw.gov.au/arcgis/rest/services/ePlanning'
 
+const ONLY = process.argv[2] ?? process.env.PROBE ?? 'all'
 let failures = 0
 const cut = (s, n = 900) => (s.length > n ? `${s.slice(0, n)}… (${s.length} chars)` : s)
 
 async function get(name, url, init) {
   console.log(`\n=== ${name}`)
   try {
-    const r = await fetch(url, { ...init, headers: { Origin: ORIGIN, ...(init?.headers ?? {}) } })
+    const r = await fetch(url, { signal: AbortSignal.timeout(30000), ...init, headers: { Origin: ORIGIN, ...(init?.headers ?? {}) } })
     const acao = r.headers.get('access-control-allow-origin')
     const text = await r.text()
     console.log(`status ${r.status} · CORS ${acao}`)
@@ -56,6 +58,7 @@ const query = (service, layer, params) =>
   })
 const box = (lon, lat, d) => ({ geometry: `${lon - d},${lat - d},${lon + d},${lat + d}`, geometryType: 'esriGeometryEnvelope', inSR: '4283', resultRecordCount: '3' })
 
+if (ONLY === 'all' || ONLY === 'maps') {
 // Address search as you type.
 for (const a of ['41 Burelli St Wollongong', '41 Burelli', 'Lot 401 DP 715513']) {
   const j = await get(`address "${a}"`, `${PORTAL}/address?a=${encodeURIComponent(a)}&noOfRecords=5`)
@@ -111,5 +114,66 @@ console.log('layer 22:', info?.name, (info?.fields ?? []).map(f => f.name).join(
 // Imagery tiles answer to z 21 (checked once already); keep one as a canary.
 await get('imagery tile', `${SIX}/NSW_Imagery/MapServer/tile/20/631199/963796`)
 
+}
+
+if (ONLY === 'all' || ONLY === 'elevation') await probeElevation()
+
 console.log(`\n${failures} failure(s)`)
 process.exitCode = failures ? 1 : 0
+
+// ---- Elevation (src/map/elevation.ts) ----
+//
+// The NSW 5 m elevation model the app reads ground levels from, asked for public places only:
+// Wollongong's council offices, the Crown St mall, the foot of Mount Keira, its lookout, and a point
+// out at sea (which comes back with no sample: NoData). Then a full batch, to see the server's limit
+// (it answered at most 1000 samples a request, in about 25 s however many points, November 2026),
+// and the other services looked at (docs/research/elevation.md), to see whether they still answer.
+
+async function probeElevation() {
+  const DEM = 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_5M_Elevation/ImageServer'
+  const info = await get('NSW 5 m elevation info', `${DEM}?f=json`)
+  if (info) console.log(cut(JSON.stringify({ description: info.description, copyrightText: info.copyrightText, pixelSizeX: info.pixelSizeX, maxRecordCount: info.maxRecordCount, spatialReference: info.spatialReference })))
+  const places = [
+    [150.8936, -34.4259],
+    [150.8975, -34.4245],
+    [150.871, -34.41],
+    [150.847, -34.404],
+    [150.95, -34.43],
+  ]
+  const samples = async (label, pts) => {
+    const t0 = Date.now()
+    const j = await get(`getSamples ${label}`, `${DEM}/getSamples`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        geometry: JSON.stringify({ points: pts, spatialReference: { wkid: 4326 } }),
+        geometryType: 'esriGeometryMultipoint',
+        returnFirstValueOnly: 'true',
+        interpolation: 'RSP_BilinearInterpolation',
+        f: 'json',
+      }),
+      signal: AbortSignal.timeout(120000),
+    })
+    const got = j?.samples ?? []
+    console.log(`${Date.now() - t0} ms · ${got.length} sample(s) for ${pts.length} point(s)${j?.error ? ` · error ${JSON.stringify(j.error)}` : ''}`)
+    for (const x of got.slice(0, 5)) console.log(cut(JSON.stringify(x), 300))
+    if (j?.error || !got.length) failures++
+  }
+  await samples('public places', places)
+  const grid = []
+  for (let i = 0; i < 36; i++) for (let j = 0; j < 30; j++) grid.push([Number((150.8930 + i * 0.00003).toFixed(7)), Number((-34.4265 + j * 0.00003).toFixed(7))])
+  await samples(`a batch of ${grid.length}`, grid)
+  try {
+    const r = await fetch(`${DEM}/getSamples`, { method: 'OPTIONS', headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' }, signal: AbortSignal.timeout(30000) })
+    console.log(`preflight ${r.status} · allow-origin ${r.headers.get('access-control-allow-origin')}`)
+  } catch (e) {
+    console.log(`preflight failed: ${e}`)
+  }
+
+  // Looked at and not used: Geoscience Australia's national 5 m LiDAR model (one point per identify,
+  // and its REST directory refused GitHub's runners), and the NSW portal's elevation index.
+  const ga = await get('GA 5 m LiDAR WCS capabilities (not used)', 'https://services.ga.gov.au/gis/services/DEM_LiDAR_5m_2025/MapServer/WCSServer?service=WCS&request=GetCapabilities&version=1.0.0')
+  if (ga) console.log(cut(JSON.stringify(ga), 200))
+  const index = await get('NSW elevation index (not used)', 'https://portal.spatial.nsw.gov.au/server/rest/services/Hosted/Elevation_Index_Public/FeatureServer?f=json')
+  if (index) console.log(cut(JSON.stringify(index.layers ?? index), 300))
+}

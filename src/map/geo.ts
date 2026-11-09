@@ -125,3 +125,6 @@ export function tileLonLat(x: number, y: number, z: number): LonLat {
   const lat = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / s))) / RAD
   return [(x / s) * 360 - 180, lat]
 }
+
+/** The middle of a ring's corners, to centre the map on. */
+export const middleOf = (ring: LonLat[]): LonLat => [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length]

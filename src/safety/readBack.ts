@@ -42,3 +42,9 @@ export function readBackLine(site: Site): string {
 
 /** The read-back's link: where the layers are checked (Site › More › Survey layers). */
 export const CHECK_LAYERS = 'Check the layers'
+
+/** The same line for ground levels from the state's model, with how rough they are: "Ground levels from NSW elevation data · 600 m² · RL 12.10 to 14.30 · about ±0.9 m". */
+export function demReadBack(site: Site, dem: { accuracy: number }): string {
+  const { terrain } = site
+  return `Ground levels from NSW elevation data · ${siteAreaText(terrain.stats)} · ${rlRangeText(terrain.stats)} · about ±${dem.accuracy} m`
+}

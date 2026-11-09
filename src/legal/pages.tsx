@@ -82,6 +82,11 @@ export function Privacy() {
         </ul>
         <p>Like any web host, Cloudflare handles your IP address and the usual request details to deliver the page. We don’t use them to identify you.</p>
       </S>
+      <S id="maps" title="The NSW map and ground levels">
+        <p>
+          If you look up your block on the map (Site › Map, or start from an address), what you type and the lot’s position go to NSW Government map services to find the lot and read its planning maps. If you use the state’s ground levels, points over the lot (as longitude and latitude) go to the NSW Spatial Services elevation service to read its levels. Nothing is sent until you ask, and nothing else about you goes with it. The lot’s position stays with the project and is never in a view-only link.
+        </p>
+      </S>
       <S id="cookies" title="Cookies, analytics and ads">
         <p>There are no analytics, no ads and no tracking cookies. When you’re signed in there is one session cookie, which keeps you signed in for up to 30 days and does nothing else. The app also keeps a few settings (like your last view) in your browser.</p>
       </S>
@@ -187,6 +192,10 @@ export function Accuracy() {
       <S id="terrain" title="The terrain, from your survey">
         <p><b>Good for:</b> seeing the shape of your block, its fall, and where a house could sit. It follows your surveyor’s contours, spot levels and boundary.</p>
         <p><b>Limits:</b> the ground is a smooth surface drawn between the surveyed points, so it can differ from the real ground between them. It’s only as good as the survey: its age, its detail and which layers were read. A sketched block (no survey) is a rough shape from a few numbers, not a measurement. Levels are to the survey’s own datum. It isn’t a substitute for a current survey by a registered surveyor.</p>
+      </S>
+      <S id="state-levels" title="Ground levels from the state’s elevation model">
+        <p><b>Good for:</b> a first look at a block before you buy, or before the survey comes: which way it falls and roughly how much.</p>
+        <p><b>Limits:</b> without a survey, the planner can read the ground from the NSW 5 m elevation model (made from LiDAR and aerial photos). NSW Spatial Services state it’s accurate to about ±0.9 m (95% of points), on a 5 m grid of bare earth, so walls, cuttings, kerbs and anything smaller than a few metres don’t show. The lot’s lines come from the cadastre, which can be out by a metre or more. Cut and fill, retaining walls, floor levels and the checks worked out on these levels are a rough guide only: don’t use them for design, earthworks quantities or a price. Get a survey by a registered surveyor before you rely on any of it; it replaces these levels and keeps your plan.</p>
       </S>
       <S id="earth" title="Cut and fill">
         <p><b>Good for:</b> comparing designs and getting a feel for how much earth moves.</p>

@@ -49,3 +49,16 @@ export const BUSHFIRE_ROWS = [
   { Category: 1, Guideline: 3, d_Category: 'Vegetation Category 1', d_Guidelin: 'v5b' },
   { Category: 0, Guideline: 3, d_Category: 'Vegetation Buffer', d_Guidelin: 'v5b' },
 ]
+
+/**
+ * The NSW 5 m elevation model's getSamples for Wollongong's council offices, the Crown St mall, the
+ * foot of Mount Keira, Mount Keira's lookout, and a point out at sea (left out: NoData).
+ */
+export const SAMPLES_REPLY = {
+  samples: [
+    { location: { x: 150.8936, y: -34.4259, spatialReference: { wkid: 4326, latestWkid: 4326 } }, locationId: 0, value: '13.050188065', rasterId: 340, resolution: 5 },
+    { location: { x: 150.8975, y: -34.4245, spatialReference: { wkid: 4326, latestWkid: 4326 } }, locationId: 1, value: '15.609874725', rasterId: 340, resolution: 5 },
+    { location: { x: 150.871, y: -34.41, spatialReference: { wkid: 4326, latestWkid: 4326 } }, locationId: 2, value: '52.115875244', rasterId: 340, resolution: 5 },
+    { location: { x: 150.847, y: -34.404, spatialReference: { wkid: 4326, latestWkid: 4326 } }, locationId: 3, value: '241.538192749', rasterId: 340, resolution: 5 },
+  ],
+}

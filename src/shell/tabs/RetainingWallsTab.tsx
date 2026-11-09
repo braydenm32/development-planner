@@ -5,6 +5,7 @@
  * and a button to draw one; while the tool is drawing, its options take the button's place.
  */
 
+import { DemFlag } from '../../map/DemNotes'
 import { RetainingTotals, RetainingToolOptions } from '../../components/PlanSections'
 import { retainedText, useRetainingWalls } from '../../components/planNumbers'
 import { RetainingWallPanel } from '../../components/RetainingWallPanel'
@@ -49,6 +50,7 @@ function Walls({ d }: { d: Loaded }) {
   return (
     <>
       <RetainingTotals walls={walls} />
+      <DemFlag what="these heights" />
       {tall > 0 && (
         <p className="notice small">
           {tall === 1 ? 'One wall holds' : `${tall} walls hold`} back more than {ENGINEER_HEIGHT.toFixed(1)} m: an engineer needs to design {tall === 1 ? 'it' : 'them'}.

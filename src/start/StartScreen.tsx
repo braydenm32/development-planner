@@ -1,6 +1,7 @@
 // The start screen: two equal ways in. Import the survey (DXF, LandXML or CSV), or sketch the block without
-// one and add the survey later. It shows alone until a site exists, real or sketched; a project
-// file or a saved plan opens here too. Esc and the back link leave whenever there's somewhere
+// one and add the survey later. A third, below them, starts from an address on the state's ground
+// levels. It shows alone until a site exists, real or sketched; a project file or a saved plan
+// opens here too. Esc and the back link leave whenever there's somewhere
 // to go back to, so nobody is ever stuck on it.
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -9,6 +10,7 @@ import { openExample } from '../example/open'
 import { openGuide } from '../guide/store'
 import { Icon, Logo } from '../nav/icons'
 import { LegalFooter } from '../legal/LegalFooter'
+import { AddressStart } from '../map/AddressStart'
 import '../legal/legal.css'
 import { askSurveyor } from '../safety/files'
 import { openFile, startSketch } from '../safety/flows'
@@ -291,6 +293,12 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                 Start sketching
               </button>
             </form>
+          </section>
+
+          <section className="st-card st-wide" aria-labelledby="st-address">
+            <h2 id="st-address">No survey yet? Start from the address</h2>
+            <p>Find the lot by its address, or its Lot and DP. The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
+            <AddressStart into={into} />
           </section>
         </div>
       </main>
