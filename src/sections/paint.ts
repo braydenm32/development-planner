@@ -146,46 +146,12 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
     [X(b.s1), Y(b.z1)],
     [X(b.s0), Y(b.z1)],
   ]
-  // At least a hairline wide, so thin posts still show at small scales.
-  const post = (b: Box): Pt[] => {
-    const c = (X(b.s0) + X(b.s1)) / 2
-    const w = Math.max(X(b.s1) - X(b.s0), u * 1.6) / 2
-    return [
-      [c - w, Y(b.z0)],
-      [c + w, Y(b.z0)],
-      [c + w, Y(b.z1)],
-      [c - w, Y(b.z1)],
-    ]
-  }
+  const post = postShape(p, X, Y)
 
-  // The ground: earth under the finished ground, and in a section the cut and fill between the two.
-  for (const run of d.finished) if (run.length > 1) p.shape([...run.map(P), [X(run[run.length - 1][0]), bottom], [X(run[0][0]), bottom]], 'earth')
-
-  if (d.kind === 'section') {
-    d.finished.forEach((fin, r) => {
-      const nat = d.natural[r]
-      if (!nat || nat.length !== fin.length) return
-      const band = (upper: (i: number) => number, lower: (i: number) => number): Pt[] => [
-        ...fin.map((q, i): Pt => [X(q[0]), Y(upper(i))]),
-        ...[...fin.keys()].reverse().map((i): Pt => [X(fin[i][0]), Y(lower(i))]),
-      ]
-      if (fin.some((q, i) => nat[i][1] - q[1] > 0.01)) p.shape(band(i => Math.max(nat[i][1], fin[i][1]), i => fin[i][1]), 'cut')
-      if (fin.some((q, i) => q[1] - nat[i][1] > 0.01)) p.shape(band(i => fin[i][1], i => Math.min(nat[i][1], fin[i][1])), 'fill')
-    })
-    for (const run of d.finished) p.line(run.map(P), 'finished')
-    for (const b of d.piers) p.shape(post(b), 'pier')
-    for (const b of d.framing) p.shape(rect(b), 'framing')
-    for (const b of d.slabs) p.shape(rect(b), 'slab')
-    for (const b of d.retaining) p.shape(rect(b), 'retaining')
-    // Stairs beyond the cut, faintly, then those it passes through.
-    for (const st of d.stairs) if (!st.cut) for (const o of st.outlines) p.line([...o, o[0]].map(P), 'stair-beyond')
-    for (const st of d.stairs) if (st.cut) for (const o of st.outlines) p.shape(o.map(P), 'stair-cut')
-    for (const f of d.floors) for (const [s0, s1] of f.spans) p.line([P([s0, f.ceiling]), P([s1, f.ceiling])], 'ceiling')
-    for (const b of d.walls) p.shape(rect(b), 'wall-cut')
-    for (const r of d.roofs) p.shape(r.map(P), 'roof-cut')
-    floorNotes(p, d, X, Y, k)
-    stairNotes(p, d, X, Y)
-  } else {
+  if (d.kind === 'section') paintSectionBody(p, d, X, Y, bottom, k)
+  else {
+    // The ground: earth under the finished ground.
+    for (const run of d.finished) if (run.length > 1) p.shape([...run.map(P), [X(run[run.length - 1][0]), bottom], [X(run[0][0]), bottom]], 'earth')
     for (const b of d.piers) p.shape(post(b), 'pier')
     for (const s of d.shapes) {
       if (s.kind === 'wall') {
@@ -199,8 +165,8 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
     // The ground in front hides the building below it.
     for (const run of d.finished) if (run.length > 1) p.shape([...run.map(P), [X(run[run.length - 1][0]), bottom], [X(run[0][0]), bottom]], 'earth')
     for (const run of d.finished) p.line(run.map(P), 'finished')
+    for (const run of d.natural) p.line(run.map(P), 'natural')
   }
-  for (const run of d.natural) p.line(run.map(P), 'natural')
 
   // Boundaries the section crosses, with the natural ground there.
   if (d.kind === 'section') {
@@ -259,6 +225,63 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
   p.text(bx, bt + bh + p.size.small * 1.15, '0', { size: p.size.small, anchor: 'middle', ink: 'muted' })
   p.text(bx + bw, bt + bh + p.size.small * 1.15, `${L} m`, { size: p.size.small, anchor: 'middle', ink: 'muted' })
   return size
+}
+
+/** A post or pier, at least a hairline wide so thin ones still show at small scales. */
+function postShape(p: Painter, X: (s: number) => number, Y: (z: number) => number) {
+  return (b: Box): Pt[] => {
+    const c = (X(b.s0) + X(b.s1)) / 2
+    const w = Math.max(X(b.s1) - X(b.s0), p.unit * 1.6) / 2
+    return [
+      [c - w, Y(b.z0)],
+      [c + w, Y(b.z0)],
+      [c + w, Y(b.z1)],
+      [c - w, Y(b.z1)],
+    ]
+  }
+}
+
+/**
+ * What a section cuts through, without its frame (title, RLs, boundaries, scale bar): the ground
+ * with its cut and fill, floors, piers, retaining walls, stairs, walls and roofs, and the notes on
+ * them. `X` and `Y` place a point (m across, RL) on the output; the earth fills down to `bottom`.
+ * The drawings here and the live section strip under the plan (src/sectionStrip) both draw with it.
+ */
+export function paintSectionBody(p: Painter, d: SectionDrawing, X: (s: number) => number, Y: (z: number) => number, bottom: number, k: number) {
+  const P = (pt: Pt): Pt => [X(pt[0]), Y(pt[1])]
+  const rect = (b: Box): Pt[] => [
+    [X(b.s0), Y(b.z0)],
+    [X(b.s1), Y(b.z0)],
+    [X(b.s1), Y(b.z1)],
+    [X(b.s0), Y(b.z1)],
+  ]
+  const post = postShape(p, X, Y)
+  // The ground: earth under the finished ground, and the cut and fill between it and the natural ground.
+  for (const run of d.finished) if (run.length > 1) p.shape([...run.map(P), [X(run[run.length - 1][0]), bottom], [X(run[0][0]), bottom]], 'earth')
+  d.finished.forEach((fin, r) => {
+    const nat = d.natural[r]
+    if (!nat || nat.length !== fin.length) return
+    const band = (upper: (i: number) => number, lower: (i: number) => number): Pt[] => [
+      ...fin.map((q, i): Pt => [X(q[0]), Y(upper(i))]),
+      ...[...fin.keys()].reverse().map((i): Pt => [X(fin[i][0]), Y(lower(i))]),
+    ]
+    if (fin.some((q, i) => nat[i][1] - q[1] > 0.01)) p.shape(band(i => Math.max(nat[i][1], fin[i][1]), i => fin[i][1]), 'cut')
+    if (fin.some((q, i) => q[1] - nat[i][1] > 0.01)) p.shape(band(i => fin[i][1], i => Math.min(nat[i][1], fin[i][1])), 'fill')
+  })
+  for (const run of d.finished) p.line(run.map(P), 'finished')
+  for (const b of d.piers) p.shape(post(b), 'pier')
+  for (const b of d.framing) p.shape(rect(b), 'framing')
+  for (const b of d.slabs) p.shape(rect(b), 'slab')
+  for (const b of d.retaining) p.shape(rect(b), 'retaining')
+  // Stairs beyond the cut, faintly, then those it passes through.
+  for (const st of d.stairs) if (!st.cut) for (const o of st.outlines) p.line([...o, o[0]].map(P), 'stair-beyond')
+  for (const st of d.stairs) if (st.cut) for (const o of st.outlines) p.shape(o.map(P), 'stair-cut')
+  for (const f of d.floors) for (const [s0, s1] of f.spans) p.line([P([s0, f.ceiling]), P([s1, f.ceiling])], 'ceiling')
+  for (const b of d.walls) p.shape(rect(b), 'wall-cut')
+  for (const r of d.roofs) p.shape(r.map(P), 'roof-cut')
+  floorNotes(p, d, X, Y, k)
+  stairNotes(p, d, X, Y)
+  for (const run of d.natural) p.line(run.map(P), 'natural')
 }
 
 /** A window, door or other opening on a wall's face. */
