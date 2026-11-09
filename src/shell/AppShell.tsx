@@ -12,7 +12,7 @@ import { useCloud } from '../cloud/state'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
 import { useFlow } from '../flow/store'
-import { COSTS_ASIDE_W, COSTS_W, INSPECTOR_W, PANEL_W, WIDE_TABS, WIDE_W } from './panelWidth'
+import { COSTS_ASIDE_W, COSTS_W, INSPECTOR_W, PANEL_W, STEPS_W, WIDE_TABS, WIDE_W } from './panelWidth'
 import { CostsStrip } from '../costs/CostsTabs'
 import { useCosts } from '../costs/store'
 import { useEstimate, useWideForAside } from '../costs/useEstimate'
@@ -62,9 +62,14 @@ import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
 import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
+import { StepsPanel } from '../steps/StepsPanel'
+import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
+
+/** The plan's tool rail and a little room beside it, from the canvas's left edge (px): shell.css's rail at its --gap. */
+const RAIL_CLEAR = { desk: 80, phone: 72 }
 
 const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 
@@ -72,7 +77,7 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
   a.startsWith('term:') ||
-  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help'].includes(a)
+  ['guide', 'glossary', 'plan-tips', 'check-everything', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -291,6 +296,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         </div>
       )}
       <UndoRedo />
+      {route.kind === 'app' && !phone && <StepsButton />}
       <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
         <Icon name="search" size={16} />
         <span className="desk-only">Search</span>
@@ -350,6 +356,17 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   )
 }
 
+/** Check everything (src/steps): the six steps beside the plan. A phone has it in the project menu and the Overview. */
+function StepsButton() {
+  const open = useStepsPanel(s => s.open)
+  return (
+    <button className={`steps-button${open ? ' on' : ''}`} onClick={toggleSteps} aria-pressed={open}>
+      <Icon name="steps" size={16} />
+      <span>Check everything</span>
+    </button>
+  )
+}
+
 function UndoRedo() {
   // Read so the buttons draw again when any history or the open tab changes; undoTarget picks among them.
   useSiteStore(s => s.focus)
@@ -406,6 +423,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const tool = usePlan(s => s.tool)
   // On a phone in View, the plan has no tools.
   const rail = area.rail && canvasKind === 'plan' && !!loaded && editing
+  // Check everything (src/steps): down the right of the canvas on a computer, a sheet on a phone.
+  const steps = useStepsPanel(s => s.open) && !!loaded && !presenting
   const Body = route.tab === MORE ? MorePanel : TAB_PANELS[tabKey]
   // Where the app has no cloud, a tab's line doesn't promise what only the cloud gives (Send's links).
   const noCloud = useCloud(s => s.phase === 'unavailable')
@@ -436,12 +455,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   // What floats on the right of the plan for this tab (Costs › Estimate's materials), on a window wide enough.
   const Aside = TAB_ASIDES[tabKey]
   const wideWindow = useWideForAside()
-  const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print'
+  const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print' && !steps
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? 68 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
+    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
-    return { l: (rail ? 80 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: Math.max(56, sunClear) }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear])
+    const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
+    return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
@@ -558,11 +578,11 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         !phone && <SummaryStrip route={route} numbers={null} shown={{}} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={false} />
       )}
       <main
-        className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px` }}
+        className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
+        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0 }}>
             <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
           </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
@@ -619,11 +639,22 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
               <Inspector d={loaded} readOnly={phone && !editing} wide={wideInspector} />
             </ErrorBoundary>
           )}
+          {steps && loaded && (
+            <ErrorBoundary variant="float">
+              <StepsPanel d={loaded} phone={phone} />
+            </ErrorBoundary>
+          )}
           {view && !presenting && !(phone && report) && <CanvasControls canvas={canvasKind} up={view.up} run={run} />}
         </TouchCanvas.Provider>
       </main>
     </>
   )
+}
+
+/** The Overview's way to Check everything: one sheet at a time. */
+function stepsFromOverview(setOverview: (open: boolean) => void) {
+  setOverview(false)
+  openSteps()
 }
 
 /** The strip and the Overview, which share the key numbers. */
@@ -678,7 +709,7 @@ function NumbersHost({
     return (
       <>
         <CostsStrip d={d} route={route} shown={shown} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
-        {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} verdict={drawn ? verdict : undefined} cost={cost} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
+        {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} verdict={drawn ? verdict : undefined} cost={cost} onBalance={() => run('balance')} onClose={() => setOverview(false)} onSteps={() => stepsFromOverview(setOverview)} />}
       </>
     )
   return (
@@ -714,7 +745,17 @@ function NumbersHost({
           overviewOpen={overview}
         />
       )}
-      {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} verdict={drawn ? verdict : undefined} cost={drawn ? cost : undefined} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
+      {overview && (
+        <OverviewSheet
+          numbers={numbers}
+          stats={d.terrain.stats}
+          verdict={drawn ? verdict : undefined}
+          cost={drawn ? cost : undefined}
+          onBalance={() => run('balance')}
+          onClose={() => setOverview(false)}
+          onSteps={() => stepsFromOverview(setOverview)}
+        />
+      )}
     </>
   )
 }

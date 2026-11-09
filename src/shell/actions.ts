@@ -22,6 +22,7 @@ import { toggleStrip } from '../sectionStrip/store'
 import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
+import { openSteps } from '../steps/store'
 import { undoTarget } from './undoTarget'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
@@ -66,6 +67,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'keyboard-help':
       openKeyboardHelp()
+      return true
+    // Check everything: the six steps, beside the plan (src/steps).
+    case 'check-everything':
+      openSteps()
       return true
     // Balance shows what it would move first (Earthworks › Cut & fill); its own button moves the floor.
     case 'balance': {

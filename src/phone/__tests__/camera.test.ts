@@ -21,8 +21,13 @@ import {
   streetBearing,
   toSpherical,
   EYE_HEIGHT,
+  STREET_INSET,
+  STREET_ROOM,
   HOUSE_ELEVATION,
   HOUSE_TURN,
+  LEVEL_FOV,
+  levelLens,
+  RISE_SHARE,
   type Frame,
   type Pose,
   type Vec3,
@@ -79,18 +84,28 @@ describe('the presets', () => {
     expect(off.position[1]).toBeCloseTo(frame.target[1] - 1.5 + EYE_HEIGHT, 6)
   })
 
-  it('stand back far enough for the whole house, at the street’s level past the block’s edge', () => {
+  it('stand on the street side just inside the block’s edge, on the ground there, like someone on the footpath', () => {
     // The ground falls 1 m in every metre towards the street (north, -z): read where it's asked.
     const asked: number[] = []
     const ground = (_x: number, z: number) => (asked.push(z), z - frame.target[2])
-    const p = presetPose('street', { ...frame, ground, streetEdge: 9 }, FOV, 0.56)
-    expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(fitDistance(frame.radius * 1.2, FOV, 0.56), 6)
-    // Out past the edge, 9 m from the target, the eyes are 1.6 m over the ground at the edge.
-    expect(asked).toEqual([frame.target[2] - 9])
-    expect(p.position[1]).toBeCloseTo(-9 + EYE_HEIGHT, 6)
-    // A street edge further than the camera reads the ground under it.
-    const q = presetPose('street', { ...frame, ground, streetEdge: 500 }, FOV, 0.56)
-    expect(q.position[1]).toBeCloseTo(q.position[2] - frame.target[2] + EYE_HEIGHT, 6)
+    for (const edge of [9, 30]) {
+      asked.length = 0
+      const p = presetPose('street', { ...frame, ground, streetEdge: edge }, FOV, 0.56)
+      // Inside the boundary, never out past it where the survey's ground stops (its cut side showed).
+      const d = edge - STREET_INSET
+      expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(d, 6)
+      expect(bearingOf(p)).toBeCloseTo(0, 6)
+      // The eyes are 1.6 m over the ground where it stands.
+      expect(asked).toEqual([frame.target[2] - d])
+      expect(p.position[1]).toBeCloseTo(-d + EYE_HEIGHT, 6)
+      // Looking at the house, level or a touch down.
+      expect(elevationOf(p)).toBeGreaterThanOrEqual(0)
+    }
+    // A house right up at the boundary, or built out past it: it stands far enough in front of the house to see it.
+    for (const houseEdge of [4.5, 6]) {
+      const near = presetPose('street', { ...frame, ground, streetEdge: 5, houseEdge }, FOV, 0.56)
+      expect(Math.hypot(offset(near)[0], offset(near)[2])).toBeCloseTo(houseEdge + STREET_ROOM, 6)
+    }
   })
 
   it('open framed on the house, not the block, from a little above and off square', () => {
@@ -125,6 +140,26 @@ describe('the presets', () => {
     expect(fitDistance(10, FOV, 0.5)).toBeGreaterThan(fitDistance(10, FOV, 2))
     const v = (FOV / 2) * DEG
     expect(fitDistance(10, FOV, 2)).toBeCloseTo(10 / Math.sin(v), 9)
+  })
+
+  it('widen the lens and lower the eye line only when looking level, and smoothly', () => {
+    // From above, from the rear and the opening view: the view's own lens, nothing moved.
+    for (const below of [90, 34, 28, 15]) expect(levelLens((90 - below) * DEG, FOV, 800)).toEqual({ fov: FOV, rise: 0 })
+    // Level (Street view): wider, with the picture moved down so the house above the eye line shows.
+    const level = levelLens(90 * DEG, FOV, 800)
+    expect(level.fov).toBeCloseTo(LEVEL_FOV, 9)
+    expect(level.rise).toBeCloseTo(800 * RISE_SHARE, 9)
+    // In between it grows a little each degree, so orbiting never jumps.
+    let last = levelLens(75 * DEG, FOV, 800)
+    for (let phi = 75.5; phi <= 90; phi += 0.5) {
+      const l = levelLens(phi * DEG, FOV, 800)
+      expect(l.rise).toBeGreaterThanOrEqual(last.rise)
+      expect(l.rise - last.rise).toBeLessThan(800 * RISE_SHARE * 0.08)
+      expect(l.fov).toBeGreaterThanOrEqual(last.fov)
+      last = l
+    }
+    // A lens already wider than that isn't narrowed.
+    expect(levelLens(90 * DEG, 75, 800).fov).toBe(75)
   })
 })
 
@@ -239,6 +274,11 @@ describe('the street side', () => {
     expect(siteFrame(withStreetSide(plan, survey.boundary, 'E'), survey, terrain, 0, 1).street).toBeCloseTo(90, 6)
     // Before there is a house it frames the block.
     expect(siteFrame(null, survey, terrain, 0, 1).radius).toBeCloseTo(25, 6)
+    // Street view stands just inside the north boundary: how far it and the house's front are from the house's middle.
+    expect(f.streetEdge).toBeCloseTo(21, 6)
+    expect(f.houseEdge).toBeCloseTo(4, 6)
+    const p = presetPose('street', f, FOV, 1.5)
+    expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(21 - STREET_INSET, 6)
   })
 })
 

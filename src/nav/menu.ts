@@ -54,6 +54,7 @@ export type ActionId =
   | 'section-strip'
   | 'grade-brush'
   | 'keyboard-help'
+  | 'check-everything'
   | 'open-example'
   | 'guide'
   | 'glossary'
@@ -1036,6 +1037,15 @@ export const HOMES: Home[] = [
       { id: 'view-3d', label: 'Show in 3D', icon: 'cube', keywords: ['3D site', 'model', 'canvas'], features: ['mode-3d-site'], action: 'view-3d', run: 'now' },
       { id: 'undo', label: 'Undo', icon: 'undo', keywords: ['back', 'revert', 'history'], features: ['undo-button', 'undo-after-reload', 'cost-undo'], action: 'undo', run: 'now', shortcut: 'mod+Z' },
       { id: 'redo', label: 'Redo', icon: 'redo', keywords: ['again'], features: ['redo-button'], action: 'redo', run: 'now', shortcut: 'mod+shift+Z' },
+      {
+        id: 'check-everything',
+        label: 'Check everything',
+        icon: 'steps',
+        keywords: ['to do', 'todo', 'steps', 'step by step', 'what’s left', 'whats left', 'checklist', 'progress', 'next step', 'finished', 'done', 'missing'],
+        features: ['check-everything'],
+        action: 'check-everything',
+        run: 'now',
+      },
       { id: 'search', label: 'Search', icon: 'search', keywords: ['find', 'command'], features: ['command-search'], shortcut: 'mod+K', hint: 'Search is open now. ⌘K or Ctrl+K opens it from anywhere.' },
       {
         id: 'sync-chip',

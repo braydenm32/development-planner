@@ -33,6 +33,8 @@ interface Props {
   verdict?: ChecksHeadline
   /** The estimate's total; left out where there's no estimate. */
   cost?: CostHeadline
+  /** Open Check everything (src/steps) in its place; left out in a shared view. */
+  onSteps?: () => void
 }
 
 function Group({ icon, title, to, action, children }: { icon: IconName; title: string; to?: AppRoute; action?: ReactNode; children: ReactNode }) {
@@ -53,7 +55,7 @@ function Group({ icon, title, to, action, children }: { icon: IconName; title: s
   )
 }
 
-export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false, verdict, cost }: Props) {
+export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false, verdict, cost, onSteps }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
   // Focus the sheet so Escape and Tab work in it, and give focus back when it closes.
   useEffect(() => {
@@ -83,6 +85,11 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
         <header>
           <h2>Overview</h2>
           <span className="muted">Every key number in one place</span>
+          {onSteps && !readOnly && (
+            <button className="secondary ov-steps" onClick={onSteps}>
+              <Icon name="steps" size={15} /> Check everything
+            </button>
+          )}
           <button className="icon-button" onClick={onClose} aria-label="Close the overview">
             <Icon name="x" size={18} />
           </button>

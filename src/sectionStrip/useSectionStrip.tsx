@@ -27,6 +27,8 @@ export interface SectionStripArgs {
   width: number
   left: number
   right: number
+  /** Where the strip starts, right of the plan's tool rail (px). */
+  from?: number
   /** The project, whose cut is remembered. */
   projectKey: string | null
   /** Levels, eaves and the cut can be dragged; a phone, or a plan for looking at, only views. */
@@ -122,6 +124,7 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
       width={a.width}
       left={a.left}
       right={a.right}
+      from={a.from}
       cut={cut}
       alongHouse={!stored}
       onReset={() => setCut(key, null)}

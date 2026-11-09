@@ -211,7 +211,7 @@ describe('what the strip remembers', () => {
 })
 
 describe('the strip', () => {
-  const render = (editable: boolean, phone = false) => {
+  const render = (editable: boolean, phone = false, from?: number) => {
     const plan = house()
     usePlan.getState().load(plan)
     usePlan.getState().setActiveLevel('entry')
@@ -220,7 +220,7 @@ describe('the strip', () => {
     Object.assign(useStrip.getInitialState(), { open: true, height: 300 })
     const cut = defaultCut(plan, boundaryOf(plan))
     return renderToStaticMarkup(
-      <SectionStrip plan={plan} survey={survey} terrain={terrain} S={screen(30)} k={30} width={1200} left={80} right={20} cut={cut} alongHouse onReset={() => {}} onLineUp={() => {}} editable={editable} phone={phone} />,
+      <SectionStrip plan={plan} survey={survey} terrain={terrain} S={screen(30)} k={30} width={1200} left={80} right={20} cut={cut} alongHouse onReset={() => {}} onLineUp={() => {}} editable={editable} phone={phone} from={from} />,
     )
   }
 
@@ -244,6 +244,21 @@ describe('the strip', () => {
     expect(html).toContain('sec-slab')
     expect(html.match(/class="sstrip-eaves"/g)?.length).toBe(3)
     expect(html).toContain('drag an eave to snap')
+  })
+
+  it('starts right of the plan’s tool rail, its drawing still lined up under the plan', () => {
+    const under = render(true)
+    const beside = render(true, false, 80)
+    expect(under).toMatch(/<section[^>]*style="height:300px;left:0"/)
+    expect(beside).toMatch(/<section[^>]*style="height:300px;left:80px"/)
+    // The drawing is 80 px narrower and moved 80 px left in the strip's own box, so it lands where it did on the screen.
+    expect(beside).toContain('width="1120"')
+    const xs = (html: string) => [...html.matchAll(/class="sstrip-on" x="([-\d.]+)"/g)].map(m => Number(m[1]))
+    expect(xs(beside).length).toBeGreaterThan(0)
+    expect(xs(beside)).toEqual(xs(under).map(x => x - 80))
+    // The level bands keep clear of the panel at the same place on the screen.
+    expect(under).toContain('left:88px')
+    expect(beside).toContain('left:8px')
   })
 
   it('is a viewer on a phone: nothing to drag or resize', () => {

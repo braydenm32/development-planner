@@ -16,7 +16,7 @@ import { usePlan } from '../plan/store'
 import { StreetAsk } from '../start/StreetAsk'
 import { answerStreet, useStreetPending } from '../start/streetQuestion'
 import { FloorTypeCard, OfferCard } from './FlowCards'
-import { questionsFor, useQuestionContext, waiting, type Question } from './questions'
+import { questionOpened, questionsFor, useQuestionContext, waiting, type Question } from './questions'
 import { useFlow } from './store'
 import { usePhoneMode } from '../phone/device'
 
@@ -51,6 +51,19 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     answerStreet(streetOpen)
     return () => answerStreet(false)
   }, [streetOpen])
+  // Check everything (src/steps) asked for a question: open the list at it, to answer there.
+  const asked = useQuestionContext(s => s.asked)
+  useEffect(() => {
+    if (!asked) return
+    const q = qs.find(x => x.id === asked.id)
+    questionOpened()
+    if (!q) return
+    if (viewOnly) usePhoneMode.getState().setMode('edit')
+    setOpen(true)
+    setAnswering(q.kind === 'street' || q.kind === 'floor-type' || q.kind === 'retain-offer' ? q.id : null)
+    // Only a new ask opens it; the list changing under it doesn't.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked])
 
   if (!qs.length) return null
   const n = waiting(qs)
