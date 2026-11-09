@@ -3,6 +3,7 @@ import { normalizePlan, type Plan } from '../plan/model'
 import { normalizeProjectSite, type ProjectSite } from '../site/store'
 import { normalizeCosts, type CostsData } from '../costs/model'
 import { normalizeOptions, optionsForFile, type OptionsRecord } from '../options/model'
+import { normalizeMapPlace, type MapPlace } from '../map/model'
 
 /** Everything needed to open the same project somewhere else: the survey file, the plan, the site features and the costs. */
 export interface ProjectFile {
@@ -19,6 +20,8 @@ export interface ProjectFile {
   costs?: CostsData
   /** The project's other options (named versions of the design); `plan` is the one open. Older files have none: one option. */
   options?: OptionsRecord
+  /** The lot the survey sits on and where, only when the owner chose to include it (Site › Map). */
+  map?: MapPlace
 }
 
 /** The project's name, for file names and title blocks. */
@@ -26,10 +29,10 @@ export function projectTitle(plan: Plan): string {
   return plan.name?.trim() || 'House plan'
 }
 
-export function projectFileText(survey: SavedProject, plan: Plan, site?: ProjectSite, costs?: CostsData, options?: unknown): string {
+export function projectFileText(survey: SavedProject, plan: Plan, site?: ProjectSite, costs?: CostsData, options?: unknown, map?: MapPlace): string {
   const opts = optionsForFile(options)
   const name = plan.name?.trim()
-  const file: ProjectFile = { app: 'block-and-house-planner', version: 1, ...(name ? { name } : {}), savedAt: new Date().toISOString(), survey, plan, ...(site ? { site } : {}), ...(costs ? { costs } : {}), ...(opts ? { options: opts } : {}) }
+  const file: ProjectFile = { app: 'block-and-house-planner', version: 1, ...(name ? { name } : {}), savedAt: new Date().toISOString(), survey, plan, ...(site ? { site } : {}), ...(costs ? { costs } : {}), ...(opts ? { options: opts } : {}), ...(map ? { map } : {}) }
   return JSON.stringify(file)
 }
 
@@ -41,7 +44,7 @@ export function isProjectFile(text: string): boolean {
   }
 }
 
-export function parseProjectFile(text: string): { survey: SavedProject; plan: Plan; site: ProjectSite | null; costs: CostsData | null; options: OptionsRecord | null } {
+export function parseProjectFile(text: string): { survey: SavedProject; plan: Plan; site: ProjectSite | null; costs: CostsData | null; options: OptionsRecord | null; map: MapPlace | null } {
   let f: Partial<ProjectFile>
   try {
     f = JSON.parse(text) as Partial<ProjectFile>
@@ -58,5 +61,6 @@ export function parseProjectFile(text: string): { survey: SavedProject; plan: Pl
     site: normalizeProjectSite(f.site),
     costs: f.costs && typeof f.costs === 'object' ? normalizeCosts(f.costs) : null,
     options: normalizeOptions(f.options),
+    map: normalizeMapPlace(f.map),
   }
 }

@@ -19,6 +19,7 @@ import { usePlan } from './plan/store'
 import { migrateStoredStreetSide } from './plan/streetSide'
 import { startToolDefaults } from './plan/toolDefaults'
 import { startCostRecords } from './costs/persist'
+import { startMapRecords } from './map/store'
 import { useEarthworks } from './plan/useEarthworks'
 import type { PrintInput } from './print/build'
 import { loadPrintPrefs, savePrintPrefs, type PrintPrefs } from './print/prefs'
@@ -52,6 +53,7 @@ export default function App() {
   useEffect(() => startToolDefaults(), [])
   // Costs (choices, rates and quotes), kept with each project.
   useEffect(() => startCostRecords(), [])
+  useEffect(() => startMapRecords(), [])
   // Where you are lives in the address (src/nav): the area, tab, view, level and selection.
   const route = useRouter(s => s.route)
   useEffect(() => {

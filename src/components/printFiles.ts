@@ -15,6 +15,7 @@ import { planSetPdf, type Paper } from '../share/plans'
 import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
+import { mapForProject } from '../map/store'
 import { localFeatures, siteForProject } from '../site/store'
 import { siteWarningsNow } from '../site/sync'
 import { keptShadowDiagram, winterDay } from '../sun/facts'
@@ -98,5 +99,5 @@ export async function saveProjectFile(project: SavedProject, plan: Plan) {
 
 /** The project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */
 export async function projectFile(project: SavedProject, plan: Plan): Promise<OutFile> {
-  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject(), useOptions.getState().rec), type: 'application/json' }
+  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject(), useOptions.getState().rec, mapForProject()), type: 'application/json' }
 }

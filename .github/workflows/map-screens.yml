@@ -1,0 +1,33 @@
+name: Map screenshots (temporary)
+
+on:
+  push:
+    branches: [claude/project-thread-gavzco]
+    paths: [scripts/map-screens.mjs, .github/workflows/map-screens.yml, 'src/map/**']
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm i --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
+      - run: |
+          npx vite --port 5401 --strictPort --host 127.0.0.1 &
+          sleep 5
+          OUT=shots PLAYWRIGHT=$PWD/node_modules/playwright/index.mjs node scripts/map-screens.mjs http://127.0.0.1:5401/
+      - run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git checkout --orphan map-shots-tmp
+          git rm -rfq --cached .
+          git add -f shots
+          git commit -qm "Map screenshots"
+          git push -f origin HEAD:refs/heads/claude/map-screens-out

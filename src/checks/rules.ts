@@ -945,7 +945,11 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
  * whether the land can use one at all. The section 10.7 planning certificate says (docs/research).
  */
 export const CDC_LAND =
-  'Not checked: whether this land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions). The council’s section 10.7 planning certificate says.'
+  'Not checked: whether this land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions). Place the block under Site › Map to read them from the NSW planning maps. The council’s section 10.7 planning certificate says for sure.'
+
+/** The same note once the planning maps have been read for the placed lot. */
+export const CDC_LAND_MAPPED =
+  'Zone, heritage, bushfire, flood and landslide are read from the NSW planning maps for your lot (below). Other exclusions aren’t checked: the council’s section 10.7 planning certificate says for sure.'
 
 /** What the Housing Code checks don't cover yet: shown under the list so a clean run isn't read as approval. */
 export const NOT_CHECKED: { cdc: string[] } = {

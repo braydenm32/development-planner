@@ -16,11 +16,13 @@ import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
 import { SiteSunTab } from '../sun/SunTab'
+import { MapTab } from '../map/MapTab'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
   'site/block': SiteBlockTab,
   'site/features': SiteFeaturesTab,
+  'site/map': MapTab,
   'site/3d': Site3dTab,
   'site/sun': SiteSunTab,
   'design/floors': FloorsTab,

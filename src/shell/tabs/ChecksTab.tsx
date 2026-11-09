@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
-import { CDC_LAND, controlCount, notChecked } from '../../checks/rules'
+import { CDC_LAND, CDC_LAND_MAPPED, controlCount, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
@@ -66,7 +66,7 @@ function Checks({ d }: { d: Loaded }) {
       <p className="muted small">{pathwayLong(c.pathway, c.council)}</p>
       {c.pathway === 'cdc' && (
         <p className="checks-land" role="note">
-          {CDC_LAND}
+          {c.planning ? CDC_LAND_MAPPED : CDC_LAND}
         </p>
       )}
       <CouncilSwitches council={c.council} />
