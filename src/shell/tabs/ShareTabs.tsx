@@ -1,5 +1,7 @@
-// Share › Plans (PDF), Send and 3D print, from Share's sections (src/components/ShareSections.tsx).
+// Share › Plans (PDF), Send and 3D print, from Share's sections (src/components/ShareSections.tsx),
+// with the DA pack under the plan set (src/da).
 
+import { DaPackSection } from '../../da/DaPackSection'
 import { Download3mfButton, PdfDownload, PdfFurnitureToggle, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
 import { usePhone } from '../../phone/device'
 import { ShareFirst } from '../../phone/ShareFirst'
@@ -13,26 +15,21 @@ export function PlansTab() {
   const phone = usePhone()
   if (!d) return <Waiting />
   const { printPrefs, changePrintPrefs } = d
+  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture }
   // On a phone the plans and the project file go first, to the share sheet, then the 3D print.
   if (phone)
     return (
       <>
         <ShareFirst d={d} />
         <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
+        <DaPackSection {...pdf} />
       </>
     )
   return (
     <>
       <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
-      <PdfDownload
-        plan={d.plan}
-        survey={d.survey}
-        terrain={d.terrain}
-        earth={d.earth}
-        up={d.view.up}
-        paper={printPrefs.paper}
-        pdfFurniture={printPrefs.pdfFurniture}
-      />
+      <PdfDownload {...pdf} />
+      <DaPackSection {...pdf} />
     </>
   )
 }
