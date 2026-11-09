@@ -1,0 +1,11 @@
+/* The column step for spot-level files; it borrows the review sheet's frame (.sf-*). */
+.fm-columns .fm-lead { margin: 0 0 10px; }
+.fm-table-wrap { overflow-x: auto; border: 1px solid var(--sf-line); border-radius: var(--sf-r); }
+.fm-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.fm-table th, .fm-table td { padding: 5px 8px; border-bottom: 1px solid var(--sf-line-soft); text-align: left; white-space: nowrap; }
+.fm-table th { background: var(--sf-paper); }
+.fm-table select { font: inherit; max-width: 100%; min-height: 32px; }
+.fm-table .fm-head-row td { color: var(--sf-muted); font-style: italic; }
+.fm-check { display: flex; gap: 6px; align-items: center; margin: 10px 0; }
+.fm-missing { margin: 6px 0 0; color: #b3261e; }
+.sf-btn[disabled] { opacity: 0.5; cursor: not-allowed; }

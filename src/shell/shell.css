@@ -8,7 +8,7 @@ body:has(.app-shell) {
   --muted: #6b7077;
   --line: #e1e4e7;
   --line-soft: #eef0f2;
-  --field-line: #cfd3d8;
+  --field-line: #8e959d;
   --accent: #2346d0;
   --accent-soft: #eef1fc;
   --primary: #16181b;
@@ -96,7 +96,7 @@ body:has(.app-shell) {
 }
 
 .area-link span {
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
 }
 
@@ -236,15 +236,20 @@ body:has(.app-shell) {
   background: var(--line-soft);
 }
 
+/* Disabled: the ink at half strength (3.4:1), so the button reads as present but off. */
 .undo-redo button:disabled {
-  color: var(--muted);
-  opacity: 0.45;
+  color: var(--text);
+  opacity: 0.5;
   cursor: default;
 }
 
-/* The shortcut, shown as a tip on hover or focus. */
-.undo-redo button[data-tip]:hover::after,
-.undo-redo button[data-tip]:focus-visible::after {
+/* A button's name and shortcut, shown as a tip on hover or focus (Undo, Redo, the tool rail). */
+.app-shell button[data-tip] {
+  position: relative;
+}
+
+.app-shell button[data-tip]:hover::after,
+.app-shell button[data-tip]:focus-visible::after {
   content: attr(data-tip);
   position: absolute;
   top: calc(100% + 6px);
@@ -259,6 +264,19 @@ body:has(.app-shell) {
   font-weight: 500;
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* The tool rail is on the left, so its tips sit beside the button. */
+.tool-rail button[data-tip]:hover::after,
+.tool-rail button[data-tip]:focus-visible::after {
+  top: 50%;
+  left: calc(100% + 11px);
+  transform: translateY(-50%);
+}
+
+/* No hover on a phone: a tap would leave the tip hanging. */
+.app-shell.phone button[data-tip]::after {
+  display: none;
 }
 
 .search-button {
@@ -490,20 +508,14 @@ button.chip:hover .chip-label {
   font-size: 12px;
 }
 
+/* A number already in view: a plain chip that says where it is ("Floor → panel"), not a dimmed one. */
 .chip.ghost {
-  margin: 0 6px;
-  border: 1px dashed var(--line);
-  border-radius: var(--r);
-  color: var(--muted);
-}
-
-.chips > .chip.ghost + * {
-  border-left-color: transparent;
+  color: var(--text);
 }
 
 .chip.ghost em {
   font-style: normal;
-  opacity: 0.85;
+  color: var(--muted);
 }
 
 .chip.warn {
@@ -622,6 +634,15 @@ button.chip:hover .chip-label {
   border-radius: var(--r-lg);
 }
 
+/* The plan's foot, left to right: the Key pill, the hint (two lines at most, with the ground readout
+   on a line of its own while pointing), then clear of the view bar (zoom, Fit block, Fit house, North
+   up), which is about 390 px wide. */
+.app-shell .canvas-plan .readout {
+  left: calc(var(--free-left, 16px) + 94px);
+  flex-wrap: wrap;
+  max-width: calc(100% - var(--free-left, 16px) - 94px - 430px);
+}
+
 .app-shell .readout > span {
   min-width: 0;
   overflow: hidden;
@@ -629,15 +650,30 @@ button.chip:hover .chip-label {
   white-space: nowrap;
 }
 
+.app-shell .canvas-plan .readout > .muted,
+.app-shell .canvas-plan .readout > .notice,
+.app-shell .canvas-plan .readout > .ground-readout {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+}
+
+/* While the pointer reads the ground, that line has the box to itself; the tool's hint comes back after. */
+.app-shell .canvas-plan .readout:has(.ground-readout) > .muted {
+  display: none;
+}
+
 .app-shell .readout > span:has(b) {
   flex: none;
 }
 
+/* The Key pill, at the foot beside the hint; its key opens upwards. */
 .app-shell .plan-actions {
   top: auto;
   right: auto;
   left: var(--free-left, 16px);
-  bottom: 54px;
+  bottom: var(--gap);
   align-items: flex-start;
 }
 
@@ -1071,6 +1107,19 @@ button.chip:hover .chip-label {
   accent-color: var(--accent);
 }
 
+/* Checkboxes big enough to see and hit: 18 px, 22 px on a phone. */
+.app-shell input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: none;
+}
+
+.app-shell.phone input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+}
+
 .app-shell .warnings p {
   border-radius: var(--r);
 }
@@ -1431,10 +1480,11 @@ button.chip:hover .chip-label {
 
 /* ---- Toast ---- */
 
+/* Above the canvas's hint bar, which sits along the bottom. */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: 64px;
   z-index: 60;
   display: flex;
   align-items: center;
@@ -1501,6 +1551,20 @@ button.chip:hover .chip-label {
   min-width: 44px;
   padding: 0 11px;
   font-size: 15px;
+}
+
+/* The tabs scroll: the edges fade so a cut-off name reads as "more this way", with room after
+   the last tab so it can scroll clear of the fade. The open tab is scrolled into view (Nav.tsx). */
+.app-shell.phone .tab-bar {
+  mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 26px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 26px), transparent);
+  scroll-padding: 0 26px 0 10px;
+}
+
+.app-shell.phone .tab-bar::after {
+  content: '';
+  flex: none;
+  width: 26px;
 }
 
 .app-shell.phone .top-actions {
@@ -1780,6 +1844,9 @@ button.chip:hover .chip-label {
   top: auto;
   bottom: 70px;
   right: 16px;
+}
+
+.app-shell.phone .canvas-3d .legend-ramp {
   height: 110px;
 }
 
@@ -1868,8 +1935,15 @@ button.chip:hover .chip-label {
   display: none;
 }
 
+/* Above the bottom bar and the peek sheet (its height is --peek-size); with a panel or the inspector
+   open as a sheet, under the top bar instead, so the sheet's handle and header stay clear. */
 .app-shell.phone .toast {
-  bottom: calc(80px + env(safe-area-inset-bottom));
+  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom));
+}
+
+.app-shell.phone:has(.float-col .float-card, .inspector) .toast {
+  top: calc(var(--top-h) + env(safe-area-inset-top) + 66px);
+  bottom: auto;
 }
 
 /* A room's area leads its inspector, as in the mockup. */

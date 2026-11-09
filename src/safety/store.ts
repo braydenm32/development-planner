@@ -23,7 +23,7 @@ export interface ReviewChoice {
 
 export interface Review {
   /** What kind of change, for tests and styling. */
-  kind: 'replace-survey' | 'import-plan' | 'open-project' | 'new-plan'
+  kind: 'replace-survey' | 'import-plan' | 'open-project' | 'new-plan' | 'delete-option' | 'delete-level'
   /** One question: "Replace your plan with house-plan.json?" */
   title: string
   /** The file it comes from. */
@@ -163,8 +163,8 @@ let picker: HTMLInputElement | null = null
 let pickMode: PickMode = 'any'
 
 export const ACCEPT: Record<PickMode, string> = {
-  any: '.dxf,.json,application/json',
-  survey: '.dxf',
+  any: '.dxf,.xml,.csv,.txt,.json,application/json',
+  survey: '.dxf,.xml,.csv,.txt',
   plan: '.json,application/json',
 }
 

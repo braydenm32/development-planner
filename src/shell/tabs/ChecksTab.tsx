@@ -5,18 +5,19 @@
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
-import { CDC_LAND, NOT_CHECKED } from '../../checks/rules'
+import { CDC_LAND, controlCount, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
-import { COUNCILS, type Council } from '../../checks/councils'
+import { activeCouncil, COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
 import type { CheckResult, CheckSettings, CheckStatus } from '../../checks/types'
 import { useChecks } from '../../checks/useChecks'
+import { Caveat } from '../../legal/Caveat'
 import { useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 import '../../checks/checks.css'
 
-const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass']
-const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes' }
+const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass', 'info']
+const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes', info: 'For info' }
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
 const CONFIDENCE_TIP = {
   read: 'Read from the official text',
@@ -40,6 +41,7 @@ function Checks({ d }: { d: Loaded }) {
     c.counts.unknown && `${c.counts.unknown} need${c.counts.unknown > 1 ? '' : 's'} a fact`,
     c.counts.incomplete && `${c.counts.incomplete} not drawn yet`,
     `${c.counts.pass} pass`,
+    c.counts.info && `${c.counts.info} for info`,
   ].filter(Boolean)
   return (
     <div className="checks">
@@ -81,7 +83,7 @@ function Checks({ d }: { d: Loaded }) {
       <details className="checks-more">
         <summary>Not checked yet</summary>
         <ul>
-          {(c.pathway === 'da' || c.council ? NOT_CHECKED[c.pathway] : NOT_CHECKED.cdc).map(t => (
+          {notChecked(c.pathway, c.council).map(t => (
             <li key={t}>{t}</li>
           ))}
         </ul>
@@ -92,7 +94,8 @@ function Checks({ d }: { d: Loaded }) {
           </p>
         )}
       </details>
-      <p className="muted small">A guide from the research notes, not legal advice. Confirm with council or a certifier before relying on it.</p>
+      <p className="muted small">A guide to the rules as we read them, not legal advice. A pass is not an approval.</p>
+      <Caveat />
     </div>
   )
 }
@@ -137,25 +140,38 @@ function CheckRow({ r }: { r: CheckResult }) {
   )
 }
 
+/** How many of its controls the app checks for a council, when it doesn't have them all: "; 9 of 11 controls". */
+function coverage(k: Council): string {
+  const { have, of } = controlCount(k)
+  return have < of ? `; ${have} of ${of} controls` : ''
+}
+
 /** Each council's own rules, switched on or off for this project. A block is in one council, so one at most. */
 function CouncilSwitches({ council }: { council: Council | null }) {
   return (
     <details className="checks-more council-switches">
       <summary>Council rules · {council ? council.name : 'none on'}</summary>
-      <p className="muted small">Switch on the council your block is in to check a DA against its LEP and DCP. Only one can be on. The Housing Code checks apply across NSW either way.</p>
+      <p className="muted small">The app covers NSW only. Switch on the council your block is in to check a DA against its own LEP and DCP. Only one can be on.</p>
       {COUNCILS.map(k => (
         <label key={k.id} className="check">
           <input type="checkbox" checked={council?.id === k.id} onChange={e => setCouncil(k.id, e.target.checked)} />
-          {k.name} <span className="muted small">({k.rules})</span>
+          {k.name}{' '}
+          <span className="muted small">
+            ({k.rules}
+            {coverage(k)})
+          </span>
         </label>
       ))}
-      <p className="muted small">Not listed? Its rules aren’t in the app yet, so only the Housing Code is checked.</p>
+      <p className="muted small">Not listed? Your council isn’t covered yet: only the state-wide Housing Code checks run.</p>
     </details>
   )
 }
 
 function LotFacts({ m, s }: { m: Measures; s: CheckSettings }) {
   const needsFront = s.frontEdge === undefined
+  // Until the map value is entered, the council's own figure if its DCP has one; blank (0) for a council whose DCP has none.
+  const council = activeCouncil(s)
+  const height = s.lepHeight ?? (council ? (council.height?.fallback?.max ?? 0) : 9)
   const edgeOptions = [{ id: -1, label: 'Not set' }, ...m.edges.map(e => ({ id: e.index, label: `${e.label} · ${e.length.toFixed(2)} m` }))]
   return (
     <details className="checks-more lot-facts" open={needsFront}>
@@ -181,7 +197,7 @@ function LotFacts({ m, s }: { m: Measures; s: CheckSettings }) {
       {s.lotWidth === undefined && <div className="muted small">Not set: side setbacks show the result for both ways of reading it.</div>}
       <div className="muted small">Survey boundary {m.lotArea.toFixed(1)} m²</div>
       <Num label="Title area" value={s.titleArea ?? m.lotArea} unit="m²" decimals={1} min={1} onCommit={v => setCheckSettings({ titleArea: v })} />
-      <Num label="LEP height limit" value={s.lepHeight ?? 9} unit="m" decimals={1} min={1} onCommit={v => setCheckSettings({ lepHeight: v })} />
+      <Num label="LEP height limit" value={height} unit="m" decimals={1} min={0} onCommit={v => setCheckSettings({ lepHeight: v > 0 ? v : undefined })} />
       <Num label="LEP floor space ratio" value={s.lepFsr ?? 0} unit=":1" decimals={2} min={0} onCommit={v => setCheckSettings({ lepFsr: v > 0 ? v : undefined })} />
     </details>
   )

@@ -208,15 +208,15 @@ export function planReview(i: PlanReviewInput): Review {
 export function newPlanReview(plan: Plan, site: Site | null): Review {
   return {
     kind: 'new-plan',
-    title: 'Start a new, empty plan?',
+    title: 'Start the plan again?',
     facts: [{ label: 'Now', value: planLine(plan) }],
-    changes: ['Clears the walls, rooms, roofs, stairs, areas and furniture on every floor, and the cut and fill settings.'],
+    changes: ['Clears the walls, rooms, roofs, stairs, areas and furniture on every floor of this project, and the cut and fill settings.'],
     kept: [
       `The survey, and the house’s spot on the block (floor at ${rl(floorRL(plan))}).`,
-      'Undo puts this plan back. To keep it and draw another, use Duplicate under All projects.',
+      'Undo puts this plan back. To keep it and draw another, use Duplicate under All projects, or New project for another block.',
     ],
     thumb: site ? thumbOf(site, plan) : null,
-    confirm: 'Start a new plan',
+    confirm: 'Start again',
     replaces: true,
   }
 }

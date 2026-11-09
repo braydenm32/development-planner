@@ -26,6 +26,7 @@ import { ShellContext, type ShellData } from '../context'
 import { andList, m2, netText } from '../format'
 import { OverviewSheet } from '../OverviewSheet'
 import { MORE_SECTIONS, TAB_PANELS, TAB_TOOL } from '../sections'
+import { whereShown } from '../format'
 import { SummaryStrip } from '../SummaryStrip'
 import { useKeyNumbers, type KeyNumbers } from '../useKeyNumbers'
 
@@ -373,19 +374,25 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   const earth = earthOf(plan, survey, terrain)
   const n = numbersOf(plan, survey, terrain, earth)
 
-  it('turns a chip into a dashed label saying where the number is', () => {
+  it('turns a chip into a plain label pointing at where the number is', () => {
     const html = strip(n, { 'floor-area': 'in the panel', ffl: 'on plan' })
     expect(html).toContain('class="chip ghost" title="Floor is in the panel"')
-    expect(words(html)).toContain('Floor in the panel')
-    expect(words(html)).toContain('FFL on plan')
+    expect(words(html)).toContain('Floor → panel')
+    expect(words(html)).toContain('FFL → plan')
     expect(words(html)).not.toContain('114.39')
     expect(words(html)).not.toContain('RL 63.20')
+  })
+
+  it('says where in a word or two', () => {
+    expect(whereShown('in the panel')).toBe('→ panel')
+    expect(whereShown('on plan')).toBe('→ plan')
+    expect(whereShown('selected')).toBe('→ selected')
   })
 
   it('lets the panel showing cut and fill take over Out of balance', () => {
     const html = strip(n, { 'cut-fill': 'in the panel' })
     expect(words(html)).not.toContain('Out of balance')
-    expect(words(html)).toContain('Cut · fill in the panel')
+    expect(words(html)).toContain('Cut · fill → panel')
   })
 
   it('keeps chips as buttons otherwise', () => {
