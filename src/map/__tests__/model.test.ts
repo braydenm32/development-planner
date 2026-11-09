@@ -52,7 +52,7 @@ describe('the map record', () => {
     const survey = { fileName: 'sample.dxf', dxfText: '0\nEOF', roles: {} }
     const plan = normalizePlan(garageFloor())
     expect(parseProjectFile(projectFileText(survey, plan)).map).toBeNull()
-    const withMap = parseProjectFile(projectFileText(survey, plan, undefined, undefined, place({ include: true })))
+    const withMap = parseProjectFile(projectFileText(survey, plan, undefined, undefined, undefined, place({ include: true })))
     expect(withMap.map?.lot.id).toBe('12//DP1000001')
     expect(mapFromRecords({ [MAP_KIND]: place() })).toBeUndefined()
     expect(mapFromRecords({ [MAP_KIND]: place({ include: true }) })?.lot.label).toBe('Lot 12 DP1000001')

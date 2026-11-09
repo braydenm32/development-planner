@@ -4,7 +4,7 @@
 // land's flags join Design › Checks.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { activeCouncil, checkSettingsOf, COUNCILS } from '../checks/councils'
+import { activeCouncil, checkSettingsOf, councilFor } from '../checks/councils'
 import { setCheckSettings, setCouncil } from '../checks/settings'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
@@ -298,7 +298,7 @@ function Planning({ place }: { place: MapPlace }) {
   const plan = usePlan(s => s.plan)
   const settings = checkSettingsOf(plan?.checks)
   const f: PlanningFacts | null = place.planning
-  const council = f?.lga ? COUNCILS.find(c => c.name.toUpperCase() === f.lga) : undefined
+  const council = f ? (councilFor(f.lga) ?? councilFor(f.lep)) : null
   const on = activeCouncil(settings)
   const mapValues = f && (f.height !== null || f.fsr !== null) && (f.height !== (settings.lepHeight ?? null) || f.fsr !== (settings.lepFsr ?? null))
 
