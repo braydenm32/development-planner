@@ -10,10 +10,11 @@ import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { levelBuildsAs, roomFloorType, type FloorTypeId } from './floorTypes'
 import { faceAround, offsetPolygon, planarFaces, type Face } from './geometry'
 import { levelSummaries } from './keyNumbers'
-import { areaKind, type AreaKind, type Opening, type Plan, type Roof } from './model'
+import { areaKind, floorRL, type AreaKind, type Opening, type Plan, type Roof } from './model'
 import type { RetainingProfile } from './retaining'
 import type { ImpliedTotals } from '../grading/implied'
 import { roofGeometry } from './roof'
+import { insideEdgeMid, wallTopAt } from './roofline'
 
 /** Rooms that need their own fit-out and plumbing, found by their names. */
 export type WetRoom = 'kitchen' | 'bathroom' | 'laundry' | 'toilet'
@@ -231,7 +232,15 @@ export function designQuantities(
     const height = s.level.height
     const run = s.gross.outlines.reduce((t, ring) => t + perimeter(ring), 0)
     walls.perimeter += run
-    walls.gross += run * height
+    // Each face to its own top: up to a roof whose eaves sit above the ceiling, else the ceiling.
+    const floor = floorRL(plan, s.level.id)
+    for (const ring of s.gross.outlines) {
+      for (let i = 0; i < ring.length; i++) {
+        const p = ring[i]
+        const q = ring[(i + 1) % ring.length]
+        walls.gross += Math.hypot(q[0] - p[0], q[1] - p[1]) * (wallTopAt(plan, s.level.id, insideEdgeMid(ring, i)) - floor)
+      }
+    }
     const levelWalls = plan.walls.filter(w => w.level === s.level.id)
     const outside = outsideWallIds(planarFaces(levelWalls))
     walls.ids.push(...outside)

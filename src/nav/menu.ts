@@ -51,6 +51,7 @@ export type ActionId =
   | 'camera-rear'
   | 'pick-contour'
   | 'draw-section'
+  | 'section-strip'
   | 'grade-brush'
   | 'keyboard-help'
   | 'open-example'
@@ -1399,6 +1400,17 @@ export const HOMES: Home[] = [
         at: 'design/sections',
       },
       {
+        id: 'section-strip',
+        label: 'Show or fold the section under the plan',
+        icon: 'section',
+        keywords: ['section', 'live section', 'section strip', 'cross section', 'split level', 'levels', 'floor RL', 'drag level', 'move floor', 'eaves', 'roofline', 'match roofline', 'stairs', 'cut line', 'fold away', 'slope'],
+        features: ['section-strip', 'section-strip-levels', 'section-strip-eaves', 'section-strip-cut', 'section-strip-phone'],
+        action: 'section-strip',
+        run: 'now',
+        at: 'design/plan',
+        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the cut’s ends on the plan to move it.',
+      },
+      {
         id: 'paint-grade',
         label: 'Grading brush: cut or fill to a level',
         icon: 'shovel',
@@ -1494,7 +1506,7 @@ export const HOMES: Home[] = [
         features: ['opening-type', 'opening-width', 'opening-height', 'opening-sill', 'opening-offset', 'door-flip-hinge', 'door-flip-swing'],
       },
       { id: 'inspect-room', at: 'design/plan', hint: 'Click a room’s name on the plan: its settings open on the right.', label: 'Selected room', icon: 'room', keywords: ['rename', 'slab', 'piers', 'ground under', 'living area', 'winter sun', 'sunlight'], features: ['room-name', 'room-floor-type', 'room-ground-range', 'room-living-area'] },
-      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-over-lined-up-levels'] },
+      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-over-lined-up-levels', 'walls-rise-to-roof'] },
       {
         id: 'inspect-stair', at: 'design/plan', hint: 'Click a stair on the plan: its settings open on the right.',
         label: 'Selected stair',

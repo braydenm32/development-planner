@@ -21,7 +21,7 @@ import {
   type Plan,
 } from '../plan/model'
 import { compassWord, postStations, stations, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
-import { roofEavesRL } from '../plan/roofline'
+import { insideEdgeMid, roofEavesRL, wallTopAt, wallTopRL } from '../plan/roofline'
 
 export type Side = 'north' | 'east' | 'south' | 'west'
 export const SIDES: Side[] = ['north', 'east', 'south', 'west']
@@ -97,7 +97,7 @@ export function highestPoint(plan: Plan, origin: Vec2, natural: Heightfield): { 
   for (const w of houseWalls(plan.walls)) {
     const level = levelById(plan, w.level)
     if (!level) continue
-    const top = floorRL(plan, w.level) + level.height
+    const top = wallTopRL(plan, w)
     for (const p of [w.a, w.b]) consider(p, top)
   }
   return best
@@ -173,6 +173,8 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
         const n: Vec2 = [e[1], -e[0]]
         // Only the faces turned towards us show.
         if (n[0] * out[0] + n[1] * out[1] < 1e-6) continue
+        // The face rises to meet a roof whose eaves sit above the ceiling.
+        const top = wallTopAt(plan, level.id, insideEdgeMid(ring, i))
         const openings: { kind: OpeningKind; box: Box }[] = []
         for (const o of plan.openings) {
           const w = walls.find(x => x.id === o.wall)
@@ -195,8 +197,8 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
           pts: [
             [U(p), z0],
             [U(q), z0],
-            [U(q), z1],
-            [U(p), z1],
+            [U(q), top],
+            [U(p), top],
           ],
           openings,
         })

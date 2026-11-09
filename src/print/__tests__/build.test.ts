@@ -6,12 +6,13 @@ import { evaluateEarthworks, prepareEarthworks } from '../../lib/earthworks'
 import { analyzeLayers, buildSurvey, guessRoles } from '../../lib/survey'
 import { buildTerrain } from '../../lib/terrain'
 import { planeSurvey } from '../../lib/__tests__/fixtures'
-import { garageFloor } from '../../plan/__tests__/fixtures'
+import { garageFloor, splitLevels } from '../../plan/__tests__/fixtures'
 import { earthworksOf, sortedLevels, type Plan } from '../../plan/model'
 import { newFurniture } from '../../plan/furniture'
 import { addFurniture, addLevelAbove, addRoof, addStair, newStair, updateRoom } from '../../plan/ops'
 import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { levelOutlines } from '../../plan/roof'
+import { ceilingRL, matchRoofline, setEavesRL } from '../../plan/roofline'
 import { BED_SLACK, buildPrintModel, DEFAULT_PRINT, fitsBed, longSideTurn, type PrintModel, type PrintPart } from '../build'
 import { partGroups, plasticOf, scaleThatFits, scaleUnder } from '../fit'
 
@@ -313,3 +314,69 @@ describe('print model', () => {
     expect(uncut.parts.every(p => p.of === undefined)).toBe(true)
   })
 })
+
+describe('roofs on their eaves line', () => {
+  /** The made-up split level without its top storey, on the plane survey, with a roof over each wing. */
+  function split(match: boolean) {
+    const base = setup()
+    const sp = splitLevels()
+    let plan: Plan = {
+      ...sp,
+      levels: sp.levels.filter(l => l.id !== 'level_top'),
+      walls: sp.walls.filter(w => w.level !== 'level_top'),
+      rooms: sp.rooms.filter(r => r.level !== 'level_top'),
+      placement: { e: 1006, n: 1006, rotation: 5, ffl: 84 },
+    }
+    for (const level of ['level_low', 'level_mid']) {
+      plan = addRoof(plan, level, levelOutlines(plan.walls.filter(w => w.level === level))[0], { type: 'hip', pitch: 22.5, overhang: 0.3 })
+    }
+    // Lined up with the middle wing's ceiling, the lower wing's walls rise 1.2 m to meet its roof.
+    if (match) plan = matchRoofline(plan, plan.roofs.find(r => r.level === 'level_low')!.id, 'level:level_mid')
+    return buildPrintModel(wasm, { plan, survey: base.survey, ground: base.ground }, { ...SOLID, tiles: false })
+  }
+
+  it('prints a roofline shared across levels as one roof, keyed onto the walls of both', () => {
+    const own = split(false)
+    expect(own.parts.map(p => p.name)).toEqual(['Terrain', 'Lower level', 'Middle level', 'Roof over lower level', 'Roof over middle level'])
+    const shared = split(true)
+    expect(shared.parts.map(p => p.name)).toEqual(['Terrain', 'Lower level', 'Middle level', 'Roof'])
+    const [, low, mid, roof] = shared.parts
+    // The lower wing’s walls rise 1.2 m (12 mm at 1:100), and the roof over it sits up with the other.
+    expect(low.max[2] - own.parts[1].max[2]).toBeCloseTo(12, 1)
+    expect(roof.min[2]).toBeCloseTo(own.parts[4].min[2], 1)
+    for (const p of shared.parts) {
+      const m = solidOf(p)
+      expect(m.status()).toBe('NoError')
+      m.delete()
+    }
+    const ps = shared.parts
+    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) expect(overlap(ps[i], ps[j])).toBeLessThan(0.5)
+    for (const level of [low, mid]) {
+      expect(overlap(level, roof, 1, 0)).toBeGreaterThan(1)
+      expect(overlap(level, roof, 0, -1)).toBeGreaterThan(1)
+    }
+  })
+
+  it('sits a roof on its own eaves RL', () => {
+    const input = setup()
+    const first = sortedLevels(input.plan)[1]
+    const roof = input.plan.roofs.find(r => r.level === first.id)!
+    const before = buildPrintModel(wasm, input, { ...SOLID, tiles: false })
+    const raised = buildPrintModel(wasm, { ...input, plan: setEavesRL(input.plan, roof.id, ceilingRL(input.plan, first.id) + 0.5) }, { ...SOLID, tiles: false })
+    const [, , floor0, roof0] = before.parts
+    const [, , floor1, roof1] = raised.parts
+    // 0.5 m higher is 5 mm at 1:100: the roof lifts and the first floor's walls rise to meet it.
+    expect(roof1.min[2] - roof0.min[2]).toBeCloseTo(5, 1)
+    expect(floor1.max[2] - floor0.max[2]).toBeCloseTo(5, 1)
+    expect(overlap(floor1, roof1)).toBeLessThan(0.5)
+    expect(overlap(floor1, roof1, 1, 0)).toBeGreaterThan(1)
+    // Set lower than the ceiling, the roof comes down over the wall tops, which stand up into it.
+    const lowered = buildPrintModel(wasm, { ...input, plan: setEavesRL(input.plan, roof.id, ceilingRL(input.plan, first.id) - 0.3) }, { ...SOLID, tiles: false })
+    const [, , floor2, roof2] = lowered.parts
+    expect(roof0.min[2] - roof2.min[2]).toBeCloseTo(3, 1)
+    expect(floor2.max[2]).toBeLessThan(floor0.max[2])
+    expect(overlap(floor2, roof2)).toBeLessThan(0.5)
+    expect(overlap(floor2, roof2, 1, 0)).toBeGreaterThan(1)
+  })
+})
+

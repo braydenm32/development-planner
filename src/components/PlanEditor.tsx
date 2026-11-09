@@ -79,6 +79,8 @@ import { usePlanFlow } from '../flow/PlanFlow'
 import { undoTarget } from '../shell/undoTarget'
 import { useSiteStore } from '../site/store'
 import { useSectionMarks } from '../sections/SectionMarks'
+import { useSectionStrip } from '../sectionStrip/useSectionStrip'
+import { useStripSpace } from '../sectionStrip/store'
 import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
 import { roomMade, wallsPlaced } from '../flow/store'
@@ -236,6 +238,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // draw on, no ground-meets-floor line and no drawing hints there.
   const siteTool = useSiteStore(s => s.tool !== null)
   const noFloor = area === 'site' || siteTool
+  // The live section strip under the plan, in Design and Earthworks (src/sectionStrip): fitting keeps the house above it.
+  const stripShows = !!frame && (area === 'design' || area === 'earthworks') && !noFloor
+  const stripH = useStripSpace(stripShows, !!touch?.phone)
+  const insets = frame ? { ...frame.insets, b: frame.insets.b + stripH } : null
   // A drawing tool left out in Design is put down where the plan is only for looking at.
   useEffect(() => {
     if (guarded && tool !== 'select') usePlan.getState().setTool('select')
@@ -473,7 +479,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const minY = Math.min(...ys)
     const maxY = Math.max(...ys)
     // Keep clear of anything floating over the canvas's edges.
-    const ins = frame?.insets ?? { l: 0, r: 0, t: 0, b: 0 }
+    const ins = insets ?? { l: 0, r: 0, t: 0, b: 0 }
     const w = frame ? Math.max(size.w - ins.l - ins.r, 100) : size.w
     const h = frame ? Math.max(size.h - ins.t - ins.b, 100) : size.h
     const k = Math.min(Math.max(Math.min(w / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1)) * 0.75, 5), 400)
@@ -501,9 +507,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   // ---- Remembering the view (src/plan/viewMemory.ts) ----
   // What the handlers outside React need: where to remember, and the view and screen now.
-  const live = useRef({ key: viewKey, level, view, fitToken, size, insets: frame?.insets ?? null })
+  const live = useRef({ key: viewKey, level, view, fitToken, size, insets })
   useLayoutEffect(() => {
-    live.current = { key: viewKey, level, view, fitToken, size, insets: frame?.insets ?? null }
+    live.current = { key: viewKey, level, view, fitToken, size, insets }
   })
   /** Remember the view, when it's one the person moved to (not a fit, which remembers itself). */
   const saveView = () => {
@@ -631,6 +637,28 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
   // Section lines: drawing one with two clicks, and their A–A marks while Design › Sections is open.
   const sections = useSectionMarks({ plan, S, k: v.k, viewOnly })
+  // The live section strip: its cut on the plan, and the strip under it.
+  const strip = useSectionStrip({
+    shows: stripShows,
+    plan,
+    survey,
+    terrain,
+    earth,
+    S,
+    toHouse: (cx, cy) => {
+      const r = svgRef.current!.getBoundingClientRect()
+      return W(cx - r.left, cy - r.top)
+    },
+    k: v.k,
+    width: size.w,
+    left: frame?.insets.l ?? 0,
+    right: frame?.insets.r ?? 0,
+    projectKey: viewKey,
+    editable: !viewOnly && !touch?.phone,
+    handles: tool === 'select',
+    phone: !!touch?.phone,
+    onUp: onUpChange,
+  })
   // The grading brush (Earthworks › Cut & fill): painting ground to a level, and the retaining walls it suggests.
   const brush = useGradeBrush({
     plan,
@@ -2351,6 +2379,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {site.over}
         {flow.over}
         {sections.over}
+        {strip.over}
         {brush.over}
         {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
@@ -2427,6 +2456,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {flow.html}
       {comments.html}
       {mn.html}
+      {strip.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
       <div className="readout plan-status">

@@ -26,6 +26,7 @@ import { planBounds } from '../plan/ops'
 import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry } from '../plan/roof'
+import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { featureSolids } from '../site/printFeatures'
@@ -204,8 +205,12 @@ interface LevelPart {
   /** Outside of the walls, in the site frame. */
   outlines: Vec2[][]
   ffl: number
-  /** Top of the walls. */
+  /** Top of the walls: the ceiling. */
   top: number
+  /** Each wall's top RL, which is higher than the ceiling where it rises to meet a roof. */
+  wallTop: Map<string, number>
+  /** The walls grouped by their top RL, each group as one plan shape in the site frame. */
+  byTop: { top: number; shape: CrossSection | null }[]
   /** Underside of this level's floor part. */
   bottom: number
   /** Walls as one plan shape, in the site frame. */
@@ -307,13 +312,25 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     const walls = houseWalls(plan.walls.filter(w => w.level === level.id)).map(w => (w.thickness < minW ? { ...w, thickness: minW } : w))
     const outlines = buildingOutline(planarFaces(walls)).outlines.map(site)
     const ffl = floorRL(plan, level.id)
-    const polys = [...wallPolygons(walls).values()].map(site)
+    const wp = wallPolygons(walls)
+    const polys = [...wp.values()].map(site)
+    // Outside walls under a roof whose eaves sit above the ceiling rise to meet it.
+    const wallTop = new Map(walls.map(w => [w.id, wallTopRL(plan, w)]))
+    const groups = new Map<number, Vec2[][]>()
+    for (const w of walls) {
+      const poly = wp.get(w.id)
+      if (!poly) continue
+      const t = Math.round(wallTop.get(w.id)! * 1000) / 1000
+      groups.set(t, [...(groups.get(t) ?? []), site(poly)])
+    }
     return {
       level,
       walls,
       outlines,
       ffl,
       top: ffl + level.height,
+      wallTop,
+      byTop: [...groups].map(([top, rings]) => ({ top, shape: shape(rings) })),
       bottom: ffl - FLOOR_STRUCTURE - (i === 0 ? key : 0),
       footprint: shape(polys),
     }
@@ -354,7 +371,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       const len = wallLength(w)
       const d = wallDir(w)
       const openings = plan.openings.filter(o => o.wall === w.id)
-      for (const piece of wallPieces(len, L.level.height, openings)) {
+      for (const piece of wallPieces(len, (L.wallTop.get(w.id) ?? L.top) - L.ffl, openings)) {
         const s0 = piece.s0 <= 1e-6 ? -1e3 : piece.s0
         const s1 = piece.s1 >= len - 1e-6 ? 1e3 : piece.s1
         wallSolids.push(prism([site(sliceAlong(poly, w.a, d, s0, s1))], L.ffl + piece.z0, L.ffl + piece.z1))
@@ -362,20 +379,22 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     }
     let walls = union(wallSolids)
 
-    // Whatever sits on these walls: the next floor, and this level's roofs.
+    // Whatever sits on these walls: the next floor, and every roof whose eaves meet their tops,
+    // whichever level it's drawn on, so one roofline over a split level keys onto all its walls.
     const aboveShape = above ? shape(above.outlines) : null
-    const roofs = plan.roofs.filter(r => r.level === L.level.id)
-    const roofShape = shape(roofs.map(r => roofGeometry(r).outline).filter(o => o.length >= 3).map(site))
     if (above && aboveShape) {
-      if (above.bottom < L.top) walls = minus(walls, extrude(aboveShape, above.bottom, above.bottom + 100))
+      if (above.bottom < Math.max(L.top, ...L.wallTop.values())) walls = minus(walls, extrude(grow(aboveShape, eps), above.bottom, above.bottom + 100))
       if (L.footprint) {
         const under = keep(L.footprint.intersect(aboveShape))
         pieces.push(extrude(under, Math.min(above.bottom, L.top), above.bottom + slot))
       }
     }
-    if (roofShape && L.footprint) {
+    for (const { top, shape: carry } of L.byTop) {
+      const meeting = plan.roofs.filter(r => Math.abs(roofEavesRL(plan, r) - top) < 1e-3)
+      const roofShape = shape(meeting.map(r => roofGeometry(r).outline).filter(o => o.length >= 3).map(site))
+      if (!roofShape || !carry) continue
       const free = aboveShape ? keep(roofShape.subtract(aboveShape)) : roofShape
-      pieces.push(extrude(keep(L.footprint.intersect(free)), L.top - eps, L.top + key))
+      pieces.push(extrude(keep(carry.intersect(free)), top - eps, top + key))
     }
     pieces.push(walls)
 
@@ -438,29 +457,61 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   })
 
   // ---- Roofs ----
-  info.forEach(L => {
-    const roofs = plan.roofs.filter(r => r.level === L.level.id)
+  // Each roof sits on its eaves line. Roofs drawn on one level go together, and so do roofs that
+  // share a roofline (the same eaves RL), so one roofline over a split level prints as one roof.
+  const roofLevels = plan.roofs.filter(r => levelById(plan, r.level))
+  const groupOf = roofLevels.map((_, i) => i)
+  const find = (i: number): number => (groupOf[i] === i ? i : (groupOf[i] = find(groupOf[i])))
+  const eavesOf = roofLevels.map(r => roofEavesRL(plan, r))
+  for (let i = 0; i < roofLevels.length; i++)
+    for (let j = 0; j < i; j++) if (roofLevels[i].level === roofLevels[j].level || Math.abs(eavesOf[i] - eavesOf[j]) < 1e-3) groupOf[find(i)] = find(j)
+  const order = levels.map(l => l.id)
+  const groups = new Map<number, number[]>()
+  roofLevels
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => order.indexOf(a.r.level) - order.indexOf(b.r.level))
+    .forEach(({ i }) => groups.set(find(i), [...(groups.get(find(i)) ?? []), i]))
+  const roofNames = new Map<string, string>()
+  for (const members of groups.values()) {
     const solids: (Manifold | null)[] = []
-    for (const r of roofs) {
+    const levelIds = [...new Set(members.map(i => roofLevels[i].level))]
+    const levelNames = levelIds.map(id => levelById(plan, id)!.name)
+    for (const i of members) {
+      const r = roofLevels[i]
+      const base = eavesOf[i]
       const g = roofGeometry(r, edge)
       if (g.error || !g.mesh.tris.length) continue
       const pos = new Float32Array(g.mesh.pos.length)
-      for (let i = 0; i < g.mesh.pos.length; i += 3) {
-        const s = toSite([g.mesh.pos[i], g.mesh.pos[i + 1]], pl, survey.origin)
-        pos[i] = s[0]
-        pos[i + 1] = s[1]
-        pos[i + 2] = L.top + g.mesh.pos[i + 2]
+      for (let k = 0; k < g.mesh.pos.length; k += 3) {
+        const s = toSite([g.mesh.pos[k], g.mesh.pos[k + 1]], pl, survey.origin)
+        pos[k] = s[0]
+        pos[k + 1] = s[1]
+        pos[k + 2] = base + g.mesh.pos[k + 2]
       }
       const mesh = new Mesh({ numProp: 3, vertProperties: pos, triVerts: new Uint32Array(g.mesh.tris) })
       mesh.merge()
-      const m = keep(new Manifold(mesh))
-      if (m.status() === 'NoError') solids.push(m)
-      else notes.push(`One of the roofs on ${L.level.name} couldn't be made solid, so it is left out.`)
+      let m: Manifold | null = keep(new Manifold(mesh))
+      if (m.status() !== 'NoError') {
+        notes.push(`One of the roofs on ${levelById(plan, r.level)!.name} couldn't be made solid, so it is left out.`)
+        continue
+      }
+      // Sockets for the walls it sits on, which key into it, and room for any wall that stands
+      // taller than its eaves (a roof set lower than the ceiling): the roof rests on those.
+      for (const L of info) {
+        for (const { top, shape: walls } of L.byTop) {
+          if (top < base - 1e-3) continue
+          const meets = top < base + 1e-3
+          m = minus(m, extrude(grow(walls, c), Math.max(base, L.ffl) - eps, meets ? base + key + c : top))
+        }
+      }
+      solids.push(m)
     }
-    let solid = union(solids)
-    if (solid && L.footprint) solid = minus(solid, extrude(grow(L.footprint, c), L.top - eps, L.top + key + c))
-    if (solid) parts.push({ id: `roof-${L.level.id}`, name: 'Roof', kind: 'roof', solid })
-  })
+    const solid = union(solids)
+    if (!solid) continue
+    const id = `roof-${levelIds.join('-')}`
+    roofNames.set(id, `Roof over ${levelNames.map(n => n.toLowerCase()).join(' and ')}`)
+    parts.push({ id, name: 'Roof', kind: 'roof', solid })
+  }
   if (furnitureThickened) notes.push(`Thin parts of the furniture are printed ${settings.minFeature} mm thick.`)
   if (furnitureLeftOut.length) {
     const n = furnitureLeftOut.length
@@ -468,7 +519,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   }
 
   const roofParts = parts.filter(p => p.kind === 'roof')
-  if (roofParts.length > 1) for (const p of roofParts) p.name = `Roof over ${levelById(plan, p.id.slice(5))?.name.toLowerCase() ?? 'level'}`
+  if (roofParts.length > 1) for (const p of roofParts) p.name = roofNames.get(p.id) ?? p.name
 
   // ---- Terrain ----
   // The whole block, or the ground around the house out to the margin, inside the block.

@@ -3,7 +3,9 @@
 // roofs on a split-level house can share one roofline. Every drawing, the 3D view and the numbers
 // read a roof's height from roofEavesRL, so they all agree.
 
-import { floorRL, levelById, sortedLevels, type Level, type Plan, type Roof, type RoofEaves, type Wall } from './model'
+import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
+import { floorRL, houseWalls, levelById, sortedLevels, type Level, type Plan, type Roof, type RoofEaves, type Wall } from './model'
+import { growRing, levelOutlines } from './roof'
 
 /** Ceilings this close (m) line up, for one roof over both and for the Floors helper. */
 export const CEILING_MATCH = 0.005
@@ -119,4 +121,56 @@ export function wallsUnderRoofline(plan: Plan, levelId: string): Wall[] {
 export function roofsOverLevel(plan: Plan, levelId: string): Roof[] {
   const ids = new Set(levelsSharingCeiling(plan, levelId).map(l => l.id))
   return plan.roofs.filter(r => ids.has(r.level))
+}
+
+/** Each level's outlines, worked out once per plan, for wallTopAt's "is another level in the way". */
+const outlineCache = new WeakMap<Plan, Map<string, Vec2[][]>>()
+function outlinesOf(plan: Plan, levelId: string): Vec2[][] {
+  let m = outlineCache.get(plan)
+  if (!m) outlineCache.set(plan, (m = new Map()))
+  let o = m.get(levelId)
+  if (!o) m.set(levelId, (o = levelOutlines(houseWalls(plan.walls.filter(w => w.level === levelId)))))
+  return o
+}
+
+/**
+ * RL of the top of `levelId`'s outside walls at plan point p. That's its ceiling, unless a roof
+ * over p has its eaves higher up: then the walls rise to meet that roof, so no gap shows under it.
+ * Where another level fills some of that height at p (an upper storey over this wing, or the
+ * next wing's own wall along the line where two wings meet), the roof sits on that level
+ * instead and doesn't lift these walls. Lower eaves change nothing.
+ */
+export function wallTopAt(plan: Plan, levelId: string, p: Vec2): number {
+  const ceiling = ceilingRL(plan, levelId)
+  let top = Infinity
+  for (const r of plan.roofs) {
+    if (r.pts.length < 3) continue
+    const e = roofEavesRL(plan, r)
+    if (e <= ceiling + 1e-4 || e >= top) continue
+    const ring = signedArea(r.pts) < 0 ? [...r.pts].reverse() : r.pts
+    if (!pointInPolygon(p[0], p[1], growRing(ring, 0.01))) continue
+    const between = plan.levels.some(l => {
+      if (l.id === levelId || floorRL(plan, l.id) >= e - 1e-3 || ceilingRL(plan, l.id) <= ceiling + 1e-3) return false
+      return outlinesOf(plan, l.id).some(o => pointInPolygon(p[0], p[1], o))
+    })
+    if (!between) top = e
+  }
+  return Number.isFinite(top) ? top : ceiling
+}
+
+/** RL of the top of a wall: outside walls rise to a roof whose eaves are above the ceiling; the rest stop at the ceiling. */
+export function wallTopRL(plan: Plan, wall: Wall): number {
+  if (wall.kind !== 'external') return ceilingRL(plan, wall.level)
+  return wallTopAt(plan, wall.level, [(wall.a[0] + wall.b[0]) / 2, (wall.a[1] + wall.b[1]) / 2])
+}
+
+/** A point just inside a ring at the middle of its edge i to i+1, whichever way the ring runs, for wallTopAt along an outline. */
+export function insideEdgeMid(ring: Vec2[], i: number, d = 0.05): Vec2 {
+  const a = ring[i]
+  const b = ring[(i + 1) % ring.length]
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  const len = Math.hypot(dx, dy) || 1
+  const s = signedArea(ring) > 0 ? 1 : -1
+  return [(a[0] + b[0]) / 2 - (dy / len) * d * s, (a[1] + b[1]) / 2 + (dx / len) * d * s]
 }
