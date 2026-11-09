@@ -1,5 +1,6 @@
 // The cloud's sheets, over every screen: sign in, create an account, use the
-// recovery code, keep a new code, the first upload's review, and the account. Mounted once.
+// recovery code, keep a new code, the first upload's review, the account, and deleting it.
+// Mounted once.
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { saveFile } from '../lib/download'
@@ -9,7 +10,7 @@ import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
 import { passkeysWork } from './passkeys'
 import { cloudActions, startCloud, useCloud } from './state'
-import { chipLook, projects } from './words'
+import { chipLook, longDate, megabytes, projects } from './words'
 import './cloud.css'
 
 export function CloudLayer() {
@@ -22,6 +23,8 @@ export function CloudLayer() {
   if (sheet === 'code') return <CodeSheet />
   if (sheet === 'upload') return <UploadSheet />
   if (sheet === 'account') return <AccountSheet />
+  if (sheet === 'delete') return <DeleteSheet />
+  if (sheet === 'deleting') return <DeletingSheet />
   return null
 }
 
@@ -340,7 +343,7 @@ function UploadSheet() {
 }
 
 // ---------------------------------------------------------------------------
-// The account: how saving is going, passkeys, the recovery code, sign out.
+// The account: how saving is going, space used, passkeys, the recovery code, sign out, delete.
 
 function AccountSheet() {
   const user = useCloud(s => s.user)
@@ -397,6 +400,12 @@ function AccountSheet() {
         </p>
       )}
 
+      {account?.storage && (
+        <p className="cl-muted cl-space">
+          Cloud space: {megabytes(account.storage.used)} of {megabytes(account.storage.limit)} used.
+        </p>
+      )}
+
       <section className="cl-section">
         <h3>Passkeys</h3>
         <p className="cl-muted">
@@ -426,6 +435,67 @@ function AccountSheet() {
         <p className="cl-muted">Signing out keeps your projects on this device.</p>
         <button className="cl-btn" onClick={() => void cloudActions.signOut()} disabled={busy}>
           Sign out
+        </button>
+      </div>
+
+      <section className="cl-section">
+        <h3>Delete account</h3>
+        <p className="cl-muted">Deletes your account and everything saved in the cloud for it, 30 days after you ask.</p>
+        <button className="cl-btn danger" onClick={() => cloudActions.open('delete')} disabled={busy}>
+          Delete my account…
+        </button>
+      </section>
+    </Sheet>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Deleting the account: asking (with 30 days to change your mind), and the sheet that greets
+// its owner on signing in again within them.
+
+const DELETE_DAYS = 30
+
+function DeleteSheet() {
+  const busy = useCloud(s => s.busy)
+  const [when] = useState(() => longDate(Date.now() + DELETE_DAYS * 24 * 60 * 60 * 1000))
+  return (
+    <Sheet title="Delete your account?">
+      <p>Your account and everything saved in the cloud for it will be deleted for good on {when}.</p>
+      <ul className="cl-points">
+        <li>You’re signed out on every device now, and your view-only links stop opening.</li>
+        <li>Change your mind before then? Sign in and choose Keep my account.</li>
+        <li>Projects stay on each device that has them. To keep a copy elsewhere, save a project file first.</li>
+      </ul>
+      <Problem />
+      <div className="cl-actions split">
+        <button className="cl-btn" data-autofocus onClick={() => cloudActions.open('account')} disabled={busy}>
+          Cancel
+        </button>
+        <button className="cl-btn danger" onClick={() => void cloudActions.deleteAccount()} disabled={busy}>
+          Delete my account
+        </button>
+      </div>
+    </Sheet>
+  )
+}
+
+function DeletingSheet() {
+  const user = useCloud(s => s.user)
+  const busy = useCloud(s => s.busy)
+  if (!user?.deleteAfter) return null
+  return (
+    <Sheet title="Your account is being deleted" closable={false}>
+      <p>
+        You asked to delete this account. It will be deleted, with everything saved in the cloud for it, on {longDate(user.deleteAfter)}.
+      </p>
+      <p className="cl-muted">Until then nothing is saved to the cloud and your view-only links don’t open. Projects on this device stay here either way.</p>
+      <Problem />
+      <div className="cl-actions split">
+        <button className="cl-btn" onClick={() => void cloudActions.signOut()} disabled={busy}>
+          Sign out
+        </button>
+        <button className="cl-btn primary" data-autofocus onClick={() => void cloudActions.keepAccount()} disabled={busy}>
+          Keep my account
         </button>
       </div>
     </Sheet>

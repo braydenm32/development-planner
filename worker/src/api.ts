@@ -2,7 +2,8 @@
 // when the browser says where it came from, come from this same origin: a page on another site
 // can do neither, so a signed-in browser can't be made to change anything from elsewhere.
 
-import { account, loginOptions, loginVerify, logout, newCode, passkeyOptions, passkeyVerify, recoverOptions, recoverVerify, signupOptions, signupState, signupVerify } from './auth'
+import { account, canSave, deleteAccount, keepAccount } from './account'
+import { loginOptions, loginVerify, logout, newCode, passkeyOptions, passkeyVerify, recoverOptions, recoverVerify, signupOptions, signupState, signupVerify } from './auth'
 import type { Env } from './env'
 import { errorResponse, HttpError, json } from './http'
 import { commitProject, deleteProject, getBlob, getProject, listProjects, missingBlobs, putBlob } from './projects'
@@ -30,6 +31,12 @@ const withUser =
   async (env, req, now, params) =>
     fn(env, req, (await requireUser(env, req, now)).id, now, params)
 
+/** The same, for a change to what the cloud keeps: refused while the account is being deleted. */
+const toSave =
+  (fn: (env: Env, req: Request, user: string, now: number, params: string[]) => Promise<Response>): Handler =>
+  async (env, req, now, params) =>
+    fn(env, req, canSave(await requireUser(env, req, now)).id, now, params)
+
 const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/health$/, async env => json({ ok: true, app: 'block-and-house-planner', api: 1, signup: await signupState(env) })],
   ['GET', /^\/api\/session$/, async (env, req, now) => json({ user: await readSession(env, req, now) })],
@@ -44,19 +51,21 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/auth\/recovery-code$/, newCode],
   ['POST', /^\/api\/auth\/logout$/, (env, req) => logout(env, req)],
   ['GET', /^\/api\/account$/, account],
+  ['POST', /^\/api\/account\/delete$/, deleteAccount],
+  ['POST', /^\/api\/account\/keep$/, keepAccount],
   ['GET', /^\/api\/projects$/, withUser((env, _req, user) => listProjects(env, user))],
   ['GET', /^\/api\/projects\/([^/]+)$/, withUser((env, _req, user, _now, [id]) => getProject(env, user, id))],
-  ['POST', /^\/api\/projects\/([^/]+)\/commit$/, withUser((env, req, user, now, [id]) => commitProject(env, req, user, id, now))],
-  ['DELETE', /^\/api\/projects\/([^/]+)$/, withUser((env, req, user, now, [id]) => deleteProject(env, req, user, id, now))],
-  ['POST', /^\/api\/blobs\/missing$/, withUser((env, req, user, now) => missingBlobs(env, req, user, now))],
-  ['PUT', /^\/api\/blobs\/([^/]+)\/([^/]+)$/, withUser((env, req, user, now, [hash, part]) => putBlob(env, req, user, hash, part, now))],
+  ['POST', /^\/api\/projects\/([^/]+)\/commit$/, toSave((env, req, user, now, [id]) => commitProject(env, req, user, id, now))],
+  ['DELETE', /^\/api\/projects\/([^/]+)$/, toSave((env, req, user, now, [id]) => deleteProject(env, req, user, id, now))],
+  ['POST', /^\/api\/blobs\/missing$/, toSave((env, req, user, now) => missingBlobs(env, req, user, now))],
+  ['PUT', /^\/api\/blobs\/([^/]+)\/([^/]+)$/, toSave((env, req, user, now, [hash, part]) => putBlob(env, req, user, hash, part, now))],
   ['GET', /^\/api\/blobs\/([^/]+)\/([^/]+)$/, withUser((env, _req, user, _now, [hash, part]) => getBlob(env, user, hash, part))],
   // Share links: the owner's side, signed in.
   ['GET', /^\/api\/projects\/([^/]+)\/shares$/, withUser((env, _req, user, now, [id]) => listShares(env, user, id, now))],
-  ['POST', /^\/api\/projects\/([^/]+)\/shares$/, withUser((env, req, user, now, [id]) => createShare(env, req, user, id, now))],
+  ['POST', /^\/api\/projects\/([^/]+)\/shares$/, toSave((env, req, user, now, [id]) => createShare(env, req, user, id, now))],
   ['DELETE', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)$/, withUser((env, _req, user, now, [id, link]) => revokeShare(env, user, id, link, now))],
-  ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/restore$/, withUser((env, _req, user, now, [id, link]) => restoreShare(env, user, id, link, now))],
-  ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/extend$/, withUser((env, _req, user, now, [id, link]) => extendShare(env, user, id, link, now))],
+  ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/restore$/, toSave((env, _req, user, now, [id, link]) => restoreShare(env, user, id, link, now))],
+  ['POST', /^\/api\/projects\/([^/]+)\/shares\/([^/]+)\/extend$/, toSave((env, _req, user, now, [id, link]) => extendShare(env, user, id, link, now))],
   // …and the viewer's, with the token only (in the X-BHP-Share header). GET only.
   ['GET', /^\/api\/shared$/, (env, req, now) => openShared(env, req, now)],
   ['GET', /^\/api\/shared\/blobs\/([^/]+)\/([^/]+)$/, (env, req, now, [hash, part]) => sharedBlob(env, req, hash, part, now)],

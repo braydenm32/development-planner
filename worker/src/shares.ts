@@ -5,11 +5,12 @@
 // the owner picks 90 days or a year; links made before links had an end keep working until
 // they are turned off.
 //
-// The owner's side (make, list, turn off, undo turning off) needs his session, like the rest of
+// The owner's side (make, list, turn off, undo turning off) needs their session, like the rest of
 // the API. The public side needs only the token, sent in the X-BHP-Share header so it stays out
 // of addresses and logs: GET only, rate limited per address, never cached or indexed, and it
 // reads that one project's index entry and the records a viewer needs, nothing else. The only
-// thing it writes is when the link was last opened.
+// thing it writes is when the link was last opened. A link stops opening while its account is
+// being deleted, and opens again if the account is kept.
 
 import type { Env } from './env'
 import { HttpError, json, randomId, readBytes, sha256Hex } from './http'
@@ -103,7 +104,7 @@ async function liveProject(env: Env, user: string, id: string): Promise<boolean>
 // ---------------------------------------------------------------------------
 // The owner's side.
 
-/** Make a link for one of his projects (it has to be in the cloud). The token is in this reply only. */
+/** Make a link for one of the owner's projects (it has to be in the cloud). The token is in this reply only. */
 export async function createShare(env: Env, req: Request, user: string, rawId: string, now: number): Promise<Response> {
   const id = checkId(rawId)
   const expires = now + (await daysAsked(req)) * DAY
@@ -221,7 +222,7 @@ async function openLink(env: Env, req: Request, now: number): Promise<OpenLink> 
   const token = req.headers.get(SHARE_HEADER) ?? ''
   const row = TOKEN_RE.test(token)
     ? await env.DB.prepare(
-        'SELECT s.token_hash AS token_hash, s.user_id AS user_id, s.project_id AS project_id, s.last_opened AS last_opened, s.expires AS expires, u.name AS name FROM share_links s JOIN users u ON u.id = s.user_id JOIN projects p ON p.user_id = s.user_id AND p.id = s.project_id WHERE s.token_hash = ? AND s.revoked IS NULL AND p.deleted = 0',
+        'SELECT s.token_hash AS token_hash, s.user_id AS user_id, s.project_id AS project_id, s.last_opened AS last_opened, s.expires AS expires, u.name AS name FROM share_links s JOIN users u ON u.id = s.user_id JOIN projects p ON p.user_id = s.user_id AND p.id = s.project_id WHERE s.token_hash = ? AND s.revoked IS NULL AND p.deleted = 0 AND u.delete_after IS NULL',
       )
         .bind(await sha256Hex(token))
         .first<OpenLink>()

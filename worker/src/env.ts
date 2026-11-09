@@ -50,6 +50,6 @@ export interface Env {
   INVITE_CODE?: string
   /** The passkeys' relying party id; defaults to the hostname the Worker is reached on. */
   RP_ID?: string
-  /** The most one person may keep, in MB (default 800, under the free KV plan's 1 GB). */
+  /** The most one person may keep, in MB (default 50, so 20 people fit in the free plan's 1 GB of KV). */
   QUOTA_MB?: string
 }

@@ -73,6 +73,14 @@
   background: #000000;
 }
 
+.cl-btn.danger {
+  color: var(--cl-danger);
+}
+
+.cl-btn.danger:hover:not(:disabled) {
+  border-color: var(--cl-danger);
+}
+
 .cl-btn.big {
   min-height: 42px;
   padding: 0 18px;
@@ -443,6 +451,10 @@
   flex-wrap: wrap;
   gap: 6px;
   margin: 12px 0 0 !important;
+}
+
+.cl-body .cl-space {
+  margin: 10px 0 0;
 }
 
 .cl-section {

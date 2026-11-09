@@ -12,10 +12,10 @@ import { createCloudApi, isOffline, type CloudApi, type CloudUser, type Signup }
 import { createCloudProjectStore } from './cloudStore'
 import { makePasskey, passkeyTrouble, getPasskey } from './passkeys'
 import { createSync, type Sync, type SyncNotice, type SyncState } from './sync'
-import { noticeText } from './words'
+import { longDate, noticeText } from './words'
 
 export type CloudPhase = 'checking' | 'unavailable' | 'signed-out' | 'signed-in'
-export type CloudSheet = 'sign-in' | 'create' | 'recover' | 'code' | 'upload' | 'account'
+export type CloudSheet = 'sign-in' | 'create' | 'recover' | 'code' | 'upload' | 'account' | 'delete' | 'deleting'
 
 export interface CloudState {
   phase: CloudPhase
@@ -105,7 +105,8 @@ export function startCloud(): Promise<void> {
       const was = hint()
       if (isOffline(e) && was) {
         set({ phase: 'signed-in', user: was })
-        await begin(was)
+        if (was.deleteAfter) set({ sheet: 'deleting' })
+        else await begin(was)
       } else set({ phase: 'unavailable' })
       return
     }
@@ -161,6 +162,12 @@ async function begin(user: CloudUser) {
 async function signedIn(user: CloudUser, opts: { offerUpload?: boolean } = {}) {
   setHint(user)
   set({ phase: 'signed-in', user, problem: null })
+  // An account waiting to be deleted saves nothing: first, keep it or sign out.
+  if (user.deleteAfter) {
+    sync?.stop()
+    sync = null
+    return void set({ sheet: 'deleting' })
+  }
   await begin(user)
   // Projects made here before signing in: ask before any of them goes up.
   if ((opts.offerUpload ?? true) && get().waiting.length && !get().sheet) set({ sheet: 'upload' })
@@ -182,6 +189,14 @@ async function step<T>(fn: () => Promise<T>): Promise<T | null> {
   }
 }
 
+/** Forget the account on this device (its projects stay). */
+function signedOutHere() {
+  sync?.stop()
+  sync = null
+  setHint(null)
+  set({ phase: 'signed-out', user: null, sync: IDLE, sheet: null, waiting: [], kept: [], inCloud: [], notices: [] })
+}
+
 export const cloudActions = {
   open(sheet: CloudSheet) {
     set({ sheet, problem: null })
@@ -190,7 +205,7 @@ export const cloudActions = {
   async openHome(): Promise<boolean> {
     await startCloud()
     const { phase } = get()
-    if (phase === 'signed-in') set({ sheet: 'account', problem: null })
+    if (phase === 'signed-in') set({ sheet: get().user?.deleteAfter ? 'deleting' : 'account', problem: null })
     else if (phase === 'signed-out') set({ sheet: 'sign-in', problem: null })
     return phase === 'signed-in' || phase === 'signed-out'
   },
@@ -255,11 +270,25 @@ export const cloudActions = {
       return true
     })
     if (!done) return
-    sync?.stop()
-    sync = null
-    setHint(null)
-    set({ phase: 'signed-out', user: null, sync: IDLE, sheet: null, waiting: [], kept: [], inCloud: [], notices: [] })
+    signedOutHere()
     showToast({ text: 'Signed out. Your projects are still on this device.' })
+  },
+
+  /** Ask for the account to be deleted, 30 days from now: signed out everywhere, this device too. */
+  async deleteAccount() {
+    const deleteAfter = await step(() => api.deleteAccount())
+    if (deleteAfter === null) return
+    signedOutHere()
+    showToast({ text: `Your account will be deleted on ${longDate(deleteAfter)}. Sign in before then to keep it. Your projects are still on this device.`, ms: 15000 })
+  },
+
+  /** Keep an account that was waiting to be deleted, and start saving again. */
+  async keepAccount() {
+    const user = await step(() => api.keepAccount())
+    if (!user) return
+    set({ sheet: null })
+    await signedIn(user)
+    showToast({ text: 'Your account is kept, and saving to the cloud has started again.' })
   },
 
   /** Bring everything up to date both ways (the chip's Sync now, and when the page comes back). */

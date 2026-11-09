@@ -169,7 +169,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               <SurveyArt />
             </div>
             <h2 id="st-import">Import a survey (DXF)</h2>
-            <p>The contour survey from your surveyor. The file stays in this browser and is never uploaded.</p>
+            <p>The contour survey from your surveyor. The file stays in this browser unless you sign in to save to the cloud.</p>
             <div
               className={`st-drop${dragging ? ' dragging' : ''}`}
               onDragOver={e => {
