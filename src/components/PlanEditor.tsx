@@ -44,11 +44,12 @@ import {
 } from '../plan/ops'
 import { setbackDims } from '../plan/setbacks'
 import { useSitePlan } from '../site/SitePlanLayer'
-import { outlineAround, roofGeometry } from '../plan/roof'
+import { outlineAround, roofGeometry, toggleGable } from '../plan/roof'
+import { roofsOverLevel, wallsUnderRoofline } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
-import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
+import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
 import { modKey } from '../nav/keys'
@@ -348,7 +349,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }, [plan.walls, plan.areas, plan.levels, level])
   // What drawing snaps to: this level's walls, the ghosts showing, and the site layer's walls.
   const snapWalls = useMemo(() => [...walls, ...ghostLevels.flatMap(g => g.walls), ...siteLayer.walls], [walls, ghostLevels, siteLayer])
-  const roofs = useMemo(() => plan.roofs.filter(r => r.level === level), [plan.roofs, level])
+  // Its own roofs, and any over a level whose ceiling lines up with this one's (one roof over both).
+  const roofs = useMemo(() => roofsOverLevel(plan, level), [plan, level])
   const stairs = useMemo(() => plan.stairs.filter(s => s.level === level), [plan.stairs, level])
   // Stairs that come up through this floor are drawn as the hole they climb into, over the rooms;
   // the level below's other stairs show faintly under them, for lining up.
@@ -1036,12 +1038,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         if (m >= 0) {
           if (r.type === 'skillion') commit(p => updateRoof(p, r.id, { lowEdge: m }))
           else {
-            const n = r.pts.length
-            const gables = r.pts.map((_, i) => !!r.gables[i])
-            gables[m] = !gables[m]
-            // two gable ends can't share a corner
-            if (gables[m]) gables[(m + 1) % n] = gables[(m - 1 + n) % n] = false
+            // Two gable ends can't share a corner: a new gable hips its neighbours, and says so.
+            const { gables, hipped } = toggleGable(r.gables, r.pts.length, m)
             commit(p => updateRoof(p, r.id, { gables }))
+            notify(hipped ? `Two gable ends can’t share a corner, so the ${hipped > 1 ? 'ends either side are' : 'end next to it is'} hipped now.` : null)
           }
           return
         }
@@ -1477,7 +1477,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         notify('This part already has a roof, so it is selected. Change it in its settings.')
         return
       }
-      const outline = outlineAround(walls, world)
+      // The walls of every level whose ceiling lines up with this one's, so one roof goes over them all.
+      const outline = outlineAround(wallsUnderRoofline(plan, level), world)
       if (!outline) {
         notify('Click inside a building’s walls to roof it. To draw a roof of any shape, choose Draw roof outline.')
         return
@@ -1632,7 +1633,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         // Select all, copy, paste and duplicate; any other Ctrl/⌘ key goes on to the browser or the app (Ctrl+S saves).
         const k = e.key.toLowerCase()
         if (e.altKey || viewOnly) return
-        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'v' ? pasteCopied() : k === 'd' ? duplicateSelected() : false
+        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'v' ? pasteCopied(e.shiftKey) : k === 'd' ? duplicateSelected() : false
         if (handled) e.preventDefault()
         return
       }
@@ -1949,8 +1950,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const sy = walk[1][1] - start[1]
     const sl = Math.hypot(sx, sy) || 1
     const [lx, ly] = S([start[0] - (sx / sl) * 0.22, start[1] - (sy / sl) * 0.22])
-    // Shown whenever the stair is wide enough on screen to read it.
-    const labelled = !ghost && st.width * k > 24
+    // UP or DN whenever the stair is wide enough on screen to read it, and with room, how many
+    // risers and the level it takes you to.
+    const labelled = !ghost && st.width * k > 14
+    const detailed = labelled && !isPreview && st.width * k > 34
     const nowhere = !ghost && !arriving && !isPreview && stairMeetsNoFloor(plan, st)
     const [fx, fy] = S(L.walk[L.walk.length - 1])
     return (
@@ -1961,6 +1964,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {labelled && (
           <text className="stair-label" x={lx} y={ly} textAnchor="middle" dominantBaseline="middle">
             {arriving ? 'DN' : 'UP'}
+          </text>
+        )}
+        {detailed && (
+          <text className="stair-dest" x={lx} y={ly + 13} textAnchor="middle" dominantBaseline="middle">
+            {stairPlanTag(plan, st, arriving)}
           </text>
         )}
         {nowhere && (
@@ -2221,7 +2229,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           const mid = pointOnWall(w, wallLength(w) / 2)
           const probe: Vec2 = [mid[0] - d[1] * off, mid[1] + d[0] * off]
           const inside = faces.some(f => f.area > 0 && pointInPolygon(probe[0], probe[1], f.pts))
-          return dimLabel(w.a, w.b, w.kind === 'external' && inside ? -off : off, fmtMm(wallLength(w)), `dim-${w.id}`)
+          // Lengths are in mm (the scale bar says so); the selected wall's says it too.
+          const text = isSel('wall', w.id) ? `${fmtMm(wallLength(w))} mm` : fmtMm(wallLength(w))
+          return dimLabel(w.a, w.b, w.kind === 'external' && inside ? -off : off, text, `dim-${w.id}`)
         })}
 
         {/* Room labels */}
@@ -2455,6 +2465,7 @@ function ScaleBar({ k }: { k: number }) {
     <div className="scalebar">
       <div style={{ width: m * k }} />
       <span>{m} m</span>
+      <span className="scalebar-units">· lengths in mm</span>
     </div>
   )
 }

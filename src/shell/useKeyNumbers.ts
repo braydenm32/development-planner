@@ -9,11 +9,12 @@ import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
 import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, tallestRoof, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { earthworksOf, floorRL, levelById, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
 import { useSunFacts } from '../sun/useSun'
+import { roofEavesRL } from '../plan/roofline'
 import { impliedTotals, impliedWalls, type ImpliedTotals } from '../grading/implied'
 
 export interface KeyNumbers {
@@ -65,7 +66,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
     const t = tallestRoof(plan, survey, terrain)
     if (!t) return null
     const g = roofGeometry(t.roof)
-    const base = floorRL(plan, t.roof.level) + (levelById(plan, t.roof.level)?.height ?? 0)
+    const base = roofEavesRL(plan, t.roof)
     return { roof: t.roof, height: t.height, top: base + g.height, area: g.area }
   }, [plan, survey, terrain])
 

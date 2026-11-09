@@ -27,6 +27,7 @@ import {
   type Plan,
   type RoofType,
   type StairShape,
+  type Wall,
 } from '../plan/model'
 import {
   setWallLength,
@@ -38,7 +39,7 @@ import {
   updateWall,
 } from '../plan/ops'
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
-import { stairComfort, stairCounts, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
+import { stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
 import { placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
@@ -46,7 +47,7 @@ import { piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
-import { roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { earthAgainstWall, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
@@ -62,6 +63,9 @@ import { houseOutline, retainedText } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
+import { RoofLineFields } from './RoofLineFields'
+import './roofs-stairs.css'
+import { roofEavesRL, wallsUnderRoofline } from '../plan/roofline'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -108,7 +112,7 @@ export function WallOptions() {
   return (
     <div className="tool-options">
       <label className="num">
-        <span>New walls</span>
+        <span>Wall type</span>
         <select
           value={WALL_PRESETS.findIndex(p => p.thickness === wallStyle.thickness && p.kind === wallStyle.kind)}
           onChange={e => {
@@ -169,12 +173,21 @@ export function OpeningOptions({ kind: tool }: { kind: OpeningKind }) {
   )
 }
 
+/** What each kind of area does, so a new slab's levelled ground is never a surprise. */
+const AREA_NOTES: Record<AreaKind, string> = {
+  slab: 'A concrete slab levels the ground under it: it adds to the cut and fill.',
+  driveway: 'Follows the finished ground, so it leaves the ground as it is.',
+  deck: 'Stands on posts, so it leaves the ground as it is.',
+  garden: 'An outline on the ground for a lawn or garden bed. It leaves the ground as it is.',
+}
+
 export function AreaOptions() {
   const areaDefault = usePlan(s => s.areaDefault)
   const st = usePlan.getState()
   return (
     <div className="tool-options">
-      <Select label="New areas" value={areaDefault} options={AREA_KINDS} onChange={k => st.setAreaDefault(k)} />
+      <Select label="Type" value={areaDefault} options={AREA_KINDS} onChange={k => st.setAreaDefault(k)} />
+      <p className="muted small">{AREA_NOTES[areaDefault]}</p>
     </div>
   )
 }
@@ -185,7 +198,7 @@ export function RoofOptions() {
   return (
     <div className="tool-options">
       <RoofModeSwitch />
-      <Select label="New roofs" value={roofDefaults.type} options={ROOF_TYPES} onChange={type => st.setRoofDefaults({ ...roofDefaults, type })} />
+      <Select label="Type" value={roofDefaults.type} options={ROOF_TYPES} onChange={type => st.setRoofDefaults({ ...roofDefaults, type })} />
       <Num label="Pitch" unit="°" value={roofDefaults.pitch} min={1} onCommit={pitch => st.setRoofDefaults({ ...roofDefaults, pitch: Math.min(pitch, 75) })} />
       <Num label="Overhang" unit="mm" value={roofDefaults.overhang} min={0} onCommit={overhang => st.setRoofDefaults({ ...roofDefaults, overhang })} />
     </div>
@@ -197,7 +210,7 @@ export function StairOptions() {
   const st = usePlan.getState()
   return (
     <div className="tool-options">
-      <Select label="New stairs" value={stairDefaults.shape} options={STAIR_SHAPES} onChange={shape => st.setStairDefaults({ ...stairDefaults, shape })} />
+      <Select label="Shape" value={stairDefaults.shape} options={STAIR_SHAPES} onChange={shape => st.setStairDefaults({ ...stairDefaults, shape })} />
       <Num label="Width" unit="mm" value={stairDefaults.width} min={0.6} onCommit={width => st.setStairDefaults({ ...stairDefaults, width })} />
       {stairDefaults.shape !== 'straight' && (
         <Select
@@ -321,8 +334,9 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     if (isRetaining(w)) return <RetainingWallPanel wall={w} plan={plan} survey={survey} terrain={terrain} earth={earth} />
     return (
       <section className="selection">
-        <h2>{isRetaining(w) ? 'Retaining wall' : 'Wall'}</h2>
+        <h2>{w.kind === 'internal' ? 'Internal wall' : 'External wall'}</h2>
         <WallsHere wall={w} plan={plan} />
+        <WallFacts plan={plan} wall={w} groundAt={groundAt} />
         <Num label="Length (centreline)" unit="mm" value={wallLength(w)} min={0.05} onCommit={len => st.commit(p => setWallLength(p, w.id, len))} />
         <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
         <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />
@@ -401,14 +415,13 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const r = plan.roofs.find(x => x.id === selection.id)
     if (!r) return null
     const g = roofGeometry(r)
-    const level = levelById(plan, r.level)
-    const base = floorRL(plan, r.level) + (level?.height ?? 0)
+    const base = roofEavesRL(plan, r)
     // Height above the natural ground directly below, checked at every corner and ridge point.
     const aboveGround = roofAboveGround(plan, r, g, survey, terrain)
     const set = (patch: Partial<typeof r>) => st.commit(p => updateRoof(p, r.id, patch))
     const fitToWalls = () => {
       const c = centroidOf(r.pts)
-      const outlines = levelOutlines(plan.walls.filter(w => w.level === r.level))
+      const outlines = levelOutlines(wallsUnderRoofline(plan, r.level))
       const o = outlines.find(x => pointInPolygon(c[0], c[1], x)) ?? outlines[0]
       if (!o) return
       const len = o.map((p, i) => Math.hypot(o[(i + 1) % o.length][0] - p[0], o[(i + 1) % o.length][1] - p[1]))
@@ -420,6 +433,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <Select<RoofType> label="Type" value={r.type} options={ROOF_TYPES} onChange={type => set({ type })} />
         {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} onCommit={pitch => set({ pitch: Math.min(pitch, 75) })} />}
         <Num label="Overhang" unit="mm" value={r.overhang} min={0} onCommit={overhang => set({ overhang })} />
+        <RoofLineFields plan={plan} roof={r} />
         {r.type === 'gable' && <p className="muted small">Click the G and H markers on the plan to choose which ends are gables (G) and which are hipped (H).</p>}
         {r.type === 'skillion' && <p className="muted small">Click a marker on the plan to choose the low side. The roof rises away from it.</p>}
         {g.error ? (
@@ -434,7 +448,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <p className="muted small">Height above ground is the most the roof rises above the natural ground directly under it.</p>
           </>
         )}
-        <p className="muted small">The roof sits on top of this level's walls. Drag its corners to reshape it.</p>
+        <p className="muted small">Drag its corners to reshape it.</p>
         <div className="row">
           <button className="secondary" onClick={fitToWalls}>
             Fit to walls
@@ -456,7 +470,8 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const L = stairLayout(s)
     const bottom = floorRL(plan, s.level) + s.base
     const top = bottom + s.rise
-    const comfort = stairComfort(s)
+    const rules = stairRules(s)
+    const joins = stairJoins(plan, s)
     const counts = stairCounts(s)
     const set = (patch: Partial<typeof s>) => st.commit(p => updateStair(p, s.id, patch))
     const length = s.shape === 'straight' ? (L.risers - 1) * s.going : null
@@ -474,6 +489,20 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     return (
       <section className="selection">
         <h2>Stair</h2>
+        <div className="stair-joins">
+          <span>
+            {joins.joined ? 'Joins' : 'From'} <b>{joins.from}</b> → <b>{joins.to}</b>
+          </span>
+          <strong>{joins.risers}</strong>
+        </div>
+        <ul className="stair-rules" aria-label="NCC stair limits">
+          {rules.map(r => (
+            <li key={r.id} className={r.ok ? 'ok' : 'bad'}>
+              {r.ok ? '✓' : '✗'} {r.label} {Math.round(r.value * 1000)} mm <span>({Math.round(r.range[0] * 1000)}–{Math.round(r.range[1] * 1000)})</span>
+            </li>
+          ))}
+        </ul>
+        {rules.some(r => !r.ok) && <p className="notice small">{stairRuleAdvice(rules)}</p>}
         <Select<StairShape> label="Shape" value={s.shape} options={STAIR_SHAPES} onChange={shape => set({ shape })} />
         {s.shape !== 'straight' && (
           <Select
@@ -496,12 +525,10 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         )}
         <Num label="Direction" unit="°" value={s.angle} onCommit={angle => set({ angle: ((angle % 360) + 360) % 360 })} />
         <dl className="stats">
-          <FragmentRow label="Risers" value={counts.risers} />
           <FragmentRow label="Treads" value={counts.treads} />
           {length !== null && <FragmentRow label="Length" value={`${length.toFixed(2)} m`} />}
-          <FragmentRow label="2 risers + going" value={`${Math.round(comfort.value * 1000)} mm`} strong={!comfort.ok} />
         </dl>
-        {!comfort.ok && <p className="notice small">Comfortable stairs usually have 2 risers + going between 550 and 700 mm. Change the tread depth to bring it into range.</p>}
+        <p className="muted small">The limits are the NCC’s for a house stair: risers 115–190 mm, going 240–355 mm, and 2 risers + going 550–700 mm, the range people find comfortable.</p>
         <div className="row">
           <button className="secondary" onClick={() => set({ angle: (s.angle + 90) % 360 })}>
             Rotate 90°
@@ -553,6 +580,41 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       <div className="row">{del}</div>
     </section>
   )
+}
+
+/** A house wall's level, its height and top, and how far the ground comes up it. */
+function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; groundAt: (p: Vec2) => number }) {
+  const level = levelById(plan, w.level)
+  if (!level) return null
+  const floor = floorRL(plan, w.level)
+  // Inside walls stand on the floor; only an outside wall can have earth against it.
+  const outside = w.kind === 'external'
+  const earth = outside ? earthAgainstWall(w, floor, groundAt) : -Infinity
+  const buried = earth > 0.05
+  return (
+    <>
+      <dl className="stats">
+        <FragmentRow label="On" value={`${level.name}, floor RL ${floor.toFixed(2)}`} />
+        <FragmentRow label="Height" value={`${Math.round(level.height * 1000)} mm, top RL ${(floor + level.height).toFixed(2)}`} />
+        {outside && <FragmentRow label="Ground against it" value={buried ? `up to ${Math.round(earth * 1000)} mm above the floor` : 'below the floor'} strong={buried} />}
+      </dl>
+      {buried && (
+        <p className="notice small">
+          Earth comes up this wall. A wall holding back earth has to be built as a retaining wall (tanked masonry or concrete), or the ground cut back
+          clear of it.
+        </p>
+      )}
+      <p className="muted small">Its height is {level.name}’s ceiling height; change it in Floors.</p>
+    </>
+  )
+}
+
+/** What to change when a stair is outside the NCC's limits, in a sentence. */
+function stairRuleAdvice(rules: StairRule[]): string {
+  const bad = new Set(rules.filter(r => !r.ok).map(r => r.id))
+  if (bad.has('riser')) return 'Its risers are under 115 mm: the climb is too small for a stair. Use a ramp, or start the stair lower.'
+  if (bad.has('going')) return 'Its tread depth (going) is outside 240–355 mm. Change it to bring the stair into range.'
+  return 'Comfortable stairs have 2 risers + going between 550 and 700 mm. Change the tread depth to bring it into range.'
 }
 
 /** A driveway's grade along its length and across it, with whether a car can manage it. */

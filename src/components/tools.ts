@@ -9,17 +9,19 @@ export interface ToolDef {
   icon?: string
   /** Lives under an area's More instead of on the tool rail (rarely used). */
   more?: boolean
+  /** Its name under the icon on the rail, when `label` is too long to fit. */
+  short?: string
 }
 
 /** Every plan tool, in order. The tool rail renders from this list. */
 export const TOOLS: ToolDef[] = [
   { id: 'select', label: 'Select', key: 'V', icon: 'select' },
   { id: 'wall', label: 'Wall', key: 'W', icon: 'wall' },
-  { id: 'retaining', label: 'Retaining wall', key: 'T', icon: 'retain' },
+  { id: 'retaining', label: 'Retaining wall', key: 'T', icon: 'retain', short: 'Retaining' },
   { id: 'door', label: 'Door', key: 'D', icon: 'door' },
   { id: 'window', label: 'Window', key: 'N', icon: 'window' },
-  { id: 'opening', label: 'Opening', key: 'O', icon: 'opening', more: true },
-  { id: 'garage', label: 'Garage door', key: 'G', icon: 'garage', more: true },
+  { id: 'opening', label: 'Wall opening', key: 'O', icon: 'opening', short: 'Opening' },
+  { id: 'garage', label: 'Garage door', key: 'G', icon: 'garage', short: 'Garage' },
   { id: 'room', label: 'Room', key: 'R', icon: 'room' },
   { id: 'area', label: 'Area', key: 'A', icon: 'area' },
   { id: 'roof', label: 'Roof', key: 'F', icon: 'roof' },

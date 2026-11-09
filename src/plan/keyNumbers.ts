@@ -6,9 +6,10 @@ import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces, roomShape } from './geometry'
-import { floorRL, levelById, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room } from './model'
+import { floorRL, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
 import { roofGeometry, type RoofGeometry } from './roof'
+import { roofEavesRL } from './roofline'
 
 export interface LevelSummary {
   level: Level
@@ -37,8 +38,7 @@ export function roomArea(plan: Plan, room: Room): number | null {
 /** The most a roof rises above the natural ground directly under it, checked at every corner and ridge point. */
 export function roofAboveGround(plan: Plan, r: Roof, g: RoofGeometry, survey: Survey, terrain: Terrain): number {
   const pl = plan.placement
-  const level = levelById(plan, r.level)
-  const base = floorRL(plan, r.level) + (level?.height ?? 0)
+  const base = roofEavesRL(plan, r)
   let aboveGround = 0
   for (let i = 0; i < g.mesh.pos.length; i += 3) {
     const q = toSite([g.mesh.pos[i], g.mesh.pos[i + 1]], pl, survey.origin)
@@ -156,3 +156,22 @@ export function outOfBalance(plan: Plan, prep: PreparedEarthworks): boolean {
 
 /** Retaining walls from this height (ground to ground) need an engineer: the app's one figure, from the checks. */
 export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
+
+/**
+ * How far the ground comes up a house wall above its floor (m): the most, along both faces, of
+ * the ground just outside each face less the floor. Negative when the ground stays below the floor.
+ */
+export function earthAgainstWall(w: Wall, floor: number, groundAt: (p: Vec2) => number): number {
+  const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])
+  if (len < 1e-6) return -Infinity
+  const d: Vec2 = [(w.b[0] - w.a[0]) / len, (w.b[1] - w.a[1]) / len]
+  const off = w.thickness / 2 + 0.2
+  const n = Math.max(2, Math.ceil(len / 0.5))
+  let most = -Infinity
+  for (let i = 0; i <= n; i++) {
+    const t = (len * i) / n
+    const p: Vec2 = [w.a[0] + d[0] * t, w.a[1] + d[1] * t]
+    for (const s of [1, -1]) most = Math.max(most, groundAt([p[0] - d[1] * off * s, p[1] + d[0] * off * s]) - floor)
+  }
+  return most
+}

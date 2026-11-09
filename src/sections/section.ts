@@ -18,13 +18,16 @@ import {
   sortedLevels,
   toSite,
   wallDir,
+  type Plan,
   type SectionLine,
 } from '../plan/model'
 import { pierOutlines } from '../plan/platforms'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { roofGeometry, type RoofMesh } from '../plan/roof'
+import { stairLayout } from '../plan/stairs'
 import { compassWord, intersectSpans, postStations, spansInside, stations, subtractSpans, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
+import { roofEavesRL } from '../plan/roofline'
 
 /** A floor where the cut passes through it. */
 export interface CutFloor {
@@ -58,6 +61,8 @@ export interface SectionDrawing {
   retaining: Box[]
   /** Each roof the line cuts, as a closed outline. */
   roofs: Pt[][]
+  /** Stair flights: those the line cuts, and those beyond it (in the direction it looks), drawn faintly. */
+  stairs: SectionStair[]
   /** RLs to label on the left. */
   levels: LevelMark[]
   /** Which way each end of the line points, in words: [left end, right end]. */
@@ -66,6 +71,17 @@ export interface SectionDrawing {
   looking: string
   zMin: number
   zMax: number
+}
+
+/** A stair flight on a section: its treads and risers, down to the bottom of the stair. */
+export interface SectionStair {
+  id: string
+  /** The line passes through it; otherwise it's beyond the line, seen past it. */
+  cut: boolean
+  /** Closed outlines, one per run of steps the drawing shows side by side. */
+  outlines: Pt[][]
+  /** Cut stairs: "17 risers × 176 mm", for under the flight. */
+  label?: string
 }
 
 const PIER_W = 0.1
@@ -281,12 +297,14 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     const level = levelById(plan, r.level)
     const g = roofGeometry(r)
     if (!level || g.error) continue
-    const base = floorRL(plan, level.id) + level.height
+    const base = roofEavesRL(plan, r)
     for (const run of roofProfile(g.mesh, a, b)) {
       const top = run.map(([s, z]): Pt => [s, base + z])
       roofs.push([...top, [top[top.length - 1][0], base], [top[0][0], base]])
     }
   }
+
+  const stairs = sectionStairs(plan, a, b)
 
   const marks: LevelMark[] = floors.map(f => ({ rl: f.rl, text: 'FFL', name: f.name, at: f.spans[0][0] }))
   if (roofs.length) {
@@ -300,6 +318,7 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     ...[...slabs, ...framing, ...walls, ...retaining, ...piers].flatMap(x => [x.z0, x.z1]),
     ...floors.flatMap(f => [f.rl, f.ceiling]),
     ...roofs.flat().map(p => p[1]),
+    ...stairs.flatMap(st => st.outlines.flat().map(p => p[1])),
   ]
   const zMin = zs.length ? Math.min(...zs) : floorRL(plan) - 1
   const zMax = zs.length ? Math.max(...zs) : floorRL(plan) + 3
@@ -319,10 +338,82 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     walls,
     retaining,
     roofs,
+    stairs,
     levels: marks,
     ends: [compassWord([-dir[0], -dir[1]], rot), compassWord(dir, rot)],
     looking: compassWord([-dir[1], dir[0]], rot),
     zMin,
     zMax,
   }
+}
+
+/**
+ * The stairs a section shows. One the line passes through is cut: each tread it crosses, from the
+ * bottom of the stair to the tread's top, so a cut along the flight shows its treads and risers.
+ * One wholly on the side the section looks towards is seen beyond the cut: each tread squared onto
+ * the line, so it reads as the flight's side, or its risers stacked when it runs away from you.
+ */
+export function sectionStairs(plan: Plan, a: Vec2, b: Vec2): SectionStair[] {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+  if (len < 1e-9) return []
+  const dir: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]
+  // The section looks to the line's left.
+  const look: Vec2 = [-dir[1], dir[0]]
+  const along = (p: Vec2) => (p[0] - a[0]) * dir[0] + (p[1] - a[1]) * dir[1]
+  const depth = (p: Vec2) => (p[0] - a[0]) * look[0] + (p[1] - a[1]) * look[1]
+  const out: SectionStair[] = []
+  for (const st of plan.stairs) {
+    if (!levelById(plan, st.level)) continue
+    const L = stairLayout(st)
+    const bottom = floorRL(plan, st.level) + st.base
+    const cutBoxes: Box[] = []
+    for (const step of L.steps) for (const [s0, s1] of spansInside(a, b, [step.pts])) cutBoxes.push({ s0, s1, z0: bottom, z1: bottom + step.top })
+    if (cutBoxes.length) {
+      out.push({ id: st.id, cut: true, outlines: stepOutlines(cutBoxes, bottom), label: `${L.risers} risers × ${Math.round(L.riser * 1000)} mm` })
+      continue
+    }
+    if (!L.outline.every(p => depth(p) > 1e-6)) continue
+    const seen: Box[] = []
+    for (const step of L.steps) {
+      const ss = step.pts.map(along)
+      const s0 = Math.max(0, Math.min(...ss))
+      const s1 = Math.min(len, Math.max(...ss))
+      if (s1 - s0 > 1e-6) seen.push({ s0, s1, z0: bottom, z1: bottom + step.top })
+    }
+    if (seen.length) out.push({ id: st.id, cut: false, outlines: stepOutlines(seen, bottom) })
+  }
+  return out
+}
+
+/**
+ * The outline of steps seen side on: the highest step over each point across, stepping up and
+ * down where the steps do, closed down to `z0`. Steps that don't touch make separate outlines.
+ */
+export function stepOutlines(boxes: Box[], z0: number): Pt[][] {
+  const xs = [...new Set(boxes.flatMap(b => [b.s0, b.s1]))].sort((p, q) => p - q)
+  const runs: Pt[][] = []
+  let run: Pt[] | null = null
+  let last = NaN
+  for (let i = 0; i + 1 < xs.length; i++) {
+    const x0 = xs[i]
+    const x1 = xs[i + 1]
+    if (x1 - x0 < 1e-9) continue
+    const m = (x0 + x1) / 2
+    const over = boxes.filter(b => b.s0 <= m && b.s1 >= m)
+    if (!over.length) {
+      if (run) run.push([run[run.length - 1][0], z0])
+      run = null
+      continue
+    }
+    const z = Math.max(...over.map(b => b.z1))
+    if (!run) {
+      run = [[x0, z0], [x0, z]]
+      runs.push(run)
+    } else if (Math.abs(z - last) > 1e-9) run.push([x0, z])
+    run.push([x1, z])
+    last = z
+  }
+  if (run) run.push([run[run.length - 1][0], z0])
+  // Drop points in the middle of a straight run.
+  return runs.map(r => r.filter((p, i) => i === 0 || i === r.length - 1 || !((p[0] === r[i - 1][0] && p[0] === r[i + 1][0]) || (p[1] === r[i - 1][1] && p[1] === r[i + 1][1]))))
 }

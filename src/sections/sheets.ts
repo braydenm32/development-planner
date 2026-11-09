@@ -48,6 +48,8 @@ const SHAPES: Record<ShapeStyle, { fill: RGB; stroke?: RGB; width?: number }> = 
   'wall-cut': { fill: [0.28, 0.3, 0.33] },
   retaining: { fill: [0.73, 0.67, 0.56], stroke: [0.43, 0.37, 0.29], width: 0.2 },
   'roof-cut': { fill: [0.8, 0.82, 0.84], stroke: DARK, width: 0.25 },
+  'stair-cut': { fill: [0.96, 0.95, 0.92], stroke: DARK, width: 0.25 },
+
   'wall-face': { fill: [1, 1, 1], stroke: DARK, width: 0.25 },
   'roof-face': { fill: [0.91, 0.91, 0.93], stroke: [0.91, 0.91, 0.93], width: 0.1 },
   window: { fill: [0.87, 0.91, 0.95], stroke: DARK, width: 0.18 },
@@ -60,6 +62,7 @@ const SHAPES: Record<ShapeStyle, { fill: RGB; stroke?: RGB; width?: number }> = 
 
 const LINES: Record<LineStyle, { stroke: RGB; width: number; dash?: number[] }> = {
   natural: { stroke: MUTED, width: 0.3, dash: [1.4, 1] },
+  'stair-beyond': { stroke: [0.62, 0.65, 0.69], width: 0.15 },
   finished: { stroke: INK, width: 0.45 },
   ceiling: { stroke: [0.6, 0.63, 0.66], width: 0.2 },
   level: { stroke: [0.72, 0.75, 0.78], width: 0.15, dash: [0.6, 0.9] },

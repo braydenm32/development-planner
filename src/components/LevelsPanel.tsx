@@ -17,6 +17,7 @@ import { usePlan, type Selection } from '../plan/store'
 import { selectOnPlan } from '../shell/useSite'
 import { Num, TextField } from './fields'
 import { LevelFloorType } from './FloorTypeFields'
+import { CeilingLineUp } from './RoofLineFields'
 import { FragmentRow } from './PlanSections'
 import './levels.css'
 
@@ -73,6 +74,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
                 />
               )}
               <Num label="Ceiling height" unit="mm" value={l.height} min={1.8} onCommit={height => st.commit(p => updateLevel(p, l.id, { height }))} />
+              <CeilingLineUp plan={plan} levelId={l.id} />
               <LevelFloorType key={l.id} plan={plan} level={l.id} onGround={grounded.has(l.id)} />
               <div className="row floor-from-contour">
                 <button

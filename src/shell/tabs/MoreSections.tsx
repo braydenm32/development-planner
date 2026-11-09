@@ -3,7 +3,6 @@
 import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
-  OpeningOptions,
   PlacementOriginFields,
   PlanFileBody,
   StairOptions,
@@ -19,7 +18,6 @@ import { useProjects } from '../../projects/session'
 import { layersKey, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
-import { usePlan } from '../../plan/store'
 import { useShell } from '../context'
 import { ShortcutList } from '../KeyboardHelp'
 import { pickTool, useLoaded } from '../useSite'
@@ -97,37 +95,6 @@ export function WallPresetSection() {
           Draw walls
         </button>
       </div>
-    </>
-  )
-}
-
-function ToolButton({ tool, label, keyName }: { tool: 'opening' | 'garage'; label: string; keyName: string }) {
-  const current = usePlan(s => s.tool)
-  return (
-    <div className="row">
-      <button className={`secondary${current === tool ? ' on' : ''}`} aria-pressed={current === tool} onClick={() => pickTool(tool)}>
-        {label} <kbd>{keyName}</kbd>
-      </button>
-    </div>
-  )
-}
-
-export function OpeningToolSection() {
-  return (
-    <>
-      <p className="muted small">An opening is a gap in a wall with no door: an archway or an open carport side. Click on a wall to place one.</p>
-      <ToolButton tool="opening" label="Use the Opening tool" keyName="O" />
-      <OpeningOptions kind="opening" />
-    </>
-  )
-}
-
-export function GarageDoorToolSection() {
-  return (
-    <>
-      <p className="muted small">A garage door has no swing: a dashed panel across the opening on the plan, and a closed panel in 3D. Click on a wall to place one.</p>
-      <ToolButton tool="garage" label="Use the Garage door tool" keyName="G" />
-      <OpeningOptions kind="garage" />
     </>
   )
 }

@@ -1,0 +1,64 @@
+/* The stair panel's "Joins" line and its NCC limits, in the selection panel. */
+
+.stair-joins {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+
+.stair-joins span {
+  color: var(--muted);
+}
+
+.stair-joins span b {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stair-joins strong {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stair-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.stair-rules li {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stair-rules li span {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.stair-rules li.ok {
+  background: #e7f2ec;
+  color: #24704a;
+}
+
+.stair-rules li.bad {
+  border: 1px solid var(--warn-line, #f0deae);
+  background: var(--warn-bg, #fff6e0);
+  color: var(--warn-text, #7a5300);
+}
+
+body:has(.app-shell.phone) .stair-rules li {
+  font-size: 14px;
+}
