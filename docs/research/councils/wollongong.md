@@ -236,7 +236,7 @@ No driveway grade numbers appear in B1, E3 or the crossing form; they're in coun
 | **C33** (maximum internal grading, houses) | The driveway is graded on its **shortest side**, kerb line to garage. Max **2.5%** across the 2.72 m from the kerb line, a 2.0 m vertical curve to the boundary, then max **25% (1 in 4)**, then a 2.0 m vertical curve into the parking area. Garage floor (D) relative to the gutter, with X the horizontal distance from kerb line to garage front: **uphill lots** at most D = 0.25X − 0.87 m (C = 0.25X − 1.16 m at the start of the last vertical curve; boundary point B = 0.53 m); **downhill lots** no lower than D = −0.25X + 1.37 m (C = −0.25X + 1.65 m; B = −0.04 m). Point A, 2.72 m in, is 0.22 m either way. The table runs from X = 9 to 30.5 m; subtract 0.02 m for roll kerbs. |
 | LD01 (tree protection) | See Trees below. |
 
-So a domestic driveway in Wollongong is checked as a long section: 2.5% across the verge, 2 m transitions, 25% maximum, and a garage level within C33's limit. On a battle-axe lot X includes the access handle, so it will often exceed the table and needs the formula.
+So a domestic driveway in Wollongong is checked as a long section: 2.5% across the verge, 2 m transitions, 25% maximum, and a garage level within C33's limit. The app's driveway crossing checks use C30's layback, footpath and crossing widths and C33's grades (`crossing` in `src/checks/councils/wollongong.ts`); C33's garage-level table isn't checked yet. On a battle-axe lot X includes the access handle, so it will often exceed the table and needs the formula.
 
 ### Fences and pools
 

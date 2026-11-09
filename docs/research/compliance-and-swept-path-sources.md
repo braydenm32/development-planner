@@ -355,6 +355,24 @@ These are standard vehicle kinematics, written up here as the method to implemen
 | [QuickTurn2](https://github.com/RFLTools/QuickTurn2) | No licence (all rights reserved), AutoLISP | Don't copy code. Its method (short straight steps, heading updated from the previous step, trailers follow the hitch) cites *Mathematical and Computer Modelling* 49(9–10), 2049–2060 (2009). |
 | [Austroads AP-G34-13](https://austroads.gov.au/publications/road-design/ap-g34-13), Design Vehicles and Turning Path Templates | Free with registration; marked superseded (edition 3.0, 2013) | Larger vehicles (5.2 m passenger car, 8.8 m service vehicle, 12.5 m single unit truck). Only needed for a removalist truck or fire truck check. |
 
+### What the driveway crossing check uses (Nov 2026)
+
+The first two steps of the build order below are in the app: Earthworks › Driveway draws the long section from the garage floor to the gutter, and Design › Checks lists five driveway rows (`src/checks/crossing.ts`, geometry in `src/plan/crossing.ts`). Council numbers come first, from the council tables in `src/checks/councils/` (Wollongong's drawings 7000-C30, C31 and C33; Blue Mountains DCP E2.3.3), and AS/NZS 2890.1 fills the rest. Nothing new was read for it: the network was closed to this session, so everything below is from the notes above, and what the app had to assume is said as such.
+
+| What | Value the app uses | Mark |
+| --- | --- | --- |
+| Steepest grade on the property | 25%, or the council's (Wollongong C33, Blue Mountains E2.3.3 C4 "generally") | secondary (AS), read (councils) |
+| Non-slip finish | Over 1 in 5 (20%) warns | secondary |
+| Changes of grade | A transition over 12.5% at a summit or 15% at a sag (Blue Mountains: 12.5% either way); about 2 m long up to an 18% change, 3 m beyond (Wollongong and Blue Mountains: at least 2 m). Fails when the stretch either side is too short to hold them. | secondary (AS), read (councils) |
+| Footpath crossing | Wollongong: 2.5% from the layback to the boundary (C30, C33), a warning outside it since C33 allows a 2 m curve to the boundary; Blue Mountains: up to 5% (C4, "generally"); otherwise about 1 in 33, within 50 mm of that level at the boundary. Falling into the lot fails. | read (councils), secondary (AS) |
+| Layback | Wollongong C30: a 450 mm kerb break (taken as level, its rise isn't on the drawing) then 1.52 m at 1 in 8. Used as the typical layback for councils without a drawing in the app. | read (Wollongong), **assumed** elsewhere |
+| Footpath width | 3.5 m (the footpath on Wollongong's C30) until the person types theirs | **assumed** |
+| Kerb level | Typed; else the survey's level at the boundary, down the standard crossing; else the state's 5 m elevation model at the kerb point (±0.9 m), read only when asked; else "Needs a fact" | |
+| Ground clearance template | B99, 120 mm clearance (2004 foreword, read), wheelbase 3.05 m and length 5.20 m (unverified), overhangs 0.92 and 1.23 m (the remaining 2.15 m split in the B85's 0.82 : 1.10 proportion, worked out), knife-edge wheels. The template's approach and departure angles weren't read: the app takes 10° each, lower than most cars, so it errs towards a scrape. Run both ways round in 50 mm steps, from the garage floor (flat behind) to the road (rising 3% from the gutter, **assumed**). | unverified |
+| Turning in | B85 4.9 × 1.9 m, overhang 0.82 m, wheelbase 2.98 m, 11.5 m turning circle (draft, secondary); the rear axle's full-lock radius follows from the turning circle (method above). It comes along the near side of the road 0.5 m off the kerb (**assumed**) and turns in at full lock; the inner rear wheel has to stay on the crossing at the kerb (Wollongong 5.6 m, else the drive's width plus Wollongong's 1.3 m splays, **assumed**) and the drive at the boundary. Garage door at least 2.5 m (secondary), and narrower than the car plus 300 mm fails. Never a pass: a full swept path, bends, reversing out and obstacles aren't checked, so the best it says is "Check with the designer". | secondary |
+
+Still wanted from a licensed copy of AS/NZS 2890.1:2004 (or a council that restates it): the B99's overhangs and the template's approach and departure angles, the first-metres-inside-the-boundary grade for domestic driveways if there is one, and the B85's 2004 turning figures. And each council's crossing drawing, for its layback, footpath fall and crossing widths.
+
 ### A possible build order
 
 1. Static checks with what the app already has: driveway grade (already flagged at over 25%), width, grade changes along the centreline, garage door width against cl 3.16, space size.
@@ -377,7 +395,7 @@ Mapped against the plan model in `src/plan/model.ts` and the existing calculatio
 | Front, side and rear setbacks | Housing Code cl 3.10; DCP | Distance from the house to each boundary edge | Boundary roles (primary road, secondary road, side, rear), height-dependent side and rear setbacks (wall height above ground along each wall), eave encroachments, neighbours' setbacks. |
 | Garage door width and garage setback | Housing Code cl 3.16 | Openings with widths on walls | Mark a room or opening as the garage; know the lot width at the building line. |
 | Excavation and fill limits by distance to boundary | Housing Code cl 3.30 | Cut and fill depths on a 0.25 m grid, batters, retaining walls, warning when a batter meets a boundary | Test each cell's cut depth against its distance to the nearest boundary (1, 2, 3 m bands); fill over 1 m outside the footprint; the 50% fill-outside-footprint cap; retaining walls 2 m apart; toe or top of batter more than 1 m from side and rear boundaries; flag supports over 600 mm for an engineer. |
-| Driveway grade | AS/NZS 2890.1; DCP | Steepest grade per driveway, flagged over 25% | Grade along the centreline and grade changes (12.5% summit, 15% sag), width, the footpath crossing, the ground clearance check, swept paths. |
+| Driveway grade | AS/NZS 2890.1; DCP | Steepest grade, the footpath crossing, changes of grade and transitions, the B99 ground clearance template and a full-lock B85 turn in (see above) | A full swept path; the template's real angles; bends in the drive; each council's crossing drawing. |
 | Stairs | NCC Housing Provisions | Risers capped at 190 mm, 2R + G of 550 to 700 mm | Confirm the NCC figures and add goings, handrails and landings. |
 | Balustrades | NCC Housing Provisions | Deck and slab tops, terrain | Flag edges where the fall to the ground is over 1 m. |
 | Privacy | Housing Code cl 3.12; DCP | Windows with sill heights on walls; floor levels; boundary distances | Floor level above ground at each window and its distance to the side or rear boundary. |

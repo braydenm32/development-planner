@@ -64,11 +64,17 @@ export const BLUE_MOUNTAINS: Council = {
   // Read and not there: Part B sets no storey limit and no upper-floor rear rule beyond the two-storey setbacks.
   absent: ['storeys', 'rearUpper'],
 
+  // E2.3.3: grades within the lot and across the verge, and transitions; "generally", so more warns.
+  crossing: {
+    maxGrade: { max: 0.25, generally: true, source: { in: 'e', clause: 'E2.3.3 C3, C4', sure: 'read' } },
+    footpath: { maxFall: 0.05, source: { in: 'e', clause: 'E2.3.3 C4', sure: 'read' } },
+    transitions: { change: 0.125, length: 2, source: { in: 'e', clause: 'E2.3.3 C5', sure: 'read' } },
+  },
+
   notChecked: [
     'Zone and the LEP map values (height, floor space ratio, overlays)',
     'Building width: at most 80% of the lot’s width (B2.3 C3(a))',
     'Secondary frontage on a corner lot: 3 m (B2.3 C3(c))',
-    'Driveways: no steeper than 25% in the lot and 5% across the verge (E2.3.3)',
     'Zones C3 and C4: the LEP’s own site cover (cl 4.4A) instead of the R2 figures here',
   ],
 }

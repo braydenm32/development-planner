@@ -9,6 +9,7 @@ import {
   FloorLevelField,
   GroundUnderHouse,
 } from '../../components/PlanSections'
+import { DrivewayCrossing } from '../../components/DrivewayCrossing'
 import { DrivewayLevels } from '../../components/DrivewayLevels'
 import { usePlacementInfo, useRetainingWalls } from '../../components/planNumbers'
 import { areaKind } from '../../plan/model'
@@ -89,6 +90,7 @@ export function DrivewayTab() {
               </button>
             </h3>
             <DrivewayLevels plan={d.plan} area={a} survey={d.survey} terrain={d.terrain} earth={d.earth} />
+            <DrivewayCrossing plan={d.plan} area={a} survey={d.survey} terrain={d.terrain} earth={d.earth} />
             <DrivewayGrade plan={d.plan} area={a} survey={d.survey} terrain={d.terrain} earth={d.earth} />
           </div>
         )
@@ -101,7 +103,7 @@ export function DrivewayTab() {
     </>
   ) : (
     <>
-      <p className="muted">No driveway yet. Draw one with the Area tool, kind Driveway, and its grade shows here.</p>
+      <p className="muted">No driveway yet. Draw one with the Area tool, kind Driveway, and its grade, its footpath crossing and whether a car gets in show here.</p>
       <div className="row">
         <button className="secondary" onClick={draw}>
           Draw a driveway

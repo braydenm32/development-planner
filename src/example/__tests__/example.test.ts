@@ -77,12 +77,13 @@ describe('the example project', () => {
     expect(streetSideOf(plan, site.survey.boundary)).toBe('S')
   })
 
-  it('passes the CDC checks, with one thing to check (the retaining wall)', () => {
+  it('passes the CDC checks, with one thing to check (the retaining wall) and the turn in for the designer', () => {
     const ms = measure({ plan, survey: site.survey, terrain: site.terrain, earth })
     const rs = runChecks(ms, 'cdc')
     expect(rs.filter(r => r.status === 'fail').map(r => r.title)).toEqual([])
     expect(rs.filter(r => r.status === 'unknown').map(r => r.title)).toEqual([])
-    expect(rs.filter(r => r.status === 'warn').map(r => r.title)).toEqual(['Retaining walls'])
+    // Turning in from the road is never passed: a full swept path is the designer's (src/checks/crossing.ts).
+    expect(rs.filter(r => r.status === 'warn').map(r => r.title)).toEqual(['Retaining walls', 'Turning in (B85 car)'])
     expect(countChecks(rs).pass).toBeGreaterThanOrEqual(10)
     // A split level beside the living level is one storey, so the height is from the roof.
     expect(tallestRoof(plan, site.survey, site.terrain)!.height).toBeLessThan(8.5)

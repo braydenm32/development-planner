@@ -24,7 +24,7 @@ function onSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
 const dist = (a: Vec2, b: Vec2) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
 /** How far a point is from a set of outlines: 0 inside one, else to the nearest edge. */
-function distToRings(p: Vec2, rings: Vec2[][]): number {
+export function distToRings(p: Vec2, rings: Vec2[][]): number {
   let best = Infinity
   for (const r of rings) {
     if (r.length >= 3 && pointInPolygon(p[0], p[1], r)) return 0

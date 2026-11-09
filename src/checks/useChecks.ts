@@ -12,6 +12,7 @@ import type { CheckResult, Pathway } from './types'
 import { mapChecks } from '../map/checks'
 import { useMap } from '../map/store'
 import type { PlanningFacts } from '../map/planning'
+import { useProjects } from '../projects/session'
 
 export interface Checks {
   pathway: Pathway
@@ -30,7 +31,9 @@ export function useChecks(plan: Plan, survey: Survey, terrain: Terrain, earth: E
   const planning = useMap(s => s.place?.planning ?? null)
   // The sun waits for the design to settle (src/sun/useSun.ts), so it joins the rest afterwards.
   const sun = useSunFacts(plan, survey, terrain, earth)
-  const base = useMemo(() => measure({ plan, survey, terrain, earth, trees }), [plan, survey, terrain, earth, trees])
+  // Ground from the state's elevation data gives no survey level at the street boundary.
+  const dem = !!useProjects().opened?.survey?.dem
+  const base = useMemo(() => measure({ plan, survey, terrain, earth, trees, dem }), [plan, survey, terrain, earth, trees, dem])
   const measures = useMemo(() => ({ ...base, sun }), [base, sun])
   return useMemo(() => {
     const pathway = measures.settings.pathway

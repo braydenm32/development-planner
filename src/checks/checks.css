@@ -210,3 +210,12 @@
 .app-shell.phone .segmented-choice button {
   min-height: 44px;
 }
+
+/* The driveway's crossing checks, under their own heading. */
+.app-shell .checks-group {
+  margin: 8px 0 -4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}

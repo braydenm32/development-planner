@@ -52,6 +52,12 @@ export const WOLLONGONG: Council = {
       version: 'chapter E22, in force 12 Jan 2018',
       url: 'https://wollongong.nsw.gov.au/__data/assets/pdf_file/0031/8986/Wollongong-DCP-2009-Chapter-E22-Soil-Erosion-and-Sedimentation.pdf',
     },
+    drawings: {
+      name: 'Wollongong City Council Standard Drawings, 7000 series (vehicle crossings C30, C31 and C33)',
+      cite: 'Wollongong standard drawing',
+      version: 'revision A, Dec 2019, issued for information',
+      url: 'https://wollongong.nsw.gov.au/__data/assets/pdf_file/0011/43103/Standard-Drawings.pdf',
+    },
     as4970: {
       name: 'AS 4970-2009 Protection of trees on development sites (numbers from council technical manuals)',
       cite: 'AS 4970-2009',
@@ -147,6 +153,26 @@ export const WOLLONGONG: Council = {
     hours: 3,
     source: { in: 'b1', clause: 'B1 4.7.2(1), (2)', sure: 'read' },
     diagrams: { in: 'b1', clause: 'B1 4.7.2(3)', sure: 'read' },
+  },
+
+  // The crossing drawings (docs/research/councils/wollongong.md, Parking, garages and driveways).
+  crossing: {
+    maxGrade: { max: 0.25, source: { in: 'drawings', clause: '7000-C33', sure: 'read' } },
+    footpath: {
+      width: 3.5,
+      // From the gutter: a 450 mm kerb break, then 1.52 m at 1 in 8; the break is taken as level.
+      ramp: [
+        { length: 0.45, grade: 0 },
+        { length: 1.52, grade: 0.125 },
+      ],
+      fall: 0.025,
+      maxFall: 0.025,
+      steepest: { fall: 0.125, says: 'C30 lets the footpath beside a crossing be regraded no steeper than 1 in 8, even on a steep road' },
+      note: 'C33 holds the first 2.72 m from the kerb to 2.5% and then allows a 2 m curve up to the boundary, so council may accept more on a steep street: ask it for the boundary levels.',
+      source: { in: 'drawings', clause: '7000-C30, C33', sure: 'read' },
+    },
+    transitions: { length: 2, source: { in: 'drawings', clause: '7000-C33', sure: 'read' } },
+    width: { boundary: 3, kerb: 5.6, source: { in: 'drawings', clause: '7000-C30', sure: 'read' } },
   },
 
   notChecked: [

@@ -162,6 +162,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -311,6 +366,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -477,6 +587,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -631,6 +796,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -797,6 +1017,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -951,6 +1226,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -1118,6 +1448,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -1272,6 +1657,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -1438,6 +1878,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -1592,6 +2087,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -1760,6 +2310,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -1926,6 +2531,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -2093,6 +2753,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -2259,6 +2974,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -2425,6 +3195,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -2587,6 +3412,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -2753,6 +3633,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -2907,6 +3842,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -3085,6 +4075,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -3239,6 +4284,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -3420,6 +4520,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -3586,6 +4741,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -3764,6 +4974,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -3913,6 +5178,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -4091,6 +5411,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -4245,6 +5620,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -4423,6 +5853,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -4572,6 +6057,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -4740,6 +6280,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -4895,6 +6490,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -5132,6 +6782,61 @@
      "confidence": "secondary",
      "asAt": "E17 in force 1 Jul 2023; AS 4970 numbers from council manuals"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -5357,6 +7062,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -5596,6 +7356,61 @@
      "confidence": "secondary",
      "asAt": "E17 in force 1 Jul 2023; AS 4970 numbers from council manuals"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -5823,6 +7638,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -5988,6 +7858,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -6141,6 +8066,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -6307,6 +8287,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -6461,6 +8496,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -6626,6 +8716,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -6780,6 +8925,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -6946,6 +9146,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -7095,6 +9350,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -7273,6 +9583,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -7427,6 +9792,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -7607,6 +10027,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -7773,6 +10248,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -7939,6 +10469,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -8093,6 +10678,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -8261,6 +10901,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -8427,6 +11122,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -8595,6 +11345,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -8761,6 +11566,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -8928,6 +11788,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -9082,6 +11997,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  },
@@ -9248,6 +12218,61 @@
      "confidence": "read",
      "asAt": "chapter B1, in force 14 Dec 2016"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ],
   "cdc": [
@@ -9402,6 +12427,61 @@
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
     }
+   },
+   {
+    "id": "drive-grade",
+    "title": "Driveway grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-footpath",
+    "title": "Footpath crossing",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C30, C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-transitions",
+    "title": "Changes of grade",
+    "status": "incomplete",
+    "source": {
+     "clause": "Wollongong standard drawing 7000-C33",
+     "confidence": "read",
+     "asAt": "revision A, Dec 2019, issued for information"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-scrape",
+    "title": "Scraping (B99 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
+     "confidence": "unverified",
+     "asAt": "120 mm clearance read (foreword); the car’s size and angles not read"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
+    "id": "drive-turn",
+    "title": "Turning in (B85 car)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
+     "confidence": "secondary",
+     "asAt": "from the 2024 draft’s Appendix A and Table 2.6"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    }
   ]
  }

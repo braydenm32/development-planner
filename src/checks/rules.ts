@@ -21,6 +21,7 @@ import {
   type SetbackRule,
 } from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
+import { crossingChecks } from './crossing'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
@@ -832,15 +833,16 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
 // What a check needs drawn before it can pass
 
 /** The parts of the design a check measures. */
-export type Part = 'outline' | 'roof' | 'rooms'
+export type Part = 'outline' | 'roof' | 'rooms' | 'driveway'
 
-const has = (ms: Measures, p: Part) => (p === 'outline' ? ms.hasHouse : p === 'roof' ? ms.hasRoof : ms.hasRooms)
+const has = (ms: Measures, p: Part) => (p === 'outline' ? ms.hasHouse : p === 'roof' ? ms.hasRoof : p === 'rooms' ? ms.hasRooms : (ms.drives ?? []).length > 0)
 
 /** What to draw, for the first part a check is waiting on. */
 const DRAW: Record<Part, string> = {
   outline: 'Draw the outside walls as a closed outline to check this.',
   roof: 'Add a roof to check this.',
   rooms: 'Add rooms to check this.',
+  driveway: 'Draw a driveway (Area tool, kind Driveway) to check this.',
 }
 
 /**
@@ -878,6 +880,12 @@ const NEEDS: Record<string, Part[]> = {
   'da-retaining': ['outline'],
   // The shadow is the house's, so it waits for the walls and the roof that cast it.
   'da-sun-neighbours': ['outline', 'roof'],
+  // The driveway crossing checks (./crossing.ts), on either pathway.
+  'drive-grade': ['driveway'],
+  'drive-footpath': ['driveway'],
+  'drive-transitions': ['driveway'],
+  'drive-scrape': ['driveway'],
+  'drive-turn': ['driveway'],
 }
 
 /** A tree is measured against the house; retaining walls once there are some, house or not. */
@@ -916,11 +924,15 @@ function lotCheck(ms: Measures): CheckResult {
 
 /**
  * Every check for a pathway, in the order the panel lists them. The DA checks are the council's own
- * rules, so with no council switched on there are none.
+ * rules, so with no council switched on there are none. The driveway crossing checks come last on
+ * either pathway (the Housing Code calls up AS/NZS 2890.1 too, cl 3.16(2)), with the council's
+ * crossing numbers where it has them: the crossing is on the council's footpath either way.
  */
 export function runChecks(ms: Measures, pathway: Pathway, council: CouncilId | null = activeCouncil(ms.settings)?.id ?? null): CheckResult[] {
   const rs = pathway === 'cdc' ? housingCode(ms) : council ? councilChecks(ms, COUNCIL_TABLES[council]) : []
-  return rs.map(r => waitForDesign(r, ms))
+  const crossingCouncil = pathway === 'da' && council ? COUNCIL_TABLES[council] : activeCouncil(ms.settings)
+  const drive = rs.length ? crossingChecks(ms.drives ?? [], crossingCouncil) : []
+  return [...rs, ...drive].map(r => waitForDesign(r, ms))
 }
 
 export interface CheckCounts {

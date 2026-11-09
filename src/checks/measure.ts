@@ -10,6 +10,8 @@ import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
 import { levelSummaries, roofAboveGround, sideLabel } from '../plan/keyNumbers'
 import { areaKind, earthworksOf, floorRL, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
+import { driveLines, type DriveLine } from '../plan/crossing'
+import { driveGround } from '../plan/driveway'
 import { boundaryClearances, outsideLot, signedClearance, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
@@ -106,6 +108,8 @@ export interface Measures {
   changedAt: ((p: Vec2) => boolean) | null
   /** The sun on 21 June (src/sun/facts.ts), once worked out; the sun checks wait for it. */
   sun?: SunFacts | null
+  /** Each driveway on the lowest level, out to where it meets the street (src/plan/crossing.ts). */
+  drives: DriveLine[]
 }
 
 function distToSeg(p: Vec2, a: Vec2, b: Vec2): number {
@@ -235,9 +239,11 @@ export interface MeasureInput {
   earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[] } | null
   trees?: CheckTree[]
   sun?: SunFacts | null
+  /** The ground is the state's elevation data, not a survey, so it doesn't give the street's level at the boundary. */
+  dem?: boolean
 }
 
-export function measure({ plan, survey, terrain, earth, trees = [], sun = null }: MeasureInput): Measures {
+export function measure({ plan, survey, terrain, earth, trees = [], sun = null, dem = false }: MeasureInput): Measures {
   const settings = checkSettingsOf(plan.checks)
   const pl = plan.placement
   const site = (ring: Vec2[]) => ring.map(p => toSite(p, pl, survey.origin))
@@ -315,5 +321,10 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null }
         ? p => Math.abs(earth.result.grid.sample(p[0], p[1]) - earth.prep.natural.sample(p[0], p[1])) > 0.05 && pointInPolygon(p[0], p[1], b)
         : null,
     sun,
+    drives: driveLines(plan, survey.origin, b, driveGround(earth, terrain.grid), {
+      frontEdge: front,
+      battleAxe: settings.battleAxe,
+      natural: dem ? undefined : p => terrain.grid.sample(p[0], p[1]),
+    }),
   }
 }
