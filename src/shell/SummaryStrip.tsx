@@ -178,7 +178,8 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const loud = counts.fail + counts.warn > 0
   const against = checkedAgainst(pathway, council)
   if (shown || !loud) {
-    const text = counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
+    // A design that isn't drawn enough to check says so before anything passes.
+    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
     if (readOnly && !shown)
       return (
         <span className="chip ghost" data-term={term} data-term-note={against}>

@@ -8,8 +8,12 @@ import { CloudStartLink } from '../cloud/CloudCard'
 import { openExample } from '../example/open'
 import { openGuide } from '../guide/store'
 import { Icon, Logo } from '../nav/icons'
+import { LegalFooter } from '../legal/LegalFooter'
+import '../legal/legal.css'
+import { askSurveyor } from '../safety/files'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
+import { SurveyorRequest } from '../safety/SurveyorRequest'
 import { readSketchSize, ROUGH_SIZE, type StreetSide } from './sketch'
 import '../shell/fonts.css'
 import './start.css'
@@ -99,7 +103,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   const busy = useSafety(s => s.busy)
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
-  const [fileError, setFileError] = useState<string | null>(null)
+  /** Why the file didn't open, and whether a better file from the surveyor is the fix. */
+  const [fileError, setFileError] = useState<{ text: string; ask: boolean } | null>(null)
   const [sketchError, setSketchError] = useState<string | null>(null)
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
@@ -113,7 +118,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   })
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && cancel.current && !useSafety.getState().review) cancel.current()
+      const { review, layers } = useSafety.getState()
+      if (e.key === 'Escape' && cancel.current && !review && !layers) cancel.current()
     }
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
@@ -121,7 +127,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
 
   const open = (f: File) => {
     setFileError(null)
-    openFile(f, { into }).catch((e: unknown) => setFileError((e as Error)?.message || 'That file couldn’t be opened.'))
+    openFile(f, { into }).catch((e: unknown) => setFileError({ text: (e as Error)?.message || 'That file couldn’t be opened.', ask: askSurveyor(e) }))
   }
 
   const sketch = () => {
@@ -213,9 +219,10 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
             </div>
             {fileError && (
               <p className="st-error" role="alert">
-                {fileError}
+                {fileError.text}
               </p>
             )}
+            {fileError?.ask && <SurveyorRequest />}
             <p className="st-note">A project file or a saved plan opens here too. A plan on its own goes on a sketch block until the survey comes.</p>
           </section>
 
@@ -286,6 +293,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
           </section>
         </div>
       </main>
+      <LegalFooter />
 
       <input
         ref={input}

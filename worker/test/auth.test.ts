@@ -2,7 +2,7 @@
 // its gate, sign-in, the recovery code, sessions and their cookie, the CSRF guard, rate limits.
 
 import { describe, expect, it } from 'vitest'
-import { normalizeCode } from '../src/auth'
+import { inviteCodes, normalizeCode } from '../src/auth'
 import { softPasskey } from './authenticator'
 import { ORIGIN, post, testServer, type TestServer } from './fakes'
 
@@ -77,6 +77,55 @@ describe('signing up with a passkey', () => {
     expect((await signUp(s.fetch, softPasskey(ORIGIN), 'Me', ' garden-shed-42 ')).status).toBe(200)
     // The invite lets a second person in too.
     expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Builder', 'garden-shed-42')).status).toBe(200)
+  })
+
+  it('notes a single code against each account, without keeping the code', async () => {
+    const s = testServer({ INVITE_CODE: 'garden-shed-42' })
+    await signUp(s.fetch, softPasskey(ORIGIN), 'Me', 'garden-shed-42')
+    const row = s.env.DB.sqlite.prepare('SELECT invite FROM users').get() as { invite: string }
+    expect(row.invite).toMatch(/^#[0-9a-f]{8}$/)
+    expect(JSON.stringify(row)).not.toContain('garden-shed-42')
+  })
+
+  it('takes several codes, each with its own label, and notes which one let each person in', async () => {
+    const s = testServer({ INVITE_CODE: 'friends:blue-gum-7, builders:oak-door-17\nspotted-quoll-3' })
+    expect((await signUp(s.fetch, softPasskey(ORIGIN), 'Friend', 'blue-gum-7')).status).toBe(200)
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Builder', 'oak-door-17')).status).toBe(200)
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Neighbour', 'spotted-quoll-3')).status).toBe(200)
+    // A label isn't a code, and nor is the whole list split another way.
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Stranger', 'friends')).body.error).toBe('invite')
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Stranger', 'blue-gum-7, builders')).body.error).toBe('invite')
+    const rows = s.env.DB.sqlite.prepare('SELECT name, invite FROM users ORDER BY created, name').all() as { name: string; invite: string }[]
+    const by = Object.fromEntries(rows.map(r => [r.name, r.invite]))
+    expect(by.Friend).toBe('friends')
+    expect(by.Builder).toBe('builders')
+    expect(by.Neighbour).toMatch(/^#[0-9a-f]{8}$/)
+  })
+
+  it('lets one code be taken out without the others or anyone’s account changing', async () => {
+    const s = testServer({ INVITE_CODE: 'friends:blue-gum-7,builders:oak-door-17' })
+    const builder = softPasskey(ORIGIN)
+    expect((await signUp(s.fetch, builder, 'Builder', 'oak-door-17')).status).toBe(200)
+    // The builders' code got passed around: it's taken out of the list.
+    s.env.INVITE_CODE = 'friends:blue-gum-7'
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Someone', 'oak-door-17')).body.error).toBe('invite')
+    expect((await signUp(s.browser(), softPasskey(ORIGIN), 'Friend', 'blue-gum-7')).status).toBe(200)
+    // Whoever came in with it keeps their account.
+    expect((await signIn(s.browser(), builder)).status).toBe(200)
+  })
+
+  it('reads the list forgivingly, and keeps a code with a colon or comma in it working as it did', async () => {
+    expect(inviteCodes(' a:one ,\r\n, two ,:three')).toEqual([
+      { label: 'a', code: 'one', entry: 'a:one' },
+      { label: null, code: 'two', entry: 'two' },
+      { label: null, code: ':three', entry: ':three' },
+    ])
+    expect(inviteCodes(undefined)).toEqual([])
+    const colon = testServer({ INVITE_CODE: 'shed:42' })
+    expect((await signUp(colon.fetch, softPasskey(ORIGIN), 'Me', 'shed:42')).status).toBe(200)
+    const comma = testServer({ INVITE_CODE: 'red,blue' })
+    expect((await signUp(comma.fetch, softPasskey(ORIGIN), 'Me', 'red,blue')).status).toBe(200)
+    expect((await signUp(comma.browser(), softPasskey(ORIGIN), 'Me too', '')).body.error).toBe('invite')
   })
 
   it('stays shut when sign-up is closed', async () => {

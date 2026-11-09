@@ -5,6 +5,7 @@ import { normalizePlan, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import type { PrintPrefs } from '../print/prefs'
 import { legacySource, migrateLegacy } from './legacy'
+import { askToKeep, isKept, localFlags } from './keep'
 import { createLocalProjectStore, type LocalProjectStore } from './localStore'
 import { createMemoryProjectStore } from './memoryStore'
 import { archiveProject, createFromProjectFile, deleteProject, duplicateProject, freeName, renameProject, restoreProject } from './ops'
@@ -44,6 +45,8 @@ export interface ProjectsState {
   saveError: string | null
   /** This browser won't keep anything: projects live in memory until the tab closes. */
   memoryOnly: boolean
+  /** The browser has agreed to keep what's saved even when space runs short (null: it hasn't said). */
+  persisted: boolean | null
 }
 
 const useProjectsStore = create<ProjectsState>(() => ({
@@ -53,6 +56,7 @@ const useProjectsStore = create<ProjectsState>(() => ({
   opened: null,
   saveError: null,
   memoryOnly: false,
+  persisted: null,
 }))
 
 /** The projects as they are now, outside React (after an await, say). */
@@ -100,10 +104,21 @@ async function refresh() {
   set({ list: (await store.list()).filter(m => !doomed.has(m.id)) })
 }
 
+const storageApi = () => (typeof navigator === 'undefined' ? undefined : navigator.storage)
+
+/** Once something is saved, ask the browser to keep it (src/projects/keep.ts): once a page load. */
+let keepAsked = false
+function keepSaved() {
+  if (keepAsked || !local) return
+  keepAsked = true
+  void askToKeep(storageApi(), localFlags).then(persisted => set({ persisted }))
+}
+
 async function save(id: string, change: ProjectChange): Promise<void> {
   try {
     upsert(await store.save(id, change))
     if (get().saveError && store.unsaved().length === 0) set({ saveError: null })
+    keepSaved()
   } catch (e) {
     if (!get().list.some(m => m.id === id)) return // deleted meanwhile; nothing to keep
     set({ saveError: (e as Error)?.message || 'The browser refused to save.' })
@@ -230,6 +245,10 @@ async function boot() {
     set({ memoryOnly: true })
   }
   if (local) {
+    // What the save chip says about keeping it, before anything is saved this visit (asks nothing).
+    void isKept(storageApi()).then(persisted => {
+      if (!keepAsked) set({ persisted })
+    })
     try {
       const migrated = await migrateLegacy(store, local, legacySource())
       if (migrated && !readPointer()) writePointer(migrated.projectId)
@@ -293,6 +312,7 @@ export async function createProject(records: ProjectRecords = {}): Promise<Proje
   const survey = records.survey as SavedProject | undefined
   const name = await freeName(store, get().list.length ? 'New house' : 'My house')
   const meta = await store.create({ name, records, meta: { surveyFileName: survey?.fileName ?? null } })
+  keepSaved()
   await refresh()
   await openProject(meta.id)
   return meta
@@ -301,6 +321,7 @@ export async function createProject(records: ProjectRecords = {}): Promise<Proje
 /** A project file (.json) becomes a new project, opened straight away; it never overwrites one. */
 export async function openProjectFile(text: string): Promise<ProjectMeta> {
   const meta = await createFromProjectFile(store, text)
+  keepSaved()
   await refresh()
   await openProject(meta.id)
   return meta

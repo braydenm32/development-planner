@@ -28,7 +28,8 @@ describe('parseDxf', () => {
   })
 
   it('rejects files that are not DXF', () => {
-    expect(() => parseDxf('hello\nworld\n')).toThrow(/not a valid/i)
+    // In plain words, with what to do, rather than "bad group code".
+    expect(() => parseDxf('hello\nworld\n')).toThrow(/doesn’t read as a DXF.*Ask your surveyor/)
   })
 })
 

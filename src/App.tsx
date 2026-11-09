@@ -28,12 +28,14 @@ import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
 import { SafetyLayer } from './safety/SafetyLayer'
-import { pickFile, showToast } from './safety/store'
+import { sayFileError } from './safety/surveyor'
+import { pickFile } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
 import { isSketch } from './start/sketch'
 import { StartScreen } from './start/StartScreen'
+import { LegalPage } from './legal/LegalPage'
 import './App.css'
 
 export default function App() {
@@ -153,7 +155,7 @@ export default function App() {
    * light review, and a survey or plan goes the way Open takes it.
    */
   const openAnyFile = (file: File) => {
-    openFile(file).catch((e: unknown) => showToast({ text: (e as Error)?.message || 'That file couldn’t be opened.' }))
+    openFile(file).catch(sayFileError)
   }
 
   /** Replace survey: choose the new DXF; a review shows how the block and house will line up before anything changes. */
@@ -190,6 +192,14 @@ export default function App() {
   // The file actions (src/safety) open projects and read the site the app has built.
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))
 
+  // About, Privacy, Terms and How accurate is this? need no project and no sign-in, so they show first.
+  if (route.kind === 'page')
+    return (
+      <>
+        <LegalPage page={route.page} onBack={() => (history.length > 1 ? history.back() : openedId ? toProject() : toProjects())} />
+        <SafetyLayer />
+      </>
+    )
   if (!projects.ready) return null
   const home = (inShell: boolean) => (
     <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a, true)} onOpen={() => toProject()} onNew={toNewProject} />

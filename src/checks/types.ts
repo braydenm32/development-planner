@@ -16,8 +16,12 @@ export type CouncilId = 'wollongong'
  */
 export type Confidence = 'read' | 'secondary' | 'unverified'
 
-/** pass, warn, fail; unknown when the app can't tell yet (it needs an input); pending for a tree marked for removal. */
-export type CheckStatus = 'pass' | 'warn' | 'fail' | 'unknown' | 'pending'
+/**
+ * pass, warn, fail; unknown when the app can't tell yet (it needs an input); incomplete when the
+ * design doesn't have what the check measures yet (a closed outline, a roof, rooms), so it can't
+ * pass; pending for a tree marked for removal.
+ */
+export type CheckStatus = 'pass' | 'warn' | 'fail' | 'unknown' | 'incomplete' | 'pending'
 
 export interface Source {
   /** "Housing Code cl 3.9", "Wollongong DCP B1 4.4.2(2)". */

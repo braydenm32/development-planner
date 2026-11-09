@@ -3,6 +3,8 @@ import { CloudCard, CloudMark } from '../cloud/CloudCard'
 import { useInCloud } from '../cloud/state'
 import { openExample } from '../example/open'
 import { saveFile } from '../lib/download'
+import { LegalFooter } from '../legal/LegalFooter'
+import '../legal/legal.css'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fileSafe } from '../print/export'
@@ -472,6 +474,7 @@ export function ProjectsHome(props: Props) {
           </ul>
         )}
       </Main>
+      <LegalFooter />
 
       {review && (
         <DeleteReview

@@ -255,7 +255,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const setbacks = useMemo(() => {
     const lowest = sortedLevels(plan)[0]
     if ((tool !== 'move' && !showSetbacks) || !lowest) return []
-    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey)
+    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey, { over: true })
   }, [tool, showSetbacks, plan, survey])
 
   // Site boundary and contours in the house's frame.

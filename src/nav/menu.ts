@@ -50,6 +50,10 @@ export type ActionId =
   | 'guide'
   | 'glossary'
   | 'plan-tips'
+  | 'about'
+  | 'privacy'
+  | 'terms'
+  | 'accuracy'
   | `tool:${Tool}`
   /** What a planning word means: the guide, open at the word. */
   | `term:${string}`
@@ -361,8 +365,8 @@ export const AREAS: Area[] = [
         icon: 'check',
         subtitle: 'The design against the planning rules, as you draw.',
         shows: ['checks'],
-        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch'],
-        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
+        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'outside the lot', 'over the boundary', 'not drawn yet', 'zone', 'heritage', 'flood', 'bushfire'],
+        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal', 'checks-not-drawn-yet', 'checks-lot-inside', 'checks-cdc-land'],
       },
     ],
     more: {
@@ -430,8 +434,8 @@ export const AREAS: Area[] = [
         icon: 'pin',
         subtitle: 'Where the house sits and how high its floor is.',
         shows: ['ffl'],
-        keywords: ['setback', 'setbacks', 'boundary', 'distance', 'FFL', 'floor level', 'position', 'RL'],
-        features: ['ground-floor-level', 'ground-under-house', 'boundary-distance-fields'],
+        keywords: ['setback', 'setbacks', 'boundary', 'distance', 'FFL', 'floor level', 'position', 'RL', 'over the boundary', 'outside the lot'],
+        features: ['ground-floor-level', 'ground-under-house', 'boundary-distance-fields', 'boundary-over'],
       },
       {
         id: 'cut-fill',
@@ -549,8 +553,8 @@ export const AREAS: Area[] = [
         icon: 'costs',
         subtitle: 'What the design would cost to build, from its own quantities.',
         shows: ['cost'],
-        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end'],
-        features: ['cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv'],
+        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete'],
+        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv'],
       },
       {
         id: 'materials',
@@ -763,12 +767,20 @@ export const HOMES: Home[] = [
         run: 'now',
       },
       {
+        // "Saved in this browser · 2:14 pm", while not signed in (src/cloud/LocalSave.tsx); signed in, the cloud item says it.
+        id: 'save-state',
+        label: 'Where it’s saved',
+        icon: 'check',
+        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage'],
+        features: ['save-state', 'storage-persist'],
+      },
+      {
         // Shown as "Sign in to save to the cloud…" or "Cloud saves" with the account's name (src/cloud).
         id: 'cloud',
         label: 'Sign in and cloud saves',
         icon: 'cloud',
         keywords: ['sign in', 'log in', 'account', 'passkey', 'Face ID', 'Touch ID', 'Windows Hello', 'cloud', 'sync', 'other devices', 'backup', 'recovery code', 'sign out', 'log out', 'delete account', 'close account', 'storage', 'space'],
-        features: ['cloud-sign-in', 'cloud-create-account', 'cloud-recovery-code', 'cloud-add-passkey', 'cloud-sign-out', 'cloud-delete-account', 'cloud-space'],
+        features: ['cloud-sign-in', 'cloud-create-account', 'cloud-recovery-code', 'cloud-add-passkey', 'cloud-sign-out', 'cloud-delete-account', 'cloud-space', 'create-account-terms-line'],
         action: 'cloud',
         run: 'now',
       },
@@ -787,6 +799,20 @@ export const HOMES: Home[] = [
       { id: 'export-plan', label: 'Export plan', icon: 'download', keywords: ['save plan', 'json', 'backup'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
       // Clears the plan in this project (reviewed, with Undo); New project… is the one that starts another.
       { id: 'new-plan', label: 'Start the plan again', icon: 'plus', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
+      // The pages about the app (src/legal): they open on their own, with or without a project.
+      { id: 'about', label: 'About Contour & Gable', icon: 'file', keywords: ['about us', 'who makes this', 'contact', 'email', 'hello', 'help', 'feedback', 'support', 'who is this for'], features: ['about-page'], action: 'about', run: 'now' },
+      { id: 'privacy', label: 'Privacy policy', icon: 'file', keywords: ['privacy', 'data', 'my data', 'cookies', 'tracking', 'analytics', 'what do you keep', 'delete my data', 'personal information', 'APP', 'privacy act'], features: ['privacy-page'], action: 'privacy', run: 'now' },
+      { id: 'terms', label: 'Terms of use', icon: 'file', keywords: ['terms', 'terms and conditions', 'conditions', 'legal', 'liability', 'acceptable use', 'storage limit', 'agreement'], features: ['terms-page'], action: 'terms', run: 'now' },
+      {
+        id: 'accuracy',
+        label: 'How accurate is this?',
+        icon: 'check',
+        keywords: ['accuracy', 'accurate', 'estimates', 'disclaimer', 'caveat', 'can I rely on this', 'limits', 'not advice', 'professional advice', 'reliable', 'trust', 'how good'],
+        features: ['accuracy-page', 'caveat-everywhere', 'shared-view-footer'],
+        action: 'accuracy',
+        run: 'now',
+        hint: 'The same short caveat, with a link here, is on the PDF plans, the costs CSV, the 3D print files, the earthworks panel, the checks and the shared view.',
+      },
     ],
   },
   {
@@ -796,6 +822,16 @@ export const HOMES: Home[] = [
     label: 'All projects',
     features: [],
     items: [
+      {
+        id: 'legal-links',
+        label: 'About, Privacy, Terms and Contact',
+        icon: 'file',
+        keywords: ['footer', 'contact', 'email', 'hello', 'about', 'privacy', 'terms'],
+        features: ['legal-footer'],
+        action: 'about',
+        run: 'now',
+        hint: 'The links are at the foot of the start screen and this page, and in the project menu.',
+      },
       {
         id: 'project-open',
         label: 'Open a project',
@@ -1112,7 +1148,7 @@ export const HOMES: Home[] = [
         id: 'start-screen',
         label: 'Start screen',
         icon: 'file',
-        keywords: ['import', 'DXF', 'drop', 'open survey', 'begin', 'onboarding', 'sketch', 'no survey', 'without a survey', 'block size'],
+        keywords: ['import', 'DXF', 'drop', 'open survey', 'begin', 'onboarding', 'sketch', 'no survey', 'without a survey', 'block size', 'binary DXF', 'DWG', 'no contours', 'survey layers', 'ask the surveyor', 'ASCII DXF'],
         features: [
           'restore-saved-project',
           'start-screen',
@@ -1122,6 +1158,8 @@ export const HOMES: Home[] = [
           'import-status-error',
           'import-help',
           'start-two-choices',
+          'survey-layer-pick',
+          'surveyor-request',
           'sketch-without-survey',
           'sketch-block-size',
           'start-never-traps',
@@ -1184,6 +1222,7 @@ export const HOMES: Home[] = [
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
+      { id: 'kbd-save', label: 'Save key', keywords: ['shortcut', 'ctrl s', 'cmd s', 'save now'], features: ['kbd-save'], shortcut: 'mod+S', hint: '⌘S or Ctrl+S saves now and says where: in this browser, or to the cloud.' },
       { id: 'kbd-delete', label: 'Delete key', keywords: ['backspace', 'remove'], features: ['kbd-delete'], shortcut: 'Delete', hint: 'Delete or Backspace removes what is selected on the plan.' },
       { id: 'kbd-escape', label: 'Escape key', keywords: ['finish', 'cancel', 'deselect'], features: ['kbd-escape'], shortcut: 'Esc', hint: 'Esc finishes a run of walls, drops a half-drawn outline, or clears the selection.' },
       { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension'], features: ['kbd-typed-length'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter.' },

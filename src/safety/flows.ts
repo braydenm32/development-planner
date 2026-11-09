@@ -13,10 +13,10 @@ import { costsSummary } from '../costs/model'
 import { useSiteStore } from '../site/store'
 import { isSketch, sketchAround, sketchSurvey, type SketchBlock } from '../start/sketch'
 import { centreOnBlock, fitOnBlock, moveOntoBlock, placeOnSketch, type Site } from './align'
-import { readFile, readSite, type OpenedFile } from './files'
+import { PickLayersError, readFile, readSite, type OpenedFile } from './files'
 import { CHECK_LAYERS, readBackLine } from './readBack'
 import { newPlanReview, planReview, projectReview, surveyReview } from './review'
-import { askReview, showToast, useSafety } from './store'
+import { askLayers, askReview, showToast, useSafety } from './store'
 import type { SavedProject } from '../lib/storage'
 import { planBounds } from '../plan/ops'
 import { usePhoneMode } from '../phone/device'
@@ -106,10 +106,25 @@ export interface OpenOptions {
   into?: 'current' | 'new'
 }
 
+/**
+ * Read a file; a survey whose contours aren't on the layers they're usually on opens the layer
+ * review, so they can be picked there rather than from a project that can't be made without them.
+ * Null when that's cancelled.
+ */
+async function readOrPick(file: File): Promise<OpenedFile | null> {
+  try {
+    return await busy(() => readFile(file))
+  } catch (e) {
+    if (!(e instanceof PickLayersError)) throw e
+    const survey = await askLayers(e)
+    return survey ? { kind: 'survey', name: e.fileName, survey } : null
+  }
+}
+
 /** Open any file the planner reads. Throws a plain message when it can't. */
 export async function openFile(file: File, opts: OpenOptions = {}): Promise<void> {
-  const f = await busy(() => readFile(file))
-  await openRead(f, opts)
+  const f = await readOrPick(file)
+  if (f) await openRead(f, opts)
 }
 
 /** Open a file already read. */
@@ -269,7 +284,8 @@ export async function importPlan(next: Plan, name: string): Promise<void> {
 
 /** Import plan, from a chosen file. Anything else goes the way Open would take it. */
 export async function importPlanFrom(file: File): Promise<void> {
-  const f = await busy(() => readFile(file))
+  const f = await readOrPick(file)
+  if (!f) return
   if (f.kind === 'plan') return importPlan(f.plan, f.name)
   return openRead(f)
 }
