@@ -10,7 +10,7 @@ import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
 import { codeDigits, couldBeEmail } from './emailCode'
 import { passkeysWork } from './passkeys'
-import { cloudActions, startCloud, useCloud } from './state'
+import { cloudActions, startCloud, useCloud, type SignInReason } from './state'
 import { chipLook, longDate, megabytes, projects } from './words'
 import './cloud.css'
 
@@ -93,25 +93,43 @@ const NO_PASSKEYS = 'This browser can’t use passkeys. Try an up-to-date Safari
 // ---------------------------------------------------------------------------
 // Signing in.
 
+/** What the sign-in sheet leads with when something asked for it. */
+const REASONS: Record<SignInReason, { title: string; lede: string }> = {
+  share: {
+    title: 'Sign in to share a link',
+    lede: 'A view-only link opens the copy of this project saved in the cloud, so sharing one needs an account. Sign in, or make one in a minute: there’s no password, just a passkey (Face ID, Touch ID, Windows Hello or your phone).',
+  },
+}
+
 function SignInSheet() {
   const busy = useCloud(s => s.busy)
   const signup = useCloud(s => s.signup)
   const email = useCloud(s => s.email)
+  const reason = useCloud(s => s.reason)
   const works = passkeysWork()
+  const why = reason ? REASONS[reason] : null
+  const canCreate = signup !== 'closed'
   return (
-    <Sheet title="Save your projects to the cloud">
-      <p>Sign in with a passkey: Face ID, Touch ID, Windows Hello or your phone. There’s no password.</p>
+    <Sheet title={why?.title ?? 'Save your projects to the cloud'}>
+      <p>{why?.lede ?? 'Sign in with a passkey: Face ID, Touch ID, Windows Hello or your phone. There’s no password.'}</p>
       <ul className="cl-points">
         <li>Your projects open on your other devices, and are safe if this one is lost.</li>
         <li>They stay on this device too, and keep working offline.</li>
       </ul>
       {!works && <p className="cl-problem">{NO_PASSKEYS}</p>}
       <Problem />
-      <div className="cl-actions">
+      {/* Sign in and Create account side by side, the same size: a first visit is as likely as a return. */}
+      <div className={`cl-actions${canCreate ? ' pair' : ''}`}>
         <button className="cl-btn primary big" data-autofocus disabled={busy || !works} onClick={() => void cloudActions.signIn()}>
           <Icon name="key" size={18} />
           {busy ? 'Waiting for your passkey…' : 'Sign in with a passkey'}
         </button>
+        {canCreate && (
+          <button className="cl-btn big" disabled={busy} onClick={() => cloudActions.open('create')}>
+            <Icon name="plus" size={18} />
+            Create an account
+          </button>
+        )}
       </div>
       {email && (
         <p className="cl-instead">
@@ -122,14 +140,6 @@ function SignInSheet() {
         </p>
       )}
       <p className="cl-alt">
-        {signup !== 'closed' && (
-          <span>
-            New here?{' '}
-            <button className="cl-link" onClick={() => cloudActions.open('create')} disabled={busy}>
-              Create an account
-            </button>
-          </span>
-        )}
         <span>
           Lost your passkey?{' '}
           <button className="cl-link" onClick={() => cloudActions.open('recover')} disabled={busy}>

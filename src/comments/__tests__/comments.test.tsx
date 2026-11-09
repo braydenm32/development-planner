@@ -426,7 +426,7 @@ describe('Share › Send’s comments', () => {
 
   it('offers to let people comment on the next link, off unless ticked, and who sees them once it is', () => {
     const off = body(none)
-    expect(words(off)).toContain('Let people comment')
+    expect(words(off)).toContain('New links: let people comment')
     expect(off).not.toMatch(/<input type="checkbox" checked=""/)
     expect(words(off)).not.toContain('They see each other’s comments')
     const own = body({ ...none, comments: 'own' })
@@ -438,7 +438,10 @@ describe('Share › Send’s comments', () => {
   it('shows each link’s setting and how many comments it has', () => {
     useComments.setState({ side: 'owner', projectId: 'p1', comments: [], counts: { h1: { created: NOW - DAY, expires: NOW + DAY, total: 3, new: 1 } } })
     const html = body({ ...none, links: [{ id: 'h1', created: NOW - DAY, lastOpened: null, expires: NOW + 29 * DAY, comments: 'own' }, { id: 'h2', created: NOW - 2 * DAY, lastOpened: null, expires: NOW + 28 * DAY }] })
-    expect(words(html)).toContain('not opened yet · 3 comments, 1 new')
+    expect(words(html)).toContain('not opened yet · 3 comments 1 new')
+    // "1 new" is a badge, not words that look like a link; each link's own tick says it's that link's.
+    expect(html).toContain('<b class="cm-new">1 new</b>')
+    expect(words(html)).toContain('This link: comments on')
     // The new link's ticks (off), the first link's (on, own), the second's (off: a link from before comments).
     expect([...html.matchAll(/<input type="checkbox"( checked="")?/g)].map(m => !!m[1])).toEqual([false, true, false, false])
   })

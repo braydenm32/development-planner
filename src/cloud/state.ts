@@ -33,6 +33,9 @@ export type CloudSheet =
   /** After signing in by email: add a passkey on this device. */
   | 'passkey-offer'
 
+/** What asked for the sign-in sheet: it leads with that, rather than the cloud in general. */
+export type SignInReason = 'share'
+
 export interface CloudState {
   phase: CloudPhase
   signup: Signup
@@ -46,6 +49,8 @@ export interface CloudState {
   kept: ProjectMeta[]
   inCloud: string[]
   sheet: CloudSheet | null
+  /** Why the sign-in sheet opened, when something asked for it (Share's "Sign in to share a link"). */
+  reason: SignInReason | null
   /** A recovery code to keep, shown once. */
   code: { value: string; first: boolean } | null
   /** A passkey step is running. */
@@ -67,6 +72,7 @@ export const useCloud = create<CloudState>(() => ({
   kept: [],
   inCloud: [],
   sheet: null,
+  reason: null,
   code: null,
   busy: false,
   problem: null,
@@ -220,8 +226,9 @@ function signedOutHere() {
 }
 
 export const cloudActions = {
-  open(sheet: CloudSheet) {
-    set({ sheet, problem: null })
+  /** Open a sheet; the sign-in sheet can say why it opened (`reason`), which carries on to Create account. */
+  open(sheet: CloudSheet, reason?: SignInReason) {
+    set(reason !== undefined ? { sheet, problem: null, reason } : sheet === 'sign-in' || sheet === 'create' ? { sheet, problem: null } : { sheet, problem: null, reason: null })
   },
   /** The project menu's and ⌘K's way in: sign in, or the account when signed in. False when there's no cloud here. */
   async openHome(): Promise<boolean> {
@@ -233,7 +240,7 @@ export const cloudActions = {
   },
   close() {
     const { sheet, code, email } = get()
-    set({ sheet: null, problem: null, ...(sheet === 'code' ? { code: null } : {}) })
+    set({ sheet: null, problem: null, reason: null, ...(sheet === 'code' ? { code: null } : {}) })
     // A new account, its code kept: once, ask for an email to get back in with (where it works).
     if (sheet === 'code' && code?.first && email) return void set({ sheet: 'email-nudge' })
     // After keeping a code, that ask, or the passkey offer after an email sign-in: offer the upload.

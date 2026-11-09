@@ -106,10 +106,10 @@ function SavePop({ wrap, look, onDownload, onClose }: { wrap: RefObject<HTMLDivE
 }
 
 /**
- * The project menu's line on saving (the top bar has no room for it on a phone), with a backup to
- * download. The nudge to sign in is the menu's cloud item, just below it.
+ * The project menu's line on saving (the top bar has no room for it on a phone). The backup is the
+ * menu's own Download a backup item, and the nudge to sign in its cloud item, just below.
  */
-export function LocalSaveLine({ onDownload }: { onDownload: () => void }) {
+export function LocalSaveLine() {
   const look = useLocalSave()
   if (!look) return null
   return (
@@ -120,10 +120,7 @@ export function LocalSaveLine({ onDownload }: { onDownload: () => void }) {
         {look.at && <span> · {look.at}</span>}
       </span>
       <span className="ls-line-text">
-        {look.tone === 'warn' ? look.detail : 'Only on this device.'}{' '}
-        <button className="cl-link" onClick={onDownload}>
-          Download a backup
-        </button>
+        {look.tone === 'warn' ? look.detail : 'Only on this device.'}
       </span>
     </div>
   )

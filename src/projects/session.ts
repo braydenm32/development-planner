@@ -308,9 +308,10 @@ async function closeProject() {
 }
 
 /** A new project, opened straight away. Without a survey, the start screen asks for one. */
-export async function createProject(records: ProjectRecords = {}): Promise<ProjectMeta> {
+/** A new project, opened. Named `name` when the file or address it starts from gives one, or My house / New house. */
+export async function createProject(records: ProjectRecords = {}, name0?: string | null): Promise<ProjectMeta> {
   const survey = records.survey as SavedProject | undefined
-  const name = await freeName(store, get().list.length ? 'New house' : 'My house')
+  const name = await freeName(store, name0?.trim() || (get().list.length ? 'New house' : 'My house'))
   const meta = await store.create({ name, records, meta: { surveyFileName: survey?.fileName ?? null } })
   keepSaved()
   await refresh()

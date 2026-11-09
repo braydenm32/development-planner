@@ -4,6 +4,7 @@ import { impliedTotals, impliedWalls } from '../grading/implied'
 import { designQuantities, type DesignQuantities } from '../plan/quantities'
 import type { Loaded } from '../shell/useSite'
 import { estimate, type Estimate } from './estimate'
+import { feeContextOf, type FeeContext } from './govFees'
 import { useCosts } from './store'
 
 /** The design's quantities, from the same helpers as the panels that show them. */
@@ -17,11 +18,18 @@ export function useQuantities(d: Loaded): DesignQuantities {
   return useMemo(() => designQuantities(d.plan, earth, walls, implied), [d.plan, earth, walls, implied])
 }
 
+/** The council and pathway the council and government fees go by (Design › Checks). */
+export function useFeeContext(d: Loaded): FeeContext {
+  const checks = d.plan.checks
+  return useMemo(() => feeContextOf({ checks }), [checks])
+}
+
 /** The open project's estimate. */
 export function useEstimate(d: Loaded): Estimate {
   const q = useQuantities(d)
+  const fees = useFeeContext(d)
   const data = useCosts(s => s.data)
-  return useMemo(() => estimate(q, data), [q, data])
+  return useMemo(() => estimate(q, data, fees), [q, data, fees])
 }
 
 /** Wide enough for the materials card beside the plan (px of window). */

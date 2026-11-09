@@ -88,23 +88,23 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
               ) : null
             if (item.id === 'survey-file')
               return (
-                <div key={item.id} data-item={item.id} className="menu-note">
+                <div key={item.id} data-item={item.id} className="menu-note menu-survey">
                   <span className="muted">Survey</span>
                   <span className="file-name" title={project.fileName}>
                     {project.fileName}
                   </span>
+                  <button
+                    className="link"
+                    onClick={() => {
+                      onOpenChange(false)
+                      run('replace-survey')
+                    }}
+                  >
+                    Replace…
+                  </button>
                 </div>
               )
-            if (item.id === 'save-state')
-              return (
-                <LocalSaveLine
-                  key={item.id}
-                  onDownload={() => {
-                    onOpenChange(false)
-                    run('save-project')
-                  }}
-                />
-              )
+            if (item.id === 'save-state') return <LocalSaveLine key={item.id} />
             if (item.id === 'cloud')
               return (
                 <CloudMenuItem

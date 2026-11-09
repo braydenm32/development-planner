@@ -14,6 +14,15 @@ export function money(n: number): string {
   return `${r < 0 ? '−' : ''}$${commas(Math.abs(r))}`
 }
 
+/** A total in a few figures, to set two side by side: "$660k", "$1.07M", "$8,450" under $10,000. */
+export function shortMoney(n: number): string {
+  const a = Math.abs(n)
+  const sign = n < 0 ? '−' : ''
+  if (a >= 999_500) return `${sign}$${Number((a / 1e6).toPrecision(3))}M`
+  if (a >= 10_000) return `${sign}$${Math.round(a / 1000)}k`
+  return money(n)
+}
+
 /** "+$2,218" or "−$3,812": what a choice adds or saves. */
 export const delta = (n: number) => (Math.round(n) >= 0 ? `+${money(n)}` : money(n))
 
@@ -79,6 +88,10 @@ export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   }
   const blank = head.map(() => '')
   const total = (label: string, amount: number) => ['', label, '', '', '', '', '', '', '', dollars(amount), ...(ob ? ['', ''] : [])]
+  // The summary under the groups: the subtotal, the margin and the contingency.
+  rows.push(blank)
+  rows.push(total('Subtotal', e.subtotal))
+  for (const l of e.lines.filter(x => x.group === 'summary')) rows.push(['', l.label, l.from, '', '', '', '', '', '', dollars(l.amount), ...(ob ? [dollars(l.materials), dollars(l.labour)] : [])])
   rows.push(blank)
   // No total before there are outside walls; with one, what it leaves out is said beside it.
   if (!e.ready) rows.push(['', `No total yet. ${NO_TOTAL}`])

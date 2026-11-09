@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { CommentsSection, LinkCommentCount, LinkCommentsSetting, NextLinkComments } from '../comments/OwnerComments'
-import { commentActions } from '../comments/store'
+import { commentActions, useComments } from '../comments/store'
 import { cloudActions, useCloud, type CloudState } from '../cloud/state'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
@@ -58,10 +58,14 @@ export function ShareLinksSection() {
     }
   }, [phase, projectId, inCloud])
 
+  // Comments not yet resolved come first, above the links, so they aren't missed below the fold.
+  const waiting = useComments(s => (s.side === 'owner' && s.projectId === projectId ? (s.comments ?? []).filter(c => c.resolved === null).length : 0))
+  const comments = phase === 'signed-in' && projectId ? <CommentsSection projectId={projectId} /> : null
   return (
     <>
+      {waiting > 0 && comments}
       <ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={now} />
-      {phase === 'signed-in' && projectId && <CommentsSection projectId={projectId} />}
+      {waiting === 0 && comments}
     </>
   )
 }
@@ -93,7 +97,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
       <section className="share-links" aria-label="View-only link">
         {head}
         <p className="sl-line">Show the plan, the 3D view and the numbers to anyone, on any phone or computer, with no sign-in for them.</p>
-        <button className="sl-btn" onClick={() => cloudActions.open('sign-in')}>
+        <button className="sl-btn" onClick={() => cloudActions.open('sign-in', 'share')}>
           <Icon name="cloud" size={16} /> Sign in to share a link
         </button>
       </section>

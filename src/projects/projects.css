@@ -409,9 +409,34 @@ button.ph-thumb {
 
 .ph-file {
   max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ph-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Back to the project open now, above the heading. */
+.ph-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 0 10px -4px;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--ph-accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ph-back:hover {
+  text-decoration: underline;
 }
 
 .ph-numbers {
@@ -667,6 +692,7 @@ button.ph-thumb {
   }
 
   .ph-when,
+  .ph-file,
   .ph-numbers {
     font-size: 14px;
   }

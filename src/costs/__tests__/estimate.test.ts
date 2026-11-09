@@ -13,6 +13,7 @@ import { CAVEAT_LINE } from '../../legal/caveat'
 import { atName, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText } from '../format'
 import { costsSummary, emptyCosts, normalizeCosts, type CostsData } from '../model'
 import { CHOICES, CONTINGENCY, FINISH_GUIDES, FINISH_LEVELS, finishGuide, MARGIN, RANGE, rateInfo, STARTING_RATES, type RateId } from '../rates'
+import { daFee, longServiceLevy, type FeeContext } from '../govFees'
 
 const R = (id: RateId) => rateInfo(id).rate
 const share = (id: RateId) => rateInfo(id).materials
@@ -52,6 +53,7 @@ function quantities(): DesignQuantities {
 
 /** The building work, by hand, at the starting rates and the first choices (timber, brick veneer, Colorbond, aluminium, mid). */
 const WORKS =
+  100 * R('prelims') +
   R('site-setup') +
   50 * R('cut') +
   30 * R('fill') +
@@ -64,6 +66,7 @@ const WORKS =
   1 * R('door-external') +
   2 * R('door-internal') +
   100 * R('linings') +
+  100 * R('fix-out') +
   80 * R('floor-finishes') +
   R('kitchen') +
   R('bathroom') +
@@ -71,6 +74,17 @@ const WORKS =
   R('drainage') +
   2 * R('plumbing') +
   40 * R('driveway')
+
+/** The council and government fees on a cost of work, with no council known, as a DA: the DA fee and the levy. */
+const GOV = (cost: number) => daFee(cost) + longServiceLevy(cost)
+
+/**
+ * Complying development with no council: no DA fee and no contribution, so only the building and
+ * the long service levy on it move the total. The house here costs over $250,000, so the levy is
+ * 0.25% of every dollar of work, the builder's margin included.
+ */
+const CDC: FeeContext = { council: null, da: false }
+const LEVIED = 1.0025
 
 const line = (e: Estimate, id: string) => e.lines.find(l => l.id === id)!
 const quote = (amount: number, from = 'A trade') => ({ amount, from, date: '2026-11-08' })
@@ -95,18 +109,30 @@ describe('the estimate, built by a builder', () => {
     for (const id of ['door-garage', 'stairs', 'floor-upper', 'retaining-sleeper', 'retaining-block', 'deck', 'laundry', 'permit']) expect(e.lines.some(l => l.id === id), id).toBe(false)
   })
 
-  it('adds the margin on the building work, the fees, then the contingency on everything', () => {
+  it('adds the fees and the council and government fees, then the margin on the building work and the contingency on everything', () => {
     expect(e.works).toBeCloseTo(WORKS, 6)
-    expect(line(e, 'margin')).toMatchObject({ amount: WORKS * MARGIN, computed: true, from: '20% of the building work' })
     expect(line(e, 'fees').amount).toBe(R('fees'))
-    const before = WORKS + R('fees') + WORKS * MARGIN
-    expect(line(e, 'contingency')).toMatchObject({ computed: true, from: '10% of the above' })
+    // The DA fee and the levy go on what the work would cost, the builder's margin included.
+    expect(e.feeBasis).toBeCloseTo(WORKS * (1 + MARGIN), 6)
+    expect(line(e, 'da-fee')).toMatchObject({ group: 'gov', computed: false, rate: null, quote: null })
+    expect(line(e, 'da-fee').amount).toBeCloseTo(daFee(WORKS * (1 + MARGIN)), 6)
+    expect(line(e, 'lsl').amount).toBeCloseTo(longServiceLevy(WORKS * (1 + MARGIN)), 6)
+    expect(line(e, 'contribution')).toMatchObject({ amount: 0, from: 'Switch on your council in Design › Checks, or ask the council and add it' })
+    const subtotal = WORKS + R('fees') + GOV(WORKS * (1 + MARGIN))
+    expect(e.subtotal).toBeCloseTo(subtotal, 6)
+    expect(line(e, 'margin')).toMatchObject({ amount: WORKS * MARGIN, computed: true, group: 'summary', from: '20% of the building work' })
+    expect(e.margin).toEqual({ amount: WORKS * MARGIN, share: MARGIN })
+    const before = subtotal + WORKS * MARGIN
+    expect(line(e, 'contingency')).toMatchObject({ computed: true, group: 'summary', from: '10% of the above' })
     expect(line(e, 'contingency').amount).toBeCloseTo(before * CONTINGENCY, 6)
+    expect(e.contingency.amount).toBeCloseTo(before * CONTINGENCY, 6)
     expect(e.total).toBeCloseTo(before * (1 + CONTINGENCY), 6)
-    // every line is in a group, and the groups add up to the total
-    expect(e.groups.reduce((t, g) => t + g.total, 0)).toBeCloseTo(e.total, 6)
-    expect(e.groups.flatMap(g => g.lines).length).toBe(e.lines.length)
-    expect(e.groups.map(g => g.id)).toEqual(['site', 'floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services', 'outside', 'fees'])
+    // every line but the summary's is in a group, and the groups add up to the subtotal
+    expect(e.groups.reduce((t, g) => t + g.total, 0)).toBeCloseTo(e.subtotal, 6)
+    expect(e.groups.flatMap(g => g.lines).length).toBe(e.lines.length - 2)
+    expect(e.groups.map(g => g.id)).toEqual(['prelims', 'site', 'floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services', 'outside', 'fees', 'gov'])
+    // Fees aren't marked up: the margin is on the building work only.
+    expect(e.groups.find(g => g.id === 'fees')!.lines.map(l => l.id)).toEqual(['fees'])
   })
 
   it('gives the range 20% either way and the cost per m² of floor', () => {
@@ -121,6 +147,7 @@ describe('the estimate, built by a builder', () => {
   it('gives the house itself per m², as the finish guides measure it: no site works, outside works, fees or contingency', () => {
     // By hand: the slab, frame, roof, cladding, windows and doors, fit-out and services, with the builder's 20% on them.
     const house =
+      100 * R('prelims') +
       100 * R('floor-slab') +
       100 * R('frame-timber') +
       120 * R('roof-colorbond') +
@@ -129,6 +156,7 @@ describe('the estimate, built by a builder', () => {
       R('door-external') +
       2 * R('door-internal') +
       100 * R('linings') +
+      100 * R('fix-out') +
       80 * R('floor-finishes') +
       R('kitchen') +
       R('bathroom') +
@@ -141,6 +169,15 @@ describe('the estimate, built by a builder', () => {
     expect(estimate({ ...quantities(), floorArea: 0 }, emptyCosts()).housePerM2).toBeNull()
   })
 
+  it('prices the same total with the house from the finish guide, everything else as it is', () => {
+    const g = finishGuide('mid')
+    const house = e.housePerM2! * 100
+    const rest = e.total - house * (1 + CONTINGENCY)
+    expect(e.guide!.low).toBeCloseTo(rest + g.low * 100 * (1 + CONTINGENCY), 6)
+    expect(e.guide!.high).toBeCloseTo(rest + g.high * 100 * (1 + CONTINGENCY), 6)
+    expect(estimate({ ...quantities(), floorArea: 0 }, emptyCosts()).guide).toBeNull()
+  })
+
   it('counts every line but the margin and the contingency as one that can be quoted', () => {
     expect(e.quoted).toBe(0)
     expect(e.quotable).toBe(e.lines.length - 2)
@@ -148,7 +185,7 @@ describe('the estimate, built by a builder', () => {
 
   it('changes with the contingency and margin the project sets', () => {
     const x = estimate(quantities(), { ...emptyCosts(), contingency: 0.15, margin: 0.18 })
-    expect(x.total).toBeCloseTo((WORKS * 1.18 + R('fees')) * 1.15, 6)
+    expect(x.total).toBeCloseTo((WORKS * 1.18 + R('fees') + GOV(WORKS * 1.18)) * 1.15, 6)
     expect(line(x, 'contingency').from).toBe('15% of the above')
   })
 
@@ -188,8 +225,8 @@ describe('the estimate, built by a builder', () => {
 
 describe('quotes', () => {
   const data: CostsData = { ...emptyCosts(), quotes: { cut: quote(2000, 'South Coast Earthmoving'), windows: quote(3500), 'door-garage': quote(3000) } }
-  const plain = estimate(quantities(), emptyCosts())
-  const e = estimate(quantities(), data)
+  const plain = estimate(quantities(), emptyCosts(), CDC)
+  const e = estimate(quantities(), data, CDC)
 
   it('replace the estimate on their line, which keeps the estimate to show struck through', () => {
     expect(line(e, 'cut')).toMatchObject({ amount: 2000, estimate: 50 * R('cut'), quote: { amount: 2000, from: 'South Coast Earthmoving' } })
@@ -199,7 +236,8 @@ describe('quotes', () => {
   it('carry into the margin and the contingency', () => {
     const change = 2000 - 50 * R('cut') + 3500 - 4 * R('win-aluminium')
     expect(e.works - plain.works).toBeCloseTo(change, 6)
-    expect(e.total - plain.total).toBeCloseTo(change * (1 + MARGIN) * (1 + CONTINGENCY), 6)
+    expect(plain.feeBasis).toBeGreaterThan(250_000)
+    expect(e.total - plain.total).toBeCloseTo(change * (1 + MARGIN) * LEVIED * (1 + CONTINGENCY), 6)
   })
 
   it('count as lines quoted, by group too; a quote for a line the design doesn’t have counts for nothing', () => {
@@ -213,7 +251,14 @@ describe('quotes', () => {
   it('stay put when a material choice changes the rate under them', () => {
     const x = estimate(quantities(), { ...data, choices: { ...data.choices, windows: 'double' } })
     expect(line(x, 'windows')).toMatchObject({ amount: 3500, estimate: 4 * R('win-double') })
-    expect(choiceDeltas(quantities(), data).windows.double).toBeCloseTo(0, 6)
+    expect(choiceDeltas(quantities(), data, CDC).windows.double).toBeCloseTo(0, 6)
+  })
+
+  it('take the council’s own figure in place of a rough council or government fee', () => {
+    const x = estimate(quantities(), { ...emptyCosts(), quotes: { 'da-fee': quote(2100, 'Council') } })
+    expect(line(x, 'da-fee')).toMatchObject({ amount: 2100, quote: { from: 'Council' } })
+    expect(line(x, 'da-fee').estimate).toBeCloseTo(daFee(x.feeBasis), 6)
+    expect(x.groups.find(g => g.id === 'gov')!.quoted).toBe(1)
   })
 })
 
@@ -225,7 +270,10 @@ describe('building it yourself', () => {
     expect(e.lines.some(l => l.id === 'margin')).toBe(false)
     expect(line(e, 'permit')).toMatchObject({ amount: R('permit'), group: 'fees' })
     const works = WORKS - 50 * R('cut') + 2000
-    expect(e.total).toBeCloseTo((works + R('fees') + R('permit')) * (1 + CONTINGENCY), 6)
+    // No margin, so the council and government fees go on the work alone.
+    expect(e.feeBasis).toBeCloseTo(works, 6)
+    expect(e.margin).toEqual({ amount: 0, share: 0 })
+    expect(e.total).toBeCloseTo((works + R('fees') + R('permit') + GOV(works)) * (1 + CONTINGENCY), 6)
     expect(e.quotable).toBe(estimate(quantities(), emptyCosts()).quotable + 1)
   })
 
@@ -237,6 +285,8 @@ describe('building it yourself', () => {
     }
     // a quote splits the same way as the estimate it replaces
     expect(line(e, 'cut').materials).toBeCloseTo(2000 * share('cut'), 6)
+    // A council or government fee is all fees.
+    expect(line(e, 'da-fee').labour).toBe(0)
     const c = line(e, 'contingency')
     const open = e.lines.filter(l => !l.computed)
     const before = open.reduce((t, l) => t + l.amount, 0)
@@ -257,8 +307,8 @@ describe('building it yourself', () => {
 describe('material choices', () => {
   const q = quantities()
   const data = emptyCosts()
-  const d = choiceDeltas(q, data)
-  const onTop = (1 + MARGIN) * (1 + CONTINGENCY)
+  const d = choiceDeltas(q, data, CDC)
+  const onTop = (1 + MARGIN) * LEVIED * (1 + CONTINGENCY)
 
   it('show what each other option adds or saves, with the margin and contingency on top', () => {
     expect(d.walls.brick).toBe(0)
@@ -272,7 +322,7 @@ describe('material choices', () => {
   })
 
   it('scale the fit-out with the finish', () => {
-    const fitout = 2 * R('door-internal') + 100 * R('linings') + 80 * R('floor-finishes') + R('kitchen') + R('bathroom')
+    const fitout = 2 * R('door-internal') + 100 * R('linings') + 100 * R('fix-out') + 80 * R('floor-finishes') + R('kitchen') + R('bathroom')
     expect(d.finish.high).toBeCloseTo(fitout * (FINISH_LEVELS.high - 1) * onTop, 6)
     expect(d.finish.basic).toBeCloseTo(fitout * (FINISH_LEVELS.basic - 1) * onTop, 6)
     const high = estimate(q, { ...data, choices: { ...data.choices, finish: 'high' } })
@@ -346,12 +396,16 @@ describe('the CSV', () => {
     expect(csv.endsWith('\r\n')).toBe(true)
     expect(rows[0]).toBe('Group,Item,Where the quantity comes from,Quantity,Unit,Rate ($),Estimate ($),Quote ($),Quote from,Amount ($)')
     expect(rows).toContain(`Site works,Dig out (cut),From Cut & fill,50.0,m³,${R('cut')},${50 * R('cut')},,,${50 * R('cut')}`)
-    expect(rows).toContain(`Site works,Site works total,,,,,,,,${Math.round(e.groups[0].total)}`)
+    expect(rows).toContain(`Site works,Site works total,,,,,,,,${Math.round(e.groups.find(g => g.id === 'site')!.total)}`)
+    // The summary under the groups, as the panel shows it.
+    expect(rows).toContain(`,Subtotal,,,,,,,,${Math.round(e.subtotal)}`)
+    expect(rows).toContain(`,Builder’s margin and overheads,20% of the building work,,,,,,,${Math.round(e.margin.amount)}`)
     expect(rows).toContain(`,Estimate,,,,,,,,${Math.round(e.total)}`)
     expect(rows).toContain(`,Likely low (−20%),,,,,,,,${Math.round(e.low)}`)
     expect(rows).toContain(`,Per m² of floor (100.00 m²),,,,,,,,${Math.round(e.perM2!)}`)
     expect(rows).toContain(`,"House only, per m² of floor (no site works, outside works, fees or contingency)",,,,,,,,${Math.round(e.housePerM2!)}`)
-    expect(rows.length).toBe(1 + e.lines.length + e.groups.length + 1 + 5 + 1 + 1 + 1 + 1)
+    // header, the groups' lines and totals, the subtotal and summary between blanks, five totals, a blank, the footer and caveat, and the last line ending
+    expect(rows.length).toBe(1 + (e.lines.length - 2) + e.groups.length + 1 + 1 + 2 + 1 + 5 + 1 + 1 + 1 + 1)
   })
 
   it('quotes fields with commas and quote marks, and shows a quote beside its estimate', () => {
@@ -486,6 +540,6 @@ describe('the house against the finish guide', () => {
     const html = guide(e)
     expect(html).not.toContain('ce-guide-tag')
     expect(html).not.toContain('the guide<')
-    expect(html).toContain('Compare once there are ')
+    expect(html).toContain('Compare once the estimate is complete')
   })
 })

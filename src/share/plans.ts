@@ -1,3 +1,4 @@
+import { pageKey } from './pages'
 import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
@@ -72,6 +73,8 @@ export interface PlanSetInput {
   terrain?: Terrain
   /** The house's shadows on 21 June, for a shadow diagram sheet (src/sun); none without. */
   shadows?: ShadowDiagram | null
+  /** Pages of the plan set left unticked in Share › Plans, by their keys (./pages.ts). The DA pack keeps every page. */
+  leaveOut?: readonly string[]
 }
 
 const PAPER: Record<Paper, [number, number]> = { A3: [420, 297], A4: [297, 210] }
@@ -170,6 +173,8 @@ export type SheetKind = 'site' | 'floor' | 'roof' | 'section' | 'elevation' | 's
 
 export interface PlanSheet {
   kind: SheetKind
+  /** Which page of Share › Plans' list it is (./pages.ts): its kind, or each floor its own. */
+  key: string
   name: string
   /** Sections and elevations have no north arrow. */
   north: boolean
@@ -218,7 +223,9 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
   const { W, H, margin, strip, small } = frame
   const doc = new PdfDocument(input.title)
   // The cut and fill plan and the stormwater sheet are the DA pack's own (src/da); here both are on the site plan.
-  const sheets = planSheets(input, frame).filter(s => s.kind !== 'cutFill' && s.kind !== 'stormwater')
+  const leaveOut = input.leaveOut ?? []
+  const sheets = planSheets(input, frame).filter(s => s.kind !== 'cutFill' && s.kind !== 'stormwater' && !leaveOut.includes(s.key))
+  if (!sheets.length) throw new Error('Tick at least one page to put in the PDF.')
   sheets.forEach((sheet, i) => {
     const pg = doc.addPage(W, H)
     pg.round()
@@ -269,28 +276,28 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   const profiles = input.ground ? retainingProfiles(plan, survey.origin, input.ground) : []
 
   const sheets: PlanSheet[] = []
-  sheets.push({ kind: 'site', name: 'Site plan', north: true, draw: pg => siteSheet(pg) })
+  sheets.push({ kind: 'site', key: 'site', name: 'Site plan', north: true, draw: pg => siteSheet(pg) })
   for (const l of levels) {
     const empty = ![...plan.walls, ...plan.areas, ...plan.stairs].some(x => x.level === l.id)
-    sheets.push({ kind: 'floor', name: `${l.name} plan`, north: true, empty, draw: pg => floorSheet(pg, l) })
+    sheets.push({ kind: 'floor', key: pageKey('floor', l.id), name: `${l.name} plan`, north: true, empty, draw: pg => floorSheet(pg, l) })
   }
-  if (roofs.length) sheets.push({ kind: 'roof', name: 'Roof plan', north: true, draw: pg => roofSheet(pg) })
+  if (roofs.length) sheets.push({ kind: 'roof', key: 'roof', name: 'Roof plan', north: true, draw: pg => roofSheet(pg) })
   // Sections and elevations (src/sections), at their own scale, with no north arrow.
   if (input.terrain) {
     for (const s of drawingSheets({ plan, survey, terrain: input.terrain, finished: input.ground }, area)) {
-      sheets.push({ kind: s.kind, name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
+      sheets.push({ kind: s.kind, key: s.kind, name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
     }
   }
   const shadows = input.shadows
-  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ kind: 'shadow', name: 'Shadow diagram, 21 June', north: true, draw: pg => shadowSheet(pg, shadows) })
+  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ kind: 'shadow', key: 'shadow', name: 'Shadow diagram, 21 June', north: true, draw: pg => shadowSheet(pg, shadows) })
   // The DA pack's two: cut and fill once the ground is cut or filled, and the stormwater concept once there is one.
   const natural = input.terrain?.grid
   const finished = input.ground
   if (input.earthworks && natural && finished && natural !== finished && input.contours?.any) {
-    sheets.push({ kind: 'cutFill', name: 'Cut and fill plan', north: true, draw: pg => cutFillSheet(pg, natural, finished) })
+    sheets.push({ kind: 'cutFill', key: 'cutFill', name: 'Cut and fill plan', north: true, draw: pg => cutFillSheet(pg, natural, finished) })
   }
   const storm = input.stormwater
-  if (storm) sheets.push({ kind: 'stormwater', name: 'Stormwater concept', north: true, draw: pg => stormwaterPlanSheet(pg, storm) })
+  if (storm) sheets.push({ kind: 'stormwater', key: 'stormwater', name: 'Stormwater concept', north: true, draw: pg => stormwaterPlanSheet(pg, storm) })
   return sheets
 
   // ---------------------------------------------------------------------------

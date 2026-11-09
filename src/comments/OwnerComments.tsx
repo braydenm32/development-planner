@@ -41,19 +41,27 @@ function Badge() {
   )
 }
 
-/** "2 comments, 1 new" for a link in the list, or nothing. */
+/** "2 comments" for a link in the list, with a "1 new" badge (not a link), or nothing. */
 export function LinkCommentCount({ link }: { link: ShareLink }) {
-  const words = useComments(s => countWords(s.counts[link.id]))
-  return words ? <span className="sl-cm-count"> · {words}</span> : null
+  const c = useComments(s => s.counts[link.id])
+  const words = countWords(c ? { total: c.total, new: 0 } : undefined)
+  if (!words || !c) return null
+  return (
+    <span className="sl-cm-count">
+      {' · '}
+      {words}
+      {c.new > 0 && <b className="cm-new">{c.new} new</b>}
+    </span>
+  )
 }
 
-/** Two ticks: let people comment, and whether they see each other's comments. */
-function ModeTicks({ mode, onChange, disabled, label }: { mode: CommentMode; onChange: (m: CommentMode) => void; disabled?: boolean; label: string }) {
+/** Two ticks: let people comment (worded for the new link or this one), and whether they see each other's comments. */
+function ModeTicks({ mode, onChange, disabled, label, tick }: { mode: CommentMode; onChange: (m: CommentMode) => void; disabled?: boolean; label: string; tick: string }) {
   return (
     <div className="sl-cm" role="group" aria-label={label}>
       <label className="sl-check">
         <input type="checkbox" checked={mode !== 'off'} disabled={disabled} onChange={e => onChange(e.target.checked ? 'own' : 'off')} />
-        Let people comment
+        {tick}
       </label>
       {mode !== 'off' && (
         <label className="sl-check sl-check-sub">
@@ -67,12 +75,12 @@ function ModeTicks({ mode, onChange, disabled, label }: { mode: CommentMode; onC
 
 /** A link's comments setting, in its row. */
 export function LinkCommentsSetting({ projectId, link }: { projectId: string; link: ShareLink }) {
-  return <ModeTicks mode={link.comments ?? 'off'} label="Comments on this link" onChange={m => void commentActions.setMode(projectId, link.id, m)} />
+  return <ModeTicks mode={link.comments ?? 'off'} label="Comments on this link" tick="This link: comments on" onChange={m => void commentActions.setMode(projectId, link.id, m)} />
 }
 
 /** Whether the next link takes comments: off unless ticked. */
 export function NextLinkComments({ mode = 'off', disabled }: { mode?: CommentMode; disabled?: boolean }) {
-  return <ModeTicks mode={mode} disabled={disabled} label="Comments on the new link" onChange={m => shareLinkActions.setComments(m)} />
+  return <ModeTicks mode={mode} disabled={disabled} label="Comments on the new link" tick="New links: let people comment" onChange={m => shareLinkActions.setComments(m)} />
 }
 
 /** Share › Send: the project's comments from its links, new first, each to show on the plan, resolve or delete. */

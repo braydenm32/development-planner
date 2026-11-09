@@ -137,6 +137,19 @@ describe('cloud saves in the app', () => {
     expect(app.useCloud.getState().sheet).toBeNull()
   })
 
+  it('opens the sign-in sheet with the reason it was asked for, carried to Create account and forgotten on close', async () => {
+    const app = await freshApp(testServer().fetch)
+    app.cloudActions.open('sign-in', 'share')
+    expect(app.useCloud.getState()).toMatchObject({ sheet: 'sign-in', reason: 'share' })
+    app.cloudActions.open('create')
+    expect(app.useCloud.getState()).toMatchObject({ sheet: 'create', reason: 'share' })
+    app.cloudActions.close()
+    expect(app.useCloud.getState()).toMatchObject({ sheet: null, reason: null })
+    // From anywhere else, the sheet is the general one.
+    app.cloudActions.open('sign-in')
+    expect(app.useCloud.getState().reason).toBeNull()
+  })
+
   it('carries on signed in while offline, if he was signed in here last', async () => {
     localStorage.setItem('cloud-user-v1', JSON.stringify({ id: 'u_1', name: 'Tester' }))
     const app = await freshApp(async () => Promise.reject(new TypeError('Failed to fetch')))
