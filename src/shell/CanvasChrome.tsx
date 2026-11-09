@@ -1,7 +1,7 @@
 // What floats on the canvas: the tool rail with the current tool's options beside it, the
 // selection inspector, and the fit and orientation controls.
 
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
 import { TOOLS } from '../components/tools'
 import { ZoomButtons } from '../components/ZoomButtons'
@@ -32,22 +32,33 @@ export function ToolRail() {
   )
 }
 
-/** The current tool's settings for what it draws next, in a small card beside the rail. */
-export function ToolCard() {
+/**
+ * The current tool's settings for what it draws next, in a small card beside the rail.
+ * `compact`: above a tab's panel, the card is one line with its options folded, so it
+ * doesn't push the panel down the screen.
+ */
+export function ToolCard({ compact = false }: { compact?: boolean }) {
   const tool = usePlan(s => s.tool)
+  const [open, setOpen] = useState(false)
   const def = TOOLS.find(t => t.id === tool)
   if (!def || !hasToolCard(tool)) return null
+  const shown = !compact || open
   return (
-    <section className="float-card tool-card" aria-label={`${def.label} tool`}>
+    <section className={`float-card tool-card${compact ? ' compact' : ''}`} aria-label={`${def.label} tool`}>
       <header>
         <h2>
           {def.label} <kbd>{def.key}</kbd>
         </h2>
+        {compact && (
+          <button className="plain small" onClick={() => setOpen(!open)} aria-expanded={open}>
+            {open ? 'Hide options' : 'Options'}
+          </button>
+        )}
         <button className="plain small" onClick={() => usePlan.getState().setTool('select')} title="Back to Select (V)">
           Done
         </button>
       </header>
-      {tool === 'move' ? <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p> : <ToolOptions />}
+      {shown && (tool === 'move' ? <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p> : <ToolOptions />)}
     </section>
   )
 }

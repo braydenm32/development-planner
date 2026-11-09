@@ -64,10 +64,9 @@ function Stormwater({ d }: { d: Loaded }) {
   const level = stats.maxSlopePct < 0.05
   return (
     <div className="stormwater">
-      <p className="muted small">
-        A stormwater concept for a DA: how much roof catches rain, the tank you plan, and where the water has to go. The plan shows the path as a dashed line
-        while this tab is open. A hydraulic engineer designs the real pipes, pits and any on-site detention.
-      </p>
+      {/* The answer first: where the water goes. The how and why are folded under each part. */}
+      <p className={report.verdict === 'away' ? 'notice small' : 'small'}>{verdictText(report)}</p>
+      <p className="muted small">A concept for the DA, dashed on the plan. A hydraulic engineer designs the real pipes and pits.</p>
 
       <h3>Roof catchment</h3>
       {roofs.length ? (
@@ -90,7 +89,10 @@ function Stormwater({ d }: { d: Loaded }) {
             <dt>Rain of 10 mm on it</dt>
             <dd>about {litres(litresFromRain(total, 10))}</dd>
           </dl>
-          <p className="muted small">The plan area of each roof with its eaves: what the rain lands on. Design › Roofs shows the sloping surface, which is larger.</p>
+          <details className="checks-more">
+            <summary>How the roof is measured</summary>
+            <p className="muted small">The plan area of each roof with its eaves: what the rain lands on. Design › Roofs shows the sloping surface, which is larger.</p>
+          </details>
         </>
       ) : (
         <p className="muted small">
@@ -104,7 +106,6 @@ function Stormwater({ d }: { d: Loaded }) {
 
       <h3>Rainwater tank</h3>
       <Num label="Tank size you’re planning" value={sw.tankLitres} unit="L" decimals={0} min={0} onCommit={v => setStormwater({ tankLitres: Math.round(v) })} />
-      <p className="muted small">Your BASIX certificate and the council’s stormwater rules set the size; this only shows what a tank that size holds from your roof.</p>
       {roofs.length > 1 && (
         <>
           <div className="muted small">Roofs that drain to the tank</div>
@@ -140,12 +141,14 @@ function Stormwater({ d }: { d: Loaded }) {
           )}
         </dl>
       )}
-      {roofs.length > 0 && sw.tankLitres > 0 && held !== null && (
+      <details className="checks-more">
+        <summary>How the tank is worked out</summary>
+        <p className="muted small">Your BASIX certificate and the council’s stormwater rules set the size; this only shows what a tank that size holds from your roof.</p>
         <p className="muted small">
           Plain arithmetic: 1 mm of rain on 1 m² of roof is 1 litre. Water lost to first-flush, splash and overflow isn’t counted, and a tank is rarely empty
           when it rains, so the real catch is less.
         </p>
-      )}
+      </details>
 
       <h3>Fall of the block</h3>
       <dl className="stats">
@@ -181,7 +184,6 @@ function Stormwater({ d }: { d: Loaded }) {
         )}
       </dl>
       {report.street && <p className="muted small">Street side {STREET_FROM[report.street.from]}.</p>}
-      <p className={report.verdict === 'away' ? 'notice small' : 'small'}>{verdictText(report)}</p>
 
       <h3>On the plan</h3>
       <ul className="drainage-legend small">
@@ -195,13 +197,12 @@ function Stormwater({ d }: { d: Loaded }) {
           <span className="swatch arrow" aria-hidden /> Which way the ground falls (overland flow).
         </li>
       </ul>
-      <p className="muted small">
-        Levels are the natural ground from the survey; the kerb and any pit are usually lower than the boundary. Council may also ask for on-site detention,
-        which the engineer sizes.
-      </p>
-
       <details className="checks-more">
-        <summary>Sources</summary>
+        <summary>Levels and sources</summary>
+        <p className="muted small">
+          Levels are the natural ground from the survey; the kerb and any pit are usually lower than the boundary. Council may also ask for on-site detention,
+          which the engineer sizes.
+        </p>
         <ul className="drainage-sources">
           {SOURCES.map(s => (
             <li key={s.instrument}>

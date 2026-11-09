@@ -53,6 +53,8 @@ export interface DriveLine {
   natural: number | null
   /** The drive's width: narrowest, and at the street end. */
   width: { min: number; street: number }
+  /** The kerb's level as chosen for the drive's street end (Earthworks › Driveway › Street end: Kerb), so the crossing starts from the same one. */
+  chosenKerb?: number
   door: DoorFacts | null
   facts: CrossingFacts
 }
@@ -225,6 +227,7 @@ function driveLine(plan: Plan, area: Area, origin: Vec2, boundary: Vec2[], groun
     floor,
     natural: crossing && opts.natural ? opts.natural(crossing) : null,
     width,
+    ...(area.drive?.street?.from === 'kerb' ? { chosenKerb: area.drive.street.rl } : {}),
     door: doorFor(plan, origin, garage, u),
     facts: area.crossing ?? {},
   }

@@ -172,11 +172,27 @@ export function driveDesign(plan: Plan, area: Area, ends: DriveEndPoints, ground
   return { street, garage, grade, tooSteep: grade.steepest > MAX_DRIVE_GRADE }
 }
 
-/** Surveyed spot levels nearest the street end, closest first. */
-export function nearSpotLevels(levels: SurveyPoint[], at: Vec2, n = 4, within = 15): { rl: number; at: Vec2; dist: number }[] {
+/** A spot level further than this (m) to one side of the drive's line isn't its street end's level. */
+export const SPOT_OFF_LINE = 1.2
+
+/**
+ * Surveyed spot levels nearest the street end, closest first. Given the garage end too, only
+ * those on the drive's line, out past the street end or along the drive: not ones metres to one side.
+ */
+export function nearSpotLevels(levels: SurveyPoint[], at: Vec2, n = 4, within = 15, garage?: Vec2): { rl: number; at: Vec2; dist: number }[] {
+  const onLine = (q: Vec2) => {
+    if (!garage) return true
+    const ux = garage[0] - at[0]
+    const uy = garage[1] - at[1]
+    const l = Math.hypot(ux, uy)
+    if (!l) return true
+    const along = ((q[0] - at[0]) * ux + (q[1] - at[1]) * uy) / l
+    const off = Math.abs((q[0] - at[0]) * uy - (q[1] - at[1]) * ux) / l
+    return off <= SPOT_OFF_LINE && along <= l
+  }
   return levels
     .map(p => ({ rl: p.z, at: [p.x, p.y] as Vec2, dist: dist([p.x, p.y], at) }))
-    .filter(p => p.dist <= within)
+    .filter(p => p.dist <= within && onLine(p.at))
     .sort((a, b) => a.dist - b.dist)
     .slice(0, n)
 }

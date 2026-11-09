@@ -62,6 +62,8 @@ function Layer({ plan, survey, terrain, S, k }: Props) {
   if (ang > 90) ang -= 180
   if (ang < -90) ang += 180
   const long = path.length === 2 && Math.hypot(path[1][0] - path[0][0], path[1][1] - path[0][1]) > 90
+  // Along a path that runs up or down the screen the label would read sideways: it's written level, beside the path.
+  const steep = Math.abs(ang) > 35
 
   return (
     <g className="drainage" aria-label="Stormwater concept">
@@ -74,7 +76,15 @@ function Layer({ plan, survey, terrain, S, k }: Props) {
           <path className="drainage-path" d={arrow(path[0], path[1])} />
           <circle className="drainage-end" cx={path[0][0]} cy={path[0][1]} r={4} />
           {mid && long && (
-            <text className="drainage-label" x={mid[0]} y={mid[1]} dy={-6} transform={`rotate(${ang.toFixed(1)} ${mid[0]} ${mid[1]})`} textAnchor="middle">
+            <text
+              className="drainage-label"
+              x={mid[0]}
+              y={mid[1]}
+              dx={steep ? 10 : 0}
+              dy={steep ? 4 : -6}
+              transform={steep ? undefined : `rotate(${ang.toFixed(1)} ${mid[0]} ${mid[1]})`}
+              textAnchor={steep ? 'start' : 'middle'}
+            >
               {label}
             </text>
           )}

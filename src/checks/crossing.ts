@@ -146,7 +146,7 @@ export function shapeOf(std: CrossingStandard, line: DriveLine): CrossingShape {
 // ---------------------------------------------------------------------------
 // The kerb's level
 
-export type KerbSource = 'typed' | 'survey' | 'state'
+export type KerbSource = 'typed' | 'chosen' | 'survey' | 'state'
 
 export interface Kerb {
   rl: number
@@ -158,12 +158,15 @@ export interface Kerb {
 /**
  * The kerb's level where the drive meets the road, in order: the level the person typed; the
  * survey's level at the boundary, down a standard crossing; the state's elevation data at the
- * kerb point (about ±0.9 m), once it's been read. Null when there's none: the crossing checks then
+ * kerb point (about ±0.9 m), once it's been read. A kerb chosen as the drive's street end level comes
+ * second, after a typed one. Null when there's none: the crossing checks then
  * need a fact.
  */
 export function kerbLevel(line: DriveLine, shape: CrossingShape): Kerb | null {
   const k = line.facts.kerb
   if (k?.from === 'typed') return { rl: k.rl, from: 'typed' }
+  // The kerb picked as the drive's street end level: the crossing uses the same one.
+  if (line.chosenKerb !== undefined) return { rl: line.chosenKerb, from: 'chosen' }
   if (line.natural !== null && line.boundary) return { rl: kerbFromBoundary(line.natural, shape), from: 'survey', boundary: line.natural }
   if (k?.from === 'state') return { rl: k.rl, from: 'state' }
   return null
@@ -172,6 +175,7 @@ export function kerbLevel(line: DriveLine, shape: CrossingShape): Kerb | null {
 /** Where the kerb's level came from, in a sentence. */
 export function kerbText(k: Kerb, shape: CrossingShape): string {
   if (k.from === 'typed') return `The kerb level, RL ${k.rl.toFixed(2)}, is the one you typed.`
+  if (k.from === 'chosen') return `The kerb level, RL ${k.rl.toFixed(2)}, is the kerb chosen for the drive’s street end, read off the survey’s kerb line.`
   if (k.from === 'state') return `The kerb level, RL ${k.rl.toFixed(2)}, is from the state’s elevation data, about ±0.9 m: type the real one when you have it.`
   return `The kerb level, RL ${k.rl.toFixed(2)}, is worked out from the survey’s level at the boundary (RL ${k.boundary!.toFixed(2)}) down a standard crossing (${pctText(shape.fall)} across the footpath): type the real one to be sure.`
 }

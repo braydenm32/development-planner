@@ -1,5 +1,6 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { useRetainingWalls } from '../components/planNumbers'
+import { impliedTotals, impliedWalls } from '../grading/implied'
 import { designQuantities, type DesignQuantities } from '../plan/quantities'
 import type { Loaded } from '../shell/useSite'
 import { estimate, type Estimate } from './estimate'
@@ -12,7 +13,9 @@ export function useQuantities(d: Loaded): DesignQuantities {
   const walls = useRetainingWalls(d.plan, d.survey, d.terrain, d.earth)
   // Cut and fill only once something is levelled, as the strip shows them.
   const earth = d.earth && d.earth.platforms.length > 0 ? d.earth.result : null
-  return useMemo(() => designQuantities(d.plan, earth, walls), [d.plan, earth, walls])
+  // With them, the walls the cut and fill imply, while those are counted (src/grading/implied.ts).
+  const implied = useMemo(() => impliedTotals(impliedWalls(d.survey, d.earth)), [d.survey, d.earth])
+  return useMemo(() => designQuantities(d.plan, earth, walls, implied), [d.plan, earth, walls, implied])
 }
 
 /** The council and pathway the council and government fees go by (Approvals › Checks). */

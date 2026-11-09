@@ -9,11 +9,12 @@ import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
 import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { floorRL, levelById, sortedLevels, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, levelById, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
 import { useSunFacts } from '../sun/useSun'
+import { impliedTotals, impliedWalls, type ImpliedTotals } from '../grading/implied'
 
 export interface KeyNumbers {
   /** Each level's floor area (outside of walls), lowest first. */
@@ -36,7 +37,12 @@ export interface KeyNumbers {
     balancedRL: number | null
     outOfBalance: boolean
   } | null
-  retaining: { count: number; length: number; maxHeight: number; face: number; engineer: boolean } | null
+  /**
+   * The retaining walls: the drawn ones, and with them the walls the earthworks imply (vertical
+   * edges, src/grading/implied.ts) while those are counted. `maxHeight` and `engineer` take in both;
+   * `impliedTallest` says the tallest is an implied one.
+   */
+  retaining: { count: number; length: number; maxHeight: number; face: number; engineer: boolean; implied?: ImpliedTotals | null; impliedTallest?: boolean } | null
   /** The roof that rises highest above the ground (the building's height). */
   roof: RoofNumbers | null
   /** Every roof that builds, highest first. */
@@ -64,6 +70,7 @@ export interface RoofNumbers {
 export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, earth: Earth | null): KeyNumbers {
   const summary = useMemo(() => levelSummaries(plan), [plan])
   const walls = useRetainingWalls(plan, survey, terrain, earth)
+  const implied = useMemo(() => impliedTotals(impliedWalls(survey, earth)), [survey, earth])
   const placement = usePlacementInfo(plan, survey, terrain)
   const sun = useSunFacts(plan, survey, terrain, earth)
   const ffl = floorRL(plan)
@@ -107,18 +114,22 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
             deepestCut: r.maxCut,
             deepestFill: r.maxFill,
             balancedRL,
-            outOfBalance: movesFloor(balancedRL, ffl),
+            // A design that cuts or fills on purpose said so: the chip stays quiet.
+            outOfBalance: movesFloor(balancedRL, ffl) && !earthworksOf(plan).keepNet,
           }
         : null,
-      retaining: walls.length
-        ? {
-            count: walls.length,
-            length: walls.reduce((t, w) => t + w.length, 0),
-            maxHeight: Math.max(...walls.map(w => w.maxHeight)),
-            face: walls.reduce((t, w) => t + w.faceArea, 0),
-            engineer: walls.some(w => needsEngineer(w.maxHeight)),
-          }
-        : null,
+      retaining:
+        walls.length || implied
+          ? {
+              count: walls.length,
+              length: walls.reduce((t, w) => t + w.length, 0),
+              maxHeight: Math.max(0, ...walls.map(w => w.maxHeight), implied?.maxHeight ?? 0),
+              face: walls.reduce((t, w) => t + w.faceArea, 0),
+              engineer: walls.some(w => needsEngineer(w.maxHeight)) || !!implied?.engineer,
+              implied,
+              impliedTallest: !!implied && implied.maxHeight > Math.max(0, ...walls.map(w => w.maxHeight)),
+            }
+          : null,
       roof: roofs[0] ?? null,
       roofs,
       roofArea: roofs.reduce((t, r) => t + r.area, 0),
@@ -127,5 +138,5 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       placement,
       sun,
     }
-  }, [plan, summary, earth, ffl, floors, balancedRL, walls, roofs, survey, placement, sun])
+  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, survey, placement, sun])
 }

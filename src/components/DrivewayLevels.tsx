@@ -49,7 +49,7 @@ export function DrivewayLevels({ plan, area, survey, terrain, earth }: Props) {
   const groundStreet = ground.follow(ends.street)
   const kerb = nearestKerbPoint(kerbs, ends.street)
   const kerbRL = kerb && kerb.dist < 30 ? terrain.grid.sample(kerb.at[0], kerb.at[1]) : null
-  const spots = nearSpotLevels(survey.levels, ends.street)
+  const spots = nearSpotLevels(survey.levels, ends.street, 4, 15, ends.garage)
   const street = levels.street
   const streetChoice = !street ? 'ground' : street.from === 'kerb' ? 'kerb' : street.from === 'typed' ? 'typed' : `spot:${street.rl}`
   const streetOptions: { id: string; label: string }[] = [

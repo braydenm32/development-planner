@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
 import { DEFAULT_BENCH, earthworksOf, levelById, sortedLevels, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
@@ -25,7 +25,11 @@ import {
   type RetainingSection,
   type Side,
 } from '../plan/retaining'
-import { cancelNewRetaining, keepNewRetaining, setEarthSide, startSidePick, stopSidePick, tidyRetain, useRetaining } from '../plan/retainingSession'
+import { answerRunHeight, cancelNewRetaining, keepNewRetaining, setEarthSide, startSidePick, stopSidePick, tidyRetain, useRetaining } from '../plan/retainingSession'
+import { wallChange, wallChangeText } from '../plan/wallChange'
+import { showChanged } from '../plan/wallFocus'
+import { useCosts } from '../costs/store'
+import { money } from '../costs/format'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { Num, Select } from './fields'
@@ -52,7 +56,9 @@ const m2 = (v: number) => `${v.toFixed(2)} m`
  */
 export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Props) {
   const isNew = useRetaining(s => s.newWall === w.id)
+  const pieces = useRetaining(s => (s.newWall === w.id ? s.run.length : 1))
   const picking = useRetaining(s => s.sidePick === w.id)
+  const costs = useCosts(s => s.data)
   const [details, setDetails] = useState(false)
   const st = usePlan.getState()
   const finished = earth?.result.grid ?? terrain.grid
@@ -61,6 +67,10 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
   const section = useMemo(() => retainingSection(w, plan, survey.origin, terrain.grid, finished), [w, plan, survey, terrain, finished])
   const gaps = useMemo(() => ({ left: houseGap(w, plan, 'left'), right: houseGap(w, plan, 'right') }), [w, plan])
   const inside = useMemo(() => insideHouse(w, plan), [w, plan])
+  // What the wall changes, against the plan without it: the line under the height box.
+  // The lit ground goes with the panel.
+  useEffect(() => () => showChanged(null), [])
+  const change = useMemo(() => (earth && !insideHouse(w, plan) ? wallChange(plan, w, survey, terrain.grid, earth, costs) : null), [plan, w, survey, terrain, earth, costs])
 
   // Walls from older plans have no levels: show the side the ground says, and write nothing until asked.
   const r: Retain = w.retain ?? { high: prof.high ?? 'left' }
@@ -187,8 +197,14 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
   return (
     <section className="rw-panel" aria-label={isNew ? 'New retaining wall' : 'Retaining wall'}>
       <header className="rw-head">
-        <h2>{isNew ? 'New retaining wall' : 'Retaining wall'}</h2>
-        <p>{picking ? 'Click the plan on the side the earth is on.' : isNew ? 'Say how high the earth behind it is, then place it.' : `Earth on its ${compass(r.high)} side.`}</p>
+        <h2>{isNew ? (pieces > 1 ? `New retaining wall · ${pieces} pieces` : 'New retaining wall') : 'Retaining wall'}</h2>
+        <p>
+          {picking
+            ? 'Click the plan on the side the earth is on.'
+            : isNew
+              ? `${pieces > 1 ? 'Drawn end to end: the answers here go to every piece. ' : ''}Say how high the earth behind it is, then keep it.`
+              : `${len.toFixed(1)} m long${split ? ` · ${levelById(plan, w.level)?.name ?? ''} level` : ''}.`}
+        </p>
       </header>
       {!isNew && <WallsHere wall={w} plan={plan} />}
 
@@ -233,9 +249,18 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
               suffix="m"
               min={0.05}
               max={10}
-              onCommit={h => h !== undefined && set(levelsForHeight(r, plan, prof, h))}
+              onCommit={h => {
+                if (h === undefined) return
+                // A new run's answer goes to every piece of it.
+                if (isNew && pieces > 1) answerRunHeight(w.id, h, survey.origin, finished)
+                else set(levelsForHeight(r, plan, prof, h))
+              }}
+              // While the box has focus, the ground the wall changes is lit on the plan.
+              onFocus={() => change && showChanged({ cells: change.cells, cell: change.cell })}
+              onBlur={() => showChanged(null)}
             />
           </Row>
+          {change && <p className="rw-note rw-change">{wallChangeText(change, n => money(Math.round(n / 100) * 100))}</p>}
           {houseSide && gapNow !== null && (
             <Row label="Gap to the house" hint={gapNow < 0.05 ? HOUSE_WALL_NOTE : 'Levelled to the house pad, as a bench between them.'}>
             <NumberBox label="Gap between the wall and the house" value={gapNow} decimals={2} suffix="m" min={0} max={8} onCommit={g => g !== undefined && setGap(g)} />
@@ -416,10 +441,12 @@ interface NumberBoxProps {
   allowEmpty?: boolean
   /** No border of its own (inside an rw-field). */
   bare?: boolean
+  onFocus?: () => void
+  onBlur?: () => void
 }
 
 /** A number box that commits on Enter or when it loses focus; Esc puts it back. */
-function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min, max, allowEmpty, bare }: NumberBoxProps) {
+function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min, max, allowEmpty, bare, onFocus, onBlur }: NumberBoxProps) {
   const shown = value === undefined ? '' : value.toFixed(decimals)
   const [editing, setEditing] = useState<string | null>(null)
   const cancelled = useRef(false)
@@ -449,9 +476,13 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
       onFocus={e => {
         setEditing(shown)
         e.target.select()
+        onFocus?.()
       }}
       onChange={e => setEditing(e.target.value)}
-      onBlur={commit}
+      onBlur={() => {
+        onBlur?.()
+        commit()
+      }}
       onKeyDown={e => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
         if (e.key === 'Escape') {

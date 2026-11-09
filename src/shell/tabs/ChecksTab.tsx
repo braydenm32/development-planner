@@ -27,6 +27,7 @@ import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 import { goToStreetSide } from '../../phone/streetSideWords'
+import { DriveFromSlab } from '../../components/DriveFromSlab'
 import '../../checks/checks.css'
 
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
@@ -159,6 +160,12 @@ function Checks({ d }: { d: Loaded }) {
   )
 }
 
+/** "Make it a driveway", for a concrete slab that looks like one (src/components/DriveFromSlab.tsx). */
+function SlabDrive() {
+  const d = useLoaded()
+  return d ? <DriveFromSlab plan={d.plan} survey={d.survey} /> : null
+}
+
 // Open to start with: something to do, or a tree planned for removal (so ticking its box doesn't fold the group away).
 const isLoudGroup = (g: Group) => !g.undrawn && g.rows.some(r => isLoud(r) || r.status === 'pending')
 
@@ -189,6 +196,8 @@ function TopicGroup({ g, open, onToggle, unfolded, onUnfold, row }: { g: Group; 
           </button>
         )}
       </div>
+      {/* A driveway drawn as a concrete slab isn't one to these checks: offer to make it one. */}
+      {g.undrawn && <SlabDrive />}
       {open && (
         <>
           {g.undrawn ? (
