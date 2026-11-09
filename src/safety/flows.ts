@@ -345,6 +345,15 @@ export async function newPlan(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Open project file.
 
+/** A survey's block area (m²), or null when it doesn't read. */
+function blockAreaOf(survey: SavedProject): number | null {
+  try {
+    return readSite(survey).terrain.stats.area
+  } catch {
+    return null
+  }
+}
+
 /** A project file opens as a new project, after a light review; Undo puts it under Archived and goes back. */
 export async function openProjectText(text: string, fileName: string): Promise<void> {
   const parsed = parseProjectFile(text)
@@ -360,6 +369,7 @@ export async function openProjectText(text: string, fileName: string): Promise<v
       survey: parsed.survey,
       plan: parsed.plan,
       siteFeatures: (parsed.site?.data.features.length ?? 0) + (parsed.site?.data.overlays.length ?? 0),
+      blockArea: blockAreaOf(parsed.survey),
       costs: parsed.costs ? costsSummary(parsed.costs) : null,
       current: before?.name ?? null,
     }),

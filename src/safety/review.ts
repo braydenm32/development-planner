@@ -127,11 +127,15 @@ export function surveyReview(i: SurveyReviewInput): Review {
   const keepFirst = !sketchBefore && (fit.fit === 'inside' || fit.fit === 'partly') && !(plan && levelsOff(floorRL(plan), to.terrain.stats))
   const both = sketchBefore && !sketchAfter ? [movedChoice()] : keepFirst ? [keptChoice(), movedChoice()] : [movedChoice(), keptChoice()]
   for (const c of both) if (c) choices.push(c)
+  // One way only (nothing drawn to keep where it is, or a sketch's made-up spot): no card to
+  // choose from, just what happens, in the changes, and its picture.
+  const only = choices.length === 1 ? choices[0] : null
 
   const changes = [
     i.old ? `The survey: ${i.old.fileName} becomes ${next.fileName}.` : `The survey: ${next.fileName}.`,
     sketchAfter ? 'The block is a sketch until the survey comes.' : `The block: ${siteAreaText(to.terrain.stats)}, ${rlRangeText(to.terrain.stats)}.`,
     'Survey layers are read fresh from the new file.',
+    ...(only?.detail ? [drawn ? `The house goes in the middle of the ${sketchBefore ? 'surveyed' : 'new'} block. ${only.detail}` : only.detail] : []),
   ]
   const kept = [
     drawn ? `Your plan: ${planLine(plan)}.` : 'Your plan.',
@@ -156,8 +160,9 @@ export function surveyReview(i: SurveyReviewInput): Review {
     changes,
     kept,
     warning: !sketchBefore && drawn && fit.fit === 'outside' ? offBlockWarning(fit) : null,
-    choices,
-    thumb: choices.length ? undefined : thumbOf(to, i.moved ?? plan),
+    choices: only ? [] : choices,
+    choice: only?.id,
+    thumb: only ? only.thumb : choices.length ? undefined : thumbOf(to, i.moved ?? plan),
     confirm: sketchBefore && !sketchAfter ? 'Use this survey' : 'Replace survey',
     replaces: true,
   }
@@ -244,10 +249,24 @@ export interface ProjectReviewInput {
   survey: SavedProject
   plan: Plan
   siteFeatures: number
+  /** The block's area (m²), when its survey reads. */
+  blockArea?: number | null
   /** What its costs hold, in a few words, when it has any. */
   costs?: string | null
   /** The project open now, which stays. */
   current: string | null
+}
+
+/** What a project file holds besides its plan, in words: "36 site features · 3 levels · block 624 m²". */
+export function holds(i: Pick<ProjectReviewInput, 'siteFeatures' | 'plan' | 'blockArea'>): string {
+  const levels = sortedLevels(i.plan).length
+  return [
+    i.siteFeatures ? count(i.siteFeatures, 'site feature') : 'no site features',
+    levels ? count(levels, 'level') : null,
+    i.blockArea ? `block ${siteAreaText({ area: i.blockArea })}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function projectReview(i: ProjectReviewInput): Review {
@@ -259,7 +278,7 @@ export function projectReview(i: ProjectReviewInput): Review {
       { label: 'Name', value: i.name },
       { label: 'Survey', value: i.survey.fileName },
       { label: 'Plan', value: planLine(i.plan) },
-      ...(i.siteFeatures ? [{ label: 'Site features', value: String(i.siteFeatures) }] : []),
+      { label: 'With', value: holds(i) },
       ...(i.costs ? [{ label: 'Costs', value: i.costs }] : []),
     ],
     changes: [`Adds “${i.name}” to your projects and opens it.`],
