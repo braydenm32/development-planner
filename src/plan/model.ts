@@ -3,6 +3,7 @@ import type { CheckSettings } from '../checks/types'
 import type { DaSettings } from '../da/model'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
+import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
 
@@ -41,6 +42,8 @@ export interface Plan {
   sections?: SectionLine[]
   /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
   location?: SiteLocation
+  /** Ground painted with the Cut and Fill brushes (src/grading). Missing in plans without any. */
+  grading?: Grading
 }
 
 /**
@@ -366,7 +369,14 @@ export function normalizePlan(p: Plan): Plan {
     notes: p.notes ?? [],
     // Kept only when there are some, so older plans load exactly as they were saved.
     ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
+    ...(p.grading !== undefined ? gradingField(p.grading) : {}),
   })
+}
+
+/** A saved plan's grading, kept only when there's some to keep. */
+function gradingField(g: unknown): { grading?: Grading } {
+  const n = normalizeGrading(g)
+  return n && (n.areas.length || n.dismissed?.length) ? { grading: n } : { grading: undefined }
 }
 
 const isPoint = (v: unknown): v is Vec2 => Array.isArray(v) && v.length === 2 && v.every(n => typeof n === 'number' && Number.isFinite(n))

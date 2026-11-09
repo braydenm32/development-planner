@@ -702,7 +702,7 @@ const setEarthworks = (patch: Partial<Earthworks>) =>
 export function EarthworksIntro() {
   return (
     <p className="muted small">
-      The ground is levelled under slab floors and concrete slabs, and cut back under floors on piers to leave room underneath. Batters slope from there back to the natural ground.
+      The ground is levelled under slab floors and concrete slabs, cut back under floors on piers to leave room underneath, and brought to a level where you paint it with the grading brush below. Batters slope from there back to the natural ground.
     </p>
   )
 }
@@ -750,7 +750,7 @@ export function EarthworksResults({ plan, survey, earth, terrain, retaining = tr
       <DemFlag what="these volumes" />
       {crossed && (
         <p className="notice small">
-          Batters cross {crossed}. Draw a retaining wall there (Retaining wall tool) to hold them back, or move the house.
+          Batters cross {crossed}. Add a suggested retaining wall below, or draw one there (Retaining wall tool), to hold them back, or move the house.
         </p>
       )}
       {retaining && walls.length > 0 && <RetainingTotals walls={walls} />}
@@ -766,7 +766,7 @@ export function EarthworksResults({ plan, survey, earth, terrain, retaining = tr
       </p>
     </>
   ) : (
-    <p className="muted small">Draw walls on the lowest level, or a concrete slab, to see cut and fill.</p>
+    <p className="muted small">Draw walls on the lowest level, or a concrete slab, or paint ground with the grading brush below, to see cut and fill.</p>
   )
 }
 

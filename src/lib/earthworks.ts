@@ -34,6 +34,10 @@ export interface Platform {
   ramp?: Ramp
   /** False when the ground only needs cutting down to the level, as under a floor on piers. */
   fill: boolean
+  /** False when the ground only needs filling up to the level, never cut down (the Fill brush). Missing means true. */
+  cut?: boolean
+  /** Cells painted on a square grid (the grading brush), covered as well as `include`. */
+  cells?: CellMask
   /** Level ground this far past the edge instead of the settings' margin (m). */
   margin?: number
   /**
@@ -45,6 +49,17 @@ export interface Platform {
   softer?: boolean
   /** Stays at its level when the platforms are raised or lowered to balance cut and fill. */
   fixed?: boolean
+}
+
+/**
+ * Squares painted on a grid, in the survey's local frame: column i runs from x0 + i·cell to
+ * x0 + (i + 1)·cell, row j likewise from y0. Each row entry is [j, first i, last i].
+ */
+export interface CellMask {
+  cell: number
+  x0: number
+  y0: number
+  rows: [number, number, number][]
 }
 
 /** A line the earthworks can't cross, such as a retaining wall, in the survey's local frame. */
@@ -69,10 +84,11 @@ export interface PreparedEarthworks {
   anySoft: boolean
 }
 
-interface PreparedPlatform {
+export interface PreparedPlatform {
   id?: string
   level: number
   fill: boolean
+  cut: boolean
   dist: Float32Array
   soft: boolean
   fixed: boolean
@@ -164,7 +180,7 @@ const DIRS: [number, number][] = [
 const orient = (a: Vec2, b: Vec2, c: Vec2) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 
 /** Do segments pq and ab cross or touch? */
-function crosses(p: Vec2, q: Vec2, a: Vec2, b: Vec2): boolean {
+export function crosses(p: Vec2, q: Vec2, a: Vec2, b: Vec2): boolean {
   const d1 = orient(a, b, p)
   const d2 = orient(a, b, q)
   const d3 = orient(p, q, a)
@@ -302,6 +318,18 @@ function siteMask(natural: Heightfield, boundary: Vec2[]): { inside: Uint8Array;
   return { inside, edgeNear }
 }
 
+/** Mark the grid nodes that fall inside painted squares (each square holds its lower-left edges, not its upper-right). */
+function markCells(mask: Uint8Array, f: Heightfield, m: CellMask) {
+  const first = (v: number, o: number) => Math.max(0, Math.ceil((v - o) / f.cell - 1e-9))
+  for (const [j, i0, i1] of m.rows) {
+    const ja = first(m.y0 + j * m.cell, f.y0)
+    const jb = Math.min(f.ny, first(m.y0 + (j + 1) * m.cell, f.y0))
+    const ia = first(m.x0 + i0 * m.cell, f.x0)
+    const ib = Math.min(f.nx, first(m.x0 + (i1 + 1) * m.cell, f.x0))
+    for (let jj = ja; jj < jb; jj++) for (let ii = ia; ii < ib; ii++) mask[jj * f.nx + ii] = 1
+  }
+}
+
 export function prepareEarthworks(
   natural: Heightfield,
   boundary: Vec2[],
@@ -314,13 +342,21 @@ export function prepareEarthworks(
   const blocked = barriers.length ? blockedSteps(natural, barriers) : null
   const prepared = platforms.map(pf => {
     const mask = new Uint8Array(nx * ny)
-    for (let j = 0; j < ny; j++) {
-      for (let i = 0; i < nx; i++) {
-        const x = x0 + i * cell
-        const y = y0 + j * cell
-        if (pf.include.some(r => pointInPolygon(x, y, r)) && !pf.exclude.some(r => pointInPolygon(x, y, r))) {
-          mask[j * nx + i] = 1
+    if (pf.include.length) {
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const x = x0 + i * cell
+          const y = y0 + j * cell
+          if (pf.include.some(r => pointInPolygon(x, y, r))) mask[j * nx + i] = 1
         }
+      }
+    }
+    if (pf.cells) markCells(mask, natural, pf.cells)
+    if (pf.exclude.length) {
+      for (let k = 0; k < mask.length; k++) {
+        if (!mask[k]) continue
+        const i = k % nx
+        if (pf.exclude.some(r => pointInPolygon(x0 + i * cell, y0 + ((k - i) / nx) * cell, r))) mask[k] = 0
       }
     }
     const dist = distanceField(mask, nx, ny)
@@ -339,6 +375,7 @@ export function prepareEarthworks(
       id: pf.id,
       level: pf.level,
       fill: pf.fill,
+      cut: pf.cut !== false,
       dist,
       soft: !!pf.soft,
       fixed: pf.ramp ? !pf.ramp.followA && !pf.ramp.followB : !!pf.fixed,
@@ -433,7 +470,7 @@ function designAt(prep: PreparedEarthworks, k: number, shift: number, noRamps = 
     const d = p.dist[k]
     if (d === Infinity || p.rank > firmest || (firmest === SOFTEST && p.rank < SOFTEST) || (noRamps && p.isRamp)) continue
     const level = p.levels && p.follow ? p.levels[k] + shift * p.follow[k] : p.fixed ? p.level : p.level + shift
-    cut = Math.min(cut, d === 0 ? level : level + d / cutBatter)
+    if (p.cut) cut = Math.min(cut, d === 0 ? level : level + d / cutBatter)
     if (p.fill) fill = Math.max(fill, d === 0 ? level : level - d / fillBatter)
   }
   return Math.min(Math.max(g, fill), cut)
@@ -450,6 +487,15 @@ function volumes(prep: PreparedEarthworks, shift: number): { cut: number; fill: 
     else fill += dz * a
   }
   return { cut, fill }
+}
+
+/**
+ * Cut and fill (m³) with the platforms `drop` picks left out: what the rest would dig and fill
+ * without them. The difference from the whole is what those platforms add.
+ */
+export function volumesWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): { cut: number; fill: number } {
+  const platforms = prep.platforms.filter(p => !drop(p))
+  return volumes({ ...prep, platforms, anySoft: platforms.some(p => p.rank > 0) }, 0)
 }
 
 export function evaluateEarthworks(prep: PreparedEarthworks, shift = 0): EarthworksResult {

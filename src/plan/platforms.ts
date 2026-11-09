@@ -41,6 +41,12 @@ export function pierOutlines(plan: Plan): Vec2[][] {
     })
 }
 
+/** The earthworks' names for the house's own levelled ground, so it can be told from the rest. */
+export const PAD_ID = 'pad'
+export const PIERS_ID = 'piers'
+export const BENCH_PREFIX = 'bench:'
+export const slabPlatformId = (areaId: string) => `slab:${areaId}`
+
 /** RL of the levelled ground under the lowest floor's slab: the house pad. */
 export const housePadRL = (plan: Plan) => floorRL(plan) - FLOOR_STRUCTURE
 
@@ -75,6 +81,7 @@ export function retainingBenches(plan: Plan, origin: Vec2): Platform[] {
     ] as const) {
       if (level === undefined) continue
       out.push({
+        id: `${BENCH_PREFIX}${w.id}:${side}`,
         include: [benchRing(w, side, Math.max(bench ?? DEFAULT_BENCH, MIN_BENCH)).map(p => toSite(p, plan.placement, origin))],
         exclude: [],
         level: sideRL(plan, level),
@@ -108,17 +115,17 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     const outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === ground.id))).outlines
     const piers = pierOutlines(plan)
     if (outlines.length) {
-      out.push({ include: outlines.map(site), exclude: piers.map(site), level: floor - FLOOR_STRUCTURE, fill: true })
+      out.push({ id: PAD_ID, include: outlines.map(site), exclude: piers.map(site), level: floor - FLOOR_STRUCTURE, fill: true })
     }
     if (piers.length) {
-      out.push({ include: piers.map(site), exclude: [], level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })
+      out.push({ id: PIERS_ID, include: piers.map(site), exclude: [], level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })
     }
   }
   for (const a of plan.areas) {
     if (areaKind(a) !== 'slab' || a.pts.length < 3) continue
     const lv = levelById(plan, a.level)
     if (!lv) continue
-    out.push({ include: [site(a.pts)], exclude: [], level: floorRL(plan, lv.id) + (a.top ?? 0) - SLAB_THICKNESS, fill: true })
+    out.push({ id: slabPlatformId(a.id), include: [site(a.pts)], exclude: [], level: floorRL(plan, lv.id) + (a.top ?? 0) - SLAB_THICKNESS, fill: true })
   }
   out.push(...retainingBenches(plan, origin))
   return out
