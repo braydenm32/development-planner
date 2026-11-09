@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { CloudMenuItem } from '../cloud/CloudCard'
+import { LocalSaveLine } from '../cloud/LocalSave'
 import { TextField } from '../components/fields'
 import { Icon } from '../nav/icons'
 import { HOMES, type ActionId } from '../nav/menu'
@@ -93,6 +94,16 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
                     {project.fileName}
                   </span>
                 </div>
+              )
+            if (item.id === 'save-state')
+              return (
+                <LocalSaveLine
+                  key={item.id}
+                  onDownload={() => {
+                    onOpenChange(false)
+                    run('save-project')
+                  }}
+                />
               )
             if (item.id === 'cloud')
               return (

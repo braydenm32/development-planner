@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { findSelection } from '../shell/selection'
 import type { Vec2 } from '../lib/geom'
 import {
   clampOpenings,
@@ -65,7 +66,10 @@ interface PlanStore {
   gestureStart: Plan | null
   activeLevel: string
   tool: Tool
+  /** The first item picked. With `extra`, it's a group; every panel that wants one item reads this. */
   selection: Selection | null
+  /** Items picked along with `selection` (Ctrl/Cmd+click, a box, select all). Empty for one item. */
+  extra: Selection[]
   wallStyle: { kind: WallKind; thickness: number }
   openingDefaults: Record<OpeningKind, OpeningDefaults>
   roofDefaults: RoofDefaults
@@ -90,6 +94,12 @@ interface PlanStore {
   redo: () => void
   setTool: (t: Tool) => void
   select: (s: Selection | null) => void
+  /** Pick a group (the first becomes `selection`). */
+  selectMany: (items: Selection[]) => void
+  /** Add the item to the group, or take it out if it's in. */
+  toggleSelect: (s: Selection) => void
+  /** Like commit, but a run of nudges with the same `key`, close together, is one undo step. */
+  nudge: (key: string, fn: (p: Plan) => Plan) => void
   setActiveLevel: (id: string) => void
   setWallStyle: (s: { kind: WallKind; thickness: number }) => void
   setOpeningDefaults: (kind: OpeningKind, d: OpeningDefaults) => void
@@ -104,6 +114,16 @@ interface PlanStore {
 
 const HISTORY = 200
 
+/** Presses of an arrow key closer together than this (ms) are one undo step. */
+const NUDGE_RUN_MS = 900
+let nudgeRun: { key: string; base: Plan; result: Plan; at: number } | null = null
+
+/** Undo and redo keep what is selected when it's still there (on this level), and drop the rest. */
+function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Selection[]; activeLevel: string }) {
+  const all = (st.selection ? [st.selection, ...st.extra] : []).filter(s => findSelection(plan, s.id)?.level === st.activeLevel)
+  return { selection: all[0] ?? null, extra: all.slice(1) }
+}
+
 function tidy(p: Plan): Plan {
   return clampOpenings(p)
 }
@@ -116,6 +136,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   activeLevel: 'level_ground',
   tool: 'select',
   selection: null,
+  extra: [],
   wallStyle: { kind: 'external', thickness: 0.27 },
   openingDefaults: { door: DOOR_DEFAULT, window: WINDOW_DEFAULT, opening: OPENING_DEFAULT, garage: GARAGE_DOOR_DEFAULT },
   roofDefaults: { type: 'hip', pitch: 22.5, overhang: 0.45 },
@@ -135,6 +156,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
       past: [],
       future: [],
       selection: null,
+      extra: [],
       activeLevel: plan?.levels[0]?.id ?? 'level_ground',
     }),
 
@@ -165,18 +187,41 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     const { plan, past, future } = getState()
     if (!plan || past.length === 0) return
     const prev = past[past.length - 1]
-    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], selection: null })
+    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], ...keepSelection(prev, getState()) })
   },
 
   redo: () => {
     const { plan, past, future } = getState()
     if (!plan || future.length === 0) return
-    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), selection: null })
+    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), ...keepSelection(future[0], getState()) })
   },
 
   setTool: tool => setState({ tool, notice: null }),
-  select: selection => setState({ selection }),
-  setActiveLevel: activeLevel => setState({ activeLevel, selection: null }),
+  select: selection => setState({ selection, extra: [] }),
+  selectMany: items => setState({ selection: items[0] ?? null, extra: items.slice(1) }),
+  toggleSelect: s => {
+    const { selection, extra } = getState()
+    const all = selection ? [selection, ...extra] : []
+    const next = all.some(x => x.id === s.id) ? all.filter(x => x.id !== s.id) : [...all, s]
+    setState({ selection: next[0] ?? null, extra: next.slice(1) })
+  },
+  nudge: (key, fn) => {
+    const { plan, past } = getState()
+    if (!plan) return
+    const next = tidy(fn(plan))
+    if (next === plan) return
+    const now = Date.now()
+    const run = nudgeRun
+    if (run && run.key === key && run.result === plan && past[past.length - 1] === run.base && now - run.at < NUDGE_RUN_MS) {
+      // Still the same run of presses: it stays the one step already on the history.
+      setState({ plan: next, future: [] })
+      nudgeRun = { ...run, result: next, at: now }
+    } else {
+      setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
+      nudgeRun = { key, base: plan, result: next, at: now }
+    }
+  },
+  setActiveLevel: activeLevel => setState({ activeLevel, selection: null, extra: [] }),
   setWallStyle: wallStyle => setState({ wallStyle }),
   setOpeningDefaults: (kind, d) => setState({ openingDefaults: { ...getState().openingDefaults, [kind]: d } }),
   setRoofDefaults: roofDefaults => setState({ roofDefaults }),

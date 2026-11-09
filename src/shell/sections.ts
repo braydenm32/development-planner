@@ -49,6 +49,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'wall-preset': More.WallPresetSection,
   'opening-tool': More.OpeningToolSection,
   'garage-door-tool': More.GarageDoorToolSection,
+  'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   origin: More.OriginSection,
   rotation: More.RotationSection,

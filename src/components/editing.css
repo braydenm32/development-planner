@@ -1,0 +1,98 @@
+/* Box select, invalid number boxes and the keyboard shortcuts sheet. */
+
+.plan-svg .marquee {
+  fill: var(--accent);
+  fill-opacity: 0.12;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.num-hint {
+  grid-column: 1 / -1;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.num-hint.bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.num-input input.invalid,
+.app-shell .num-input input.invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.kbd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 24, 22, 0.45);
+}
+
+.kbd-sheet {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 18px 20px 22px;
+  border-radius: 12px;
+  background: var(--panel, #fff);
+  color: var(--text);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+}
+
+.kbd-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kbd-sheet h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.kbd-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 6px 28px;
+}
+
+.kbd-groups h3 {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kbd-groups dl {
+  margin: 0;
+}
+
+.kbd-groups dl > div {
+  display: grid;
+  grid-template-columns: minmax(84px, auto) 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+}
+
+.kbd-groups dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kbd-groups dd {
+  margin: 0;
+}

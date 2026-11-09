@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Vec2 } from '../../lib/geom'
 import type { Survey } from '../../lib/survey'
 import type { Placement } from '../model'
-import { boundaryClearances } from '../placement'
-import { SETBACK_MIN, setbackDims, setbackText } from '../setbacks'
+import { boundaryClearances, outsideLot, placeAtClearance, signedClearance } from '../placement'
+import { overText, SETBACK_MIN, setbackDims, setbackText } from '../setbacks'
 
 // A synthetic 20 m (east-west) by 40 m block, counter-clockwise from its south-west corner.
 const survey: Survey = {
@@ -76,5 +76,47 @@ describe('setback dimensions', () => {
     const d = setbackDims(house, at(12, 5, 90), survey)
     const byName = Object.fromEntries(d.map(x => [x.name, x.text]))
     expect(byName).toEqual({ south: '5000', east: '8000', north: '25000', west: '4000' })
+  })
+})
+
+describe('a house over the boundary', () => {
+  it('measures how far past each side it goes, instead of 0 mm', () => {
+    // 1.2 m past the west side: its west wall at x = −1.2.
+    const c = boundaryClearances(house, at(-1.2, 5), survey)
+    const west = c.find(x => x.name === 'west')!
+    expect(west.dist).toBe(0)
+    expect(west.over).toBeCloseTo(1.2, 9)
+    expect(signedClearance(west)).toBeCloseTo(-1.2, 9)
+    // The line runs from the house's furthest corner back to the side.
+    expect(west.from[0]).toBeCloseTo(-1.2, 9)
+    expect(west.to[0]).toBeCloseTo(0, 9)
+    // The other sides are measured as before.
+    expect(c.filter(x => x.name !== 'west').every(x => x.over === 0)).toBe(true)
+    expect(signedClearance(c.find(x => x.name === 'east')!)).toBeCloseTo(20 - 8.8, 9)
+  })
+
+  it('writes it as "−1.20 m over", drawn on the plan but not on the PDF', () => {
+    expect(overText(1.2)).toBe('−1.20 m over')
+    expect(setbackDims(house, at(-1.2, 5), survey).map(d => d.name)).toEqual(['south', 'east', 'north'])
+    const west = setbackDims(house, at(-1.2, 5), survey, { over: true }).find(d => d.name === 'west')!
+    expect(west).toMatchObject({ over: true, text: '−1.20 m over' })
+    expect(west.dist).toBeCloseTo(1.2, 9)
+  })
+
+  it('slides the house back in when a distance is typed', () => {
+    const pl = placeAtClearance(house, at(-1.2, 5), survey, 3, 0.9)
+    expect(pl.e).toBeCloseTo(1000.9, 3)
+    expect(signedClearance(boundaryClearances(house, pl, survey)[3])).toBeCloseTo(0.9, 3)
+  })
+
+  it('says whether any or all of it is outside the lot', () => {
+    expect(outsideLot(house, at(3, 5), survey)).toEqual({ any: false, by: 0, all: false })
+    // On the boundary, within the 5 mm tolerance, is inside.
+    expect(outsideLot(house, at(-0.004, 5), survey).any).toBe(false)
+    expect(outsideLot(house, at(-1.2, 5), survey)).toEqual({ any: true, by: expect.closeTo(1.2, 9), all: false })
+    expect(outsideLot(house, at(-30, 5), survey)).toMatchObject({ any: true, all: true })
+    // A notch in the lot reaching into the house, with every corner of the house inside.
+    const notched: Survey = { ...survey, boundary: [[0, 0], [20, 0], [20, 40], [8, 40], [8, 10], [6, 40], [0, 40]] }
+    expect(outsideLot(house, at(3, 5), notched)).toMatchObject({ any: true, all: false })
   })
 })

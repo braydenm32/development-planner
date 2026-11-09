@@ -6,14 +6,19 @@ import { balanceCutFill } from '../components/planNumbers'
 import { downloadPlan, startNewPlan } from '../components/planFile'
 import { save3mf, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
 import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
+import { openExample } from '../example/open'
 import { startContourPick } from '../flow/store'
+import { showHintsAgain } from '../guide/hints'
+import { WORDS_ID } from '../guide/sections'
+import { openGuide } from '../guide/store'
 import type { ActionId } from '../nav/menu'
-import { NEW_PROJECT, PROJECTS } from '../nav/route'
+import { NEW_PROJECT, pageRoute, PROJECTS } from '../nav/route'
 import { navigate } from '../nav/router'
 import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
 import { pickFile } from '../safety/store'
 import type { ShellData } from './context'
+import { openKeyboardHelp } from './keyboardHelpStore'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
 export interface ActionContext {
@@ -35,6 +40,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     pickTool(a.slice(5) as Tool)
     return true
   }
+  if (a.startsWith('term:')) {
+    openGuide(`term-${a.slice(5)}`)
+    return true
+  }
 
   switch (a) {
     case 'undo':
@@ -50,6 +59,9 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'overview':
       c.openOverview()
       return true
+    case 'keyboard-help':
+      openKeyboardHelp()
+      return true
     case 'balance': {
       const msg = balanceCutFill(shell.earth)
       if (!msg) {
@@ -64,6 +76,28 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'new-project':
       navigate(NEW_PROJECT)
+      return true
+    case 'open-example':
+      void openExample()
+      return true
+    case 'guide':
+      openGuide()
+      return true
+    case 'glossary':
+      openGuide(WORDS_ID)
+      return true
+    // Tips hidden one by one, or all at once, come back; the plan shows where they are.
+    case 'plan-tips':
+      showHintsAgain()
+      if (!planShowing()) showPlan()
+      c.toast('Tips on the plan are back on.')
+      return true
+    // The pages about the app open on their own; Back returns to the project.
+    case 'about':
+    case 'privacy':
+    case 'terms':
+    case 'accuracy':
+      navigate(pageRoute(a))
       return true
     // Sign in, or the account when signed in. A copy of the app with no cloud (GitHub Pages) says so.
     case 'cloud':
