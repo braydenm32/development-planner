@@ -1,6 +1,7 @@
 import { signedArea, type Vec2 } from '../lib/geom'
 import {
   FLOOR_STRUCTURE,
+  floorRL,
   houseWalls,
   newId,
   sortedLevels,
@@ -222,6 +223,41 @@ export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
   // A stair on the old top level that climbs a storey now arrives on the new floor.
   return { plan: linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }), id: level.id }
 }
+
+/** A name for a new level no other level has: "Level 4", or the next number free. */
+function newLevelName(plan: Plan): string {
+  const taken = new Set(plan.levels.map(l => l.name.toLowerCase()))
+  let n = plan.levels.length + 1
+  while (taken.has(`level ${n}`)) n++
+  return `Level ${n}`
+}
+
+/**
+ * Add a level a storey below the lowest one. It starts empty: a level under the house is usually a
+ * split level beside it or a basement, and either is drawn afresh.
+ */
+export function addLevelBelow(plan: Plan): { plan: Plan; id: string } {
+  const low = sortedLevels(plan)[0]!
+  const height = low.height
+  return addLevelAt(plan, floorRL(plan, low.id) - height - FLOOR_STRUCTURE, height)
+}
+
+/**
+ * Add a level with its floor at an RL: a split level beside the others, a step up or down.
+ * It starts empty, with the lowest level's ceiling height unless one is given.
+ */
+export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0]?.height ?? 2.7): { plan: Plan; id: string } {
+  const level: Level = {
+    id: newId('level'),
+    name: newLevelName(plan),
+    elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000,
+    height,
+  }
+  return { plan: linkStairs({ ...plan, levels: [...plan.levels, level] }), id: level.id }
+}
+
+/** Set a level's floor RL: its height above the placement's FFL follows. */
+export const setLevelRL = (plan: Plan, id: string, rl: number): Plan => updateLevel(plan, id, { elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000 })
 
 export function deleteLevel(plan: Plan, id: string): Plan {
   if (plan.levels.length <= 1) return plan

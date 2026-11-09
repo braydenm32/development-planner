@@ -29,10 +29,8 @@ import {
   type StairShape,
 } from '../plan/model'
 import {
-  addLevelAbove,
   setWallLength,
   updateArea,
-  updateLevel,
   updateOpening,
   updateRoof,
   updateRoom,
@@ -46,16 +44,15 @@ import { placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
 import { piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
-import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
-import { levelSummaries, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import type { Earth } from '../plan/useEarthworks'
-import { copySelected, deleteLevelWithReview, deleteSelected, duplicateSelected } from '../plan/editActions'
+import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
 import { shortcutText } from '../nav/keys'
 import { Num, Select, TextField } from './fields'
-import { LevelFloorType, RoomFloorType } from './FloorTypeFields'
+import { RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
@@ -218,101 +215,7 @@ export function StairOptions() {
 }
 
 // ---------------------------------------------------------------------------
-// Levels, areas and the plan file
-
-export function LevelsBody({ plan, beforePick }: { plan: Plan; beforePick?: () => void }) {
-  const level = usePlan(s => s.activeLevel)
-  const picking = useFlow(s => s.picking)
-  const st = usePlan.getState()
-  const levels = sortedLevels(plan)
-  return (
-    <>
-      <ul className="levels">
-        {[...levels].reverse().map(l => (
-          <li key={l.id} className={l.id === level ? 'on' : ''}>
-            <button className="level-btn" onClick={() => st.setActiveLevel(l.id)}>
-              <span>{l.name}</span>
-              <span className="muted">RL {floorRL(plan, l.id).toFixed(2)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {levels
-        .filter(l => l.id === level)
-        .map(l => (
-          <div key={l.id} className="tool-options">
-            <TextField label="Name" value={l.name} onCommit={name => st.commit(p => updateLevel(p, l.id, { name }))} />
-            <Num label="Above ground floor" unit="mm" value={l.elevation} onCommit={elevation => st.commit(p => updateLevel(p, l.id, { elevation }))} />
-            <Num label="Ceiling height" unit="mm" value={l.height} min={1.8} onCommit={height => st.commit(p => updateLevel(p, l.id, { height }))} />
-            <LevelFloorType key={l.id} plan={plan} level={l.id} />
-            <div className="row floor-from-contour">
-              <button
-                className="secondary"
-                aria-pressed={picking?.level === l.id}
-                onClick={() => {
-                  if (picking?.level === l.id) return cancelContourPick()
-                  beforePick?.()
-                  startContourPick(l.id)
-                }}
-              >
-                {picking?.level === l.id ? 'Picking a contour… (Esc)' : 'Pick a contour'}
-              </button>
-            </div>
-            <p className="muted small">Click a contour line on the plan to put {l.name}’s floor at its RL.</p>
-          </div>
-        ))}
-      <div className="row">
-        <button
-          className="secondary"
-          onClick={() => {
-            let id = ''
-            st.commit(p => {
-              const r = addLevelAbove(p)
-              id = r.id
-              return r.plan
-            })
-            if (id) st.setActiveLevel(id)
-          }}
-        >
-          Add level above
-        </button>
-        {levels.length > 1 && (
-          <button
-            className="secondary danger"
-            onClick={() => void deleteLevelWithReview(level)}
-          >
-            Delete level
-          </button>
-        )}
-      </div>
-      <p className="muted small">A new level starts with a copy of the external walls below it.</p>
-    </>
-  )
-}
-
-/** Room areas, rooms total, floor area and outdoor areas, level by level. */
-export function AreasBody({ plan }: { plan: Plan }) {
-  const summary = useMemo(() => levelSummaries(plan), [plan])
-  return (
-    <>
-      {summary.map(s => (
-        <div key={s.level.id} className="area-summary">
-          <h3>{s.level.name}</h3>
-          <dl className="stats">
-            {s.rooms.map(r => (
-              <FragmentRow key={r.room.id} label={r.room.name} value={r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`} />
-            ))}
-            {s.rooms.length > 0 && <FragmentRow label="Rooms total" value={`${s.rooms.reduce((t, r) => t + (r.area ?? 0), 0).toFixed(2)} m²`} strong />}
-            <FragmentRow label="Floor area (outside of walls)" value={`${s.gross.area.toFixed(2)} m²`} strong />
-            {s.areas.map(a => (
-              <FragmentRow key={a.area.id} label={a.area.name} value={`${a.size.toFixed(2)} m²`} />
-            ))}
-          </dl>
-        </div>
-      ))}
-    </>
-  )
-}
+// The plan file (levels and areas are in ./LevelsPanel.tsx)
 
 export function PlanFileBody({ plan }: { plan: Plan }) {
   const fileInput = useRef<HTMLInputElement>(null)
@@ -403,7 +306,6 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const q = toSite(p, pl, survey.origin)
     return (earth?.result.grid ?? terrain.grid).sample(q[0], q[1])
   }
-  const isLowest = (levelId: string) => sortedLevels(plan)[0]?.id === levelId
   const del = (
     <button
       className="secondary danger"
@@ -488,7 +390,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <RoomSun plan={plan} room={r} survey={survey} terrain={terrain} earth={earth} />
         <p className="muted small">
           The room's shape comes from the walls around its label. Drag the label to move it.
-          {isLowest(r.level) && onNaturalGround(plan, r) && ` ${piersGroundNote(earthworksOf(plan))}`}
+          {onNaturalGround(plan, r) && ` ${piersGroundNote(earthworksOf(plan))}`}
         </p>
         <div className="row">{del}</div>
       </section>
