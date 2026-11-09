@@ -17,7 +17,7 @@ import {
 } from '@simplewebauthn/server'
 import type { Env } from './env'
 import { b64url, fromB64url, HttpError, json, randomBytes, randomId, readJson, sameSecret, sha256Hex } from './http'
-import { clearedCookie, clientIp, endSession, rateLimit, requireUser, sessionCookie, sessionInsert, type User } from './session'
+import { clearedCookie, clientIp, endSession, LIVE_ACCOUNT, rateLimit, requireUser, sessionCookie, sessionInsert, type User } from './session'
 
 const RP_NAME = 'Contour & Gable'
 const CHALLENGE_MS = 5 * 60 * 1000
@@ -112,6 +112,9 @@ function cleanName(name: unknown): string {
 
 const signedIn = (user: User, token: string, extra: Record<string, unknown> = {}) => json({ user, ...extra }, 200, { 'set-cookie': sessionCookie(token) })
 
+/** An account past its 30 days after asking to delete it: going, or gone, for good. */
+const accountGone = () => new HttpError(403, 'account-deleted', 'This account was deleted, with everything saved in the cloud for it.')
+
 const notVerified = (e?: unknown) => {
   if (e) console.warn('passkey check failed:', (e as Error)?.message)
   return new HttpError(400, 'passkey', 'That passkey didn’t check out. Try again.')
@@ -170,7 +173,7 @@ export async function signupOptions(env: Env, req: Request, now: number): Promis
   const body = await readJson<{ name?: unknown; invite?: unknown }>(req)
   const name = cleanName(body.name)
   await checkGate(env, body.invite)
-  const user = { id: randomId(16), name }
+  const user = { id: randomId(16), name, deleteAfter: null }
   const options = await registrationOptions(env, req, user)
   const challengeId = await saveChallenge(env, 'signup', options.challenge, now, user.id, { name })
   return json({ challengeId, options })
@@ -190,7 +193,7 @@ export async function signupVerify(env: Env, req: Request, now: number): Promise
   const ch = await takeChallenge(env, body.challengeId, 'signup', now)
   const state = await checkGate(env, body.invite)
   const reg = await checkRegistration(env, req, body.response, ch.challenge)
-  const user: User = { id: ch.user_id!, name: (JSON.parse(ch.data ?? '{}') as { name: string }).name }
+  const user: User = { id: ch.user_id!, name: (JSON.parse(ch.data ?? '{}') as { name: string }).name, deleteAfter: null }
   const code = newRecoveryCode()
   const session = await sessionInsert(env, user.id, now)
   // With the default gate, only the very first account gets in, even if two race.
@@ -225,11 +228,12 @@ export async function loginVerify(env: Env, req: Request, now: number): Promise<
   const response = body.response
   if (!response || typeof response.id !== 'string' || response.id.length > 1024) throw notVerified()
   const cred = await env.DB.prepare(
-    'SELECT c.id AS id, c.user_id AS user_id, c.public_key AS public_key, c.counter AS counter, c.transports AS transports, u.name AS name FROM credentials c JOIN users u ON u.id = c.user_id WHERE c.id = ?',
+    'SELECT c.id AS id, c.user_id AS user_id, c.public_key AS public_key, c.counter AS counter, c.transports AS transports, u.name AS name, u.delete_after AS delete_after FROM credentials c JOIN users u ON u.id = c.user_id WHERE c.id = ?',
   )
     .bind(response.id)
-    .first<{ id: string; user_id: string; public_key: string; counter: number; transports: string | null; name: string }>()
+    .first<{ id: string; user_id: string; public_key: string; counter: number; transports: string | null; name: string; delete_after: number | null }>()
   if (!cred) throw new HttpError(400, 'unknown-passkey', 'This site doesn’t know that passkey. If you made it for another account, use your recovery code.')
+  if (cred.delete_after !== null && cred.delete_after <= now) throw accountGone()
   // The passkey says whose it is; it has to be the account it was made for.
   if (response.response?.userHandle && response.response.userHandle !== cred.user_id) throw notVerified()
   const { rpID, origin } = relyingParty(env, req)
@@ -252,7 +256,7 @@ export async function loginVerify(env: Env, req: Request, now: number): Promise<
     env.DB.prepare('UPDATE credentials SET counter = ?, last_used = ? WHERE id = ?').bind(result.authenticationInfo.newCounter, now, cred.id),
     session.stmt,
   ])
-  return signedIn({ id: cred.user_id, name: cred.name }, session.token)
+  return signedIn({ id: cred.user_id, name: cred.name, deleteAfter: cred.delete_after }, session.token)
 }
 
 // ---------------------------------------------------------------------------
@@ -265,8 +269,9 @@ export async function recoverOptions(env: Env, req: Request, now: number): Promi
   const body = await readJson<{ code?: unknown }>(req)
   if (typeof body.code !== 'string' || normalizeCode(body.code).length !== 20) throw new HttpError(400, 'recovery-code', 'A recovery code has 20 letters and numbers, like ABCD-EFGH-JKMN-PQRS-TVWX.')
   const hash = await codeHash(body.code)
-  const row = await env.DB.prepare('SELECT u.id AS id, u.name AS name FROM recovery_codes r JOIN users u ON u.id = r.user_id WHERE r.hash = ?').bind(hash).first<User>()
+  const row = await env.DB.prepare('SELECT u.id AS id, u.name AS name, u.delete_after AS deleteAfter FROM recovery_codes r JOIN users u ON u.id = r.user_id WHERE r.hash = ?').bind(hash).first<User>()
   if (!row) throw new HttpError(400, 'recovery-code', 'That recovery code isn’t right. Check it and try again.')
+  if (row.deleteAfter !== null && row.deleteAfter <= now) throw accountGone()
   const options = await registrationOptions(env, req, row, await userCredentials(env, row.id))
   const challengeId = await saveChallenge(env, 'recover', options.challenge, now, row.id, { hash })
   return json({ challengeId, options })
@@ -293,12 +298,13 @@ export async function recoverVerify(env: Env, req: Request, now: number): Promis
     session.stmt,
   ])
   if (!results[0].meta.changes) throw new HttpError(400, 'recovery-code', 'That recovery code has already been used.')
-  const user = await env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(userId).first<User>()
-  return signedIn(user!, session.token, { recoveryCode: code })
+  const user = await env.DB.prepare(`SELECT u.id AS id, u.name AS name, u.delete_after AS deleteAfter FROM users u WHERE u.id = ? AND ${LIVE_ACCOUNT}`).bind(userId, now).first<User>()
+  if (!user) throw accountGone()
+  return signedIn(user, session.token, { recoveryCode: code })
 }
 
 // ---------------------------------------------------------------------------
-// Signed in: add a passkey, make a new recovery code, see the account, sign out.
+// Signed in: add a passkey, make a new recovery code, sign out (the account itself: ./account.ts).
 
 export async function passkeyOptions(env: Env, req: Request, now: number): Promise<Response> {
   await limitAuth(env, req, now)
@@ -327,17 +333,6 @@ export async function newCode(env: Env, req: Request, now: number): Promise<Resp
     .bind(user.id, await codeHash(code), now)
     .run()
   return json({ recoveryCode: code })
-}
-
-export async function account(env: Env, req: Request, now: number): Promise<Response> {
-  const user = await requireUser(env, req, now)
-  const keys = await env.DB.prepare('SELECT created, last_used, backed_up FROM credentials WHERE user_id = ? ORDER BY created').bind(user.id).all<{ created: number; last_used: number | null; backed_up: number }>()
-  const code = await env.DB.prepare('SELECT created FROM recovery_codes WHERE user_id = ?').bind(user.id).first<{ created: number }>()
-  return json({
-    user,
-    passkeys: keys.results.map(k => ({ created: k.created, lastUsed: k.last_used, synced: !!k.backed_up })),
-    recoveryCodeCreated: code?.created ?? null,
-  })
 }
 
 export async function logout(env: Env, req: Request): Promise<Response> {

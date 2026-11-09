@@ -11,7 +11,12 @@ export const SESSION_DAYS = 30
 export interface User {
   id: string
   name: string
+  /** When the account goes, if its owner asked to delete it (ms); null otherwise. */
+  deleteAfter: number | null
 }
+
+/** An account that is still here: not past the 30 days after asking to delete it (SQL on users `u`, with `now` bound). */
+export const LIVE_ACCOUNT = '(u.delete_after IS NULL OR u.delete_after > ?)'
 
 /**
  * The statement that starts a session, for a batch that creates the account or passkey with it:
@@ -43,16 +48,18 @@ export async function readSession(env: Env, req: Request, now: number): Promise<
   // Now and then, let go of sessions that ran out.
   if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM sessions WHERE expires < ?').bind(now).run()
   const hash = await sha256Hex(token)
-  const row = await env.DB.prepare('SELECT s.user_id AS id, u.name AS name, s.expires AS expires, s.seen AS seen FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?')
-    .bind(hash)
-    .first<{ id: string; name: string; expires: number; seen: number }>()
+  const row = await env.DB.prepare(
+    `SELECT s.user_id AS id, u.name AS name, u.delete_after AS delete_after, s.expires AS expires, s.seen AS seen FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND ${LIVE_ACCOUNT}`,
+  )
+    .bind(hash, now)
+    .first<{ id: string; name: string; delete_after: number | null; expires: number; seen: number }>()
   if (!row) return null
   if (row.expires < now) {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(hash).run()
     return null
   }
   if (now - row.seen > DAY) await env.DB.prepare('UPDATE sessions SET seen = ?, expires = ? WHERE token_hash = ?').bind(now, now + SESSION_DAYS * DAY, hash).run()
-  return { id: row.id, name: row.name }
+  return { id: row.id, name: row.name, deleteAfter: row.delete_after }
 }
 
 export async function requireUser(env: Env, req: Request, now: number): Promise<User> {

@@ -13,6 +13,8 @@ export const partsFor = (size: number) => Math.max(1, Math.ceil(size / PART_SIZE
 export interface CloudUser {
   id: string
   name: string
+  /** When the account goes, if its owner asked to delete it (ms); null or missing otherwise. */
+  deleteAfter?: number | null
 }
 
 export type Signup = 'open' | 'invite' | 'closed'
@@ -36,6 +38,9 @@ export interface Account {
   user: CloudUser
   passkeys: { created: number; lastUsed: number | null; synced: boolean }[]
   recoveryCodeCreated: number | null
+  /** What the account keeps in the cloud, and the most it may, in bytes. */
+  storage: { used: number; limit: number }
+  deleteAfter: number | null
 }
 
 /** The server said no, in words for people (`message`) and a code for the app. */
@@ -86,6 +91,10 @@ export interface CloudApi {
   passkeyVerify(challengeId: string, response: unknown): Promise<void>
   newRecoveryCode(): Promise<string>
   account(): Promise<Account>
+  /** Ask for the account to be deleted (30 days on); signs out everywhere. When it goes. */
+  deleteAccount(): Promise<number>
+  /** Keep an account that is waiting to be deleted. */
+  keepAccount(): Promise<CloudUser>
   logout(): Promise<void>
   projects(): Promise<RemoteProject[]>
   project(id: string): Promise<RemoteProject | null>
@@ -152,6 +161,8 @@ export function createCloudApi(opts: ApiOptions = {}): CloudApi {
     passkeyVerify: async (challengeId, response) => void (await post('auth/passkey/verify', { challengeId, response })),
     newRecoveryCode: async () => (await post<{ recoveryCode: string }>('auth/recovery-code')).recoveryCode,
     account: () => json('account'),
+    deleteAccount: async () => (await post<{ deleteAfter: number }>('account/delete')).deleteAfter,
+    keepAccount: async () => (await post<{ user: CloudUser }>('account/keep')).user,
     logout: async () => void (await post('auth/logout')),
     projects: async () => (await json<{ projects: RemoteProject[] }>('projects')).projects,
     async project(id) {

@@ -37,3 +37,13 @@ export function noticeText(n: SyncNotice): string {
 
 /** "3 projects" / "1 project". */
 export const projects = (n: number) => `${n} project${n === 1 ? '' : 's'}`
+
+/** "9 December 2026". */
+export const longDate = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+
+/** A size in the cloud, for people: "under 0.1 MB", "3.2 MB", "48 MB". */
+export function megabytes(bytes: number): string {
+  const mb = bytes / 1024 / 1024
+  if (mb < 0.05) return bytes ? 'under 0.1 MB' : '0 MB'
+  return `${mb < 10 ? mb.toFixed(1).replace(/\.0$/, '') : Math.round(mb)} MB`
+}

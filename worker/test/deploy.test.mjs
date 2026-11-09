@@ -21,6 +21,9 @@ describe('the deploy’s preparation', () => {
     expect(out.indexOf('account_id')).toBeLessThan(out.indexOf('['))
     expect(out).toContain('run_worker_first = ["/api/*"]')
     expect(out).toContain('migrations_dir = "worker/migrations"')
+    // The hourly clean-up of deleted accounts, and the free plan's storage limit per person.
+    expect(out).toMatch(/^\[triggers\]\ncrons = \["17 \* \* \* \*"\]$/m)
+    expect(out).toMatch(/^QUOTA_MB = "50"$/m)
     expect(out).not.toMatch(/0{32}|00000000-0000/)
   })
 })

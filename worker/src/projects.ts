@@ -28,8 +28,14 @@ const HASH_RE = /^[0-9a-f]{64}$/
 
 export const partsFor = (size: number) => Math.max(1, Math.ceil(size / PART_MAX))
 const partLength = (size: number, part: number) => (part < partsFor(size) - 1 ? PART_MAX : size - PART_MAX * (partsFor(size) - 1))
-const kvKey = (user: string, hash: string, part: number) => `b:${user}:${hash}:${part}`
-const quota = (env: Env) => (Number(env.QUOTA_MB) > 0 ? Number(env.QUOTA_MB) : 800) * 1024 * 1024
+export const kvKey = (user: string, hash: string, part: number) => `b:${user}:${hash}:${part}`
+/** The most one person may keep, in MB, unless QUOTA_MB says otherwise: 20 people fill the free plan's 1 GB of KV. */
+export const QUOTA_MB_DEFAULT = 50
+export const quota = (env: Env) => (Number(env.QUOTA_MB) > 0 ? Number(env.QUOTA_MB) : QUOTA_MB_DEFAULT) * 1024 * 1024
+/** How much one person keeps now, in bytes: every blob, in D1 or KV, used or waiting to be tidied. */
+export async function storageUsed(env: Env, user: string): Promise<number> {
+  return (await env.DB.prepare('SELECT COALESCE(SUM(size), 0) AS total FROM blobs WHERE user_id = ?').bind(user).first<{ total: number }>())?.total ?? 0
+}
 
 export interface RecordRef {
   hash: string
@@ -224,8 +230,8 @@ export async function putBlob(env: Env, req: Request, user: string, hash: string
   }
   if (part > got) throw new HttpError(409, 'part-order', `Upload part ${got} first.`, { next: got })
   if (!row) {
-    const used = await env.DB.prepare('SELECT COALESCE(SUM(size), 0) AS total FROM blobs WHERE user_id = ?').bind(user).first<{ total: number }>()
-    if ((used?.total ?? 0) + size > quota(env)) throw new HttpError(413, 'quota', 'The cloud is full for this account. Delete projects you no longer need from Archived, then try again.')
+    if ((await storageUsed(env, user)) + size > quota(env))
+      throw new HttpError(413, 'quota', `The cloud is full for this account (${Math.round(quota(env) / 1024 / 1024)} MB). Delete projects you no longer need from Archived, then try again.`)
   }
   const want = partLength(size, part)
   const bytes = await readBytes(req, want)

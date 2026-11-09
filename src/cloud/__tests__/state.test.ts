@@ -86,6 +86,47 @@ describe('cloud saves in the app', () => {
     expect(app.useCloud.getState()).toMatchObject({ phase: 'signed-in', sheet: null, problem: null })
   })
 
+  it('deletes the account after 30 days, signing out here, and keeps it when its owner signs in and says so', async () => {
+    const server = testServer()
+    const app = await freshApp(server.fetch)
+    const look = createCloudApi({ fetch: server.fetch })
+    await app.ensureProjects()
+    const a = await app.projectActions.create(survey('a.dxf'))
+    await app.startCloud()
+    await app.cloudActions.createAccount('Tester')
+    app.cloudActions.close()
+    await app.cloudActions.upload([a.id])
+    await vi.waitFor(async () => expect((await look.projects()).map(p => p.id)).toEqual([a.id]), { timeout: 5000 })
+
+    await app.cloudActions.openHome()
+    app.cloudActions.open('delete')
+    await app.cloudActions.deleteAccount()
+    expect(app.useCloud.getState()).toMatchObject({ phase: 'signed-out', user: null, sheet: null, problem: null })
+    // The project stays on this device.
+    expect(app.projectsNow().list.map(m => m.id)).toContain(a.id)
+
+    // Signing in again within the 30 days asks first: keep it, or sign out. Nothing syncs meanwhile.
+    server.clock.now += 5 * 24 * 60 * 60 * 1000
+    await app.cloudActions.signIn()
+    let s = app.useCloud.getState()
+    expect(s).toMatchObject({ phase: 'signed-in', sheet: 'deleting' })
+    expect(s.user?.deleteAfter).toBeGreaterThan(server.clock.now)
+    expect(await app.cloudActions.openHome()).toBe(true)
+    expect(app.useCloud.getState().sheet).toBe('deleting')
+
+    await app.cloudActions.keepAccount()
+    s = app.useCloud.getState()
+    // Saving again: what else is on this device is offered for upload, as on any sign-in.
+    expect(s).toMatchObject({ phase: 'signed-in', problem: null })
+    expect(s.sheet === null || s.sheet === 'upload').toBe(true)
+    expect(s.inCloud).toEqual([a.id])
+    expect(s.user?.deleteAfter).toBeNull()
+    const account = await app.cloudActions.account()
+    expect(account.deleteAfter).toBeNull()
+    expect(account.storage.limit).toBe(50 * 1024 * 1024)
+    expect(account.storage.used).toBeGreaterThan(0)
+  })
+
   it('shows nothing where there is no cloud (GitHub Pages)', async () => {
     const app = await freshApp(async () => new Response('<!doctype html><title>404</title>', { status: 404, headers: { 'content-type': 'text/html' } }))
     await app.startCloud()
