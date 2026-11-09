@@ -25,6 +25,16 @@ describe('features.json', () => {
 
   it('lists the features added since the feature map was made', () => {
     const added = [
+      // sections and elevations
+      'sections-tab',
+      'section-line-draw',
+      'section-drawing',
+      'section-flip-delete',
+      'elevations',
+      'elevation-height',
+      'sections-large',
+      'section-marks-plan',
+      'sections-pdf',
       // furniture
       'tool-furniture',
       'furniture-catalog',
@@ -239,7 +249,7 @@ describe('the menu', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
       ['block', 'features', '3d', 'sun', MORE],
-      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', 'options', MORE],
+      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'sections', 'checks', 'options', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['estimate', 'materials', 'quotes', MORE],
       ['plans', 'export', 'send', '3d-print', MORE],

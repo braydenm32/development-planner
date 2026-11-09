@@ -15,6 +15,7 @@ import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+import { SectionsTab } from '../sections/SectionsTab'
 import { SiteSunTab } from '../sun/SunTab'
 
 /** Each tab's panel, by `area/tab`. */
@@ -27,6 +28,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/rooms': RoomsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
+  'design/sections': SectionsTab,
   'design/checks': ChecksTab,
   'design/options': OptionsTab,
   'earthworks/place': PlaceTab,

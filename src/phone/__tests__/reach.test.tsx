@@ -72,7 +72,8 @@ describe('two taps to every number on a phone', () => {
   it('locks the panels that change things in View, and only on a phone', () => {
     for (const r of appRoutes) {
       const key = `${r.area}/${r.tab}`
-      const changes = r.area === 'design' || r.area === 'earthworks' || key === 'site/features'
+      // Design › Sections only shows drawings in View; its line tools wait for Edit (src/sections/SectionsTab.tsx).
+      const changes = (r.area === 'design' && key !== 'design/sections') || r.area === 'earthworks' || key === 'site/features'
       expect(panelLocked(true, false, key), key).toBe(changes)
       expect(panelLocked(true, true, key), key).toBe(false)
       expect(panelLocked(false, false, key), key).toBe(false)

@@ -85,6 +85,7 @@ export function plansPdfFile(p: PdfInput): OutFile {
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
+    terrain: p.terrain,
     shadows: keptShadowDiagram({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() }),
   })
   return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
