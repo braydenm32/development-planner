@@ -7,6 +7,7 @@ import { parseDxf } from './dxf'
 import type { SavedProject } from './storage'
 import { analyzeLayers, buildSurvey } from './survey'
 import { buildTerrain } from './terrain'
+import { withMadeContours } from './madeContours'
 import { buildSiteSolid } from './terrainMesh'
 
 export function useBuiltSite(project: SavedProject | null) {
@@ -25,8 +26,10 @@ export function useBuiltSite(project: SavedProject | null) {
   const site = useMemo(() => {
     if (!doc || !roles) return null
     try {
-      const survey = buildSurvey(doc, roles)
-      const terrain = buildTerrain(survey)
+      const read = buildSurvey(doc, roles)
+      const terrain = buildTerrain(read)
+      // Spot levels alone (a CSV or LandXML file) get contours drawn from the ground they make.
+      const survey = withMadeContours(read, terrain.grid)
       const solid = buildSiteSolid(terrain.grid, survey.boundary, Math.floor(terrain.stats.minRL) - 1)
       return { survey, terrain, solid, error: null }
     } catch (e) {

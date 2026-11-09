@@ -6,7 +6,7 @@
 import { emptyPlan, sortedLevels, type Plan } from '../plan/model'
 import { defaultPlacement } from '../plan/placement'
 import { usePlan } from '../plan/store'
-import { freeName, nameInProjectFile } from '../projects/ops'
+import { freeName, nameFromFile, nameInProjectFile } from '../projects/ops'
 import { projectActions, projectsNow } from '../projects/session'
 import { parseProjectFile } from '../share/project'
 import { costsSummary } from '../costs/model'
@@ -17,6 +17,7 @@ import { PickLayersError, readFile, readSite, type OpenedFile } from './files'
 import { CHECK_LAYERS, demReadBack, readBackLine } from './readBack'
 import { newPlanReview, planReview, projectReview, surveyReview } from './review'
 import { askLayers, askReview, showToast, useSafety } from './store'
+import { forgetFileStep, rememberFileStep } from './fileUndo'
 import type { SavedProject } from '../lib/storage'
 import type { ProjectMeta } from '../projects/types'
 import { planBounds } from '../plan/ops'
@@ -137,7 +138,7 @@ export async function openRead(f: OpenedFile, opts: OpenOptions = {}): Promise<v
   if (f.kind === 'project') return openProjectText(f.text, f.name)
   if (f.kind === 'survey') {
     if (hasSite) return replaceSurvey(f.survey)
-    return startWith(f.survey, null, opts.into)
+    return startWith(f.survey, null, opts.into, nameFromFile(f.name))
   }
   // A plan: into the project open now (with a review), or on a sketch block of its own.
   if (hasSite && plan()) return importPlan(f.plan, f.name)
@@ -145,7 +146,7 @@ export async function openRead(f: OpenedFile, opts: OpenOptions = {}): Promise<v
 }
 
 /** Start a project from a survey (and maybe a plan), or give the open project with no survey its first. Nothing is replaced. */
-async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into']) {
+async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into'], name?: string | null) {
   const opened = projectsNow().opened
   const records = { survey, ...(withPlan ? { plan: withPlan } : {}), prefs: { view: { mode: 'plan' as const } } }
   await busy(async () => {
@@ -154,7 +155,7 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
       if (withPlan) usePlan.getState().load(withPlan)
       await projectActions.savePrefs({ view: { ...opened.prefs.view, mode: 'plan' } })
       await projectActions.saveSurvey(survey)
-    } else await projectActions.create(records)
+    } else await projectActions.create(records, name)
   })
   // A new project is for drawing on, so a phone opens it in Edit rather than View.
   usePhoneMode.getState().setMode('edit')
@@ -182,14 +183,14 @@ async function openPlanWithoutSurvey(p: Plan, name: string, into: OpenOptions['i
   const block = sketchAround(b ? b.maxX - b.minX : 0, b ? b.maxY - b.minY : 0)
   const survey = sketchSurvey(block)
   const placed = placeOnSketch(p, readSite(survey))
-  await startWith(survey, placed, into)
+  await startWith(survey, placed, into, p.name?.trim() || nameFromFile(name))
   showToast({ text: `Opened ${name} on a ${survey.fileName.toLowerCase()}. Add the survey when it comes, from Site › More.`, project: true })
 }
 
 /** A new project (or the open one, with no survey yet) on ground levels from the state's model (src/map/demSite.ts), opened on Design › Plan. */
-export async function startFromGround(survey: SavedProject, into: OpenOptions['into'] = 'new'): Promise<void> {
+export async function startFromGround(survey: SavedProject, into: OpenOptions['into'] = 'new', name?: string | null): Promise<void> {
   const site = readSite(survey)
-  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into)
+  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into, name)
 }
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   const choice = await askReview(review)
   if (!choice || projectsNow().currentId !== id) return
 
-  const before = { survey: old, previous: opened.previousSurvey ?? null, plan: current }
+  const before = { survey: old, previous: opened.previousSurvey ?? null, plan: current, history: usePlan.getState().past }
   // The survey it replaces is kept (a sketch isn't worth keeping).
   await projectActions.saveSurvey(next, old && !isSketch(old) ? old : before.previous)
   const siteBefore = useSiteStore.getState().data
@@ -249,22 +250,31 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   }
   if (!isSketch(next) && plan()?.checks?.frontEdge === undefined) askStreetSide(id)
   const after = plan()
+  // The toast's Undo and the top bar's (./fileUndo.ts) both put it back, once.
+  let undone = false
+  const putBack = async () => {
+    if (undone) return
+    undone = true
+    forgetFileStep()
+    await backTo(id)
+    if (before.survey) await projectActions.saveSurvey(before.survey, before.previous)
+    const now = plan()
+    if (before.plan && now && after !== before.plan) {
+      // Nothing drawn since: the plan and its history go back to just before, as if it never happened.
+      if (now === after) usePlan.setState({ plan: before.plan, past: before.history, future: [] })
+      else setPlan({ ...now, placement: before.plan.placement })
+      usePlan.getState().requestFit()
+    }
+    if (siteAfter !== siteBefore && useSiteStore.getState().data === siteAfter) useSiteStore.getState().commit(() => siteBefore)
+    showToast({ text: `Put back ${before.survey?.fileName ?? 'the survey'}.` })
+  }
   showToast({
     text: isSketch(old) && !isSketch(next) ? `Your block is now ${next.fileName}.` : `Survey replaced with ${next.fileName}.`,
     // What it found was in the review; the layers are a tap away.
     link: isSketch(next) ? undefined : checkLayers(),
-    undo: async () => {
-      await backTo(id)
-      if (before.survey) await projectActions.saveSurvey(before.survey, before.previous)
-      const now = plan()
-      if (before.plan && now && after !== before.plan) {
-        setPlan(now === after ? before.plan : { ...now, placement: before.plan.placement })
-        usePlan.getState().requestFit()
-      }
-      if (siteAfter !== siteBefore && useSiteStore.getState().data === siteAfter) useSiteStore.getState().commit(() => siteBefore)
-      showToast({ text: `Put back ${before.survey?.fileName ?? 'the survey'}.` })
-    },
+    undo: putBack,
   })
+  if (before.survey) rememberFileStep({ label: isSketch(old) ? 'Add the survey' : 'Replace survey', undo: putBack })
 }
 
 // ---------------------------------------------------------------------------
@@ -335,6 +345,15 @@ export async function newPlan(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Open project file.
 
+/** A survey's block area (m²), or null when it doesn't read. */
+function blockAreaOf(survey: SavedProject): number | null {
+  try {
+    return readSite(survey).terrain.stats.area
+  } catch {
+    return null
+  }
+}
+
 /** A project file opens as a new project, after a light review; Undo puts it under Archived and goes back. */
 export async function openProjectText(text: string, fileName: string): Promise<void> {
   const parsed = parseProjectFile(text)
@@ -350,6 +369,7 @@ export async function openProjectText(text: string, fileName: string): Promise<v
       survey: parsed.survey,
       plan: parsed.plan,
       siteFeatures: (parsed.site?.data.features.length ?? 0) + (parsed.site?.data.overlays.length ?? 0),
+      blockArea: blockAreaOf(parsed.survey),
       costs: parsed.costs ? costsSummary(parsed.costs) : null,
       current: before?.name ?? null,
     }),

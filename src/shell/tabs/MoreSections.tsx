@@ -13,10 +13,13 @@ import {
   WallOptions,
 } from '../../components/PlanSections'
 import { usePlacementInfo } from '../../components/planNumbers'
-import { DownloadStlsButton, FineTuningFields, PaperSelect, PrintInstructions } from '../../components/ShareSections'
+import { FineTuningFields, PrintInstructions } from '../../components/ShareSections'
 import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
+import { useEffect } from 'react'
+import { useProjects } from '../../projects/session'
+import { layersKey, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { usePlan } from '../../plan/store'
@@ -29,6 +32,9 @@ import { Waiting } from './Waiting'
 
 export function SurveyLayersSection() {
   const { layers, project, onRoleChange, survey } = useShell()
+  const id = useProjects().currentId
+  // Shown means seen: Site › Block's "guesses" badge goes.
+  useEffect(() => markLayersSeen(layersKey(id, project.fileName)), [id, project.fileName])
   return <SurveyLayers layers={layers} roles={project.roles} onRoleChange={onRoleChange} survey={survey} />
 }
 
@@ -180,24 +186,6 @@ export function FineTuningSection() {
   const { printPrefs, changePrintPrefs } = useShell()
   const settings = printPrefs.settings
   return <FineTuningFields settings={settings} onChange={(patch: Partial<PrintSettings>) => changePrintPrefs({ settings: { ...settings, ...patch } })} />
-}
-
-export function StlSection() {
-  const d = useLoaded()
-  if (!d) return <Waiting />
-  return (
-    <>
-      <p className="muted small">A ZIP with one STL file per part, for slicers that don't open 3MF.</p>
-      <div className="row">
-        <DownloadStlsButton plan={d.plan} settings={d.printPrefs.settings} print={d.print} />
-      </div>
-    </>
-  )
-}
-
-export function PaperSection() {
-  const { printPrefs, changePrintPrefs } = useShell()
-  return <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
 }
 
 export function PrintInstructionsSection() {

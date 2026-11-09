@@ -6,6 +6,7 @@ import { Waiting } from '../shell/tabs/Waiting'
 import { useLoaded } from '../shell/useSite'
 import { dxfText, saveDxf, savePicture, saveScheduleCsv, scheduleRows } from './files'
 import './export.css'
+import '../share/share.css'
 
 const mm = (m: number) => Math.round(m * 1000)
 
@@ -31,10 +32,14 @@ export function ExportTab() {
   return (
     <>
       <h3>DXF for your surveyor or engineer</h3>
-      <p className="muted small">
-        The block boundary, the survey’s contours, the house walls (each floor on its own layer), the finished contours once the ground is cut or
-        filled, retaining walls and the driveway. It uses the survey’s own eastings and northings, so it lays straight over their file.
-      </p>
+      <p className="muted small">On the survey’s own eastings and northings, so it lays straight over their file.</p>
+      <details className="sh-whats">
+        <summary>What’s in it</summary>
+        <p className="muted small">
+          The block boundary, the survey’s contours, the house walls (each floor on its own layer), the finished contours once the ground is cut or filled,
+          retaining walls and the driveway.
+        </p>
+      </details>
       <div className="row">
         <button className="secondary" onClick={dxf}>
           Download DXF

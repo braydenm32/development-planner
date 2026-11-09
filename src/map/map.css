@@ -240,3 +240,29 @@
 .app-shell.phone .dem-chip-more {
   display: none;
 }
+
+/* While the lot is being found, the aerial fills the canvas beside the panel (Site › Map). */
+.map-canvas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  padding: 12px 12px 12px max(12px, var(--free-left, 0px));
+  background: var(--bg);
+}
+
+.map-canvas .map-picker.fill {
+  width: 100%;
+  height: 100%;
+}
+
+/* The plan's own zoom and fit buttons have nothing to act on under the map. */
+.shell-main:has(.map-canvas) .canvas-controls {
+  display: none;
+}
+
+.map-trouble .link {
+  font-weight: 600;
+}

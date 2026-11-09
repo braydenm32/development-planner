@@ -22,6 +22,7 @@ import { measure } from '../checks/measure'
 import { notChecked, runChecks } from '../checks/rules'
 import { checkTreesOf } from '../checks/siteTrees'
 import { daOf } from '../da/model'
+import { packDetails, useDaDetails } from '../da/details'
 import { projectsNow } from '../projects/session'
 import { daPackPdf } from '../da/pack'
 import { stormwaterSheet } from '../drainage/stormwater'
@@ -62,6 +63,8 @@ export interface PdfInput {
   up: 'house' | number
   paper: Paper
   pdfFurniture: boolean
+  /** Pages left out of the plan set (not the DA pack), by key. */
+  leaveOut?: readonly string[]
 }
 
 /** A file to hand over: saved, or shared on a phone. */
@@ -92,6 +95,7 @@ function planSetInput(p: PdfInput): PlanSetInput {
     up: p.up,
     paper: p.paper,
     furniture: p.pdfFurniture,
+    leaveOut: p.leaveOut,
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
@@ -128,8 +132,8 @@ export function daPackFile(p: PdfInput): OutFile {
     ...base,
     earthworks: base.earthworks && e ? { ...base.earthworks, maxCut: e.maxCut, maxFill: e.maxFill } : base.earthworks,
     revision: daOf(p.plan).revision,
-    place: place ? { address: place.lot.address ?? null, lot: place.lot.label } : null,
-    preparedBy: null,
+    // What's typed above the Download button first, then the map placement's.
+    ...packDetails(useDaDetails.getState().details, place ? { address: place.lot.address ?? null, lot: place.lot.label } : null),
     planning,
     council,
     checks,

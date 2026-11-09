@@ -1,12 +1,15 @@
 // The estimate: each element's quantity from the design (src/plan/quantities.ts) times its
 // rate, grouped as a builder prices a house, with a quote in place of the estimate wherever
-// there is one. Then the builder's margin (or, building it yourself, the owner-builder permit),
-// the contingency, the likely range and the cost per m² of floor.
+// there is one, then the fees and the council and government fees (src/costs/govFees.ts). Under
+// the groups, unfolded: the subtotal, the builder's margin (none when you build it yourself, who
+// pays for the owner-builder permit instead), the contingency and the total, then the likely
+// range and the cost per m² of floor.
 
 import { floorTypeInfo, type FloorTypeId } from '../plan/floorTypes'
 import { WET_ROOMS, type DesignQuantities } from '../plan/quantities'
+import { contribution, DA_FEE_YEAR, daFee, LSL, longServiceLevy, NO_FEE_CONTEXT, type FeeContext } from './govFees'
 import type { CostsData, Quote, Who } from './model'
-import { CHOICE_GROUPS, CHOICES, choiceRate, finishFactor, GROUPS, HOUSE_GROUPS, RANGE, rateInfo, type ChoiceGroup, type GroupId, type RateId, type Unit } from './rates'
+import { CHOICE_GROUPS, CHOICES, choiceRate, finishFactor, finishGuide, GROUPS, HOUSE_GROUPS, RANGE, rateInfo, WORKS_GROUPS, type ChoiceGroup, type GroupId, type RateId, type Unit } from './rates'
 
 /** What a line measures, to point out on the plan. */
 export interface Target {
@@ -21,7 +24,8 @@ export interface Target {
 export interface CostLine {
   /** Stable across changes to the design, so a quote stays on its line. */
   id: string
-  group: GroupId
+  /** Its group; the margin and contingency are the summary under the groups. */
+  group: GroupId | 'summary'
   label: string
   /** Where its quantity comes from, in a few words: "From Cut & fill", "3 windows". */
   from: string
@@ -61,9 +65,18 @@ export interface CostGroup {
 export interface Estimate {
   who: Who
   groups: CostGroup[]
+  /** Every line: the groups' lines, then the summary's (margin and contingency). */
   lines: CostLine[]
-  /** The building work: every group but fees and allowances. */
+  /** The building work: every group but the fees. */
   works: number
+  /** What the groups come to, before the margin and contingency. */
+  subtotal: number
+  /** The builder's margin on the building work (0 when you build it yourself), and its share. */
+  margin: { amount: number; share: number }
+  /** The contingency on the subtotal and margin, and its share. */
+  contingency: { amount: number; share: number }
+  /** The estimated cost of the building work the council and government fees go on. */
+  feeBasis: number
   total: number
   low: number
   high: number
@@ -75,6 +88,11 @@ export interface Estimate {
    * with a builder's margin on them, but not site works, outside works, fees or contingency.
    */
   housePerM2: number | null
+  /**
+   * The same total with the house itself priced from the finish guide instead (its low and high
+   * per m² of floor), everything else as it is; null before there is any floor.
+   */
+  guide: { low: number; high: number } | null
   /** The total split into materials (and fees) and labour. */
   materials: number
   labour: number
@@ -90,6 +108,9 @@ export interface Estimate {
   missing: string[]
 }
 
+/** Whole dollars, as a line's words say them. */
+const money0 = (n: number) => `$${String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
+
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
 const listOf = (names: string[]) => (names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
@@ -99,8 +120,8 @@ export const rateFor = (data: Pick<CostsData, 'rates'>, id: RateId): number => d
 
 const ROOF_TYPES = { hip: 'Hip', gable: 'Gable', skillion: 'Skillion', flat: 'Flat' } as const
 
-/** The estimate for a design's quantities and the project's costs. */
-export function estimate(q: DesignQuantities, data: CostsData): Estimate {
+/** The estimate for a design's quantities and the project's costs, for the council and pathway in `fees`. */
+export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext = NO_FEE_CONTEXT): Estimate {
   const finish = finishFactor(data.choices.finish)
   const lines: CostLine[] = []
   const add = (
@@ -137,6 +158,9 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     })
   }
   const choice = (g: ChoiceGroup) => CHOICES[g].options.find(o => o.id === data.choices[g]) ?? CHOICES[g].options[0]
+
+  // Preliminaries
+  add('prelims', 'prelims', q.floorArea, { from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
 
   // Site works
   add('site-setup', 'site-setup', 1, { from: 'Allowance' })
@@ -243,6 +267,7 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
 
   // Fit-out
   add('linings', 'linings', q.floorArea, { from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
+  add('fix-out', 'fix-out', q.floorArea, { label: 'Fix-out: skirting, architraves, wardrobes', from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
   add('floor-finishes', 'floor-finishes', q.finishes.area, {
     label: 'Floor finishes',
     from: q.finishes.count ? 'Rooms, except a garage' : 'From Rooms & areas',
@@ -285,12 +310,45 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
   }
 
   // Fees and allowances
-  const works = lines.reduce((t, l) => t + l.amount, 0)
+  const works = lines.filter(l => WORKS_GROUPS.includes(l.group as GroupId)).reduce((t, l) => t + l.amount, 0)
   add('fees', 'fees', 1, { from: 'Allowance' })
   if (data.who === 'owner') add('permit', 'permit', 1, { from: 'NSW permit and the approved course', at: null })
-  const computed = (id: string, label: string, from: string, amount: number, materials: number): CostLine => ({
+
+  // Council and government fees, on what the building work would cost: with the builder's margin
+  // when a builder builds it, as a contract price would have it.
+  const marginAmount = data.who === 'builder' ? works * data.margin : 0
+  const feeBasis = works + marginAmount
+  const basis = money0(feeBasis)
+  const gov = (id: string, label: string, est: number, from: string, at: string | null = null) => {
+    const quote = data.quotes[id] ?? null
+    const amount = quote ? quote.amount : est
+    lines.push({ id, group: 'gov', label, from, qty: 1, unit: 'item', dp: 0, rate: null, rateId: null, estimate: est, quote, amount, share: 1, materials: amount, labour: 0, target: null, at, missing: null, computed: false })
+  }
+  gov(
+    'da-fee',
+    'Development application fee',
+    fees.da ? daFee(feeBasis) : 0,
+    fees.da ? `NSW scale ${DA_FEE_YEAR}, on ${basis} of work` : 'None for complying development (CDC): the certifier’s fee is in Fees',
+    'design/checks',
+  )
+  gov('lsl', 'Long service levy', longServiceLevy(feeBasis), feeBasis >= LSL.from ? `0.25% of ${basis} of work` : `None for work under ${money0(LSL.from)}`)
+  const c = contribution(fees.council?.id ?? null, feeBasis)
+  gov(
+    'contribution',
+    'Council development contribution',
+    c?.amount ?? 0,
+    c
+      ? `${c.plan.plan}: ${Number((c.rate * 100).toFixed(2))}% of ${basis}${c.plan.except ? `, ${c.plan.except}` : ''}`
+      : fees.council
+        ? `No figure for ${fees.council.name} here yet: ask the council and add it`
+        : 'Switch on your council in Design › Checks, or ask the council and add it',
+    'design/checks',
+  )
+
+  // The summary under the groups: margin and contingency, each a share of what's above it.
+  const summary = (id: string, label: string, from: string, amount: number, materials: number): CostLine => ({
     id,
-    group: 'fees',
+    group: 'summary',
     label,
     from,
     qty: 1,
@@ -310,15 +368,13 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     computed: true,
   })
   const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
-  if (data.who === 'builder') {
-    // A builder's margin is the builder's own, neither materials nor a trade's labour: shown with the materials and fees.
-    const m = works * data.margin
-    lines.push(computed('margin', 'Builder’s margin and overheads', `${pct(data.margin)} of the building work`, m, m))
-  }
-  const before = lines.reduce((t, l) => t + l.amount, 0)
+  const subtotal = lines.reduce((t, l) => t + l.amount, 0)
+  // A builder's margin is the builder's own, neither materials nor a trade's labour: shown with the materials and fees.
+  if (data.who === 'builder') lines.push(summary('margin', 'Builder’s margin and overheads', `${pct(data.margin)} of the building work`, marginAmount, marginAmount))
+  const before = subtotal + marginAmount
   const beforeMaterials = lines.reduce((t, l) => t + l.materials, 0)
   const cont = before * data.contingency
-  lines.push(computed('contingency', 'Contingency', `${pct(data.contingency)} of the above`, cont, before ? cont * (beforeMaterials / before) : 0))
+  lines.push(summary('contingency', 'Contingency', `${pct(data.contingency)} of the above`, cont, before ? cont * (beforeMaterials / before) : 0))
 
   const total = before + cont
   const materials = lines.reduce((t, l) => t + l.materials, 0)
@@ -335,18 +391,27 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     q.externalDoors.count ? null : 'outside doors',
     q.finishes.count || wetCount ? null : 'rooms',
   ].filter((m): m is string => m !== null)
-  const house = open.filter(l => HOUSE_GROUPS.includes(l.group)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
+  const house = open.filter(l => HOUSE_GROUPS.includes(l.group as GroupId)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
+  // The guide's figure for the house has a builder's margin in it already; the contingency goes on top, as on the rest.
+  const band = finishGuide(data.choices.finish)
+  const rest = total - house * (1 + data.contingency)
+  const guide = q.floorArea > 0 ? { low: rest + band.low * q.floorArea * (1 + data.contingency), high: rest + band.high * q.floorArea * (1 + data.contingency) } : null
   return {
     who: data.who,
     groups,
     lines,
     works,
+    subtotal,
+    margin: { amount: marginAmount, share: data.who === 'builder' ? data.margin : 0 },
+    contingency: { amount: cont, share: data.contingency },
+    feeBasis,
     total,
     low: total * (1 - RANGE),
     high: total * (1 + RANGE),
     floorArea: q.floorArea,
     perM2: q.floorArea > 0 ? total / q.floorArea : null,
     housePerM2: q.floorArea > 0 ? house / q.floorArea : null,
+    guide,
     materials,
     labour: total - materials,
     quoted: open.filter(l => l.quote).length,
@@ -357,12 +422,12 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
 }
 
 /** For each material choice, how much each other option adds to the total (negative saves). */
-export function choiceDeltas(q: DesignQuantities, data: CostsData): Record<ChoiceGroup, Record<string, number>> {
-  const now = estimate(q, data).total
+export function choiceDeltas(q: DesignQuantities, data: CostsData, fees: FeeContext = NO_FEE_CONTEXT): Record<ChoiceGroup, Record<string, number>> {
+  const now = estimate(q, data, fees).total
   const out = {} as Record<ChoiceGroup, Record<string, number>>
   for (const g of CHOICE_GROUPS) {
     out[g] = {}
-    for (const o of CHOICES[g].options) out[g][o.id] = o.id === data.choices[g] ? 0 : estimate(q, { ...data, choices: { ...data.choices, [g]: o.id } }).total - now
+    for (const o of CHOICES[g].options) out[g][o.id] = o.id === data.choices[g] ? 0 : estimate(q, { ...data, choices: { ...data.choices, [g]: o.id } }, fees).total - now
   }
   return out
 }
@@ -373,5 +438,5 @@ export const CHOICE_LINES: Record<ChoiceGroup, string[]> = {
   walls: ['cladding'],
   roof: ['roof'],
   windows: ['windows'],
-  finish: ['door-internal', 'linings', 'floor-finishes', 'kitchen', 'bathroom', 'laundry', 'toilet'],
+  finish: ['door-internal', 'linings', 'fix-out', 'floor-finishes', 'kitchen', 'bathroom', 'laundry', 'toilet'],
 }

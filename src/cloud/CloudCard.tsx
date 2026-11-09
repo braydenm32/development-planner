@@ -107,6 +107,15 @@ export function CloudMark({ id }: { id: string }) {
 /** The start screen's way back to projects saved in the cloud, on a device that has none yet. */
 export function CloudStartLink() {
   const phase = useCloud(s => s.phase)
+  // While the cloud is being asked, the line holds its place unseen, so the page doesn't jump down
+  // when the answer comes (nearly always signed out, on a device with no projects yet).
+  if (phase === 'checking')
+    return (
+      <p className="cloud-ui cl-start" aria-hidden="true" style={{ visibility: 'hidden' }}>
+        <Icon name="cloud" size={16} />
+        <span>Saved projects in the cloud?</span>
+      </p>
+    )
   if (phase !== 'signed-out') return null
   return (
     <p className="cloud-ui cl-start">

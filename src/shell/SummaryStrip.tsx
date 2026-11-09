@@ -44,6 +44,8 @@ interface Props {
   overviewOpen: boolean
   /** A shared view (src/share-links): the same numbers, as plain labels, with nothing to go to or change. */
   readOnly?: boolean
+  /** What the strip says in place of the numbers while there are none (see ./drawn.ts). */
+  emptyText?: string
 }
 
 function Chip({ id, label, shown, children, title, term, route, readOnly }: { id: NumberId; label: string; shown?: string; children: ReactNode; title?: string; term?: string; route: AppRoute; readOnly?: boolean }) {
@@ -70,7 +72,7 @@ function Chip({ id, label, shown, children, title, term, route, readOnly }: { id
   )
 }
 
-export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOverview, overviewOpen, readOnly = false }: Props) {
+export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOverview, overviewOpen, readOnly = false, emptyText = 'Key numbers show once the survey and plan load.' }: Props) {
   // Easements and tree zones the plan reaches into: the amber ones only, as Site features counts them.
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   return (
@@ -82,7 +84,7 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
         render={ref => (
           <div className="chips" ref={ref as RefObject<HTMLDivElement | null>}>
             {!n ? (
-              <span className="chip ghost">Key numbers show once the survey and plan load.</span>
+              <span className="chip ghost">{emptyText}</span>
             ) : (
               <>
                 {n.floorArea !== null && (
@@ -188,7 +190,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const against = checkedAgainst(pathway, council)
   if (shown || !loud) {
     // A design that isn't drawn enough to check says so before anything passes.
-    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
+    const text = counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
     if (readOnly && !shown)
       return (
         <span className="chip ghost" data-term={term} data-term-note={against}>
@@ -205,7 +207,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
       </button>
     )
   }
-  const parts = [counts.fail && `${counts.fail} fail${counts.fail > 1 ? 's' : ''}`, counts.warn && `${counts.warn} to check`].filter(Boolean).join(' · ')
+  const parts = [counts.fail && `${counts.fail} to fix`, counts.warn && `${counts.warn} to confirm`].filter(Boolean).join(' · ')
   if (readOnly)
     return (
       <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>

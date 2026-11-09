@@ -63,7 +63,7 @@ async function getJson(url: string, init?: RequestInit, signal?: AbortSignal): P
 
 // ---- Finding the lot ----
 
-/** "Lot 4 DP 12345", "4/12345", "4//DP12345", "Lot 1 Sec 2 DP 1234": the cadastre's id, or null. */
+/** "Lot 12 DP 34567", "4/12345", "4//DP12345", "Lot 1 Sec 2 DP 1234": the cadastre's id, or null. */
 export function parseLotDp(text: string): string | null {
   const t = text.trim().toUpperCase().replace(/\s+/g, ' ')
   let m = t.match(/^(?:LOT )?([0-9A-Z]+) ?\/ ?([0-9A-Z]*) ?\/ ?(DP|SP)? ?(\d+)$/)

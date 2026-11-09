@@ -6,6 +6,7 @@ import type { SavedProject } from '../../lib/storage'
 import { analyzeLayers, guessRoles } from '../../lib/survey'
 import { garageFloor } from '../../plan/__tests__/fixtures'
 import { floorRL, type Plan } from '../../plan/model'
+import { defaultPlacement } from '../../plan/placement'
 import { usePlan } from '../../plan/store'
 import { ensureProjects, projectActions, projectsNow } from '../../projects/session'
 import { totalFloorArea } from '../../projects/summary'
@@ -131,7 +132,11 @@ describe('adding the survey to a sketch later', () => {
     const r = await review()
     expect(r.kind).toBe('replace-survey')
     expect(r.title).toBe('Use plane.dxf as your block?')
-    expect(r.choices?.map(c => c.id)).toEqual(['centre'])
+    // One way to line it up, so no card to choose from: it says what happens, with its picture.
+    expect(r.choices).toEqual([])
+    expect(r.choice).toBe('centre')
+    expect(r.changes.at(-1)).toMatch(/^The house goes in the middle of the surveyed block\. Turned square to it/)
+    expect(r.thumb?.house).toMatch(/^M/)
     expect(r.kept[0]).toMatch(/^Your plan: 10 walls, 4 rooms/)
     // nothing has changed while the review is open
     expect(await records()).toEqual(before.records)
@@ -166,7 +171,7 @@ describe('Replace survey, from a floor far off the ground', () => {
     usePlan.getState().commit(() => ({ ...placed, placement: { ...placed.placement, ffl: placed.placement.ffl - 20 } }))
     const done = replaceSurvey(plane())
     const r = await review()
-    expect(r.choices?.[0].detail).toMatch(/at ground level, as it was far from the ground before/)
+    expect(r.changes.join(' ')).toMatch(/at ground level, as it was far from the ground before/)
     r.answer('centre')
     await done
     const to = readSite(plane())
@@ -327,6 +332,9 @@ describe('Open project file', () => {
     )
     expect(r.facts.find(f => f.label === 'Plan')?.value).toMatch(/^10 walls, 4 rooms/)
     expect(r.kept).toEqual([`“${firstName}” stays as it is, under All projects.`])
+    // What else it holds, in words rather than bare counts.
+    const area = Math.round(readSite(plane('their-survey.dxf')).terrain.stats.area)
+    expect(r.facts.find(f => f.label === 'With')?.value).toBe(`no site features · 1 level · block ${area.toLocaleString()} m²`)
     r.answer('ok')
     await done
     const opened = projectsNow().list.find(m => m.id === projectsNow().currentId)!
@@ -419,5 +427,24 @@ describe('toasts about the project as it opened', () => {
     useRouter.setState({ route: { kind: 'app', area: 'design', tab: 'plan', view: 'plan' } })
     useRouter.setState({ route: PROJECTS })
     expect(useSafety.getState().toast?.text).toMatch(/^Duplicated as/)
+  })
+})
+
+describe('Replace survey under an empty plan', () => {
+  it('has nothing to line up, so shows no choice: the plan just starts on the new block', async () => {
+    await projectActions.create({ survey: plane() })
+    usePlan.getState().load({ ...garageFloor(), walls: [], rooms: [], areas: [], openings: [], roofs: [], stairs: [], furniture: [] })
+    const from = plan().placement
+    const done = replaceSurvey(plane('mga.dxf', [700, 300]))
+    const r = await review()
+    expect(r.choices).toEqual([])
+    expect(r.choice).toBe('centre')
+    expect(r.changes.at(-1)).toBe('Your plan starts in the middle of the new block, floor at ground level.')
+    r.answer(r.choice!)
+    await done
+    // It starts where a new plan on that block would.
+    const to = readSite(plane('mga.dxf', [700, 300]))
+    expect(plan().placement).toEqual(defaultPlacement(to.survey, to.terrain))
+    expect(plan().placement).not.toEqual(from)
   })
 })

@@ -9,12 +9,15 @@ import { SiteFeaturesPanel } from '../../site/SiteFeaturesPanel'
 import { useSiteStore } from '../../site/store'
 import { TO_CHECK_ID } from '../../site/sync'
 import { useShell } from '../context'
+import { canEdit, usePhone, usePhoneMode } from '../../phone/device'
 import { switchView } from '../useSite'
 
 export function SiteFeaturesTab() {
   const { survey } = useShell()
   const focus = useRouter(s => s.focus)
   const loaded = useSiteStore(s => s.loaded)
+  // A phone in View reads the features only (the shell's ViewLock says how to Edit).
+  const viewOnly = !canEdit(usePhone(), usePhoneMode(s => s.mode))
 
   // Scroll to the To check list and flash it, once the features have loaded.
   useEffect(() => {
@@ -29,5 +32,5 @@ export function SiteFeaturesTab() {
     useRouter.setState({ focus: null })
   }, [focus, loaded])
 
-  return <SiteFeaturesPanel survey={survey} onShowPlan={() => switchView('plan')} />
+  return <SiteFeaturesPanel survey={survey} onShowPlan={() => switchView('plan')} viewOnly={viewOnly} />
 }

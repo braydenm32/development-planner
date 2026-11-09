@@ -1,5 +1,6 @@
-// The Costs area: Estimate, Materials and Quotes, the strip's line, the card beside the plan,
-// and More's rates and notes. Everything reads the one estimate (src/costs/estimate.ts) worked
+// The Costs area: Estimate (with the material choices folded into it), Materials and Quotes,
+// the strip's line, the card beside the plan that says what a line measures, and More's rates
+// and notes. Everything reads the one estimate (src/costs/estimate.ts) worked
 // out from the design's own quantities.
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -13,11 +14,11 @@ import { shareOrSave } from '../phone/share'
 import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
-import { andList, m2, whereShown } from '../shell/format'
+import { m2, whereShown } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
-import { atName, dateText, delta, estimateCsv, incompleteText, money, NO_TOTAL, parseMoney, qtyText, rateText } from './format'
+import { atName, dateText, delta, estimateCsv, incompleteText, money, NO_TOTAL, parseMoney, qtyText, rateText, shortMoney } from './format'
 import { today, type CostsData } from './model'
 import {
   CHOICE_GROUPS,
@@ -29,6 +30,7 @@ import {
   MARGIN,
   OWNER_BUILDER,
   RANGE,
+  RATE_GROUPS,
   RATES_AS_AT,
   SOURCES,
   STARTING_RATES,
@@ -36,7 +38,7 @@ import {
   type RateId,
 } from './rates'
 import { useCosts, type Pointed } from './store'
-import { useEstimate, useQuantities } from './useEstimate'
+import { useEstimate, useFeeContext, useQuantities } from './useEstimate'
 import './costs.css'
 
 /** The route now: links from here keep its floor and selection. */
@@ -95,6 +97,7 @@ function EstimateBody({ d }: { d: Loaded }) {
             <div className="ce-range tnum">
               Likely {money(e.low)} to {money(e.high)}
             </div>
+            <div className="ce-range-why">± {Math.round(RANGE * 100)}%: an early estimate can land this far either way.</div>
             {e.missing.length > 0 && <div className="ce-incomplete">{incompleteText(e.missing)}</div>}
           </div>
         ) : (
@@ -103,11 +106,20 @@ function EstimateBody({ d }: { d: Loaded }) {
             <div className="ce-range">{NO_TOTAL}</div>
           </div>
         )}
-        <div className="ce-right tnum">
-          Floor area <b>{e.floorArea > 0 ? m2(e.floorArea) : '—'}</b>
-          <br />
-          Per m² <b>{e.perM2 === null ? '—' : money(e.perM2)}</b>
-        </div>
+        <dl className="ce-right tnum">
+          <div>
+            <dt>Floor area</dt>
+            <dd>{e.floorArea > 0 ? m2(e.floorArea) : '—'}</dd>
+          </div>
+          <div title="The whole estimate per m² of floor: site works, outside, fees and contingency included">
+            <dt>All in</dt>
+            <dd>{e.perM2 === null ? '—' : `${money(e.perM2)}/m²`}</dd>
+          </div>
+          <div title="The house itself per m² of floor, with the builder’s margin: no site works, outside works, fees or contingency. The finish guides measure this.">
+            <dt>House only</dt>
+            <dd>{e.housePerM2 === null ? '—' : `${money(e.housePerM2)}/m²`}</dd>
+          </div>
+        </dl>
         <FinishGuide e={e} />
         {ob && e.ready && (
           <>
@@ -123,18 +135,20 @@ function EstimateBody({ d }: { d: Loaded }) {
       </div>
       <WhoBuilds />
       <div className="ce-list">
+        <MaterialsFold d={d} />
         {e.groups.map(g => {
           const on = open.includes(g.id)
           return (
-            <div key={g.id} className={`ce-grp${on ? ' open' : ''}`}>
+            <div key={g.id} className={`ce-grp${on ? ' open' : ''}${g.id === 'gov' ? ' gov' : ''}`}>
               <button className="ce-gh" aria-expanded={on} onClick={() => useCosts.getState().toggleGroup(g.id)}>
                 <Icon name="chevR" size={14} />
                 <span className="ce-gl">{g.label}</span>
-                {g.quoted ? <span className="ce-qchip">{g.quoted} quoted</span> : <span />}
+                {g.quoted ? <span className="ce-qchip">{g.quoted} {g.id === 'gov' ? 'from council' : 'quoted'}</span> : <span />}
                 <span className="ce-amt tnum">{money(g.total)}</span>
               </button>
               {on && (
                 <div className="ce-lines">
+                  {g.id === 'gov' && <p className="muted small ce-gov-note">Rough figures from the NSW scales and the council’s plan. Open a line to put in the council’s own figure.</p>}
                   {ob && (
                     <div className="ce-colhead" aria-hidden="true">
                       <span />
@@ -151,6 +165,7 @@ function EstimateBody({ d }: { d: Loaded }) {
             </div>
           )
         })}
+        <Summary e={e} />
       </div>
       <div className="ce-foot">
         <p className="muted">Starting rates are rough NSW {RATES_AS_AT.slice(-4)} figures from public guides. A quote replaces the estimate on its line.</p>
@@ -162,8 +177,90 @@ function EstimateBody({ d }: { d: Loaded }) {
   )
 }
 
+/**
+ * Under the groups, always unfolded: what they come to, the builder's margin, the contingency and
+ * the total, so the two biggest additions aren't hidden in a group of their own.
+ */
+function Summary({ e }: { e: Estimate }) {
+  const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
+  return (
+    <div className="ce-sum tnum" role="group" aria-label="Total">
+      <div className="ce-sum-row">
+        <span>Subtotal</span>
+        <span>{money(e.subtotal)}</span>
+      </div>
+      {e.who === 'builder' ? (
+        <div className="ce-sum-row" onMouseEnter={() => useCosts.setState({ hover: null })}>
+          <span>
+            Builder’s margin {pct(e.margin.share)}
+            <small>Overheads and profit, on the building work</small>
+          </span>
+          <span>+{money(e.margin.amount)}</span>
+        </div>
+      ) : (
+        <div className="ce-sum-row muted">
+          <span>
+            No builder’s margin
+            <small>You build it, as owner-builder</small>
+          </span>
+          <span>$0</span>
+        </div>
+      )}
+      <div className="ce-sum-row">
+        <span>
+          Contingency {pct(e.contingency.share)}
+          <small>For what can’t be seen yet, on everything above</small>
+        </span>
+        <span>+{money(e.contingency.amount)}</span>
+      </div>
+      <div className="ce-sum-row total">
+        <span>Total</span>
+        <span>{e.ready ? money(e.total) : '—'}</span>
+      </div>
+      <p className="muted small">
+        Change the margin or contingency in{' '}
+        <button className="link" onClick={() => go(MORE, 'cost-rates')}>
+          More › Rates
+        </button>
+        .
+      </p>
+    </div>
+  )
+}
+
+/** The material choices, folded into the estimate: a line that says what's picked, opening to the chips. */
+function MaterialsFold({ d }: { d: Loaded }) {
+  const [on, setOn] = useState(false)
+  const choices = useCosts(s => s.data.choices)
+  const picked = CHOICE_GROUPS.map(g => CHOICES[g].options.find(o => o.id === choices[g])?.label)
+    .filter(Boolean)
+    .join(' · ')
+  return (
+    <div className={`ce-grp ce-mat${on ? ' open' : ''}`}>
+      <button className="ce-gh" aria-expanded={on} onClick={() => setOn(!on)}>
+        <Icon name="chevR" size={14} />
+        <span className="ce-gl">Materials</span>
+        <span className="ce-picked">{picked} finish</span>
+        <span />
+      </button>
+      {on && (
+        <div className="ce-lines">
+          <MaterialRows d={d} />
+          <p className="muted small">
+            Each choice shows what it adds or saves.{' '}
+            <button className="link" onClick={() => go('materials')}>
+              More on each choice
+            </button>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function WhoBuilds() {
   const who = useCosts(s => s.data.who)
+  const margin = useCosts(s => s.data.margin)
   return (
     <div className="ce-who">
       <span className="muted">Who builds it</span>
@@ -179,6 +276,11 @@ function WhoBuilds() {
           </button>
         ))}
       </div>
+      <p className="ce-who-says">
+        {who === 'owner'
+          ? 'Leaves out the builder’s margin and adds the owner-builder permit and course. You hire and run the trades; the lines split into materials and labour.'
+          : `A builder runs the job and adds ${Math.round(margin * 100)}% for overheads and profit on the building work.`}
+      </p>
     </div>
   )
 }
@@ -194,7 +296,7 @@ function Line({ l, ob, on }: { l: CostLine; ob: boolean; on: boolean }) {
     <>
       <span className="ce-what">
         {l.label}
-        <small>{l.quote ? `Quote · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
+        <small>{l.quote ? `${l.group === 'gov' ? 'Your figure' : 'Quote'} · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
       </span>
       <span className="ce-qty tnum">{qty}</span>
       {ob ? (
@@ -218,7 +320,7 @@ function Line({ l, ob, on }: { l: CostLine; ob: boolean; on: boolean }) {
       {l.computed ? (
         <div className="ce-ln-main">{cells}</div>
       ) : (
-        <button className="ce-ln-main" aria-expanded={on} onClick={toggle} onFocus={point} onBlur={unpoint} title={on ? undefined : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
+        <button className="ce-ln-main" aria-expanded={on} onClick={toggle} onFocus={point} onBlur={unpoint} title={on ? undefined : l.group === 'gov' ? 'Put in the council’s own figure' : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
           {cells}
         </button>
       )}
@@ -246,26 +348,36 @@ function QuoteForm({ l, onDone }: { l: CostLine; onDone: () => void }) {
     })
     onDone()
   }
+  // A council or government fee takes the council's own figure in place of the rough one.
+  const fee = l.group === 'gov'
   return (
     <form className="ce-quote" onSubmit={save}>
       <div className="ce-quote-row">
-        <input aria-label={`Quote for ${l.label}, dollars, GST included`} placeholder="Quote, $" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} autoFocus />
-        <input aria-label="Who the quote is from" placeholder="From" value={from} onChange={e => setFrom(e.target.value)} />
+        <input
+          aria-label={fee ? `${l.label}, dollars` : `Quote for ${l.label}, dollars, GST included`}
+          placeholder={fee ? 'Amount, $' : 'Quote, $'}
+          inputMode="decimal"
+          value={amount}
+          onChange={e => setAmount(e.target.value)}
+          autoFocus
+        />
+        <input aria-label={fee ? 'Where the figure is from' : 'Who the quote is from'} placeholder={fee ? 'From (council)' : 'From'} value={from} onChange={e => setFrom(e.target.value)} />
         <button type="submit" className="secondary" disabled={value === null}>
-          {l.quote ? 'Update quote' : 'Use this quote'}
+          {fee ? (l.quote ? 'Update' : 'Use this figure') : l.quote ? 'Update quote' : 'Use this quote'}
         </button>
         {l.quote && (
           <button type="button" className="link" onClick={remove}>
-            Remove quote
+            {fee ? 'Back to the rough figure' : 'Remove quote'}
           </button>
         )}
       </div>
       <p className="muted small">
-        {l.quote ? `Quoted ${dateText(l.quote.date)}. ` : ''}
+        {l.quote ? `${fee ? 'Added' : 'Quoted'} ${dateText(l.quote.date)}. ` : ''}
+        {fee && `Rough figure ${money(l.estimate)}. `}
         {l.missing ? `${l.missing}. ` : ''}
         {l.at && (
           <>
-            Quantity from{' '}
+            {fee ? 'Council and pathway from' : 'Quantity from'}{' '}
             <span className="ce-nowrap">
               <button type="button" className="link" onClick={() => goAt(l.at!)}>
                 {atName(l.at)}
@@ -297,7 +409,8 @@ function QuoteForm({ l, onDone }: { l: CostLine; onDone: () => void }) {
 function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
   const q = useQuantities(d)
   const data = useCosts(s => s.data)
-  const deltas = useMemo(() => choiceDeltas(q, data), [q, data])
+  const fees = useFeeContext(d)
+  const deltas = useMemo(() => choiceDeltas(q, data, fees), [q, data, fees])
   const e = useEstimate(d)
   const floor = q.ground ? q.ground.parts.map(p => floorTypeInfo(p.type).label).join(' and ') : 'No floor yet'
   return (
@@ -336,28 +449,51 @@ function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
 }
 
 /**
- * Where the house itself sits against the rough guide for the finish picked. While the estimate
- * is missing things (no windows, say) the house reads cheap for the wrong reason, so it says
- * what to draw instead of "Under the guide".
+ * The estimate beside what the rough guide for the finish picked would make it, and in a line why
+ * they differ. While the estimate is missing things (no windows, say) the house reads cheap for
+ * the wrong reason, so it says what to draw instead of comparing.
  */
 export function FinishGuide({ e }: { e: Estimate }) {
   const finish = useCosts(s => s.data.choices.finish)
-  if (e.housePerM2 === null) return null
+  if (e.housePerM2 === null || !e.guide) return null
   const g = finishGuide(finish)
   const name = CHOICES.finish.options.find(o => o.id === finish)?.label ?? 'Mid'
   const where = e.housePerM2 < g.low ? 'under' : e.housePerM2 > g.high ? 'over' : 'in'
+  if (e.missing.length > 0 || !e.ready)
+    return (
+      <p className="ce-guide tnum" title={FINISH_GUIDE_SOURCE}>
+        <span>
+          {name} finish guide {money(g.low)} to {money(g.high)} per m² of the house
+        </span>
+        <span className="ce-guide-wait">Compare once the estimate is complete</span>
+      </p>
+    )
+  const why =
+    where === 'under'
+      ? 'Why the gap: the guide is RLB’s range for custom-built Sydney houses; the quantities price only what’s drawn, at rough rates. Project-home builders often land nearer the quantities.'
+      : where === 'over'
+        ? 'The house comes in over RLB’s range for custom-built Sydney houses at this finish. Check the rates and quotes for anything unusual.'
+        : 'The house sits within RLB’s range for custom-built Sydney houses at this finish.'
   return (
-    <p className="ce-guide tnum" title={FINISH_GUIDE_SOURCE}>
-      <span>
-        House only <b>{money(e.housePerM2)}</b> per m² · {name} finish guide {money(g.low)} to {money(g.high)}
-        {e.who === 'owner' && ', which has a builder’s margin in it'}
-      </span>
-      {e.missing.length > 0 ? (
-        <span className="ce-guide-wait">Compare once there are {andList(e.missing)}</span>
-      ) : (
+    <div className="ce-guide" title={FINISH_GUIDE_SOURCE}>
+      <p className="ce-two tnum">
+        <span>
+          From quantities <b>{shortMoney(e.total)}</b>
+        </span>
+        <span aria-hidden="true">·</span>
+        <span>
+          From the {name.toLowerCase()} finish guide{' '}
+          <b>
+            {shortMoney(e.guide.low)} to {shortMoney(e.guide.high)}
+          </b>
+        </span>
         <span className={`ce-guide-tag ${where}`}>{where === 'in' ? 'Within the guide' : where === 'under' ? 'Under the guide' : 'Over the guide'}</span>
-      )}
-    </p>
+      </p>
+      <p className="ce-why">
+        {why}
+        {e.who === 'owner' && ' The guide has a builder’s margin in it.'}
+      </p>
+    </div>
   )
 }
 
@@ -400,40 +536,29 @@ export function MaterialsTab() {
   )
 }
 
-/** Beside the plan on a wide desktop, on the Estimate tab: what a hovered line measures, and the material choices. */
+/** Over the plan on a desktop, on the Estimate tab: what a hovered line measures. The material choices are in the panel. */
 export function EstimateAside() {
   const d = useLoaded()
   const pointed = useCosts(s => s.hover ?? s.opened)
   const phone = usePhone()
   if (!d || phone) return null
-  return <Aside d={d} pointed={pointed} />
+  return <Aside pointed={pointed} />
 }
 
-function Aside({ d, pointed }: { d: Loaded; pointed: Pointed | null }) {
+function Aside({ pointed }: { pointed: Pointed | null }) {
   return (
-    <>
-      <div className="float-card costs-legend" role="status">
-        {pointed ? (
-          <>
-            <b>{pointed.label}</b> · {pointed.what}
-            {!pointed.target && <span className="muted"> · nothing to show on the plan</span>}
-          </>
-        ) : (
-          <>
-            <b>Hover a line</b> to see what it measures on the plan. Quantities update as the design changes.
-          </>
-        )}
-      </div>
-      <section className="float-card costs-materials" aria-label="Materials">
-        <header>
-          <h3>Materials</h3>
-          <button className="link" onClick={() => go('materials')}>
-            All choices
-          </button>
-        </header>
-        <MaterialRows d={d} />
-      </section>
-    </>
+    <div className="float-card costs-legend" role="status">
+      {pointed ? (
+        <>
+          <b>{pointed.label}</b> · {pointed.what}
+          {!pointed.target && <span className="muted"> · nothing to show on the plan</span>}
+        </>
+      ) : (
+        <>
+          <b>Hover a line</b> to see what it measures on the plan. Quantities update as the design changes.
+        </>
+      )}
+    </div>
   )
 }
 
@@ -550,53 +675,99 @@ function lineName(id: string): string {
 // ---------------------------------------------------------------------------
 // More
 
-/** Every rate, changeable for this project, with the starting rate to go back to. */
+/**
+ * Every rate, changeable for this project, folded by group, each changed one with its starting
+ * rate to go back to. "Show only what I changed" hides the rest, and opens every group that has one.
+ */
 export function RatesSection() {
   const data = useCosts(s => s.data)
+  const [open, setOpen] = useState<string[]>([])
+  const [onlyChanged, setOnlyChanged] = useState(false)
+  const changedRate = (id: RateId, start: number) => Math.abs(rateFor(data, id) - start) > 1e-9
+  const extras = [
+    {
+      id: 'margin',
+      label: 'Builder’s margin and overheads, on the building work',
+      value: data.margin,
+      start: MARGIN,
+      source: 'Rough figure: builders usually add 15–25%. Left out when you build it yourself.',
+      set: (v: number) => commit(x => ({ ...x, margin: v })),
+    },
+    {
+      id: 'contingency',
+      label: 'Contingency, on everything above',
+      value: data.contingency,
+      start: CONTINGENCY,
+      source: 'For what can’t be seen yet: rock, extra steel, changes.',
+      set: (v: number) => commit(x => ({ ...x, contingency: v })),
+    },
+  ]
+  const groups = [
+    ...RATE_GROUPS.map(g => ({ id: g.id as string, label: g.label, rates: STARTING_RATES.filter(r => r.group === g.id), extras: [] as typeof extras })),
+    { id: 'summary', label: 'Margin and contingency', rates: [], extras },
+  ].filter(g => g.rates.length + g.extras.length > 0)
+  const changedIn = (g: (typeof groups)[number]) => g.rates.filter(r => changedRate(r.id, r.rate)).length + g.extras.filter(x => Math.abs(x.value - x.start) > 1e-9).length
+  const total = groups.reduce((t, g) => t + changedIn(g), 0)
+  const resetAll = () => commit(x => ({ ...x, rates: {}, margin: MARGIN, contingency: CONTINGENCY }))
   return (
     <div className="costs-rates">
       <p className="muted small">
         Dollars per unit, GST included. Fit-out rates are for a mid finish; Materials › Finish scales them. A change applies to this project only, and Undo takes it
         back.
       </p>
-      {GROUPS.map(g => (
-        <div key={g.id} className="cr-group">
-          <h3>{g.label}</h3>
-          {STARTING_RATES.filter(r => r.group === g.id).map(r => (
-            <RateRow
-              key={r.id}
-              label={r.label + ('finish' in r && r.finish ? ' (mid finish)' : '')}
-              unit={r.unit === 'item' ? '' : r.unit === 'each' ? 'each' : r.unit === 'room' ? 'a room' : `/${r.unit === 'm² face' ? 'm² of face' : r.unit}`}
-              value={rateFor(data, r.id)}
-              start={r.rate}
-              source={r.source}
-              onCommit={v => setRate(r.id, v)}
-            />
-          ))}
-          {g.id === 'fees' && (
-            <>
-              <RateRow
-                label="Builder’s margin and overheads, on the building work"
-                unit="%"
-                percent
-                value={data.margin}
-                start={MARGIN}
-                source="Rough figure: builders usually add 15–25%. Left out when you build it yourself."
-                onCommit={v => commit(x => ({ ...x, margin: v }))}
-              />
-              <RateRow
-                label="Contingency, on everything above"
-                unit="%"
-                percent
-                value={data.contingency}
-                start={CONTINGENCY}
-                source="For what can’t be seen yet: rock, extra steel, changes."
-                onCommit={v => commit(x => ({ ...x, contingency: v }))}
-              />
-            </>
-          )}
-        </div>
-      ))}
+      <div className="cr-tools">
+        <label className="check">
+          <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
+          Show only what I changed{total > 0 ? ` (${total})` : ''}
+        </label>
+        {total > 0 && (
+          <button className="link" onClick={resetAll}>
+            Reset all
+          </button>
+        )}
+      </div>
+      {onlyChanged && total === 0 && <p className="muted small">Nothing changed yet: every rate is the starting rate.</p>}
+      {groups.map(g => {
+        const n = changedIn(g)
+        if (onlyChanged && n === 0) return null
+        const on = onlyChanged || open.includes(g.id)
+        return (
+          <div key={g.id} className={`cr-group${on ? ' open' : ''}`}>
+            <button
+              className="cr-gh"
+              aria-expanded={on}
+              disabled={onlyChanged}
+              onClick={() => setOpen(o => (o.includes(g.id) ? o.filter(x => x !== g.id) : [...o, g.id]))}
+            >
+              <Icon name="chevR" size={14} />
+              <span>{g.label}</span>
+              <span className="cr-count">{n > 0 ? `${n} changed` : `${g.rates.length + g.extras.length} ${g.rates.length + g.extras.length === 1 ? 'rate' : 'rates'}`}</span>
+            </button>
+            {on && (
+              <div className="cr-lines">
+                {g.rates
+                  .filter(r => !onlyChanged || changedRate(r.id, r.rate))
+                  .map(r => (
+                    <RateRow
+                      key={r.id}
+                      label={r.label + ('finish' in r && r.finish ? ' (mid finish)' : '')}
+                      unit={r.unit === 'item' ? '' : r.unit === 'each' ? 'each' : r.unit === 'room' ? 'a room' : `/${r.unit === 'm² face' ? 'm² of face' : r.unit}`}
+                      value={rateFor(data, r.id)}
+                      start={r.rate}
+                      source={r.source}
+                      onCommit={v => setRate(r.id, v)}
+                    />
+                  ))}
+                {g.extras
+                  .filter(x => !onlyChanged || Math.abs(x.value - x.start) > 1e-9)
+                  .map(x => (
+                    <RateRow key={x.id} label={x.label} unit="%" percent value={x.value} start={x.start} source={x.source} onCommit={x.set} />
+                  ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -664,18 +835,12 @@ function RateRow({
           <em className="cr-unit">{unit}</em>
         </span>
       </label>
-      <p className="muted small">
-        {changed && (
-          <>
-            Starting rate {percent ? `${Number((start * 100).toFixed(2))}%` : money(start)}.{' '}
-            <button className="link" onClick={() => onCommit(start)}>
-              Reset to starting rate
-            </button>
-            .{' '}
-          </>
-        )}
-        {source}
-      </p>
+      {changed && (
+        <button className="cr-reset" onClick={() => onCommit(start)} title="Back to the starting rate" aria-label={`Reset ${label} to the starting rate`}>
+          <Icon name="rotate" size={13} /> {percent ? `${Number((start * 100).toFixed(2))}%` : money(start)}
+        </button>
+      )}
+      <p className="muted small">{source}</p>
     </div>
   )
 }
@@ -692,13 +857,19 @@ export function AboutCostsSection() {
         A builder adds a margin for overheads and profit on the building work. Building it yourself leaves that out, adds the owner-builder permit and course, and shows how much
         is materials and how much is labour if you hire trades. Then a contingency goes on top. The likely range is {Math.round(RANGE * 100)}% either way.
       </p>
+      <h3>Council and government fees</h3>
+      <p className="small">
+        Rough figures on the cost of the building work: the development application fee from the NSW scale for 2026/27 (none for complying development), the long
+        service levy (0.25% of work costing $250,000 or more; owner-builders can apply for up to half off), and the council’s development contribution where the
+        app has its plan (Wollongong’s section 7.12 levy so far). Put the council’s own figure on a line once you have it.
+      </p>
       <h3>Owner-builder in NSW</h3>
       <p className="small">
         Work worth more than {money(OWNER_BUILDER.permitOver)} (GST included) needs an owner-builder permit; over {money(OWNER_BUILDER.courseOver)} you also need the approved
         course. The permit is {money(OWNER_BUILDER.permitFee)} for a year from July 2026. Checked on nsw.gov.au in {RATES_AS_AT}.
       </p>
       <h3>Not included</h3>
-      <p className="small">The land and stamp duty, council and water contributions, heating and cooling, window coverings, furniture, a pool, and anything not drawn.</p>
+      <p className="small">The land and stamp duty, water and sewer contributions, contributions the app has no figure for, heating and cooling, window coverings, furniture, a pool, and anything not drawn.</p>
       <h3>Sources</h3>
       <p className="small">Starting rates are rough figures for NSW as at {RATES_AS_AT}, GST included. Where a public guide gave a range, the rate sits inside it; the rest are plainly rough, and say so in Rates.</p>
       <ul className="costs-sources">
@@ -762,7 +933,7 @@ export function CostsStrip({
             )}
             {e.perM2 !== null && (
               <button className="chip" onClick={to('estimate')}>
-                <span className="chip-label">Per m²</span> <b className="tnum">{money(e.perM2)}</b>
+                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
               </button>
             )}
           </>

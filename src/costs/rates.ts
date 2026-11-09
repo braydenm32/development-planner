@@ -19,9 +19,10 @@ export const CONTINGENCY = 0.1
 /** A builder's margin and overheads on the building work (editable per project). */
 export const MARGIN = 0.2
 
-export type GroupId = 'site' | 'floor' | 'frame' | 'roof' | 'walls' | 'openings' | 'fitout' | 'services' | 'outside' | 'fees'
+export type GroupId = 'prelims' | 'site' | 'floor' | 'frame' | 'roof' | 'walls' | 'openings' | 'fitout' | 'services' | 'outside' | 'fees' | 'gov'
 
 export const GROUPS: { id: GroupId; label: string }[] = [
+  { id: 'prelims', label: 'Preliminaries' },
   { id: 'site', label: 'Site works' },
   { id: 'floor', label: 'Slab and floor' },
   { id: 'frame', label: 'Frame' },
@@ -32,7 +33,11 @@ export const GROUPS: { id: GroupId; label: string }[] = [
   { id: 'services', label: 'Services' },
   { id: 'outside', label: 'Outside' },
   { id: 'fees', label: 'Fees and allowances' },
+  { id: 'gov', label: 'Council and government fees (rough)' },
 ]
+
+/** The groups the builder's margin goes on: the building work, so not the fees. */
+export const WORKS_GROUPS: GroupId[] = ['prelims', 'site', 'floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services', 'outside']
 
 /** The unit a rate is per: an area, a volume, one of something, or a lump sum. */
 export type Unit = 'm²' | 'm³' | 'm² face' | 'each' | 'room' | 'item'
@@ -53,9 +58,18 @@ export interface StartingRate {
   finish?: boolean
 }
 
+/** The rates' groups as Costs › More › Rates folds them, with the margin and contingency last. */
+export const RATE_GROUPS = GROUPS.filter(g => g.id !== 'gov')
+
 const OB_PERMIT = 'NSW owner-builder permit $233 (July 2026 to June 2027 fees, nsw.gov.au); the approved course, needed for work over $20,000, from about $180 (Edway, 2026)'
 
+// Reviewed in November 2026 (audit C57): a mid-finish design came to about half the low end of
+// the guide below. Part of the gap is the guide itself (custom-built houses), part was items a
+// builder prices that no line counted: preliminaries and the fix-out. Those are lines now, and
+// the frame, slab, linings and electrical rates moved up to the middle of what trades quote.
 export const STARTING_RATES = [
+  // Preliminaries
+  { id: 'prelims', group: 'prelims', label: 'Preliminaries: supervision, insurance, scaffolding and cleaning', unit: 'm²', rate: 170, materials: 0.5, source: 'Rough figure per m² of floor: a builder’s site supervision, home warranty insurance (HBCF), scaffolding, cleaning and the like, often 6–10% of a house.' },
   // Site works
   { id: 'site-setup', group: 'site', label: 'Site set-up: temporary fence, toilet, skips', unit: 'item', rate: 9500, materials: 0.6, source: 'Rough figure: hire for about six months.' },
   { id: 'cut', group: 'site', label: 'Dig out (cut), machine and operator', unit: 'm³', rate: 55, materials: 0.35, source: 'Oneflare excavation guide: $30–50/m³ in plain soil, up to $150/m³ with rock or roots.' },
@@ -65,14 +79,14 @@ export const STARTING_RATES = [
   { id: 'retaining-sleeper', group: 'site', label: 'Retaining walls, concrete sleepers and steel posts', unit: 'm² face', rate: 450, materials: 0.5, source: 'Yellow Pages retaining wall guide, May 2026: sleeper walls $220–650/m².' },
   { id: 'retaining-block', group: 'site', label: 'Retaining walls, reinforced concrete block', unit: 'm² face', rate: 650, materials: 0.45, source: 'Yellow Pages retaining wall guide, May 2026: reinforced block $480–700/m², Besser block $550–850/m².' },
   // Slab and floor
-  { id: 'floor-slab', group: 'floor', label: 'Slab on ground', unit: 'm²', rate: 165, materials: 0.5, source: 'Yellow Pages slab guide, May 2026: $75–110/m², plus site preparation, steel and formwork.' },
+  { id: 'floor-slab', group: 'floor', label: 'Slab on ground', unit: 'm²', rate: 185, materials: 0.5, source: 'Yellow Pages slab guide, May 2026: $75–110/m², plus site preparation, steel, formwork, a pump and termite protection.' },
   { id: 'floor-waffle', group: 'floor', label: 'Waffle pod slab', unit: 'm²', rate: 155, materials: 0.5, source: 'Rough figure: a little under a slab on ground.' },
   { id: 'floor-piers', group: 'floor', label: 'Bearers and joists on piers, with flooring', unit: 'm²', rate: 200, materials: 0.5, source: 'Rough figure.' },
   { id: 'floor-suspended', group: 'floor', label: 'Suspended slab', unit: 'm²', rate: 380, materials: 0.45, source: 'Rough figure: formwork, propping and more steel.' },
   { id: 'floor-upper', group: 'floor', label: 'Upper floor framing and flooring', unit: 'm²', rate: 160, materials: 0.5, source: 'Rough figure.' },
   // Frame
-  { id: 'frame-timber', group: 'frame', label: 'Wall frames and roof trusses, timber', unit: 'm²', rate: 220, materials: 0.55, source: 'Rough figure, per m² of floor.' },
-  { id: 'frame-steel', group: 'frame', label: 'Wall frames and roof trusses, steel', unit: 'm²', rate: 250, materials: 0.6, source: 'Rough figure: about 10–15% over timber.' },
+  { id: 'frame-timber', group: 'frame', label: 'Wall frames and roof trusses, timber', unit: 'm²', rate: 260, materials: 0.55, source: 'Rough figure per m² of floor, with the carpentry to lock-up: eaves, fascia and wrap.' },
+  { id: 'frame-steel', group: 'frame', label: 'Wall frames and roof trusses, steel', unit: 'm²', rate: 295, materials: 0.6, source: 'Rough figure: about 10–15% over timber.' },
   { id: 'stairs', group: 'frame', label: 'Stairs, built and fixed', unit: 'each', rate: 6500, materials: 0.5, source: 'Rough figure.' },
   // Roof
   { id: 'roof-colorbond', group: 'roof', label: 'Roofing, Colorbond, with sarking and gutters', unit: 'm²', rate: 115, materials: 0.55, source: 'Yellow Pages Colorbond guide, May 2026: $80–150/m² installed.' },
@@ -90,14 +104,15 @@ export const STARTING_RATES = [
   { id: 'door-garage', group: 'openings', label: 'Garage door, sectional, with motor', unit: 'each', rate: 3400, materials: 0.8, source: 'Rough figure for a double door.' },
   { id: 'door-internal', group: 'openings', label: 'Internal doors, hung with handles', unit: 'each', rate: 520, materials: 0.45, source: 'Rough figure, mid finish.', finish: true },
   // Fit-out
-  { id: 'linings', group: 'fitout', label: 'Linings, ceiling insulation, cornice and paint', unit: 'm²', rate: 105, materials: 0.4, source: 'Rough figure per m² of floor, mid finish.', finish: true },
+  { id: 'linings', group: 'fitout', label: 'Linings, ceiling insulation, cornice and paint', unit: 'm²', rate: 125, materials: 0.4, source: 'Rough figure per m² of floor, mid finish: plasterboard to walls and ceilings, insulation, cornice and paint.', finish: true },
+  { id: 'fix-out', group: 'fitout', label: 'Fix-out: skirting, architraves, wardrobes and shelves', unit: 'm²', rate: 85, materials: 0.5, source: 'Rough figure per m² of floor, mid finish.', finish: true },
   { id: 'floor-finishes', group: 'fitout', label: 'Floor finishes: tiles, timber or carpet', unit: 'm²', rate: 95, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
   { id: 'kitchen', group: 'fitout', label: 'Kitchen: cabinets, benchtops and appliances', unit: 'room', rate: 28000, materials: 0.7, source: 'Rough figure, mid finish.', finish: true },
   { id: 'bathroom', group: 'fitout', label: 'Bathroom, tiled and fitted out', unit: 'room', rate: 22000, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
   { id: 'laundry', group: 'fitout', label: 'Laundry, fitted out', unit: 'room', rate: 7500, materials: 0.55, source: 'Rough figure, mid finish.', finish: true },
   { id: 'toilet', group: 'fitout', label: 'Toilet, fitted out', unit: 'room', rate: 7000, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
   // Services
-  { id: 'electrical', group: 'services', label: 'Electrical: wiring, lights and power points', unit: 'm²', rate: 90, materials: 0.4, source: 'Rough figure per m² of floor.' },
+  { id: 'electrical', group: 'services', label: 'Electrical: wiring, lights and power points', unit: 'm²', rate: 110, materials: 0.4, source: 'Rough figure per m² of floor, with smoke alarms and the switchboard.' },
   { id: 'drainage', group: 'services', label: 'Drainage, connections and hot water', unit: 'item', rate: 15000, materials: 0.45, source: 'Rough figure: sewer, stormwater and water to the house, and a hot water system.' },
   { id: 'plumbing', group: 'services', label: 'Plumbing to each wet room', unit: 'room', rate: 4500, materials: 0.4, source: 'Rough figure.' },
   // Outside
@@ -206,7 +221,7 @@ export const finishGuide = (id: string) => FINISH_GUIDES[(id in FINISH_GUIDES ? 
 export const FINISH_GUIDE_SOURCE = 'RLB Riders Digest Sydney 2026: custom-built houses $2,500 to $7,600 per m² before GST, with the builder’s margin, without site works, fees or land. Split into thirds for Basic, Mid and High, GST added.'
 
 /** What a guide is compared with: the house itself, so not site works, outside works or fees. */
-export const HOUSE_GROUPS: GroupId[] = ['floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services']
+export const HOUSE_GROUPS: GroupId[] = ['prelims', 'floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services']
 
 /** The public pages the starting rates and the owner-builder figures come from. */
 export const SOURCES: { label: string; url: string }[] = [

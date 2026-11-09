@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { useContext, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { PrintModel, PrintPart } from '../print/build'
+import { usePrintHover } from '../print/hover'
 import { fitDistance, freeFrame, partOffsets, sceneBox } from '../print/previewFit'
 import { CanvasFrame, type Insets } from './canvasFrame'
 
@@ -116,12 +117,21 @@ function Parts({ model, apart }: Props) {
   }, [model, apart])
 
   useEffect(() => () => meshes.forEach(m => m.geometry.dispose()), [meshes])
+  // The part pointed at in the parts list glows, and the rest fade back a little.
+  const hot = usePrintHover(s => s.ids)
 
   return (
     <group>
       {meshes.map(m => (
         <mesh key={m.id} geometry={m.geometry} position={m.offset}>
-          <meshStandardMaterial color={m.color} roughness={0.85} />
+          <meshStandardMaterial
+            color={m.color}
+            roughness={0.85}
+            emissive={hot.includes(m.id) ? '#2f6fde' : '#000000'}
+            emissiveIntensity={hot.includes(m.id) ? 0.35 : 0}
+            transparent={hot.length > 0 && !hot.includes(m.id)}
+            opacity={hot.length > 0 && !hot.includes(m.id) ? 0.45 : 1}
+          />
         </mesh>
       ))}
     </group>

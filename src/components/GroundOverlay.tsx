@@ -203,15 +203,17 @@ export function LevelChip({ name, rl, below, action }: { name: string; rl: numbe
   )
 }
 
-/** Turns the ground tint on and off, with a key to its colours. */
-export function GroundKey({ on, onChange, lowest, children }: { on: boolean; onChange: (on: boolean) => void; lowest: boolean; children?: ReactNode }) {
+/** Turns the ground tint on and off, with a key to its colours. With no `floor` (Site, where there's no floor to draw on) only the other keys show. */
+export function GroundKey({ on, onChange, lowest, children, floor = true }: { on: boolean; onChange: (on: boolean) => void; lowest: boolean; children?: ReactNode; floor?: boolean }) {
   return (
     <div className="ground-key">
-      <label className="check">
-        <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-        Ground vs this floor
-      </label>
-      {on && (
+      {floor && (
+        <label className="check">
+          <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
+          Ground vs this floor
+        </label>
+      )}
+      {on && floor && (
         <ul>
           <li>
             <i style={{ background: FILL }} /> Floor above ground{lowest ? ' (fill or piers)' : ''}
@@ -230,11 +232,17 @@ export function GroundKey({ on, onChange, lowest, children }: { on: boolean; onC
   )
 }
 
-/** The natural ground under the pointer against this floor, for the plan's status bar. */
-export function GroundReadout({ ground, floor, lowest }: { ground: number; floor: number; lowest: boolean }) {
+/** The natural ground under the pointer against this floor, for the plan's status bar; the ground alone with no floor (Site). */
+export function GroundReadout({ ground, floor, lowest }: { ground: number; floor: number | null; lowest: boolean }) {
   return (
     <span className="ground-readout">
-      <b>Ground RL {ground.toFixed(2)}</b> · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+      <b>Ground RL {ground.toFixed(2)}</b>
+      {floor !== null && (
+        <>
+          {' '}
+          · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+        </>
+      )}
     </span>
   )
 }

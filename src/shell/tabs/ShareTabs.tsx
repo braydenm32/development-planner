@@ -2,7 +2,7 @@
 // with the DA pack under the plan set (src/da).
 
 import { DaPackSection } from '../../da/DaPackSection'
-import { Download3mfButton, PdfDownload, PdfFurnitureToggle, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
+import { PaperSelect, PdfFurnitureToggle, PdfPlans, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
 import { usePhone } from '../../phone/device'
 import { ShareFirst } from '../../phone/ShareFirst'
 import type { PrintSettings } from '../../print/build'
@@ -15,20 +15,24 @@ export function PlansTab() {
   const phone = usePhone()
   if (!d) return <Waiting />
   const { printPrefs, changePrintPrefs } = d
-  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture }
+  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture, leaveOut: printPrefs.leaveOut }
+  const furniture = <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
   // On a phone the plans and the project file go first, to the share sheet, then the 3D print.
   if (phone)
     return (
       <>
         <ShareFirst d={d} />
-        <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
+        <div className="tool-options">
+          <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
+        </div>
+        {furniture}
+        <PlansContents />
         <DaPackSection {...pdf} />
       </>
     )
   return (
     <>
-      <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
-      <PdfDownload {...pdf} />
+      <PdfPlans {...pdf} furniture={furniture} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} onPaper={paper => changePrintPrefs({ paper })} />
       <DaPackSection {...pdf} />
     </>
   )
@@ -56,9 +60,7 @@ export function PrintTab() {
     <>
       <PrintSettingsFields settings={settings} onChange={set} />
       <PrintParts print={d.print} settings={settings} />
-      <div className="row">
-        <Download3mfButton plan={d.plan} settings={settings} print={d.print} />
-      </div>
+      <PrintDownloads plan={d.plan} settings={settings} print={d.print} />
     </>
   )
 }

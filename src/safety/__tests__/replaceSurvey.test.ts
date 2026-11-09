@@ -18,6 +18,9 @@ import { emptySiteData, useSiteStore, type Overlay, type SiteData } from '../../
 import type { SiteFeature } from '../../site/model'
 import { replaceSurvey } from '../flows'
 import { undoToast, useSafety, type Review } from '../store'
+import { fileStepNow } from '../fileUndo'
+import { undoTarget } from '../../shell/undoTarget'
+import { projectsNow } from '../../projects/session'
 
 function plane(fileName = 'plane.dxf', shift: [number, number] = [0, 0]): SavedProject {
   const dxfText = shiftDxf(planeSurvey(), shift)
@@ -129,5 +132,38 @@ describe('Replace survey with a block on other coordinates', () => {
     r.answer('keep')
     await done
     expect(useSiteStore.getState().data).toBe(before)
+  })
+
+  it('is on the top bar’s Undo too, which takes back the survey, the house and the features together', async () => {
+    const before = await garageWithFeatures()
+    const planBefore = plan()
+    const history = usePlan.getState().past
+    const done = replaceSurvey(plane('mga.dxf', [700, 300]))
+    ;(await review()).answer('centre')
+    await done
+    expect(projectsNow().opened?.survey?.fileName).toBe('mga.dxf')
+    // Undo now is the whole replace, not just the plan's half of it.
+    expect(fileStepNow()?.label).toBe('Replace survey')
+    undoTarget('undo').undo()
+    for (let i = 0; i < 200 && projectsNow().opened?.survey?.fileName !== 'plane.dxf'; i++) await new Promise(res => setTimeout(res, 1))
+    await projectActions.flush()
+    expect(projectsNow().opened?.survey?.fileName).toBe('plane.dxf')
+    expect(plan()).toBe(planBefore)
+    expect(usePlan.getState().past).toBe(history)
+    expect(useSiteStore.getState().data).toBe(before)
+    expect(fileStepNow()).toBeNull()
+  })
+
+  it('stops being the top bar’s Undo once anything else changes', async () => {
+    await garageWithFeatures()
+    const done = replaceSurvey(plane('mga.dxf', [700, 300]))
+    ;(await review()).answer('centre')
+    await done
+    expect(fileStepNow()).not.toBeNull()
+    usePlan.getState().commit(p => ({ ...p, name: 'Renamed' }))
+    expect(fileStepNow()).toBeNull()
+    undoTarget('undo').undo()
+    expect(plan().name).not.toBe('Renamed')
+    expect(projectsNow().opened?.survey?.fileName).toBe('mga.dxf')
   })
 })

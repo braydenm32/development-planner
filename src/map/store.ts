@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { projectsNow, registerRecordKind } from '../projects/session'
+import { councilFromMap } from '../checks/settings'
 import { showToast } from '../safety/store'
 import type { Vec2 } from '../lib/geom'
 import { demPlace, type DemBlock } from './demSite'
@@ -137,6 +138,8 @@ export async function refreshPlanning(): Promise<void> {
     // Still the same lot (not taken off, or moved to another, while reading).
     if (ctrl.signal.aborted || !now || now.lot.id !== p.lot.id) return
     useMap.setState({ place: { ...now, planning }, reading: false })
+    // Design › Checks' "DA with …" follows the council the maps name, unless one was picked by hand.
+    councilFromMap(planning)
   } catch (e) {
     if (ctrl.signal.aborted) return
     useMap.setState({ reading: false, error: e instanceof MapServiceError ? e.message : 'The planning layers couldn’t be read. Try again in a minute.' })

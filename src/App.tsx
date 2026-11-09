@@ -186,12 +186,8 @@ export default function App() {
     if (mode === '3d') setCameraKey(k => k + 1)
   }
 
-  /** Check the layers, after an import: Site › More › Survey layers, unfolded. */
-  const toLayers = () => {
-    const collapsed = view.collapsed.filter(c => c !== 'more-survey-layers')
-    if (collapsed.length !== view.collapsed.length) changeView({ ...view, collapsed })
-    navigate(tabRoute(useRouter.getState().route, 'site', MORE), { focus: 'survey-layers' })
-  }
+  /** Check the layers, after an import: Site › More › Survey layers (going to it there unfolds it). */
+  const toLayers = () => navigate(tabRoute(useRouter.getState().route, 'site', MORE), { focus: 'survey-layers' })
 
   // The file actions (src/safety) open projects and read the site the app has built.
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))
@@ -222,8 +218,9 @@ export default function App() {
   if (page === 'new') return alone(<StartScreen into="new" onCancel={somewhere ? () => toProjects(false, true) : undefined} cancelLabel="All projects" />)
   // Nothing open: pick a project, or (on a first visit) start the first one.
   if (!openedId) return alone(page === 'projects' || projects.list.length ? home(false) : <StartScreen into="new" />)
-  // The home shows inside the app's frame, below, once the open project has a site.
-  if (page === 'projects' && !project) return alone(home(false))
+  // The home is one page whether a project is open or not, so archiving the open one doesn't
+  // change its layout; it has a way back to the project open now.
+  if (page === 'projects') return alone(home(false))
   // A project with no site yet (never a project with one): its start screen, with the way out.
   if (!project) return alone(<StartScreen into="current" onCancel={() => toProjects()} cancelLabel="All projects" />)
 

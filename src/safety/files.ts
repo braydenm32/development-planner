@@ -6,6 +6,7 @@ import type { SavedProject } from '../lib/storage'
 import { confirmColumns } from '../formats/columns'
 import { isLandXml, readLandXml } from '../lib/landxml'
 import { NeedColumns, looksLikePoints, readPointsCsv } from '../lib/pointsCsv'
+import { withMadeContours } from '../lib/madeContours'
 import { analyzeLayers, buildSurvey, guessRoles, NoGroundError, type LayerInfo, type LayerRole } from '../lib/survey'
 import { buildTerrain } from '../lib/terrain'
 import type { Plan } from '../plan/model'
@@ -55,6 +56,8 @@ export const askSurveyor = (e: unknown): boolean => e instanceof DxfError || e i
 /** A survey record from DXF text, with its layers guessed. Throws the reader's message if it can't make a site. */
 export function readSurvey(fileName: string, dxfText: string): SavedProject {
   const doc = parseDxf(dxfText)
+  // Nothing to pick from: say so, rather than open the layer review on no layers.
+  if (doc.entities.length === 0) throw new DxfError(`${fileName} is empty: it has no lines, points or text in it. Ask your surveyor to send the survey again.`)
   const layers = analyzeLayers(doc)
   const roles = guessRoles(layers)
   try {
@@ -70,12 +73,15 @@ export function readSurvey(fileName: string, dxfText: string): SavedProject {
 /** The survey and ground a survey record makes, as the app builds them. Throws if it can't. */
 export function readSite(saved: SavedProject): Site {
   const survey = buildSurvey(parseDxf(saved.dxfText), saved.roles)
-  return { survey, terrain: buildTerrain(survey) }
+  const terrain = buildTerrain(survey)
+  // As the app builds it (src/lib/builtSite.ts): contours from the ground when the file has none.
+  return { survey: withMadeContours(survey, terrain.grid), terrain }
 }
 
 /** What a file is, from its name and text. Throws a plain message for anything else. */
 export function detectFile(name: string, text: string): OpenedFile {
   const trimmed = text.trimStart()
+  if (!trimmed) throw new DxfError(`${name} is empty: there’s nothing in the file. Choose it again, or ask for it to be sent again.`)
   if (trimmed.startsWith('{')) {
     let json: unknown
     try {
