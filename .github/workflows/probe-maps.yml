@@ -2,9 +2,14 @@ name: Probe NSW map services
 
 # Checks the NSW map and planning services the map placement relies on (scripts/probe-nsw-maps.mjs).
 # Run it by hand (Actions › Probe NSW map services › Run workflow) when the map placement
-# stops finding lots or planning layers: the services' replies are printed in the log.
+# stops finding lots, planning layers or ground levels: the services' replies are printed in the log.
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Which services: all, maps or elevation'
+        required: false
+        default: all
 
 permissions:
   contents: read
@@ -17,4 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/probe-nsw-maps.mjs
+      - run: node scripts/probe-nsw-maps.mjs "$ONLY"
+        env:
+          ONLY: ${{ inputs.only || 'all' }}
