@@ -144,7 +144,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
         ) : (
           <div className="st-brand">
             <Logo size={24} />
-            <span>Block &amp; House Planner</span>
+            <span>Contour &amp; Gable</span>
           </div>
         )}
         <button className="st-btn" onClick={() => input.current?.click()} title="A project file, a saved plan, or a survey">

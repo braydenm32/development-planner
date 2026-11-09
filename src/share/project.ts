@@ -42,11 +42,11 @@ export function parseProjectFile(text: string): { survey: SavedProject; plan: Pl
   try {
     f = JSON.parse(text) as Partial<ProjectFile>
   } catch {
-    throw new Error('This file is not a Block & House Planner project.')
+    throw new Error('This file is not a Contour & Gable project.')
   }
   const s = f.survey
   if (f.app !== 'block-and-house-planner' || f.version !== 1 || !s?.dxfText || !s.roles || !f.plan || f.plan.version !== 1) {
-    throw new Error('This file is not a Block & House Planner project.')
+    throw new Error('This file is not a Contour & Gable project.')
   }
   return {
     survey: { fileName: s.fileName || 'survey.dxf', dxfText: s.dxfText, roles: s.roles, ...(s.sketch ? { sketch: s.sketch } : {}) },

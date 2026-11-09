@@ -13,7 +13,7 @@ export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant:
   return (
     <nav className={variant === 'rail' ? 'area-rail' : 'bottom-bar'} aria-label="Areas">
       {variant === 'rail' && (
-        <a className="rail-logo" {...linkTo(PROJECTS, go)} title="All projects" aria-label="Block & House Planner: all projects">
+        <a className="rail-logo" {...linkTo(PROJECTS, go)} title="All projects" aria-label="Contour & Gable: all projects">
           <Logo size={26} />
         </a>
       )}

@@ -326,7 +326,7 @@ describe('opening a project file', () => {
   })
 
   it('refuses a file that is not a project and creates nothing', async () => {
-    await expect(createFromProjectFile(local, '{"version":1,"walls":[]}')).rejects.toThrow(/not a Block & House Planner project/)
+    await expect(createFromProjectFile(local, '{"version":1,"walls":[]}')).rejects.toThrow(/not a Contour & Gable project/)
     expect(await local.list()).toEqual([])
   })
 })

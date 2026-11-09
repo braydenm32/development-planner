@@ -1,4 +1,4 @@
-// The Block & House Planner Worker: one origin for the built app (Workers static assets) and its
+// The Contour & Gable Worker: one origin for the built app (Workers static assets) and its
 // API under /api/ (./api.ts), so the session cookie is first-party everywhere (Safari blocks the
 // other kind). The main module exports only its handler: workerd refuses anything else here.
 

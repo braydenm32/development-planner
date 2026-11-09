@@ -228,7 +228,7 @@ export class PdfDocument {
     }
     objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`
     objects[pagesId - 1] = `<< /Type /Pages /Kids [${kids.map(k => `${k} 0 R`).join(' ')}] /Count ${kids.length} >>`
-    const info = add(`<< /Title (${encodeText(this.title)}) /Producer (Block and House Planner) >>`)
+    const info = add(`<< /Title (${encodeText(this.title)}) /Producer (Contour and Gable) >>`)
 
     const enc = new TextEncoder()
     let body = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'

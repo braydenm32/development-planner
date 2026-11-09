@@ -240,9 +240,9 @@ function CodeSheet() {
   }
   const download = () =>
     saveFile(
-      'block-and-house-planner-recovery-code.txt',
+      'contour-and-gable-recovery-code.txt',
       [
-        'Block & House Planner: recovery code',
+        'Contour & Gable: recovery code',
         '',
         code.value,
         '',

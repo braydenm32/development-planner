@@ -131,8 +131,8 @@ describe('project file', () => {
     const { plan } = setup()
     expect(isProjectFile(JSON.stringify(plan))).toBe(false)
     expect(isProjectFile('not json')).toBe(false)
-    expect(() => parseProjectFile(JSON.stringify(plan))).toThrow(/not a Block & House Planner project/)
-    expect(() => parseProjectFile('{')).toThrow(/not a Block & House Planner project/)
+    expect(() => parseProjectFile(JSON.stringify(plan))).toThrow(/not a Contour & Gable project/)
+    expect(() => parseProjectFile('{')).toThrow(/not a Contour & Gable project/)
   })
 
   it('names an unnamed project', () => {

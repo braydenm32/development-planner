@@ -468,7 +468,7 @@ export function Trouble({ trouble, retry }: { trouble: SharedTrouble; retry: () 
             Try again
           </button>
         )}
-        <p className="muted small">Block &amp; House Planner · shared view</p>
+        <p className="muted small">Contour &amp; Gable · shared view</p>
       </div>
     </div>
   )
