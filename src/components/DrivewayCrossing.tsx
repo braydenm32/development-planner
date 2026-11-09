@@ -59,7 +59,14 @@ function useDriveCrossing({ plan, area, survey, terrain, earth }: Props): DriveC
 export function DrivewayCrossing(props: Props) {
   const { plan, area, survey } = props
   const d = useDriveCrossing(props)
-  if (!d) return null
+  // Say why rather than leave the panel silent: the checks skip it too.
+  if (!d)
+    return (
+      <div className="drive-levels drive-crossing">
+        <h4>Street crossing</h4>
+        <p className="muted small">The app can’t find this drive’s two ends from its outline, so its footpath crossing isn’t checked. Redraw it as a long shape from the garage to the street.</p>
+      </div>
+    )
   const facts = area.crossing ?? {}
   const council = activeCouncil(checkSettingsOf(plan.checks))
   const rows = driveChecks(d)

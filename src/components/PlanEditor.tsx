@@ -35,6 +35,7 @@ import {
   moveJoint,
   moveWall,
   newStair,
+  houseBounds,
   planBounds,
   updateFurniture,
   updateOpening,
@@ -47,7 +48,7 @@ import { outlineAround, roofGeometry } from '../plan/roof'
 import { roofAtPoint } from '../plan/roofPick'
 import { newRetainingWall, placeRetainingWall, useRetaining } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
-import { stairContains, stairLayout } from '../plan/stairs'
+import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
 import { modKey } from '../nav/keys'
@@ -270,7 +271,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   )
   const roofs = useMemo(() => plan.roofs.filter(r => r.level === level), [plan.roofs, level])
   const stairs = useMemo(() => plan.stairs.filter(s => s.level === level), [plan.stairs, level])
-  const ghostStairs = useMemo(() => (levelBelow ? plan.stairs.filter(s => s.level === levelBelow.id) : []), [plan.stairs, levelBelow])
+  // Stairs that come up through this floor are drawn as the hole they climb into, over the rooms;
+  // the level below's other stairs show faintly under them, for lining up.
+  const arrivingStairs = useMemo(() => plan.stairs.filter(s => s.level !== level && stairArrivesAt(plan, s, level)), [plan, level])
+  const ghostStairs = useMemo(
+    () => (levelBelow ? plan.stairs.filter(s => s.level === levelBelow.id && !arrivingStairs.includes(s)) : []),
+    [plan.stairs, levelBelow, arrivingStairs],
+  )
   const isLowest = sortedLevels(plan)[0]?.id === level
   // This floor against the natural ground: worked out again only when the floor level or the survey changes.
   const floorRL = levelFloorRL(plan, level)
@@ -359,7 +366,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   /** Frame the house (or the block, when there is no house yet), the whole block, or some points (a drawing being lined up). */
   const fitView = (target: 'house' | 'block' | Vec2[] = 'house'): View => {
-    const b = target === 'house' ? planBounds(plan) : null
+    const b = target === 'house' ? houseBounds(plan) : null
     const pts: Vec2[] = Array.isArray(target) && target.length
       ? target
       : b
@@ -1732,27 +1739,47 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     )
   })()
 
-  const stairSymbol = (st: Stair, ghost = false, isPreview = false) => {
+  /**
+   * A stair on the plan. On its own level it reads UP from its bottom step; on the floor it
+   * arrives at (`arriving`) it's the hole it comes up into, reading DN from its top; `ghost` is
+   * the level below's stair, faint, for lining up.
+   */
+  const stairSymbol = (st: Stair, ghost = false, isPreview = false, arriving = false) => {
     const L = stairLayout(st)
-    const sel = isSel('stair', st.id)
-    const cls = `stair${sel ? ' selected' : ''}${ghost ? ' ghost' : ''}${isPreview ? ' preview' : ''}`
-    const end = L.walk[L.walk.length - 1]
-    const before = L.walk[L.walk.length - 2]
+    const sel = !arriving && isSel('stair', st.id)
+    const cls = `stair${sel ? ' selected' : ''}${ghost ? ' ghost' : ''}${isPreview ? ' preview' : ''}${arriving ? ' arriving' : ''}`
+    // The arrow points the way you walk: up to the top, or down from it to the bottom step.
+    const walk = arriving ? [...L.walk].reverse() : L.walk
+    const end = walk[walk.length - 1]
+    const before = walk[walk.length - 2]
     const ux = (end[0] - before[0]) / (Math.hypot(end[0] - before[0], end[1] - before[1]) || 1)
     const uy = (end[1] - before[1]) / (Math.hypot(end[0] - before[0], end[1] - before[1]) || 1)
     const h = Math.min(0.3, st.width * 0.3)
     const a1: Vec2 = [end[0] - ux * h - uy * h * 0.6, end[1] - uy * h + ux * h * 0.6]
     const a2: Vec2 = [end[0] - ux * h + uy * h * 0.6, end[1] - uy * h - ux * h * 0.6]
-    const t = (st.angle * Math.PI) / 180
-    const [lx, ly] = S([st.at[0] - Math.cos(t) * 0.22, st.at[1] - Math.sin(t) * 0.22])
+    // The label sits just off where you step on: the bottom step going up, the top going down.
+    const start = walk[0]
+    const sx = walk[1][0] - start[0]
+    const sy = walk[1][1] - start[1]
+    const sl = Math.hypot(sx, sy) || 1
+    const [lx, ly] = S([start[0] - (sx / sl) * 0.22, start[1] - (sy / sl) * 0.22])
+    // Shown whenever the stair is wide enough on screen to read it.
+    const labelled = !ghost && st.width * k > 24
+    const nowhere = !ghost && !arriving && !isPreview && stairMeetsNoFloor(plan, st)
+    const [fx, fy] = S(L.walk[L.walk.length - 1])
     return (
-      <g key={`${st.id}${ghost ? '-ghost' : ''}`} className={cls}>
+      <g key={`${st.id}${ghost ? '-ghost' : ''}${arriving ? '-arriving' : ''}`} className={cls}>
         <path className="stair-body" d={path(L.outline)} />
         {!ghost && <path className="stair-treads" d={L.treadLines.map(l => path(l, false)).join('')} />}
-        {!ghost && <path className="stair-walk" d={path(L.walk, false) + path([a1, end, a2], false)} />}
-        {!ghost && k > 30 && (
+        {!ghost && <path className="stair-walk" d={path(walk, false) + path([a1, end, a2], false)} />}
+        {labelled && (
           <text className="stair-label" x={lx} y={ly} textAnchor="middle" dominantBaseline="middle">
-            UP
+            {arriving ? 'DN' : 'UP'}
+          </text>
+        )}
+        {nowhere && (
+          <text className="stair-flag" x={fx} y={fy - 10} textAnchor="middle">
+            Meets no floor
           </text>
         )}
       </g>
@@ -1912,6 +1939,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             <path key={room.id} className={`room-fill${onNaturalGround(plan, room) ? ' piers' : ''}`} d={path(shape.inner)} />
           ) : null,
         )}
+
+        {/* Stairs coming up through this floor: the hole in it, over the rooms' fill */}
+        <g className="arriving-stairs">{arrivingStairs.map(st => stairSymbol(st, false, false, true))}</g>
 
         {ground && (
           <GroundOverlay

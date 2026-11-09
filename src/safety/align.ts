@@ -2,7 +2,7 @@
 // block (a new survey, or a sketch) keeping its turn to the block and its height above ground.
 // Placement itself comes from the same helpers the Place panel uses.
 
-import { lowestOutline } from '../components/planNumbers'
+import { houseOutline } from '../components/planNumbers'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -42,7 +42,7 @@ export function fitOnBlock(plan: Plan, survey: Survey, placement: Placement = pl
 
 /** Natural ground at the middle of the house, as the Place panel reads it ("Floor at ground level"). */
 export function groundAtHouse(plan: Plan, site: Site, placement: Placement = plan.placement): number | null {
-  const info = placementInfo(lowestOutline(plan), placement, site.survey, site.terrain)
+  const info = placementInfo(houseOutline(plan).rings, placement, site.survey, site.terrain)
   if (info) return info.centreRL
   const b = planBounds(plan)
   if (!b) return null
@@ -52,7 +52,7 @@ export function groundAtHouse(plan: Plan, site: Site, placement: Placement = pla
 
 /** The ground under the house's outline, lowest to highest, as the Place panel shows it. */
 export function groundUnder(plan: Plan, site: Site, placement: Placement = plan.placement): { min: number; max: number } | null {
-  const info = placementInfo(lowestOutline(plan), placement, site.survey, site.terrain)
+  const info = placementInfo(houseOutline(plan).rings, placement, site.survey, site.terrain)
   return info ? { min: info.minRL, max: info.maxRL } : null
 }
 

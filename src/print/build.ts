@@ -25,7 +25,7 @@ import {
 import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry } from '../plan/roof'
-import { stairLayout } from '../plan/stairs'
+import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { featureSolids } from '../site/printFeatures'
 
@@ -259,10 +259,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
 
     // Floor plate, with holes where stairs come up through it.
     let plate = prism(L.outlines, L.bottom, L.ffl)
-    const arriving = plan.stairs.filter(st => {
-      const from = levelById(plan, st.level)
-      return from && from.elevation < L.level.elevation && Math.abs(from.elevation + st.base + st.rise - L.level.elevation) < 0.05
-    })
+    const arriving = plan.stairs.filter(st => stairArrivesAt(plan, st, L.level.id))
     for (const st of arriving) plate = minus(plate, extrude(grow(shape([site(stairLayout(st).outline)]), c), L.bottom - 1, L.ffl + 1))
     pieces.push(plate)
 
