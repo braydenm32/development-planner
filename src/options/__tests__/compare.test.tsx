@@ -115,9 +115,12 @@ describe('the table’s rows', () => {
     expect(bestIn(row('net'), [over, short])).toEqual([false, true])
   })
 
-  it('checks: fewer fails win, then fewer to check, then fewer unknowns', () => {
-    const c = (fail: number, warn: number, unknown: number) => ({ ...a, checks: { ...a.checks, counts: { fail, warn, unknown, pass: 5, pending: 0 } } })
+  it('checks: fewer fails win, then fewer to check, then fewer unknowns or not drawn yet', () => {
+    const c = (fail: number, warn: number, unknown: number, incomplete = 0) => ({ ...a, checks: { ...a.checks, counts: { fail, warn, unknown, incomplete, pass: 5, pending: 0, info: 0 } } })
     expect(bestIn(row('checks'), [c(1, 0, 0), c(0, 9, 9)])).toEqual([false, true])
     expect(bestIn(row('checks'), [c(0, 1, 0), c(0, 0, 3)])).toEqual([false, true])
+    // An option that's barely drawn can't win by having nothing to fail.
+    expect(bestIn(row('checks'), [c(0, 0, 0, 9), c(0, 0, 1)])).toEqual([false, true])
+    expect(checksText(c(0, 1, 0, 2))).toBe('5 pass · 1 to check · 2 not drawn yet')
   })
 })

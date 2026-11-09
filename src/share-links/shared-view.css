@@ -3,14 +3,64 @@
 
 .app-shell.shared-view {
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr) auto;
   grid-template-areas:
     'top'
     'strip'
-    'main';
+    'main'
+    'foot';
 }
 
 .app-shell.shared-view.phone {
-  grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr);
+  grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr) auto;
+}
+
+/* ---- The foot: whose it is, and the caveat ---- */
+
+.shared-foot {
+  grid-area: foot;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 18px;
+  padding: 7px 14px calc(7px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.shared-foot p {
+  margin: 0;
+}
+
+.shared-foot b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.shared-foot a {
+  color: var(--accent);
+}
+
+.shared-foot .shared-caveat {
+  flex: 1 1 24rem;
+  text-align: right;
+}
+
+.app-shell.shared-view.presenting .shared-foot {
+  display: none;
+}
+
+.app-shell.phone.shared-view .shared-foot {
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+  font-size: 11px;
+}
+
+.app-shell.phone.shared-view .shared-foot .shared-caveat {
+  text-align: left;
 }
 
 .shared-view .top-bar {

@@ -10,16 +10,19 @@ import { OptionsTab } from '../options/OptionsTab'
 import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
+import { ExportTab } from '../export/ExportTab'
 import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+import { SiteSunTab } from '../sun/SunTab'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
   'site/block': SiteBlockTab,
   'site/features': SiteFeaturesTab,
   'site/3d': Site3dTab,
+  'site/sun': SiteSunTab,
   'design/floors': FloorsTab,
   'design/rooms': RoomsTab,
   'design/roofs': RoofsTab,
@@ -34,6 +37,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,
   'share/plans': PlansTab,
+  'share/export': ExportTab,
   'share/send': SendTab,
   'share/3d-print': PrintTab,
 }
@@ -49,6 +53,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'wall-preset': More.WallPresetSection,
   'opening-tool': More.OpeningToolSection,
   'garage-door-tool': More.GarageDoorToolSection,
+  'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   origin: More.OriginSection,
   rotation: More.RotationSection,

@@ -1,6 +1,7 @@
 // Setback dimensions on the plan canvas: a dimension line from the house to each side of the
 // block, with ticks at both ends and its length in mm. Shown in Earthworks › Place, while moving
-// the house, and anywhere else the plan's Setbacks switch is on.
+// the house, and anywhere else the plan's Setbacks switch is on. A side the house goes past is
+// drawn in red from the house's furthest corner, "−1.20 m over".
 
 import type { Vec2 } from '../lib/geom'
 import type { SetbackDim } from '../plan/setbacks'
@@ -12,7 +13,7 @@ interface Props {
   toScreen: (p: Vec2) => Vec2
 }
 
-/** Shorter than this on screen (px), a line is drawn but not labelled. */
+/** Shorter than this on screen (px), a line is drawn but not labelled (unless it's over the boundary, which always says so). */
 const MIN_LABEL_PX = 30
 
 export function SetbackLines({ dims, toScreen }: Props) {
@@ -33,10 +34,10 @@ export function SetbackLines({ dims, toScreen }: Props) {
         const mx = (a[0] + b[0]) / 2
         const my = (a[1] + b[1]) / 2
         return (
-          <g key={d.side} className="setback">
+          <g key={d.side} className={d.over ? 'setback over' : 'setback'}>
             <path className="setback-line" d={`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`} />
             <path className="setback-tick" d={`${tick(a)}${tick(b)}`} />
-            {len >= MIN_LABEL_PX && (
+            {(len >= MIN_LABEL_PX || d.over) && (
               <text className="setback-label" x={mx} y={my} dy={-5} transform={`rotate(${ang.toFixed(1)} ${mx} ${my})`} textAnchor="middle">
                 {d.text}
               </text>

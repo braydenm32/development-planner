@@ -11,6 +11,8 @@ import { housePadRL } from '../plan/platforms'
 import { floorRL, levelById, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
+import type { SunFacts } from '../sun/facts'
+import { useSunFacts } from '../sun/useSun'
 
 export interface KeyNumbers {
   /** Each level's floor area (outside of walls), lowest first. */
@@ -38,12 +40,15 @@ export interface KeyNumbers {
   /** The same, in words: "the north and east boundaries", "all four boundaries"; null when none. */
   batters: string | null
   placement: PlacementInfo | null
+  /** Winter sun to the living areas and the shadow over the boundary, on 21 June. */
+  sun?: SunFacts | null
 }
 
 export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, earth: Earth | null): KeyNumbers {
   const summary = useMemo(() => levelSummaries(plan), [plan])
   const walls = useRetainingWalls(plan, survey, terrain, earth)
   const placement = usePlacementInfo(plan, survey, terrain)
+  const sun = useSunFacts(plan, survey, terrain, earth)
   const ffl = floorRL(plan)
   // Balance searches for the level where cut and fill are equal; only redo it when the earthworks change.
   const shift = useMemo(() => (earth && earth.platforms.length > 0 ? balancingShift(earth.prep) : null), [earth])
@@ -96,6 +101,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       batterSides: hasEarth ? boundarySides(r, survey) : [],
       batters: hasEarth ? crossedBoundaries(r, survey) : null,
       placement,
+      sun,
     }
-  }, [plan, summary, earth, ffl, balancedRL, walls, roof, survey, placement])
+  }, [plan, summary, earth, ffl, balancedRL, walls, roof, survey, placement, sun])
 }

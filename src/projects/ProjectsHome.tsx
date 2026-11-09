@@ -1,7 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { CloudCard, CloudMark } from '../cloud/CloudCard'
 import { useInCloud } from '../cloud/state'
+import { openExample } from '../example/open'
 import { saveFile } from '../lib/download'
+import { LegalFooter } from '../legal/LegalFooter'
+import '../legal/legal.css'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fileSafe } from '../print/export'
@@ -81,6 +84,12 @@ const ICONS = {
     </>
   ),
   arrowR: <path d="M4.5 12h15M14 6.5l5.5 5.5-5.5 5.5" />,
+  cube: (
+    <>
+      <path d="M12 3.2 20 7.6v8.8L12 20.8l-8-4.4V7.6z" />
+      <path d="m4 7.6 8 4.4 8-4.4M12 12v8.8" />
+    </>
+  ),
 }
 
 function Icon({ name, size = 18 }: { name: keyof typeof ICONS; size?: number }) {
@@ -225,6 +234,11 @@ export function ProjectsHome(props: Props) {
   // With nothing to show, the empty state carries the one next step instead.
   const actions = (
     <div className="ph-top-actions" hidden={p.ready && !archived && active.length === 0}>
+      <button className="ph-btn" onClick={() => void openExample()} title="A new project with a finished made-up house in it, to look round and change">
+        <Icon name="cube" size={16} />
+        <span className="ph-long">Open an example</span>
+        <span className="ph-short">Example</span>
+      </button>
       <button className="ph-btn" onClick={() => fileInput.current?.click()} title="A project file, a saved plan, or a survey (DXF)">
         <Icon name="file" size={16} />
         <span className="ph-long">Open a file</span>
@@ -329,6 +343,12 @@ export function ProjectsHome(props: Props) {
                 <Icon name="plus" size={16} />
                 New project
               </button>
+              <p className="ph-empty-alt">
+                Want to see one finished first?{' '}
+                <button className="ph-link" onClick={() => void openExample()}>
+                  Open an example
+                </button>
+              </p>
               <p className="ph-empty-alt">
                 Someone sent you a project file?{' '}
                 <button className="ph-link" onClick={() => fileInput.current?.click()}>
@@ -454,6 +474,7 @@ export function ProjectsHome(props: Props) {
           </ul>
         )}
       </Main>
+      <LegalFooter />
 
       {review && (
         <DeleteReview

@@ -53,16 +53,25 @@ export const ROWS: Row[] = [
     id: 'checks',
     label: 'Checks',
     text: n => checksText(n),
-    value: n => n.checks.counts.fail * 1000 + n.checks.counts.warn * 100 + n.checks.counts.unknown,
+    // Fewest fails, then warnings, then what can't be told yet (a fact missing, or not drawn yet).
+    value: n => n.checks.counts.fail * 1000 + n.checks.counts.warn * 100 + n.checks.counts.unknown + n.checks.counts.incomplete,
     best: 'low',
   },
 ]
 
-/** "9 pass · 1 fail · 2 to check · 1 can’t tell yet" (the summary strip's words for each). */
+/** "9 pass · 1 fail · 2 to check · 1 can’t tell yet · 3 not drawn yet" (the summary strip's words for each). */
 export function checksText(n: OptionNumbers): string {
   const c = n.checks.counts
   const cant = c.unknown + c.pending
-  return [`${c.pass} pass`, c.fail ? `${c.fail} fail${c.fail > 1 ? 's' : ''}` : null, c.warn ? `${c.warn} to check` : null, cant ? `${cant} can’t tell yet` : null].filter(Boolean).join(' · ')
+  return [
+    `${c.pass} pass`,
+    c.fail ? `${c.fail} fail${c.fail > 1 ? 's' : ''}` : null,
+    c.warn ? `${c.warn} to check` : null,
+    cant ? `${cant} can’t tell yet` : null,
+    c.incomplete ? `${c.incomplete} not drawn yet` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 /**

@@ -1,4 +1,4 @@
-import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
+import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
 import { toSite, type Placement } from './model'
@@ -42,7 +42,12 @@ export interface BoundaryClearance {
   name: string
   /** Shortest distance from the house to this side (m); 0 where the house reaches it. */
   dist: number
-  /** The closest points on the house and on the boundary, in the site frame. */
+  /**
+   * How far the house goes past this side, out of the lot (m); 0 when it doesn't. A house over
+   * the boundary used to read as 0 mm away, which looks like a house built to the boundary.
+   */
+  over: number
+  /** The closest points on the house and on the boundary, in the site frame (with `over`, the house's furthest point past the side and the side). */
   from: Vec2
   to: Vec2
   /** Unit vector from this side into the block. */
@@ -68,15 +73,75 @@ function segmentsCross(a: Vec2, b: Vec2, c: Vec2, d: Vec2): boolean {
   return d1 * d2 < 0 && d3 * d4 < 0
 }
 
+/** Less than this past the boundary (m) is on it: survey and drawing tolerance, not a house over the line. */
+export const OVER_MIN = 0.005
+
+/** The distance to a side as the panels and checks show it: negative by how far the house goes past it. */
+export const signedClearance = (c: Pick<BoundaryClearance, 'dist' | 'over'>): number => (c.over > 0 ? -c.over : c.dist)
+
+/**
+ * For each side of the block, how far the house's corners go past it, out of the lot (each corner
+ * outside counts against the side nearest it), with that corner and its nearest point on the side.
+ */
+function overBySide(site: Vec2[][], b: Vec2[]): { over: number; from: Vec2; to: Vec2 }[] {
+  const out = b.map(p => ({ over: 0, from: p as Vec2, to: p as Vec2 }))
+  for (const ring of site) {
+    for (const p of ring) {
+      if (pointInPolygon(p[0], p[1], b)) continue
+      let side = -1
+      let best = Infinity
+      let at: Vec2 = p
+      b.forEach((a, i) => {
+        const q = closestOnSeg(p, a, b[(i + 1) % b.length])
+        const d = Math.hypot(p[0] - q[0], p[1] - q[1])
+        if (d < best) {
+          best = d
+          side = i
+          at = q
+        }
+      })
+      if (side >= 0 && best >= OVER_MIN && best > out[side].over) out[side] = { over: best, from: p, to: at }
+    }
+  }
+  return out
+}
+
+/**
+ * Whether the house (its outline rings, in the house frame) reaches outside the lot: `by` is the
+ * furthest any corner goes past the boundary (m), and `all` is set when no part of it is inside.
+ */
+export function outsideLot(rings: Vec2[][], pl: Placement, survey: Survey): { any: boolean; by: number; all: boolean } {
+  const site = rings.filter(r => r.length >= 3).map(r => r.map(p => toSite(p, pl, survey.origin)))
+  const b = survey.boundary
+  if (!site.length || b.length < 3) return { any: false, by: 0, all: false }
+  const by = Math.max(0, ...overBySide(site, b).map(o => o.over))
+  // A corner of the lot inside the house puts part of it outside too, even with every house corner inside.
+  const lotCorner = b.some(q => site.some(r => pointInPolygon(q[0], q[1], r) && distToRing(q, r) >= OVER_MIN))
+  const any = by > 0 || lotCorner
+  const cornerInside = site.some(r => r.some(p => pointInPolygon(p[0], p[1], b) && distToRing(p, b) >= OVER_MIN))
+  return { any, by, all: any && !cornerInside && !lotCorner }
+}
+
+function distToRing(p: Vec2, ring: Vec2[]): number {
+  let d = Infinity
+  for (let i = 0; i < ring.length; i++) {
+    const q = closestOnSeg(p, ring[i], ring[(i + 1) % ring.length])
+    d = Math.min(d, Math.hypot(p[0] - q[0], p[1] - q[1]))
+  }
+  return d
+}
+
 /**
  * Distance from the house (its outline rings, in the house frame) to each side of
- * the block, with the closest pair of points so the gap can be drawn.
+ * the block, with the closest pair of points so the gap can be drawn, and how far the
+ * house goes past each side where it's over the boundary.
  */
 export function boundaryClearances(rings: Vec2[][], pl: Placement, survey: Survey): BoundaryClearance[] {
   const site = rings.filter(r => r.length >= 2).map(r => r.map(p => toSite(p, pl, survey.origin)))
   if (!site.length) return []
   const b = survey.boundary
   const ccw = signedArea(b) > 0
+  const overs = overBySide(site, b)
   return b.map((p, i) => {
     const q = b[(i + 1) % b.length]
     const dx = q[0] - p[0]
@@ -105,7 +170,8 @@ export function boundaryClearances(rings: Vec2[][], pl: Placement, survey: Surve
       }
       if (best.dist === 0) break
     }
-    return { name: bearingName(bearing), ...best, inward, angle: (Math.atan2(dy, dx) * 180) / Math.PI }
+    const o = overs[i]
+    return { name: bearingName(bearing), ...best, ...(o.over > 0 ? { from: o.from, to: o.to } : {}), over: o.over, inward, angle: (Math.atan2(dy, dx) * 180) / Math.PI }
   })
 }
 
@@ -115,7 +181,8 @@ export function placeAtClearance(rings: Vec2[][], pl: Placement, survey: Survey,
   for (let i = 0; i < 12; i++) {
     const c = boundaryClearances(rings, cur, survey)[side]
     if (!c) return cur
-    const delta = target - c.dist
+    // From over the boundary too: the house moves in by what's over as well.
+    const delta = target - signedClearance(c)
     if (Math.abs(delta) < 0.0005) break
     cur = { ...cur, e: cur.e + c.inward[0] * delta, n: cur.n + c.inward[1] * delta }
   }
