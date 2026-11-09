@@ -4,6 +4,8 @@
 // comes from the menu config (src/nav/menu.ts) and the section components in src/components.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { LocalSaveChip } from '../cloud/LocalSave'
+import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
@@ -47,6 +49,7 @@ import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../ph
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
+import { showToast } from '../safety/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
@@ -154,6 +157,12 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         e.preventDefault()
         if (palette) closePalette(true)
         else openPalette()
+        return
+      }
+      // ⌘S / Ctrl+S, even while typing: the work saves itself, so say where rather than opening the browser's Save Page.
+      if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (!e.repeat) void saveNow().then(text => showToast({ text }))
         return
       }
       if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
@@ -264,6 +273,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
       </button>
       <SyncChip />
+      {route.kind === 'app' && <LocalSaveChip onDownload={() => run('save-project')} />}
       <ProjectMenu open={menu.open} focusItem={menu.focus} onOpenChange={open => setMenu({ open, focus: null })} run={run} />
     </div>
   )

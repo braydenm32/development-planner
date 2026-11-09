@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
-import { NOT_CHECKED } from '../../checks/rules'
+import { CDC_LAND, NOT_CHECKED } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
@@ -15,8 +15,8 @@ import { useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 import '../../checks/checks.css'
 
-const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'pending', 'pass']
-const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', pending: 'Pending', pass: 'Passes' }
+const ORDER: CheckStatus[] = ['fail', 'warn', 'unknown', 'incomplete', 'pending', 'pass']
+const STATUS_TEXT: Record<CheckStatus, string> = { fail: 'Fails', warn: 'Check', unknown: 'Needs a fact', incomplete: 'Not drawn yet', pending: 'Pending', pass: 'Passes' }
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
 const CONFIDENCE_TIP = {
   read: 'Read from the official text',
@@ -38,6 +38,7 @@ function Checks({ d }: { d: Loaded }) {
     c.counts.fail && `${c.counts.fail} fail${c.counts.fail > 1 ? 's' : ''}`,
     c.counts.warn && `${c.counts.warn} to check`,
     c.counts.unknown && `${c.counts.unknown} need${c.counts.unknown > 1 ? '' : 's'} a fact`,
+    c.counts.incomplete && `${c.counts.incomplete} not drawn yet`,
     `${c.counts.pass} pass`,
   ].filter(Boolean)
   return (
@@ -61,6 +62,11 @@ function Checks({ d }: { d: Loaded }) {
         })}
       </div>
       <p className="muted small">{pathwayLong(c.pathway, c.council)}</p>
+      {c.pathway === 'cdc' && (
+        <p className="checks-land" role="note">
+          {CDC_LAND}
+        </p>
+      )}
       <CouncilSwitches council={c.council} />
       <p className="checks-summary" aria-live="polite">
         {summary.join(' · ')}

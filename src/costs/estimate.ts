@@ -81,6 +81,13 @@ export interface Estimate {
   /** Lines with a quote, and lines that can have one. */
   quoted: number
   quotable: number
+  /**
+   * The design has outside walls (a closed outline). Before them the lines are only allowances,
+   * so no total is shown: an empty design used to read as a $47,740 house.
+   */
+  ready: boolean
+  /** What a house is priced on that the design doesn't have yet, in words ("roof", "windows"). */
+  missing: string[]
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -311,6 +318,14 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     return { id: g.id, label: g.label, lines: ls, total: ls.reduce((t, l) => t + l.amount, 0), quoted: ls.filter(l => l.quote).length }
   }).filter(g => g.lines.length > 0)
   const open = lines.filter(l => !l.computed)
+  // What's priced at nothing because it isn't drawn: the total leaves it out, so it says so.
+  const missing = [
+    q.walls.perimeter > 0 ? null : 'outside walls',
+    q.roofs.count ? null : 'roof',
+    q.windows.count ? null : 'windows',
+    q.externalDoors.count ? null : 'outside doors',
+    q.finishes.count || wetCount ? null : 'rooms',
+  ].filter((m): m is string => m !== null)
   const house = open.filter(l => HOUSE_GROUPS.includes(l.group)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
   return {
     who: data.who,
@@ -327,6 +342,8 @@ export function estimate(q: DesignQuantities, data: CostsData): Estimate {
     labour: total - materials,
     quoted: open.filter(l => l.quote).length,
     quotable: open.length,
+    ready: q.walls.perimeter > 0,
+    missing,
   }
 }
 

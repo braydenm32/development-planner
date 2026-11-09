@@ -48,6 +48,12 @@ const field = (v: string | number) => {
 
 const dollars = (n: number) => String(Math.round(n))
 
+/** What the total leaves out because it isn't drawn: "Incomplete: no roof, no windows". Empty when nothing is. */
+export const incompleteText = (missing: string[]) => (missing.length ? `Incomplete: ${missing.map(m => `no ${m}`).join(', ')}` : '')
+
+/** Before there are outside walls, in place of a total. */
+export const NO_TOTAL = 'Draw the house’s outside walls to start the estimate.'
+
 /** The estimate as a CSV file: every line, each group's total, then the totals. Amounts are whole dollars, GST included. */
 export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   const ob = e.who === 'owner'
@@ -73,9 +79,14 @@ export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   const blank = head.map(() => '')
   const total = (label: string, amount: number) => ['', label, '', '', '', '', '', '', '', dollars(amount), ...(ob ? ['', ''] : [])]
   rows.push(blank)
-  rows.push(total('Estimate', e.total))
-  rows.push(total('Likely low (−20%)', e.low))
-  rows.push(total('Likely high (+20%)', e.high))
+  // No total before there are outside walls; with one, what it leaves out is said beside it.
+  if (!e.ready) rows.push(['', `No total yet. ${NO_TOTAL}`])
+  else {
+    rows.push(total('Estimate', e.total))
+    if (e.missing.length) rows.push(['', `${incompleteText(e.missing)}.`])
+    rows.push(total('Likely low (−20%)', e.low))
+    rows.push(total('Likely high (+20%)', e.high))
+  }
   if (e.perM2 !== null) rows.push(total(`Per m² of floor (${e.floorArea.toFixed(2)} m²)`, e.perM2))
   if (e.housePerM2 !== null) rows.push(total('House only, per m² of floor (no site works, outside works, fees or contingency)', e.housePerM2))
   if (ob) {

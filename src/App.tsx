@@ -27,7 +27,8 @@ import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
 import { SafetyLayer } from './safety/SafetyLayer'
-import { pickFile, showToast } from './safety/store'
+import { sayFileError } from './safety/surveyor'
+import { pickFile } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
@@ -147,7 +148,7 @@ export default function App() {
    * light review, and a survey or plan goes the way Open takes it.
    */
   const openAnyFile = (file: File) => {
-    openFile(file).catch((e: unknown) => showToast({ text: (e as Error)?.message || 'That file couldn’t be opened.' }))
+    openFile(file).catch(sayFileError)
   }
 
   /** Replace survey: choose the new DXF; a review shows how the block and house will line up before anything changes. */
