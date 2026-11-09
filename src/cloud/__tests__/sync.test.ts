@@ -36,7 +36,7 @@ async function world(): Promise<World> {
 }
 
 /** A device: its own store and a stand-in for the session (writes go through it, like the app's). */
-async function device(w: World, opts: { local?: LocalProjectStore; signIn?: boolean; retryMs?: number } = {}) {
+async function device(w: World, opts: { local?: LocalProjectStore; signIn?: boolean; retryMs?: number; settleMs?: number } = {}) {
   const local = opts.local ?? createLocalProjectStore({ db: createStore(`device-${++n}`, 'projects') })
   const browser = w.server.browser()
   const requests: string[] = []
@@ -72,7 +72,7 @@ async function device(w: World, opts: { local?: LocalProjectStore; signIn?: bool
   }
   const notices: SyncNotice[] = []
   const states: SyncState[] = []
-  const sync = createSync({ local, cloud: createCloudProjectStore(api), userId: w.userId, host, settleMs: 5, maxWaitMs: 40, retryMs: opts.retryMs, onNotice: x => notices.push(x), onState: s => states.push(s) })
+  const sync = createSync({ local, cloud: createCloudProjectStore(api), userId: w.userId, host, settleMs: opts.settleMs ?? 5, maxWaitMs: Math.max(40, (opts.settleMs ?? 5) * 8), retryMs: opts.retryMs, onNotice: x => notices.push(x), onState: s => states.push(s) })
   const app = {
     create: async (init: NewProject) => {
       const m = await local.create(init)
@@ -120,7 +120,10 @@ const planOf = async (local: LocalProjectStore, id: string) => (await local.read
 describe('cloud sync', () => {
   it('pushes a project after its edits settle, sending only the records that changed', async () => {
     const w = await world()
-    const a = await device(w)
+    // A settle window longer than any burst of five saves can take, even on a busy machine: with
+    // 5 ms, a slow save between two others let the push go mid-burst and sent two. settle() sends
+    // what is waiting, so the test doesn't wait the window out.
+    const a = await device(w, { settleMs: 1000 })
     const p = await a.app.create({ name: 'My house', records: { survey: { dxfText: 'survey text' }, plan: garageFloor() } })
     await a.settle()
     const store = createCloudProjectStore(a.api)
