@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { parseDxf } from '../lib/dxf'
-import type { Vec2 } from '../lib/geom'
+import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
 import { isFeatureRole, type LayerRole } from '../lib/survey'
-import type { Affine } from './align'
+import { applyAffine, compose, type Affine } from './align'
 import { featuresFromDxf } from './fromDxf'
-import { FEATURE_TYPES, normalizeFeature, toLocal, type EdgeKind, type FeatureType, type GeometryKind, type PavingKind, type ServiceKind, type SiteFeature } from './model'
+import { FEATURE_TYPES, geomPoints, mapGeom, normalizeFeature, toLocal, type EdgeKind, type FeatureType, type GeometryKind, type PavingKind, type ServiceKind, type SiteFeature } from './model'
 import type { VectorPage } from './pdfVector'
 
 /** A drawing (a PDF page or a picture) laid over the plan. Its picture is kept in IndexedDB, not here. */
@@ -351,6 +351,50 @@ export function updateOverlay(id: string, patch: Partial<Overlay>, undoable = tr
   const fn = (d: SiteData) => ({ ...d, overlays: d.overlays.map(o => (o.id === id ? { ...o, ...patch } : o)) })
   if (undoable) useSiteStore.getState().commit(fn)
   else useSiteStore.getState().preview(fn)
+}
+
+// ---------------------------------------------------------------------------
+// With a new survey.
+
+/** How far (m) past the edge of a block a feature or drawing can be and still be counted as on it: a neighbour's tree or the road. */
+const NEAR_BLOCK = 30
+
+/**
+ * Whether the stored features and drawings all sit away from a block, so they can't belong to
+ * its survey grid: true when there are some and none is on the block or within NEAR_BLOCK of it.
+ * A revised survey on the same grid has them on it; a survey on other coordinates (a local grid
+ * swapped for MGA, or a sketch for the real survey) leaves them all behind.
+ * `boundary` is in the survey's local frame, as Survey has it.
+ */
+export function siteDataOffBlock(d: SiteData, boundary: Vec2[], origin: Vec2): boolean {
+  if (!boundary.length) return false
+  const points: Vec2[][] = [
+    ...d.features.map(f => geomPoints(f.geom)),
+    ...d.overlays.map(o => [applyAffine(o.transform, [o.width / 2, o.height / 2])]),
+  ]
+  if (!points.length) return false
+  const c = centroidOf(boundary)
+  const reach = Math.max(...boundary.map(p => Math.hypot(p[0] - c[0], p[1] - c[1]))) + NEAR_BLOCK
+  const near = (p: Vec2) => {
+    const x = p[0] - origin[0]
+    const y = p[1] - origin[1]
+    return pointInPolygon(x, y, boundary) || Math.hypot(x - c[0], y - c[1]) <= reach
+  }
+  return !points.some(pts => pts.some(near))
+}
+
+/**
+ * The stored features and drawing line-ups moved by `m` (survey grid to survey grid): with the
+ * house, onto a survey on other coordinates. Features read from a DXF come from their file each
+ * time, so they aren't moved here.
+ */
+export function moveSiteData(d: SiteData, m: Affine): SiteData {
+  if (!d.features.length && !d.overlays.length) return d
+  return {
+    ...d,
+    features: d.features.map(f => ({ ...f, geom: mapGeom(f.geom, p => applyAffine(m, p)) })),
+    overlays: d.overlays.map(o => ({ ...o, transform: compose(m, o.transform) })),
+  }
 }
 
 // ---------------------------------------------------------------------------

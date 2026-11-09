@@ -2,7 +2,7 @@
 // words. Choosing one goes to its home; an action like Balance or Download PDF is offered to
 // run there. Arrow keys move, Enter chooses, ⌘/Ctrl+Enter runs straight away, Esc closes.
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { Icon } from '../nav/icons'
 import { shortcutText } from '../nav/keys'
 import { buildIndex, search, suggestions, type Feature, type SearchItem } from '../nav/search'
@@ -88,89 +88,108 @@ export function CommandPalette({ choose, run, onClose }: Props) {
     }
   }
 
+  if (offer) return <PaletteOffer item={offer} run={run} onClose={onClose} onKeyDown={onKey} runButton={runButton} />
+
   return (
     <div className="palette-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
       <div className="palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKey}>
-        {offer ? (
-          <div className="palette-offer">
-            <p>
-              <b>{offer.entry.label}</b>
-              <span className="muted"> · {offer.where}</span>
-            </p>
-            <p className="muted">It’s here now. Run it?</p>
-            <div className="row">
-              <button
-                ref={runButton}
-                className="primary"
-                onClick={() => {
-                  run(offer)
-                  onClose(true)
-                }}
-              >
-                Run now
-              </button>
-              <button className="plain" onClick={() => onClose(true)}>
-                Not now
-              </button>
-            </div>
+        <div className="palette-input">
+          <Icon name="search" size={18} />
+          <input
+            ref={input}
+            role="combobox"
+            aria-expanded="true"
+            aria-controls={`${id}-list`}
+            aria-activedescendant={results.length ? `${id}-${current}` : undefined}
+            aria-autocomplete="list"
+            placeholder="Search areas, tabs, features and commands"
+            value={query}
+            onChange={e => {
+              setQuery(e.target.value)
+              setActive(0)
+            }}
+          />
+          <kbd>Esc</kbd>
+        </div>
+        <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : 'Areas and tabs'}>
+          {results.length === 0 && <li className="palette-empty muted">Nothing matches “{query}”.</li>}
+          {results.map((r, i) => (
+            <li
+              key={r.key}
+              id={`${id}-${i}`}
+              data-i={i}
+              role="option"
+              aria-selected={i === current}
+              className={i === current ? 'on' : ''}
+              onMouseMove={() => i !== current && setActive(i)}
+              onClick={e => pick(r, e.metaKey || e.ctrlKey)}
+            >
+              <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
+              <span className="pi-text">
+                <span className="pi-label">{r.label}</span>
+                <span className="pi-where">{r.kind === 'area' ? 'Area' : r.where}</span>
+              </span>
+              {r.shortcut && <kbd>{shortcutText(r.shortcut)}</kbd>}
+              {r.action && r.kind !== 'feature' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
+            </li>
+          ))}
+        </ul>
+        <div className="palette-foot muted">
+          <span>
+            <kbd>↑</kbd>
+            <kbd>↓</kbd> move
+          </span>
+          <span>
+            <kbd>↵</kbd> go
+          </span>
+          <span>
+            <kbd>{shortcutText('mod+↵')}</kbd> run now
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface OfferProps {
+  item: SearchItem
+  run: (item: SearchItem) => void
+  onClose: (restore: boolean) => void
+  onKeyDown?: (e: KeyboardEvent) => void
+  runButton?: Ref<HTMLButtonElement>
+}
+
+/**
+ * The offer to run an action, once search has gone to its home: a small card over that place,
+ * not over the whole page. On a phone search fills the screen, so the offer drops to a bar
+ * along the bottom with the place it means showing above it (shell.css, `.offering`).
+ */
+export function PaletteOffer({ item, run, onClose, onKeyDown, runButton }: OfferProps) {
+  return (
+    <div className="palette-backdrop offering" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
+      <div className="palette offering" role="dialog" aria-modal="true" aria-label={`Run ${item.entry.label}?`} onKeyDown={onKeyDown}>
+        <div className="palette-offer">
+          <p>
+            <b>{item.entry.label}</b>
+            <span className="muted"> · {item.where}</span>
+          </p>
+          <p className="muted">It’s here now. Run it?</p>
+          <div className="row">
+            <button
+              ref={runButton}
+              className="primary"
+              onClick={() => {
+                run(item)
+                onClose(true)
+              }}
+            >
+              Run now
+            </button>
+            <button className="plain" onClick={() => onClose(true)}>
+              Not now
+            </button>
           </div>
-        ) : (
-          <>
-            <div className="palette-input">
-              <Icon name="search" size={18} />
-              <input
-                ref={input}
-                role="combobox"
-                aria-expanded="true"
-                aria-controls={`${id}-list`}
-                aria-activedescendant={results.length ? `${id}-${current}` : undefined}
-                aria-autocomplete="list"
-                placeholder="Search areas, tabs, features and commands"
-                value={query}
-                onChange={e => {
-                  setQuery(e.target.value)
-                  setActive(0)
-                }}
-              />
-              <kbd>Esc</kbd>
-            </div>
-            <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : 'Areas and tabs'}>
-              {results.length === 0 && <li className="palette-empty muted">Nothing matches “{query}”.</li>}
-              {results.map((r, i) => (
-                <li
-                  key={r.key}
-                  id={`${id}-${i}`}
-                  data-i={i}
-                  role="option"
-                  aria-selected={i === current}
-                  className={i === current ? 'on' : ''}
-                  onMouseMove={() => i !== current && setActive(i)}
-                  onClick={e => pick(r, e.metaKey || e.ctrlKey)}
-                >
-                  <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
-                  <span className="pi-text">
-                    <span className="pi-label">{r.label}</span>
-                    <span className="pi-where">{r.kind === 'area' ? 'Area' : r.where}</span>
-                  </span>
-                  {r.shortcut && <kbd>{shortcutText(r.shortcut)}</kbd>}
-                  {r.action && r.kind !== 'feature' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
-                </li>
-              ))}
-            </ul>
-            <div className="palette-foot muted">
-              <span>
-                <kbd>↑</kbd>
-                <kbd>↓</kbd> move
-              </span>
-              <span>
-                <kbd>↵</kbd> go
-              </span>
-              <span>
-                <kbd>{shortcutText('mod+↵')}</kbd> run now
-              </span>
-            </div>
-          </>
-        )}
+        </div>
       </div>
     </div>
   )
