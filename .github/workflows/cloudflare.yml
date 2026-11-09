@@ -1,0 +1,76 @@
+name: Deploy to Cloudflare
+
+# The app and its cloud saves on one Cloudflare Worker (wrangler.toml, worker/). GitHub Pages
+# (deploy.yml) keeps working beside it, with saves in the browser only.
+#
+# Runs on pushes to main and by hand, never on pull requests, and only in this repository.
+# Needs the CLOUDFLARE_API_TOKEN secret; CLOUDFLARE_ACCOUNT_ID is optional when the token can
+# see only one account. SIGNUP_INVITE_CODE (optional) lets anyone with that code make an account.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'braydenm32/development-planner' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix worker
+      - run: npm test
+      - run: npx tsc -b
+      # The app at the Worker's root (Pages builds it for /development-planner/).
+      - run: npx vite build
+
+      - name: Find or make the database and the KV namespace
+        id: prepare
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node worker/deploy/prepare.mjs
+
+      - name: Bring the database up to date
+        run: worker/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.deploy.toml
+
+      - name: Deploy the Worker
+        env:
+          INVITE: ${{ secrets.SIGNUP_INVITE_CODE }}
+        run: |
+          args=(deploy --config wrangler.deploy.toml)
+          if [ -n "$INVITE" ]; then
+            node -e 'require("fs").writeFileSync(process.env.RUNNER_TEMP + "/secrets.json", JSON.stringify({ INVITE_CODE: process.env.INVITE }))'
+            args+=(--secrets-file "$RUNNER_TEMP/secrets.json")
+          fi
+          worker/node_modules/.bin/wrangler "${args[@]}"
+          rm -f "$RUNNER_TEMP/secrets.json"
+
+      # The address isn't written here: this log is public, and the first person to open the app
+      # can make its one account. It's in the Cloudflare dashboard.
+      - name: Say where it is
+        run: |
+          {
+            echo "### Block & House Planner is live"
+            echo
+            echo "Its address is in Cloudflare: **Workers & Pages › block-and-house-planner**, the *.workers.dev link. It is kept out of this public log."
+            echo
+            echo "First time there: choose **Sign in to save to the cloud**, then **Create an account**. Your device makes a passkey; keep the recovery code it shows you."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,351 @@
+// The estimate: each element's quantity from the design (src/plan/quantities.ts) times its
+// rate, grouped as a builder prices a house, with a quote in place of the estimate wherever
+// there is one. Then the builder's margin (or, building it yourself, the owner-builder permit),
+// the contingency, the likely range and the cost per m² of floor.
+
+import { floorTypeInfo, type FloorTypeId } from '../plan/floorTypes'
+import { WET_ROOMS, type DesignQuantities } from '../plan/quantities'
+import type { CostsData, Quote, Who } from './model'
+import { CHOICE_GROUPS, CHOICES, choiceRate, finishFactor, GROUPS, HOUSE_GROUPS, RANGE, rateInfo, type ChoiceGroup, type GroupId, type RateId, type Unit } from './rates'
+
+/** What a line measures, to point out on the plan. */
+export interface Target {
+  /**
+   * floor: the floor being shown; ground: the lowest floor; walls, openings, rooms, areas, roofs,
+   * retaining, stairs: those items by id; cut and fill: where the ground is dug or filled.
+   */
+  kind: 'floor' | 'ground' | 'walls' | 'openings' | 'rooms' | 'areas' | 'roofs' | 'retaining' | 'stairs' | 'cut' | 'fill'
+  ids?: string[]
+}
+
+export interface CostLine {
+  /** Stable across changes to the design, so a quote stays on its line. */
+  id: string
+  group: GroupId
+  label: string
+  /** Where its quantity comes from, in a few words: "From Cut & fill", "3 windows". */
+  from: string
+  qty: number
+  unit: Unit
+  /** Decimals the quantity is shown with, as the panel it comes from shows it. */
+  dp: number
+  /** $ per unit, finish level applied; null for a share of other lines. */
+  rate: number | null
+  rateId: RateId | null
+  /** Quantity times rate. */
+  estimate: number
+  quote: Quote | null
+  /** The quote where there is one, else the estimate. */
+  amount: number
+  /** The share of the amount that is materials (and fees). */
+  share: number
+  materials: number
+  labour: number
+  target: Target | null
+  /** Where its quantity lives in the app, as area/tab. */
+  at: string | null
+  /** Nothing to count yet: what to draw. */
+  missing: string | null
+  /** A share of other lines (margin, contingency): it can't be quoted. */
+  computed: boolean
+}
+
+export interface CostGroup {
+  id: GroupId
+  label: string
+  lines: CostLine[]
+  total: number
+  quoted: number
+}
+
+export interface Estimate {
+  who: Who
+  groups: CostGroup[]
+  lines: CostLine[]
+  /** The building work: every group but fees and allowances. */
+  works: number
+  total: number
+  low: number
+  high: number
+  floorArea: number
+  /** Total per m² of floor; null before there is any floor. */
+  perM2: number | null
+  /**
+   * The house itself per m² of floor, as the finish guides measure it: the slab to the services,
+   * with a builder's margin on them, but not site works, outside works, fees or contingency.
+   */
+  housePerM2: number | null
+  /** The total split into materials (and fees) and labour. */
+  materials: number
+  labour: number
+  /** Lines with a quote, and lines that can have one. */
+  quoted: number
+  quotable: number
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
+const listOf = (names: string[]) => (names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
+
+/** A rate as the project has it: its own, or the starting rate. */
+export const rateFor = (data: Pick<CostsData, 'rates'>, id: RateId): number => data.rates[id] ?? rateInfo(id).rate
+
+const ROOF_TYPES = { hip: 'Hip', gable: 'Gable', skillion: 'Skillion', flat: 'Flat' } as const
+
+/** The estimate for a design's quantities and the project's costs. */
+export function estimate(q: DesignQuantities, data: CostsData): Estimate {
+  const finish = finishFactor(data.choices.finish)
+  const lines: CostLine[] = []
+  const add = (
+    id: string,
+    rateId: RateId,
+    qty: number,
+    o: { label?: string; from: string; dp?: number; target?: Target | null; at?: string | null; missing?: string | null },
+  ) => {
+    const info = rateInfo(rateId)
+    const rate = rateFor(data, rateId) * (info.finish ? finish : 1)
+    const est = qty * rate
+    const quote = data.quotes[id] ?? null
+    const amount = quote ? quote.amount : est
+    lines.push({
+      id,
+      group: info.group,
+      label: o.label ?? info.label,
+      from: o.from,
+      qty,
+      unit: info.unit,
+      dp: o.dp ?? 0,
+      rate,
+      rateId,
+      estimate: est,
+      quote,
+      amount,
+      share: info.materials,
+      materials: amount * info.materials,
+      labour: amount * (1 - info.materials),
+      target: o.target ?? null,
+      at: o.at ?? null,
+      missing: o.missing ?? null,
+      computed: false,
+    })
+  }
+  const choice = (g: ChoiceGroup) => CHOICES[g].options.find(o => o.id === data.choices[g]) ?? CHOICES[g].options[0]
+
+  // Site works
+  add('site-setup', 'site-setup', 1, { from: 'Allowance' })
+  const e = q.earth
+  const noEarth = 'Nothing levelled yet: draw the house’s walls'
+  add('cut', 'cut', e?.cut ?? 0, { label: 'Dig out (cut)', from: 'From Cut & fill', dp: 1, target: { kind: 'cut' }, at: 'earthworks/cut-fill', missing: e ? null : noEarth })
+  add('fill', 'fill', e?.fill ?? 0, { label: 'Fill, placed and compacted', from: 'From Cut & fill', dp: 1, target: { kind: 'fill' }, at: 'earthworks/cut-fill', missing: e ? null : noEarth })
+  if (e && e.net >= 0.05) add('spoil', 'spoil', e.net, { label: 'Take away spare earth', from: 'Cut less fill, from Cut & fill', dp: 1, target: { kind: 'cut' }, at: 'earthworks/cut-fill' })
+  if (e && e.net <= -0.05) add('import', 'import', -e.net, { label: 'Bring in fill', from: 'Fill less cut, from Cut & fill', dp: 1, target: { kind: 'fill' }, at: 'earthworks/cut-fill' })
+  for (const kind of ['sleeper', 'block'] as const) {
+    const r = q.retaining[kind]
+    if (!r.count) continue
+    add(`retaining-${kind}`, `retaining-${kind}`, r.area, {
+      from: `${plural(r.count, 'wall')}, ${r.length.toFixed(1)} m long, holding back up to ${r.maxHeight.toFixed(2)} m`,
+      dp: 1,
+      target: { kind: 'retaining', ids: r.ids },
+      at: 'earthworks/retaining-walls',
+    })
+  }
+
+  // Slab and floor
+  if (q.ground)
+    for (const p of q.ground.parts) {
+      const id = `floor-${p.type}` as `floor-${FloorTypeId}`
+      add(id, id, p.area, {
+        label: floorTypeInfo(p.type).label,
+        from: q.ground.parts.length > 1 ? `Part of the ${q.ground.name.toLowerCase()}, from Design › Floors` : `${q.ground.name}, from Design › Floors`,
+        dp: 2,
+        target: { kind: 'ground' },
+        at: 'design/floors',
+      })
+    }
+  else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Floors', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
+  if (q.upper.area > 0) add('floor-upper', 'floor-upper', q.upper.area, { from: listOf(q.upper.names), dp: 2, target: { kind: 'floor' }, at: 'design/floors' })
+
+  // Frame
+  const frame = choice('frame')
+  add('frame', choiceRate('frame', frame.id), q.floorArea, { label: `Wall frames and roof trusses, ${frame.label.toLowerCase()}`, from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
+  if (q.stairs.count) add('stairs', 'stairs', q.stairs.count, { label: q.stairs.count === 1 ? 'Stair' : 'Stairs', from: plural(q.stairs.count, 'stair'), target: { kind: 'stairs', ids: q.stairs.ids }, at: 'design/plan' })
+
+  // Roof
+  const roof = choice('roof')
+  const r0 = q.roofs.first
+  add('roof', choiceRate('roof', roof.id), q.roofs.area, {
+    label: `Roofing, ${roof.label}, with sarking and gutters`,
+    from: q.roofs.count > 1 ? `${q.roofs.count} roofs, sloping area` : r0 ? `${ROOF_TYPES[r0.type]} ${r0.pitch}°, eaves ${Math.round(r0.overhang * 1000)} mm` : 'From Design › Roofs',
+    dp: 1,
+    target: { kind: 'roofs', ids: q.roofs.ids },
+    at: 'design/roofs',
+    missing: q.roofs.count ? null : 'No roof drawn yet',
+  })
+
+  // Walls and cladding
+  const walls = choice('walls')
+  add('cladding', choiceRate('walls', walls.id), q.walls.net, {
+    label: `External walls, ${walls.label.toLowerCase()}`,
+    from: 'Outside walls, less windows and doors',
+    dp: 1,
+    target: { kind: 'walls', ids: q.walls.ids },
+    at: 'design/plan',
+    missing: q.walls.net > 0 ? null : 'No outside walls yet',
+  })
+
+  // Windows and doors
+  const win = choice('windows')
+  add('windows', choiceRate('windows', win.id), q.windows.area, {
+    label: `Windows, ${win.label.toLowerCase()}`,
+    from: plural(q.windows.count, 'window'),
+    dp: 2,
+    target: { kind: 'openings', ids: q.windows.ids },
+    at: 'design/plan',
+    missing: q.windows.count ? null : 'No windows drawn yet',
+  })
+  add('door-external', 'door-external', q.externalDoors.count, {
+    label: 'External doors',
+    from: `${plural(q.externalDoors.count, 'door')} in outside walls`,
+    target: { kind: 'openings', ids: q.externalDoors.ids },
+    at: 'design/plan',
+    missing: q.externalDoors.count ? null : 'No outside doors drawn yet',
+  })
+  if (q.garageDoors.count)
+    add('door-garage', 'door-garage', q.garageDoors.count, {
+      label: q.garageDoors.count === 1 ? 'Garage door' : 'Garage doors',
+      from: q.garageDoors.sizes.map(([w, h]) => `${w.toFixed(1)} × ${h.toFixed(1)} m`).join(', '),
+      target: { kind: 'openings', ids: q.garageDoors.ids },
+      at: 'design/plan',
+    })
+  add('door-internal', 'door-internal', q.internalDoors.count, {
+    label: 'Internal doors',
+    from: plural(q.internalDoors.count, 'door'),
+    target: { kind: 'openings', ids: q.internalDoors.ids },
+    at: 'design/plan',
+    missing: q.internalDoors.count ? null : 'No internal doors drawn yet',
+  })
+
+  // Fit-out
+  add('linings', 'linings', q.floorArea, { from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
+  add('floor-finishes', 'floor-finishes', q.finishes.area, {
+    label: 'Floor finishes',
+    from: q.finishes.count ? 'Rooms, except a garage' : 'From Rooms & areas',
+    dp: 2,
+    target: { kind: 'rooms', ids: q.finishes.ids },
+    at: 'design/rooms',
+    missing: q.finishes.count ? null : 'No rooms named yet',
+  })
+  const wetIds: string[] = []
+  let wetCount = 0
+  for (const w of WET_ROOMS) {
+    const c = q.wet[w.id]
+    if (!c.count) continue
+    wetIds.push(...c.ids)
+    wetCount += c.count
+    add(w.id, w.id, c.count, {
+      label: cap(c.count === 1 ? w.label : w.plural),
+      from: c.count === 1 ? `${c.names[0]}, ${c.area.toFixed(2)} m²` : listOf(c.names),
+      target: { kind: 'rooms', ids: c.ids },
+      at: 'design/rooms',
+    })
+  }
+
+  // Services
+  add('electrical', 'electrical', q.floorArea, { label: 'Electrical, lights and power', from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
+  add('drainage', 'drainage', 1, { from: 'Allowance: sewer, stormwater and water' })
+  if (wetCount) add('plumbing', 'plumbing', wetCount, { from: plural(wetCount, 'wet room'), target: { kind: 'rooms', ids: wetIds }, at: 'design/rooms' })
+
+  // Outside
+  const outdoor = [
+    ['driveway', 'driveway', 'Driveway, concrete', 'earthworks/driveway'],
+    ['slab', 'outdoor-slab', 'Outdoor slabs', 'design/rooms'],
+    ['deck', 'deck', 'Decks', 'design/rooms'],
+    ['garden', 'garden', 'Garden and lawn', 'design/rooms'],
+  ] as const
+  for (const [kind, id, label, at] of outdoor) {
+    const c = q.outdoor[kind]
+    if (!c.count) continue
+    add(id, id, c.area, { label: c.count === 1 && kind !== 'garden' ? label.replace(/s$/, '') : label, from: kind === 'driveway' ? 'From Earthworks › Driveway' : listOf(c.names), dp: 2, target: { kind: 'areas', ids: c.ids }, at })
+  }
+
+  // Fees and allowances
+  const works = lines.reduce((t, l) => t + l.amount, 0)
+  add('fees', 'fees', 1, { from: 'Allowance' })
+  if (data.who === 'owner') add('permit', 'permit', 1, { from: 'NSW permit and the approved course', at: null })
+  const computed = (id: string, label: string, from: string, amount: number, materials: number): CostLine => ({
+    id,
+    group: 'fees',
+    label,
+    from,
+    qty: 1,
+    unit: 'item',
+    dp: 0,
+    rate: null,
+    rateId: null,
+    estimate: amount,
+    quote: null,
+    amount,
+    share: amount ? materials / amount : 0,
+    materials,
+    labour: amount - materials,
+    target: null,
+    at: null,
+    missing: null,
+    computed: true,
+  })
+  const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
+  if (data.who === 'builder') {
+    // A builder's margin is the builder's own, neither materials nor a trade's labour: shown with the materials and fees.
+    const m = works * data.margin
+    lines.push(computed('margin', 'Builder’s margin and overheads', `${pct(data.margin)} of the building work`, m, m))
+  }
+  const before = lines.reduce((t, l) => t + l.amount, 0)
+  const beforeMaterials = lines.reduce((t, l) => t + l.materials, 0)
+  const cont = before * data.contingency
+  lines.push(computed('contingency', 'Contingency', `${pct(data.contingency)} of the above`, cont, before ? cont * (beforeMaterials / before) : 0))
+
+  const total = before + cont
+  const materials = lines.reduce((t, l) => t + l.materials, 0)
+  const groups = GROUPS.map(g => {
+    const ls = lines.filter(l => l.group === g.id)
+    return { id: g.id, label: g.label, lines: ls, total: ls.reduce((t, l) => t + l.amount, 0), quoted: ls.filter(l => l.quote).length }
+  }).filter(g => g.lines.length > 0)
+  const open = lines.filter(l => !l.computed)
+  const house = open.filter(l => HOUSE_GROUPS.includes(l.group)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
+  return {
+    who: data.who,
+    groups,
+    lines,
+    works,
+    total,
+    low: total * (1 - RANGE),
+    high: total * (1 + RANGE),
+    floorArea: q.floorArea,
+    perM2: q.floorArea > 0 ? total / q.floorArea : null,
+    housePerM2: q.floorArea > 0 ? house / q.floorArea : null,
+    materials,
+    labour: total - materials,
+    quoted: open.filter(l => l.quote).length,
+    quotable: open.length,
+  }
+}
+
+/** For each material choice, how much each other option adds to the total (negative saves). */
+export function choiceDeltas(q: DesignQuantities, data: CostsData): Record<ChoiceGroup, Record<string, number>> {
+  const now = estimate(q, data).total
+  const out = {} as Record<ChoiceGroup, Record<string, number>>
+  for (const g of CHOICE_GROUPS) {
+    out[g] = {}
+    for (const o of CHOICES[g].options) out[g][o.id] = o.id === data.choices[g] ? 0 : estimate(q, { ...data, choices: { ...data.choices, [g]: o.id } }).total - now
+  }
+  return out
+}
+
+/** The lines a choice changes, by id. */
+export const CHOICE_LINES: Record<ChoiceGroup, string[]> = {
+  frame: ['frame'],
+  walls: ['cladding'],
+  roof: ['roof'],
+  windows: ['windows'],
+  finish: ['door-internal', 'linings', 'floor-finishes', 'kitchen', 'bathroom', 'laundry', 'toilet'],
+}

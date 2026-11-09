@@ -1,0 +1,31 @@
+/* Setback dimensions on the plan (SetbackLines.tsx). */
+
+.setbacks {
+  pointer-events: none;
+}
+
+.setback-line,
+.setback-tick {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.setback-tick {
+  stroke-width: 1.4;
+}
+
+.setback-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--accent);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.setbacks-key {
+  margin-top: 2px;
+}

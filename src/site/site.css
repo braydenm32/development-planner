@@ -1,0 +1,940 @@
+/* ---- Site features: plan symbols ---- */
+
+.site-overlay {
+  pointer-events: none;
+}
+
+.site-f .hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12px;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.site-f circle.hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+
+.site-f .edge {
+  fill: none;
+  pointer-events: stroke;
+  stroke-width: 1.1px;
+  cursor: pointer;
+}
+
+.site-f .fill {
+  pointer-events: none;
+}
+
+.site-f .line {
+  fill: none;
+  stroke-width: 1.3px;
+  pointer-events: none;
+}
+
+.site-label {
+  font-size: 10.5px;
+  fill: #3b424b;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  cursor: pointer;
+}
+
+/* Trees */
+.t-tree .canopy {
+  fill: rgba(93, 138, 85, 0.1);
+  stroke: #5d8a55;
+  stroke-width: 1px;
+  pointer-events: none;
+}
+
+.t-tree .trunk {
+  fill: #fff;
+  stroke: #4d6b3c;
+  stroke-width: 1.4px;
+  cursor: pointer;
+}
+
+.t-tree.removed .canopy {
+  fill: none;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+.t-tree .cross {
+  stroke: #a63a2a;
+  stroke-width: 1.4px;
+  pointer-events: none;
+}
+
+/* Tree protection zone (soft, amber when works reach into it) and structural root zone */
+.t-tree .tpz {
+  fill: none;
+  stroke: #7f9a73;
+  stroke-width: 1px;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.t-tree.warned .tpz {
+  fill: rgba(194, 122, 0, 0.06);
+  stroke: #c27a00;
+  opacity: 1;
+}
+
+.t-tree .srz {
+  fill: none;
+  stroke: #9a6a4f;
+  stroke-width: 1px;
+  stroke-dasharray: 1.5 3;
+  pointer-events: none;
+}
+
+/* Easements: hatched, with a dashed edge */
+.t-easement .fill {
+  fill: url(#site-hatch);
+}
+
+.t-easement .edge {
+  stroke: #b8622f;
+  stroke-dasharray: 7 3;
+}
+
+.t-easement .site-label {
+  fill: #8f4a22;
+  font-weight: 600;
+}
+
+/* Fences */
+.t-fence .line,
+.t-fence .ticks {
+  stroke: #3f4650;
+}
+
+.t-fence .ticks {
+  fill: none;
+  stroke-width: 1px;
+  pointer-events: none;
+}
+
+/* Paving */
+.t-paving .fill {
+  fill: rgba(130, 136, 144, 0.16);
+}
+
+.t-paving .edge {
+  stroke: #8d949c;
+}
+
+/* Buildings */
+.t-building .fill {
+  fill: rgba(70, 76, 84, 0.12);
+}
+
+.t-building .edge {
+  stroke: #59606a;
+  stroke-width: 1.3px;
+}
+
+.t-building.neighbour .fill {
+  fill: rgba(70, 76, 84, 0.06);
+}
+
+.t-building.neighbour .edge {
+  stroke-dasharray: 5 3;
+}
+
+.t-building.removed .edge {
+  stroke-dasharray: 2 3;
+}
+
+.t-building .bldg-mark {
+  fill: rgba(70, 76, 84, 0.12);
+  stroke: #59606a;
+  stroke-width: 1.2px;
+  cursor: pointer;
+}
+
+/* Services */
+.t-service .svc-line {
+  fill: none;
+  stroke: var(--svc);
+  stroke-width: 1.6px;
+  stroke-dasharray: 10 4;
+  pointer-events: none;
+}
+
+.t-service .svc-pit {
+  fill: #fff;
+  stroke: var(--svc);
+  stroke-width: 1.6px;
+  cursor: pointer;
+}
+
+.t-service .svc-code,
+.t-service .site-label {
+  fill: var(--svc);
+  font-size: 10px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
+/* Kerbs and road edges */
+.t-kerb .line {
+  stroke: #5b6068;
+  stroke-width: 1.8px;
+}
+
+.t-kerb.edge-road .line {
+  stroke-width: 1.1px;
+}
+
+.t-kerb.edge-footpath .line {
+  stroke-width: 1.1px;
+  stroke-dasharray: 2 3;
+}
+
+/* Anything else */
+.t-other .line,
+.t-other .edge {
+  stroke: #7a7f87;
+  stroke-dasharray: 4 3;
+}
+
+.t-other .fill {
+  fill: rgba(120, 124, 140, 0.07);
+}
+
+.t-other .mark {
+  stroke: #5b6068;
+  stroke-width: 1.4px;
+}
+
+/* States */
+.site-f.warned .edge,
+.site-f.warned .line,
+.site-f.warned .trunk {
+  stroke: #c27a00;
+}
+
+.site-f.selected .edge,
+.site-f.selected .line,
+.site-f.selected .trunk,
+.site-f.selected .svc-pit,
+.site-f.selected .bldg-mark {
+  stroke: var(--accent);
+  stroke-width: 2.2px;
+}
+
+.site-f.selected .canopy {
+  stroke: var(--accent);
+}
+
+.site-f.preview,
+.site-f.preview * {
+  pointer-events: none;
+}
+
+.site-f.preview .edge,
+.site-f.preview .line,
+.site-f.preview .canopy,
+.site-f.preview .svc-line,
+.site-f.preview .ticks {
+  stroke: var(--accent);
+  stroke-width: 1.8px;
+}
+
+.site-f.preview .fill,
+.site-f.preview .canopy {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.site-mark {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  pointer-events: none;
+  animation: site-mark 1.6s ease-in-out infinite;
+}
+
+@keyframes site-mark {
+  50% {
+    stroke-opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-mark {
+    animation: none;
+  }
+}
+
+/* Tracing and lining up */
+.site-draft {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+
+.site-draft.area {
+  fill: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.site-draft-dot {
+  fill: var(--accent);
+  pointer-events: none;
+}
+
+.site-align-pair circle {
+  fill: color-mix(in srgb, var(--accent) 15%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+
+.site-align-pair text {
+  fill: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+}
+
+.site-align-pair path {
+  stroke: var(--accent);
+  stroke-width: 2px;
+}
+
+.site-align-pair,
+.site-align-cursor {
+  pointer-events: none;
+}
+
+.site-align-cursor {
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+
+.site-align-cursor.snapped {
+  stroke: #d0743c;
+  stroke-width: 2px;
+}
+
+.plan-svg.site-tool {
+  cursor: crosshair;
+}
+
+/* ---- On the plan, over the drawing ---- */
+
+.site-toolbar {
+  position: absolute;
+  /* Below the view's mode tabs. */
+  top: 66px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 8px);
+  background: var(--panel);
+  box-shadow: 0 1px 2px rgba(20, 24, 30, 0.06);
+  font-size: 13px;
+}
+
+.site-toolbar-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-toolbar-hint {
+  display: none;
+}
+
+.site-toolbar button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--r, 6px);
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.site-toolbar button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.site-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-warnings.on-plan {
+  position: absolute;
+  /* Under the level chip, clear of the status line as it grows. */
+  left: 16px;
+  top: 64px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: min(380px, calc(100% - 32px));
+}
+
+.site-chip {
+  display: inline-block;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r, 6px);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.site-chip.note {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.site-chip.attn {
+  border-color: #e0a526;
+  background: #fbe7b5;
+  color: #5c3d00;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.site-chip.more-narrow {
+  display: none;
+}
+
+.plan-editor:has(.site-toolbar) .site-warnings.on-plan {
+  display: none;
+}
+
+/* The new layout: the bar sits over the free part of the canvas, clear of the panel, and the
+   summary strip's chip says what there is to check, so the plan doesn't say it again. */
+.app-shell .site-toolbar {
+  top: 12px;
+  left: calc(var(--free-left, 0px) + (100% - var(--free-left, 0px)) / 2);
+  max-width: calc(100% - var(--free-left, 0px) - 32px);
+}
+
+/* On a phone, clear of the view buttons down the right. */
+.app-shell.phone .site-toolbar {
+  top: 8px;
+  left: 8px;
+  right: 64px;
+  max-width: none;
+  transform: none;
+}
+
+.app-shell .site-warnings.on-plan {
+  display: none;
+}
+
+/* While lining up or tracing, the drawing needs the room the ground key takes. */
+.app-shell .plan-editor:has(.site-toolbar) .ground-key {
+  display: none;
+}
+
+/* A notice is read whole: it wraps rather than trailing off. */
+.app-shell .plan-status > .notice {
+  white-space: normal;
+}
+
+@media (max-width: 760px) {
+  /* One row of title and buttons, the hint under it: the plan is short on a phone. */
+  .site-toolbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    padding: 4px 4px 6px 10px;
+    font-size: 14px;
+  }
+
+  .site-toolbar-title {
+    flex: 1 1 0;
+    min-width: 0;
+    order: -2;
+  }
+
+  .site-toolbar-hint {
+    order: 1;
+    display: block;
+    flex: 1 1 100%;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .plan-editor:has(.site-toolbar) .ground-key,
+  .plan-editor:has(.site-toolbar) .plan-actions {
+    display: none;
+  }
+
+  .site-toolbar button,
+  .site-check {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .site-toolbar button {
+    flex: 0 0 auto;
+  }
+
+  .plan-editor:has(.site-toolbar) .level-chip {
+    display: none;
+  }
+
+  .site-warnings.on-plan {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 12px;
+    max-width: none;
+  }
+
+  /* The status line takes the bottom of the plan while it has something to say. */
+  .plan-editor:has(.plan-status .notice) .site-warnings.on-plan {
+    display: none;
+  }
+
+  .site-chip.second,
+  .site-chip.more-wide {
+    display: none;
+  }
+
+  .site-chip.more-narrow {
+    display: inline-block;
+  }
+
+  .site-chip {
+    font-size: 14px;
+    padding: 8px 10px;
+    min-height: 36px;
+  }
+}
+
+/* ---- Site features panel ---- */
+
+.sf {
+  display: grid;
+  /* One column that never grows past the panel: long names wrap instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.sf > *,
+.sf-drawing > * {
+  min-width: 0;
+}
+
+/* A feature's words (its label, an easement's purpose) get the whole width beside their name. */
+.sf .num:has(> input.text) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.sf .num > input.text {
+  width: 100%;
+  min-width: 0;
+}
+
+.sf h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.sf p {
+  margin: 0;
+}
+
+.sf .muted.small,
+.sf .small {
+  font-size: 12px;
+}
+
+.sf button.sf-btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--r, 6px);
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sf button.sf-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.sf button.sf-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.sf button.sf-btn.on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--accent);
+}
+
+.sf button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.sf button.sf-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sf-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sf-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.sf-warnings .site-chip {
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sf-warnings p {
+  margin: 4px 2px 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sf-drawing {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 8px);
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.sf-drawing-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sf-drawing-head b {
+  min-width: 0;
+  font-weight: 600;
+  /* The whole name, wrapped: a long file name is still readable. */
+  overflow-wrap: anywhere;
+}
+
+.sf-status {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.sf-status.ok {
+  color: var(--accent);
+}
+
+.sf-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sf-opacity input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.sf-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.sf-checks .check {
+  font-size: 13px;
+}
+
+.sf-found {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.sf-found > li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+}
+
+.sf-found .sf-found-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.sf-found ul {
+  margin: 0;
+  padding: 0 0 0 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sf-found .sf-hint {
+  font-size: 12px;
+  color: var(--warn-text);
+}
+
+.sf-found li.added .sf-found-title {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.sf-found select {
+  flex: 1 1 80px;
+  min-width: 0;
+  font-size: 12px;
+  padding: 3px 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r, 6px);
+  background: var(--panel);
+}
+
+.sf-tick {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sf-tools {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.sf-tools .sf-btn {
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.sf-tool-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sf-tool-options select {
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r, 6px);
+  background: var(--panel);
+}
+
+.sf-types {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.sf-types > li {
+  border-bottom: 1px solid var(--line);
+}
+
+.sf-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.sf-type-row .check {
+  flex: 1;
+  padding: 0;
+}
+
+.sf-type-row .count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.sf-key {
+  flex: none;
+  width: 18px;
+  height: 12px;
+}
+
+.sf-items {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0 0 0 26px;
+  display: grid;
+}
+
+.sf-items button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  background: none;
+  padding: 3px 4px;
+  border-radius: var(--r, 6px);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.sf-items button:hover {
+  background: #eef1fb;
+}
+
+.sf-items button.on {
+  background: #e3e9fb;
+  color: #1a35a3;
+}
+
+.sf-items .attn-dot {
+  color: #b77400;
+  font-weight: 700;
+}
+
+.sf-inspector {
+  border: 1px solid var(--accent);
+  border-radius: var(--r-lg, 8px);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sf-inspector .num,
+.sf-inspector label.num {
+  margin: 0;
+}
+
+.sf-inspector-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sf-inspector-head b {
+  font-weight: 600;
+}
+
+.sf-levels {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  font-size: 12px;
+}
+
+.sf-levels dt {
+  color: var(--muted);
+}
+
+.sf-levels dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-pages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sf-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .sf,
+  .sf .small,
+  .sf .muted.small,
+  .sf-found ul,
+  .sf-found .sf-hint,
+  .sf-warnings p,
+  .sf-status,
+  .sf-opacity,
+  .sf-type-row .count,
+  .sf-levels,
+  .sf h3,
+  .sf-tick,
+  .sf-error,
+  .sf-checks .check {
+    font-size: 14px;
+  }
+
+  .sf button.sf-btn,
+  .sf-items button,
+  .sf-found select,
+  .sf-tool-options select,
+  .sf .check {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .sf button.sf-link {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

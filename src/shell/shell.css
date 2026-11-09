@@ -1,0 +1,1947 @@
+/* The app's frame, direction B: ink on white drafting paper, hairlines, floating panels and
+   one cobalt accent. Everything is scoped to the shell. */
+
+body:has(.app-shell) {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --text: #16181b;
+  --muted: #6b7077;
+  --line: #e1e4e7;
+  --line-soft: #eef0f2;
+  --field-line: #cfd3d8;
+  --accent: #2346d0;
+  --accent-soft: #eef1fc;
+  --primary: #16181b;
+  /* Direction A's solid amber, for the one thing that needs doing. */
+  --warn-bg: #fff6e0;
+  --warn-line: #f0deae;
+  --warn-text: #7a5300;
+  --warn-ink: #9a4a00;
+  --warn-dot: #d07a12;
+  --danger: #b3261e;
+  --overlay: rgba(255, 255, 255, 0.97);
+  --overlay-line: #dcdfe3;
+  --r: 3px;
+  --r-lg: 4px;
+  --nav-w: 88px;
+  --top-h: 52px;
+  --strip-h: 42px;
+  --panel-w: 332px;
+  --gap: 14px;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr);
+  grid-template-areas:
+    'rail top'
+    'rail strip'
+    'rail main';
+  height: 100%;
+  background: #ffffff;
+}
+
+.app-shell button {
+  font: inherit;
+  color: inherit;
+}
+
+.app-shell :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app-shell .phone-only,
+.app-shell .bottom-bar {
+  display: none;
+}
+
+/* ---- Areas rail ---- */
+
+.area-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 6px;
+  border-right: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.rail-logo {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 18px;
+  border-radius: var(--r-lg);
+}
+
+.area-link {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  row-gap: 5px;
+  width: 74px;
+  padding: 10px 2px 8px;
+  color: #454a51;
+  text-decoration: none;
+}
+
+.area-link span {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.area-link:hover {
+  color: var(--text);
+}
+
+.area-link.on {
+  color: var(--text);
+}
+
+.area-link.on::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--accent);
+}
+
+/* ---- Top bar ---- */
+
+.top-bar {
+  grid-area: top;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 12px 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.top-title {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-weight: 600;
+  font-size: 15px;
+  flex: 1;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab.on {
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--text);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.view-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--r) + 2px);
+  background: #ffffff;
+}
+
+.view-switch button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  color: var(--muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.view-switch button.on {
+  background: var(--text);
+  color: #ffffff;
+}
+
+.undo-redo {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.undo-redo button,
+.icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.undo-redo button:hover:not(:disabled),
+.icon-button:hover {
+  background: var(--line-soft);
+}
+
+.undo-redo button:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The shortcut, shown as a tip on hover or focus. */
+.undo-redo button[data-tip]:hover::after,
+.undo-redo button[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--text);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.search-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 188px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #ffffff;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-button kbd,
+.app-shell kbd {
+  margin-left: auto;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font: 500 11px/1 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+.app-shell .row kbd,
+.app-shell h2 kbd {
+  margin-left: 6px;
+}
+
+/* ---- Project menu ---- */
+
+.project-menu {
+  position: relative;
+}
+
+.project-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  height: 34px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.project-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  width: 290px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 18px 50px -12px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--line-soft);
+  outline: none;
+}
+
+.menu-item .ic {
+  color: var(--muted);
+}
+
+.menu-item.danger {
+  color: var(--danger);
+}
+
+.menu-item.danger .ic {
+  color: currentColor;
+}
+
+.menu-pop [data-item='project-name'],
+.menu-pop [data-item='save-project'],
+.menu-pop [data-item='import-plan'],
+.menu-pop [data-item='replace-survey'] {
+  margin-top: 5px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 5px;
+}
+
+.menu-pop button[data-item]:is([data-item='save-project'], [data-item='import-plan'], [data-item='replace-survey']) {
+  border-radius: 0 0 var(--r) var(--r);
+}
+
+.menu-field {
+  padding: 6px 10px 4px;
+}
+
+.menu-field .num {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.menu-field .num input.text {
+  width: 100%;
+}
+
+.menu-note {
+  display: grid;
+  gap: 1px;
+  padding: 4px 10px 8px;
+  font-size: 12px;
+}
+
+.menu-note .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flash {
+  animation: flash 1.6s ease-out;
+}
+
+@keyframes flash {
+  0%,
+  30% {
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+
+/* ---- Summary strip ---- */
+
+.summary-strip {
+  grid-area: strip;
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 10px 0 4px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 24px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.chips > * + * {
+  border-left: 1px solid var(--line);
+}
+
+button.chip {
+  cursor: pointer;
+}
+
+button.chip:hover .chip-label {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.chip-label {
+  color: var(--muted);
+}
+
+.chip b {
+  font-weight: 600;
+}
+
+.chip .badge.warn {
+  margin-left: 4px;
+  color: var(--warn-ink);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.chip.ghost {
+  margin: 0 6px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r);
+  color: var(--muted);
+}
+
+.chips > .chip.ghost + * {
+  border-left-color: transparent;
+}
+
+.chip.ghost em {
+  font-style: normal;
+  opacity: 0.85;
+}
+
+.chip.warn {
+  color: var(--warn-ink);
+  font-weight: 500;
+}
+
+.chip.fail {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.chip.fail .dot {
+  background: var(--danger);
+}
+
+.chip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn-dot);
+}
+
+/* Direction A's out of balance chip: solid amber, with Balance as a filled pill. */
+.chip.attn {
+  height: 28px;
+  margin: 0 8px;
+  padding: 0 3px 0 9px;
+  border: 1px solid var(--warn-line);
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.chips > .chip.attn + * {
+  border-left-color: transparent;
+}
+
+.chip.attn .attn-text {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip.attn .act {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin-left: 4px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.overview-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.overview-button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- Canvas ---- */
+
+.app-shell .shell-main {
+  grid-area: main;
+  height: auto;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #fcfcfd;
+}
+
+.shell-main.projects {
+  overflow: auto;
+  background: #fafbfc;
+}
+
+/* The Projects home has no summary strip, so it takes that row too. */
+.app-shell .shell-main.projects {
+  grid-row: strip-start / main-end;
+}
+
+/* The canvas's own overlays that the frame's view bar and More replace. */
+.app-shell .plan-actions > button.secondary:first-child,
+.app-shell .view-actions {
+  display: none;
+}
+
+.app-shell .readout {
+  left: var(--free-left, 16px);
+  bottom: var(--gap);
+  flex-wrap: nowrap;
+  max-width: calc(100% - var(--free-left, 16px) - 340px);
+  overflow: hidden;
+  border-radius: var(--r-lg);
+}
+
+.app-shell .readout > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .readout > span:has(b) {
+  flex: none;
+}
+
+.app-shell .plan-actions {
+  top: auto;
+  right: auto;
+  left: var(--free-left, 16px);
+  bottom: 54px;
+  align-items: flex-start;
+}
+
+.app-shell .ground-key,
+.app-shell .readout,
+.app-shell .level-chip,
+.app-shell .print-key,
+.app-shell .segmented {
+  border-radius: var(--r-lg);
+}
+
+.app-shell .scalebar {
+  bottom: 62px;
+}
+
+.app-shell .canvas-print .readout {
+  left: var(--free-left, 16px);
+}
+
+.app-shell .level-chip {
+  top: var(--gap);
+  left: var(--free-left, 16px);
+}
+
+.app-shell .has-col .level-chip {
+  left: calc(var(--free-left, 16px));
+}
+
+.app-shell .has-inspector .plan-compass {
+  right: 326px;
+}
+
+.app-shell .canvas-3d .compass {
+  top: var(--gap);
+  right: var(--gap);
+}
+
+.app-shell .canvas-3d .legend {
+  top: 82px;
+  right: 20px;
+}
+
+/* ---- Tool rail and floating cards ---- */
+
+.tool-rail {
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 3px);
+  background: var(--overlay);
+}
+
+.tool-rail .tool-gap {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--overlay-line);
+}
+
+.tool-rail button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tool-rail button:hover {
+  background: var(--line-soft);
+}
+
+.tool-rail button.on {
+  background: var(--text);
+  color: #ffffff;
+}
+
+.float-col {
+  position: absolute;
+  top: var(--gap);
+  bottom: var(--gap);
+  left: var(--gap);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: var(--panel-w);
+  pointer-events: none;
+}
+
+.has-rail .float-col {
+  left: 70px;
+}
+
+.float-col > * {
+  pointer-events: auto;
+}
+
+.float-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.02),
+    0 12px 32px -18px rgba(0, 0, 0, 0.18);
+}
+
+.float-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.float-card h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.float-card > header p {
+  margin: 3px 0 0;
+}
+
+.tool-card {
+  flex: none;
+}
+
+.tool-card > header {
+  align-items: center;
+  padding: 10px 12px 10px 16px;
+}
+
+.tool-card h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tool-card .tool-options,
+.tool-card > p {
+  margin: 0;
+  padding: 12px 16px 14px;
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.panel-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 20px 20px;
+}
+
+.panel-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px 0 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plain {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plain.small {
+  font-size: 12.5px;
+}
+
+/* The inspector: the selection's settings, floating on the right. */
+.inspector {
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  z-index: 5;
+  width: 300px;
+  max-height: calc(100% - 92px);
+  overflow-y: auto;
+}
+
+.inspector .selection {
+  margin: 0;
+  padding: 16px 16px 16px;
+  background: none;
+  border: 0;
+}
+
+.inspector .selection h2 {
+  margin: 0 30px 4px 0;
+}
+
+.inspector-close {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  z-index: 1;
+}
+
+/* Site › Features and a retaining wall's card have the most to read: a wider panel, so long names
+   and the card's choices sit on one line or wrap, never scroll sideways (AppShell keeps the plan clear of it). */
+.float-col.wide {
+  width: min(440px, calc(100% - 100px));
+}
+
+.inspector.wide {
+  width: min(440px, calc(100% - 2 * var(--gap)));
+}
+
+/* Fit block, Fit house, North up. */
+.canvas-controls {
+  position: absolute;
+  right: var(--gap);
+  bottom: var(--gap);
+  z-index: 4;
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 1px);
+  background: var(--overlay);
+}
+
+.canvas-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  background: none;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.canvas-controls > button + button,
+.canvas-controls > span + button {
+  border-left: 1px solid var(--overlay-line);
+}
+
+.canvas-controls button:hover {
+  background: var(--line-soft);
+}
+
+.canvas-controls button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- What the old sections look like in the shell ---- */
+
+.app-shell .float-card h3,
+.app-shell .ov-group h4 {
+  margin: 16px 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.app-shell .panel-body > h3:first-child,
+.app-shell .panel-body > div > h3:first-child,
+.app-shell .area-summary:first-child h3 {
+  margin-top: 0;
+}
+
+.app-shell p {
+  margin: 0 0 10px;
+}
+
+.app-shell p.small,
+.app-shell .muted.small {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.app-shell .notice {
+  color: var(--warn-ink);
+}
+
+.app-shell p.notice.small {
+  padding: 7px 10px;
+  border-radius: var(--r);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.app-shell .stats {
+  gap: 0;
+}
+
+.app-shell .stats dt {
+  padding-right: 12px;
+}
+
+.app-shell .stats dt,
+.app-shell .stats dd {
+  padding: 6px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.app-shell .stats dt:first-of-type,
+.app-shell .stats dd:first-of-type {
+  border-top: 0;
+}
+
+.app-shell .stats dd {
+  font-weight: 500;
+}
+
+.app-shell button.secondary {
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.app-shell button.secondary:hover:not(:disabled) {
+  border-color: var(--text);
+}
+
+.app-shell button.secondary.on {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.app-shell button.danger {
+  color: var(--danger);
+}
+
+.app-shell button.primary,
+.app-shell a.button.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--primary);
+  border-radius: var(--r);
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.app-shell .secondary-sm {
+  height: 30px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-shell button.link {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+.app-shell button.link.quiet {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-shell .num {
+  min-height: 36px;
+}
+
+.app-shell .num select,
+.app-shell .num-input input,
+.app-shell .num input.text,
+.app-shell .layers select {
+  height: 32px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r);
+  background: #ffffff;
+}
+
+.app-shell .num-input input {
+  font-weight: 600;
+}
+
+.app-shell .tool-options {
+  margin-top: 0;
+}
+
+.app-shell .levels li.on .level-btn {
+  border-color: var(--text);
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.app-shell .level-btn {
+  border-radius: var(--r);
+}
+
+.app-shell .check input,
+.app-shell .slider input {
+  accent-color: var(--accent);
+}
+
+.app-shell .warnings p {
+  border-radius: var(--r);
+}
+
+.app-shell .error {
+  color: var(--danger);
+}
+
+.pick-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pick-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pick-list button.on {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.drive + .drive {
+  margin-top: 14px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.drive h3 button.link {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.drive.on h3 button.link {
+  color: var(--accent);
+}
+
+/* More: each setting under a heading that folds. */
+.more-list {
+  display: grid;
+}
+
+.more-item {
+  border-radius: var(--r);
+  scroll-margin-top: 8px;
+}
+
+.more-item + .more-item {
+  border-top: 1px solid var(--line-soft);
+}
+
+.more-item .panel h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.more-item .panel-toggle {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 2px;
+  cursor: pointer;
+}
+
+.more-item .panel-toggle > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-item .panel-toggle svg:not(.ic) {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  transition: transform 0.15s;
+}
+
+.more-item .panel.folded .panel-toggle svg:not(.ic) {
+  transform: rotate(-90deg);
+}
+
+.more-item .panel > :not(h2) {
+  margin-bottom: 0;
+}
+
+.more-item .panel {
+  padding-bottom: 12px;
+}
+
+.more-item .panel.folded {
+  padding-bottom: 0;
+}
+
+/* ---- Overview ---- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(20, 24, 28, 0.1);
+}
+
+.overview-sheet {
+  position: fixed;
+  top: calc(var(--top-h) + var(--strip-h) + 8px);
+  right: 16px;
+  z-index: 21;
+  width: min(920px, calc(100vw - var(--nav-w) - 32px));
+  max-height: calc(100vh - var(--top-h) - var(--strip-h) - 24px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 18px 50px -12px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.overview-sheet:focus {
+  outline: none;
+}
+
+.overview-sheet > header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 18px 18px 0 26px;
+}
+
+.overview-sheet h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.overview-sheet > header .icon-button {
+  margin-left: auto;
+  align-self: center;
+}
+
+.sheet-grab {
+  display: none;
+}
+
+.ov-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px;
+  padding: 12px 26px 24px;
+}
+
+.ov-cols > div {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+
+.ov-group > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  margin: 0 0 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ov-problem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0 2px;
+}
+
+.ov-problem .chip {
+  height: auto;
+  min-height: 30px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: normal;
+  gap: 7px;
+}
+
+.ov-problem button {
+  flex: none;
+}
+
+.ov-problem .chip.warn {
+  border: 1px solid var(--line);
+}
+
+/* ---- ⌘K ---- */
+
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: rgba(20, 24, 28, 0.18);
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  max-height: 70vh;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow:
+    0 24px 60px -16px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.palette-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.palette-input input:focus-visible {
+  outline: none;
+}
+
+.palette-input input {
+  flex: 1;
+  height: 52px;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.palette-list {
+  flex: 1;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border-radius: var(--r-lg);
+  cursor: pointer;
+}
+
+.palette-list li.on {
+  background: var(--accent-soft);
+}
+
+.palette-empty {
+  cursor: default;
+}
+
+.pi-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  color: var(--muted);
+  flex: none;
+}
+
+.pi-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--line);
+  box-shadow: 0 0 0 1px #c3c7cc;
+}
+
+.pi-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.pi-label {
+  /* Long feature names wrap rather than lose their ends. */
+  overflow-wrap: anywhere;
+}
+
+.pi-where {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pi-kind {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.pi-kind.run {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.palette-list li kbd {
+  margin-left: 0;
+}
+
+.palette-foot {
+  display: flex;
+  gap: 16px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.palette-foot kbd {
+  margin: 0 2px 0 0;
+}
+
+.palette-offer {
+  padding: 18px 20px;
+}
+
+.palette-offer .row {
+  gap: 8px;
+}
+
+/* ---- Toast ---- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 8px 8px 8px 14px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: var(--text);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.toast .icon-button {
+  width: 26px;
+  height: 26px;
+  color: #ffffff;
+}
+
+.toast .icon-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---- Phone (also coarse pointers): areas at the bottom, panels as sheets ---- */
+
+.app-shell.phone {
+  --top-h: 52px;
+  --strip-h: 46px;
+  --gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr) auto;
+  grid-template-areas:
+    'top'
+    'strip'
+    'main'
+    'bottom';
+  font-size: 15px;
+}
+
+.app-shell.phone .area-rail,
+.app-shell.phone .desk-only {
+  display: none;
+}
+
+.app-shell.phone .phone-only {
+  display: contents;
+}
+
+.app-shell.phone .phone-logo {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  flex: none;
+}
+
+.app-shell.phone .top-bar {
+  gap: 2px;
+  padding: 0 2px 0 8px;
+}
+
+.app-shell.phone .tab {
+  flex: none;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0 11px;
+  font-size: 15px;
+}
+
+.app-shell.phone .top-actions {
+  gap: 0;
+}
+
+.app-shell.phone .undo-redo {
+  border: 0;
+  padding: 0;
+}
+
+.app-shell.phone .undo-redo button,
+.app-shell.phone .icon-button {
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell.phone .search-button {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+}
+
+.app-shell.phone .project-button {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell.phone .project-title {
+  display: none;
+}
+
+.app-shell.phone .project-button::before {
+  content: '⋯';
+  font-size: 20px;
+  line-height: 1;
+}
+
+.app-shell.phone .project-button .ic {
+  display: none;
+}
+
+.app-shell.phone .menu-pop {
+  position: fixed;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
+}
+
+.app-shell.phone .menu-item {
+  min-height: 48px;
+}
+
+.app-shell.phone .bottom-bar {
+  grid-area: bottom;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(66px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.app-shell.phone .bottom-bar .area-link {
+  width: auto;
+  min-height: 44px;
+  padding: 8px 2px 6px;
+  color: var(--muted);
+}
+
+.app-shell.phone .bottom-bar .area-link span {
+  font-size: 14px;
+}
+
+.app-shell.phone .bottom-bar .area-link.on {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-shell.phone .bottom-bar .area-link.on::before {
+  display: none;
+}
+
+.app-shell.phone .summary-strip {
+  padding: 0 4px 0 0;
+}
+
+.app-shell.phone .chip {
+  height: 30px;
+  font-size: 14px;
+}
+
+/* On a phone the line scrolls: what needs doing comes first, and numbers already on screen stay out of it. */
+.app-shell.phone .chip.attn,
+.app-shell.phone .chip.warn,
+.app-shell.phone .chip.fail {
+  order: -1;
+}
+
+.app-shell.phone .chip.ghost {
+  display: none;
+}
+
+.app-shell.phone .chip.attn {
+  height: 34px;
+}
+
+.app-shell.phone .chip.attn .act {
+  height: 28px;
+  padding: 0 11px;
+  font-size: 14px;
+}
+
+.app-shell.phone .overview-button {
+  height: 44px;
+  font-size: 14px;
+}
+
+.app-shell.phone .tool-rail {
+  top: var(--gap);
+  left: var(--gap);
+  padding: 3px;
+  max-height: calc(100% - 2 * var(--gap));
+  overflow-y: auto;
+}
+
+.app-shell.phone .tool-rail button {
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell.phone .float-col {
+  position: absolute;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-height: 48%;
+  gap: 0;
+}
+
+.app-shell.phone .float-card {
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 28px -8px rgba(0, 0, 0, 0.22);
+}
+
+.app-shell.phone .tab-panel::before,
+.app-shell.phone .inspector::before {
+  content: '';
+  display: block;
+  width: 38px;
+  height: 5px;
+  margin: 8px auto 0;
+  border-radius: 3px;
+  background: var(--line);
+  flex: none;
+}
+
+.app-shell.phone .float-card > header {
+  padding: 8px 8px 10px 18px;
+}
+
+.app-shell.phone .panel-body {
+  padding: 12px 18px 18px;
+}
+
+.app-shell.phone .tool-card {
+  border-radius: 18px 18px 0 0;
+}
+
+.app-shell.phone .tool-card + .tab-panel {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell.phone .panel-pill {
+  position: absolute;
+  bottom: var(--gap);
+  left: 50%;
+  transform: translateX(-50%);
+  height: 44px;
+  border-radius: 999px;
+}
+
+.app-shell.phone .inspector {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-height: 60%;
+  z-index: 7;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 28px -8px rgba(0, 0, 0, 0.22);
+}
+
+.app-shell.phone .inspector-close {
+  top: 16px;
+}
+
+.app-shell.phone .canvas-controls {
+  top: var(--gap);
+  bottom: auto;
+  flex-direction: column;
+  border: 0;
+  background: none;
+  overflow: visible;
+  gap: 8px;
+}
+
+.app-shell.phone .canvas-controls button {
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--overlay-line);
+  border-radius: var(--r-lg);
+  background: var(--overlay);
+}
+
+.app-shell.phone .canvas-controls button span {
+  display: none;
+}
+
+.app-shell.phone .canvas-controls > button + button,
+.app-shell.phone .canvas-controls > span + button {
+  border-left: 1px solid var(--overlay-line);
+}
+
+.app-shell.phone .has-col .canvas-controls,
+.app-shell.phone .has-inspector .canvas-controls {
+  bottom: auto;
+}
+
+.app-shell.phone .level-chip {
+  top: var(--gap);
+  left: calc(var(--gap) + 62px);
+  right: 64px;
+  width: max-content;
+  max-width: calc(100% - 140px);
+}
+
+.app-shell.phone .shell-main:not(.has-rail) .level-chip {
+  left: var(--gap);
+}
+
+.app-shell.phone .plan-compass {
+  top: auto;
+  bottom: var(--gap);
+  right: var(--gap);
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell.phone .canvas-3d .compass {
+  top: auto;
+  bottom: 14px;
+  right: var(--gap);
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell.phone .canvas-3d .legend {
+  top: auto;
+  bottom: 70px;
+  right: 16px;
+  height: 110px;
+}
+
+.app-shell.phone .plan-actions {
+  bottom: var(--gap);
+}
+
+.app-shell.phone .readout,
+.app-shell.phone .scalebar,
+.app-shell.phone .print-key {
+  display: none;
+}
+
+.app-shell.phone .num,
+.app-shell.phone .check {
+  min-height: 44px;
+}
+
+.app-shell.phone .num select,
+.app-shell.phone .num-input input,
+.app-shell.phone .num input.text {
+  height: 44px;
+  font-size: 15px;
+}
+
+.app-shell.phone button.secondary,
+.app-shell.phone button.primary,
+.app-shell.phone a.button.primary,
+.app-shell.phone .pick-list button,
+.app-shell.phone .level-btn {
+  min-height: 44px;
+}
+
+.app-shell.phone .small,
+.app-shell.phone p.small,
+.app-shell.phone .muted.small,
+.app-shell.phone .pi-where,
+.app-shell.phone .chip .badge.warn {
+  font-size: 14px;
+}
+
+.app-shell.phone .overview-sheet {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-height: 88vh;
+  border-radius: 18px 18px 0 0;
+}
+
+.app-shell.phone .sheet-grab {
+  display: block;
+  width: 38px;
+  height: 5px;
+  margin: 8px auto 0;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.app-shell.phone .overview-sheet > header {
+  padding: 8px 8px 0 18px;
+}
+
+.app-shell.phone .ov-cols {
+  grid-template-columns: 1fr;
+  gap: 22px;
+  padding: 8px 18px 24px;
+}
+
+.app-shell.phone .palette-backdrop {
+  padding: 0;
+  align-items: stretch;
+}
+
+.app-shell.phone .palette {
+  max-height: none;
+  border-radius: 0;
+}
+
+.app-shell.phone .palette-list li {
+  min-height: 52px;
+}
+
+.app-shell.phone .palette-foot {
+  display: none;
+}
+
+.app-shell.phone .toast {
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+/* A room's area leads its inspector, as in the mockup. */
+.app-shell .sel-figure {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.app-shell .sel-figure span {
+  color: var(--muted);
+}
+
+.app-shell .sel-figure b {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Taps of at least 44 px. The chips stay compact to look at; each one's tap area is the strip's height. */
+.app-shell.phone .chip,
+.app-shell.phone .chip.attn .attn-text,
+.app-shell.phone .chip.attn .act {
+  position: relative;
+}
+
+.app-shell.phone .chip::after,
+.app-shell.phone .chip.attn .attn-text::after,
+.app-shell.phone .chip.attn .act::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.app-shell.phone .chip.attn::after {
+  content: none;
+}
+
+/* What's left over is in the Cut & fill tab and the Overview; on a phone the chip keeps to its fix. */
+.app-shell.phone .chip.attn .attn-net {
+  display: none;
+}
+
+.app-shell.phone .float-card .icon-button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.app-shell.phone .more-item .panel-toggle {
+  min-height: 44px;
+}
+
+/* Text of at least 14 px. */
+.app-shell.phone .level-chip,
+.app-shell.phone .ground-key,
+.app-shell.phone .ground-key li.small,
+.app-shell.phone .more-item .panel-toggle,
+.app-shell.phone .num em,
+.app-shell.phone .float-card h3 {
+  font-size: 14px;
+}
+
+/* No keyboard on a phone, so no key hints. */
+.app-shell.phone kbd {
+  display: none;
+}

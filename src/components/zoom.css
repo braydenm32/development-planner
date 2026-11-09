@@ -1,0 +1,69 @@
+/* Zoom out and in: a small pair beside Fit block. */
+
+.zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-buttons {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.zoom-buttons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.zoom-buttons button + button {
+  border-left: 1px solid var(--line);
+}
+
+.zoom-buttons button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.zoom-buttons svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* One more part of the view bar at the bottom right of the canvas. */
+.canvas-controls > .zoom-buttons {
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.canvas-controls > .zoom-buttons button {
+  width: 38px;
+  height: 34px;
+}
+
+.canvas-controls > .zoom-buttons button + button,
+.canvas-controls > .zoom-buttons + button {
+  border-left: 1px solid var(--overlay-line);
+}
+
+.canvas-controls > .zoom-buttons button:hover {
+  background: var(--line-soft);
+  color: inherit;
+}

@@ -1,0 +1,76 @@
+// What each tab's panel and each More item shows, by the menu's ids. The route test checks
+// that every tab (bar the canvas-only ones) and every More item has something here.
+
+import type { ComponentType } from 'react'
+import { AboutCostsSection, EstimateAside, EstimateTab, MaterialsTab, QuotesTab, RatesSection } from '../costs/CostsTabs'
+import type { Tool } from '../plan/store'
+import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
+import { ChecksTab } from './tabs/ChecksTab'
+import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
+import { OfferSettings } from '../flow/OfferSettings'
+import * as More from './tabs/MoreSections'
+import { RetainingWallsTab } from './tabs/RetainingWallsTab'
+import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
+import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
+import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+
+/** Each tab's panel, by `area/tab`. */
+export const TAB_PANELS: Record<string, ComponentType> = {
+  'site/block': SiteBlockTab,
+  'site/features': SiteFeaturesTab,
+  'site/3d': Site3dTab,
+  'design/floors': FloorsTab,
+  'design/rooms': RoomsTab,
+  'design/roofs': RoofsTab,
+  'design/furniture': FurnitureTab,
+  'design/checks': ChecksTab,
+  'earthworks/place': PlaceTab,
+  'earthworks/cut-fill': CutFillTab,
+  'earthworks/retaining-walls': RetainingWallsTab,
+  'earthworks/driveway': DrivewayTab,
+  'costs/estimate': EstimateTab,
+  'costs/materials': MaterialsTab,
+  'costs/quotes': QuotesTab,
+  'share/plans': PlansTab,
+  'share/send': SendTab,
+  'share/3d-print': PrintTab,
+}
+
+/** Each More item's section, by its id. */
+export const MORE_SECTIONS: Record<string, ComponentType> = {
+  'survey-layers': More.SurveyLayersSection,
+  exaggeration: More.ExaggerationSection,
+  bearing: More.BearingSection,
+  'survey-warnings': More.SurveyWarningsSection,
+  'site-replace': More.ReplaceSurveySection,
+  'plan-file': More.PlanFileSection,
+  'wall-preset': More.WallPresetSection,
+  'opening-tool': More.OpeningToolSection,
+  'garage-door-tool': More.GarageDoorToolSection,
+  'stair-defaults': More.StairDefaultsSection,
+  origin: More.OriginSection,
+  rotation: More.RotationSection,
+  'placement-actions': More.PlacementActionsSection,
+  'move-tool': More.MoveToolSection,
+  'earthworks-margin': More.MarginSection,
+  'subfloor-gap': More.SubfloorSection,
+  'retaining-offer': OfferSettings,
+  'cost-rates': RatesSection,
+  'cost-about': AboutCostsSection,
+  'fine-tuning': More.FineTuningSection,
+  stl: More.StlSection,
+  paper: More.PaperSection,
+  'print-instructions': More.PrintInstructionsSection,
+}
+
+/** Tabs whose panel already holds a tool's options, so the tool's own options card stays away. */
+export const TAB_TOOL: Record<string, Tool> = {
+  'design/roofs': 'roof',
+  'design/furniture': 'furniture',
+  'earthworks/retaining-walls': 'retaining',
+}
+
+/** What floats beside the plan on a desktop, on the right, for a tab that has more to show there. */
+export const TAB_ASIDES: Record<string, ComponentType> = {
+  'costs/estimate': EstimateAside,
+}

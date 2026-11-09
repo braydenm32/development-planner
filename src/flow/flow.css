@@ -1,0 +1,331 @@
+/* The design flow on the plan: the hover tooltip, the picking bar, the earth side while picking
+   it, and the small cards that ask a floor type and offer a retaining wall. Works on any canvas
+   with the page's own colours (--text, --line, --accent), and is self-contained. Its buttons
+   are scoped to .plan-editor so the layouts' own button rules don't win over them. */
+
+.flow-tip {
+  position: absolute;
+  z-index: 8;
+  max-width: 280px;
+  padding: 5px 9px;
+  border-radius: 4px;
+  background: rgba(22, 24, 27, 0.9);
+  color: #ffffff;
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Never in the way of a click. */
+  pointer-events: none;
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.35);
+}
+
+/* A contour being pointed at while picking, and the earth side of a retaining wall. */
+.flow-pick-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.flow-earth {
+  pointer-events: none;
+}
+
+.flow-earth-band {
+  fill: rgba(176, 125, 74, 0.22);
+  stroke: rgba(138, 100, 60, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.flow-earth-arrow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.plan-svg.flow-picking {
+  cursor: crosshair;
+}
+
+/* What's being picked, and a way out, at the top of the plan. */
+.flow-bar {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  z-index: 7;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 7px 8px 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 10px 28px -16px rgba(0, 0, 0, 0.3);
+}
+
+.flow-bar button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.flow-bar kbd {
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* The level chip's "Pick a contour". The chip itself lets clicks through to the plan. */
+.plan-editor .flow-chip-btn {
+  pointer-events: auto;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-editor .flow-chip-btn:hover {
+  border-color: var(--accent);
+}
+
+/* The cards: small, at the bottom middle of the plan, clear of the panels either side. */
+.flow-card {
+  position: absolute;
+  bottom: 64px;
+  left: calc(50% + var(--free-left, 0px) / 2);
+  z-index: 7;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 10px;
+  width: min(460px, calc(100% - var(--free-left, 0px) - 32px));
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.35);
+}
+
+.flow-card header {
+  display: grid;
+  gap: 3px;
+}
+
+.flow-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.flow-card header p,
+.flow-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.flow-choices {
+  display: grid;
+  gap: 6px;
+}
+
+.plan-editor .flow-choice {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.plan-editor .flow-choice:hover,
+.plan-editor .flow-choice.on {
+  border-color: var(--text);
+}
+
+.plan-editor .flow-choice b {
+  font-weight: 600;
+}
+
+.plan-editor .flow-choice span {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.plan-editor .flow-radio {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.plan-editor .flow-radio > input {
+  margin: 3px 0 0;
+  accent-color: var(--text);
+}
+
+.plan-editor .flow-radio-body {
+  display: grid;
+  gap: 2px;
+}
+
+.plan-editor .flow-radio-body > b,
+.plan-editor .flow-choice .flow-gap {
+  color: var(--text);
+}
+
+.plan-editor .flow-gap input {
+  width: 46px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #ffffff;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-editor .flow-pri,
+.plan-editor .flow-quiet,
+.plan-editor .flow-link {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-editor .flow-pri {
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: #ffffff;
+}
+
+.plan-editor .flow-quiet {
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.plan-editor .flow-link {
+  border: 0;
+  padding: 0 4px;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plan-editor .flow-pri:focus-visible,
+.plan-editor .flow-quiet:focus-visible,
+.plan-editor .flow-link:focus-visible,
+.plan-editor .flow-choice:focus-within,
+.plan-editor .flow-chip-btn:focus-visible,
+.flow-bar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A note at the foot of the screen (Undo, what an import found) lifts the card clear of it. */
+body:has(.toast, .sf-toast) .flow-card {
+  bottom: 108px;
+}
+
+/* Both notes at once: the import's sits above the shell's. */
+body:has(.app-shell .toast):has(.sf-toast) .flow-card {
+  bottom: 162px;
+}
+
+/* Phones: a sheet-like card at the bottom, taps of 44 px and text of 14 px. */
+@media (max-width: 760px) {
+  .flow-card {
+    left: 50%;
+    bottom: 12px;
+    width: calc(100% - 24px);
+    max-height: 70%;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+
+  .flow-card header p,
+  .flow-note,
+  .plan-editor .flow-choice span {
+    font-size: 14px;
+  }
+
+  .plan-editor .flow-choice,
+  .plan-editor .flow-pri,
+  .plan-editor .flow-quiet,
+  .plan-editor .flow-link,
+  .flow-bar button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .plan-editor .flow-gap input {
+    width: 60px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .flow-bar {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
+    transform: none;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+
+  /* Clear of a note at the foot of the screen, which sits above the phone's bottom bar and can run to three lines. */
+  body:has(.toast, .sf-toast) .flow-card,
+  body:has(.toast, .sf-toast) .flow-bar {
+    bottom: 144px;
+  }
+
+  body:has(.toast, .sf-toast) .flow-card {
+    max-height: 55%;
+  }
+}

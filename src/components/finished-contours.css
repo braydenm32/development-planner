@@ -1,0 +1,84 @@
+/* Finished-ground contours on the plan: proposed in ink, existing faint and dashed where the ground changes. */
+
+.fc-layer {
+  pointer-events: none;
+}
+
+.contour-minor.fc-existing,
+.contour-major.fc-existing {
+  stroke-dasharray: 3 3;
+  opacity: 0.75;
+}
+
+.fc-finished {
+  fill: none;
+  stroke: #16181b;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fc-finished.minor {
+  stroke-width: 0.7;
+  stroke-opacity: 0.55;
+}
+
+.fc-finished.major {
+  stroke-width: 1.2;
+  stroke-opacity: 0.9;
+}
+
+.contour-label.fc-label {
+  fill: #16181b;
+  font-weight: 600;
+}
+
+.fc-key {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.ground-key i.fc-swatch {
+  height: 0;
+  border-radius: 0;
+  vertical-align: 3px;
+  opacity: 1;
+}
+
+.ground-key i.fc-swatch.proposed {
+  border-top: 1.5px solid #16181b;
+}
+
+.ground-key i.fc-swatch.existing {
+  border-top: 1.5px dashed #a8927a;
+}
+
+.fc-narrow {
+  display: none;
+}
+
+/* Phones: the key stays small over the plan, and both switches are easy to tap. */
+@container (max-width: 700px) {
+  .ground-key label.check {
+    min-height: 44px;
+  }
+
+  .fc-key {
+    margin-top: 0;
+  }
+
+  .ground-key .fc-key ul {
+    display: flex;
+    gap: 14px;
+    margin-top: 0;
+  }
+
+  .fc-key li.small,
+  .fc-key .fc-wide {
+    display: none;
+  }
+
+  .fc-key .fc-narrow {
+    display: inline;
+  }
+}

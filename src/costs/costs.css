@@ -1,0 +1,886 @@
+/* The Costs area: a wide panel that reads like a builder's estimate, a card of material choices
+   beside the plan, and the plan pointing out what a hovered line measures. Scoped to the shell. */
+
+.app-shell {
+  --ok: #1f7a4d;
+  --ok-line: #b9dcc9;
+}
+
+.app-shell .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The panel ---- */
+
+.float-col.report {
+  width: min(560px, calc(100% - 100px));
+}
+
+.float-col.report > .tab-panel:has(.costs-est) {
+  flex: 1;
+}
+
+/* The estimate keeps its total and who builds it in view; the lines scroll under them. */
+.app-shell .panel-body:has(> .costs-est) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+}
+
+.costs-est {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.ce-total {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: end;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ce-big {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.ce-range,
+.ce-right {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ce-right {
+  text-align: right;
+}
+
+.ce-right b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* The house itself against the rough guide for the finish picked. */
+.ce-guide {
+  display: flex;
+  grid-column: 1 / 3;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.ce-guide b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ce-guide-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ce-guide-tag.in {
+  background: #e8f3ec;
+  color: #1e6b3a;
+}
+
+.ce-guide-tag.under,
+.ce-guide-tag.over {
+  background: #fdf3e1;
+  color: #8a5a00;
+}
+
+.ce-split {
+  grid-column: 1 / 3;
+  height: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--line-soft);
+}
+
+.ce-split i {
+  display: block;
+  height: 100%;
+  background: var(--text);
+}
+
+.ce-split-labels {
+  grid-column: 1 / 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ce-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ce-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.ce-seg button {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ce-seg button + button {
+  border-left: 1px solid var(--line);
+}
+
+.ce-seg button.on {
+  background: var(--text);
+  color: #ffffff;
+}
+
+.ce-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ce-grp {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ce-gh {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 20px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ce-gh:hover {
+  background: #fafbfc;
+}
+
+.ce-gh > svg {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.ce-grp.open .ce-gh > svg {
+  transform: rotate(90deg);
+}
+
+.ce-gh .ce-amt {
+  min-width: 92px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.ce-qchip {
+  padding: 0 7px;
+  border: 1px solid var(--ok-line);
+  border-radius: 10px;
+  color: var(--ok);
+  font-size: 11.5px;
+}
+
+.ce-lines {
+  padding: 0 20px 10px 46px;
+}
+
+.ce-colhead,
+.ce-ln-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px 84px 92px;
+  gap: 8px;
+}
+
+.ce-colhead {
+  padding: 2px 0 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ce-colhead span {
+  text-align: right;
+}
+
+.ce-ln {
+  border-top: 1px dashed var(--line-soft);
+}
+
+.ce-colhead + .ce-ln,
+.ce-ln:first-child {
+  border-top: 0;
+}
+
+.ce-ln-main {
+  align-items: baseline;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  text-align: left;
+}
+
+button.ce-ln-main {
+  cursor: pointer;
+}
+
+.ce-ln.on {
+  background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+}
+
+@media (hover: hover) {
+  .ce-ln:hover {
+    background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+  }
+}
+
+.ce-what small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ce-ln.missing .ce-what small {
+  color: var(--warn-ink);
+}
+
+.ce-qty,
+.ce-rate {
+  color: var(--muted);
+  text-align: right;
+}
+
+.ce-ln .ce-amt {
+  text-align: right;
+}
+
+.ce-amt.quoted {
+  color: var(--ok);
+  font-weight: 500;
+}
+
+.ce-amt s {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.ce-quote {
+  padding: 4px 0 10px;
+}
+
+.ce-quote-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ce-quote input,
+.cr-input input {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r);
+  background: #ffffff;
+  font: inherit;
+}
+
+.ce-quote input:first-child {
+  width: 130px;
+}
+
+.ce-quote input + input {
+  width: 150px;
+}
+
+.ce-quote .muted.small {
+  margin-top: 6px;
+}
+
+.ce-nowrap {
+  white-space: nowrap;
+}
+
+.ce-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.ce-foot p {
+  flex: 1;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.ce-foot button.secondary {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ---- Materials ---- */
+
+.cm-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.cm-row:first-child {
+  border-top: 0;
+}
+
+.cm-rows.detail .cm-row {
+  align-items: start;
+  padding: 12px 0;
+}
+
+.cm-rows.detail .cm-k {
+  padding-top: 5px;
+}
+
+.cm-k {
+  color: var(--muted);
+}
+
+.cm-linked {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.cm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cm-chip {
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.cm-chip:hover {
+  border-color: var(--text);
+}
+
+.cm-chip.on {
+  border-color: var(--text);
+  background: var(--text);
+  color: #ffffff;
+}
+
+.cm-chip em {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-style: normal;
+}
+
+.cm-rows.detail .muted.small {
+  margin-top: 6px;
+}
+
+/* ---- Beside the plan on a wide desktop ---- */
+
+.costs-materials {
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  z-index: 5;
+  width: 360px;
+  max-height: calc(100% - 2 * var(--gap) - 50px);
+  overflow-y: auto;
+}
+
+.app-shell .costs-materials > header {
+  align-items: center;
+  padding: 10px 12px 10px 16px;
+}
+
+.app-shell .costs-materials > header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-shell .costs-materials > header button.link {
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.costs-materials .cm-rows {
+  padding: 4px 16px 8px;
+}
+
+.costs-legend {
+  position: absolute;
+  top: var(--gap);
+  left: var(--free-left, 16px);
+  right: calc(360px + 2 * var(--gap) + 16px);
+  z-index: 4;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.costs-legend b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* The plan is for looking at here: no hover outlines or labels waiting to be dragged. */
+.shell-main.report .plan-status,
+.shell-main.report .plan-actions,
+.shell-main.report .level-chip {
+  display: none;
+}
+
+/* ---- Quotes ---- */
+
+.cq-sum {
+  margin: 0 0 12px;
+}
+
+.cq-empty {
+  padding: 14px 0;
+}
+
+.cq-row {
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.cq-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cq-what small {
+  display: block;
+  font-size: 12px;
+}
+
+.cq-amt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+}
+
+.cq-amt .quoted {
+  color: var(--ok);
+  font-weight: 500;
+}
+
+.cq-amt s {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.cq-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+/* ---- More ---- */
+
+.cr-group h3 {
+  margin-top: 18px;
+}
+
+.cr-row {
+  padding: 8px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.cr-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cr-input {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.cr-input em {
+  font-style: normal;
+}
+
+/* Units the same width, so the boxes line up down the list. */
+.cr-input .cr-unit {
+  width: 74px;
+}
+
+.cr-input input {
+  width: 86px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-row.changed .cr-input input {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cr-row .muted.small {
+  margin-top: 4px;
+}
+
+.costs-sources {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
+.costs-sources li + li {
+  margin-top: 4px;
+}
+
+.costs-sources a {
+  color: var(--accent);
+}
+
+/* ---- The strip ---- */
+
+.chip .dot.accent {
+  background: var(--accent);
+}
+
+/* ---- On the plan ---- */
+
+.costs-highlight {
+  pointer-events: none;
+}
+
+.costs-highlight .ch-fill {
+  fill: rgba(35, 70, 208, 0.12);
+  stroke: var(--accent, #2346d0);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.costs-highlight .ch-line {
+  fill: none;
+  stroke: var(--accent, #2346d0);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.costs-highlight .ch-solid {
+  fill: var(--accent, #2346d0);
+  stroke: var(--accent, #2346d0);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.costs-highlight .ch-roof {
+  fill: rgba(35, 70, 208, 0.08);
+  stroke: var(--accent, #2346d0);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.costs-highlight .ch-dug {
+  opacity: 0.45;
+}
+
+/* While a line is pointed out, the ground's colouring steps back so what it measures stands out. */
+.shell-main.report .plan-editor:has(.costs-highlight) .ground-overlay {
+  opacity: 0.3;
+}
+
+/* ---- Phone: no plan, the panel is the screen ---- */
+
+.app-shell.phone:has(.costs-strip) {
+  --strip-h: 46px;
+}
+
+.app-shell.phone .summary-strip.costs-strip {
+  display: flex;
+}
+
+.app-shell.phone .shell-main.report {
+  background: #ffffff;
+}
+
+.app-shell.phone .shell-main.report .plan-editor,
+.app-shell.phone .shell-main.report .canvas-3d,
+.app-shell.phone .shell-main.report canvas {
+  visibility: hidden;
+}
+
+.app-shell.phone .float-col.report {
+  top: 0;
+  width: auto;
+  max-height: none;
+}
+
+.app-shell.phone .float-col.report > .tab-panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell.phone .tab-panel.report > .sheet-grab {
+  display: none;
+}
+
+.app-shell.phone .tab-panel.report > header {
+  padding: 14px 16px 10px;
+}
+
+.app-shell.phone .float-col.report .panel-body {
+  padding: 12px 16px 18px;
+}
+
+/* The panel is the screen, so it scrolls as one page: the total, then the lines, then the CSV. */
+.app-shell.phone .float-col.report > .tab-panel {
+  flex: 1;
+}
+
+.app-shell.phone .float-col.report .panel-body:has(> .costs-est) {
+  display: block;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.app-shell.phone .costs-est,
+.app-shell.phone .ce-list {
+  display: block;
+  overflow: visible;
+}
+
+.app-shell.phone .cq-amt small,
+.app-shell.phone .costs-sources li {
+  font-size: 14px;
+}
+
+.app-shell.phone .costs-sources a {
+  display: inline-block;
+  padding: 12px 0;
+}
+
+.app-shell.phone .costs-sources li + li {
+  margin-top: 0;
+}
+
+.app-shell.phone .ce-total {
+  padding: 14px 16px;
+}
+
+.app-shell.phone .ce-big {
+  font-size: 32px;
+}
+
+.app-shell.phone .ce-range,
+.app-shell.phone .ce-right,
+.app-shell.phone .ce-guide,
+.app-shell.phone .ce-split-labels {
+  font-size: 14px;
+}
+
+.app-shell.phone .ce-split-labels {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-shell.phone .ce-who {
+  padding: 10px 16px;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-seg button {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-gh {
+  min-height: 52px;
+  padding: 12px 16px;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-lines {
+  padding: 0 16px 12px;
+}
+
+.app-shell.phone .ce-colhead,
+.app-shell.phone .ce-ln-main {
+  grid-template-columns: minmax(0, 1fr) auto;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-ln-main {
+  min-height: 44px;
+  padding: 8px 0;
+}
+
+.app-shell.phone .ce-qty,
+.app-shell.phone .ce-rate,
+.app-shell.phone .ce-colhead span:nth-child(2) {
+  display: none;
+}
+
+/* Owner-builder on a phone: materials and labour stack in the right-hand column. */
+.app-shell.phone .costs-est.ob .ce-colhead,
+.app-shell.phone .costs-est.ob .ce-ln-main {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.app-shell.phone .ce-what small,
+.app-shell.phone .ce-amt s,
+.app-shell.phone .ce-qchip,
+.app-shell.phone .ce-colhead {
+  font-size: 14px;
+}
+
+.app-shell.phone .ce-quote input {
+  height: 44px;
+  font-size: 16px;
+}
+
+.app-shell.phone .ce-quote input:first-child,
+.app-shell.phone .ce-quote input + input {
+  flex: 1 1 140px;
+  width: auto;
+}
+
+.app-shell.phone .ce-quote button {
+  min-height: 44px;
+}
+
+.app-shell.phone .ce-foot {
+  flex-wrap: wrap;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+.app-shell.phone .ce-foot p {
+  flex-basis: 100%;
+  font-size: 14px;
+}
+
+.app-shell.phone .cm-row {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.app-shell.phone .cm-rows.detail .cm-k {
+  padding-top: 0;
+}
+
+.app-shell.phone .cm-chip {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 22px;
+  font-size: 15px;
+}
+
+.app-shell.phone .cm-chip em,
+.app-shell.phone .cm-linked,
+.app-shell.phone .cq-what small,
+.app-shell.phone .cq-amt s,
+.app-shell.phone .costs-sources {
+  font-size: 14px;
+}
+
+/* Links in a line of text keep to the text; each one's tap area is 44 px tall. */
+.app-shell.phone .cm-linked button.link,
+.app-shell.phone .ce-quote button.link,
+.app-shell.phone .cr-row button.link {
+  position: relative;
+}
+
+.app-shell.phone .cm-linked button.link::after,
+.app-shell.phone .ce-quote button.link::after,
+.app-shell.phone .cr-row button.link::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.app-shell.phone .cq-actions button,
+.app-shell.phone .ce-quote-row button,
+.app-shell.phone .costs-est .ce-foot button {
+  min-height: 44px;
+}
+
+.app-shell.phone .cr-input input {
+  width: 96px;
+  height: 44px;
+  font-size: 16px;
+}
+
+.app-shell.phone .chip .dot.accent {
+  flex: none;
+}

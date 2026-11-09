@@ -1,0 +1,6 @@
+/* IBM Plex Sans, self-hosted (@fontsource), for the new layout and the Projects home. Both
+   import this one file, so the bundle carries one copy of each face. */
+
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';

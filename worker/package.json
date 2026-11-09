@@ -1,0 +1,9 @@
+{
+  "name": "block-and-house-planner-worker",
+  "private": true,
+  "description": "Only the Cloudflare tool (wrangler) that runs and deploys the cloud Worker. The Worker's code is in src/, and what it imports is in the app's own package.json.",
+  "type": "module",
+  "devDependencies": {
+    "wrangler": "4.152.0"
+  }
+}

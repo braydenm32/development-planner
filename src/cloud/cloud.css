@@ -1,0 +1,861 @@
+/* Cloud saves, in the calm look (direction B): ink on white, hairlines, one cobalt accent.
+   Every rule is scoped to .cloud-ui so it sits the same over every screen. */
+
+.cloud-ui {
+  --cl-ink: #16181b;
+  --cl-muted: #6b7077;
+  --cl-line: #e1e4e7;
+  --cl-line-soft: #eef0f2;
+  --cl-field-line: #cfd3d8;
+  --cl-accent: #2346d0;
+  --cl-accent-soft: #eef1fc;
+  --cl-warn-bg: #fff6e0;
+  --cl-warn-line: #f0deae;
+  --cl-warn-text: #7a5300;
+  --cl-danger: #b3261e;
+  --cl-r: 3px;
+  --cl-r-lg: 4px;
+  --cl-fs: 13px;
+  --cl-tap: 32px;
+
+  color: var(--cl-ink);
+  font-family: 'IBM Plex Sans', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: var(--cl-fs);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cloud-ui *,
+.cloud-ui *::before,
+.cloud-ui *::after {
+  box-sizing: border-box;
+}
+
+.cloud-ui button,
+.cloud-ui input {
+  font: inherit;
+  color: inherit;
+}
+
+.cloud-ui .ic {
+  flex: none;
+  display: block;
+}
+
+/* ---- Buttons and links ---- */
+
+.cl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: var(--cl-tap);
+  padding: 0 12px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r);
+  background: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cl-btn:hover:not(:disabled) {
+  border-color: var(--cl-ink);
+}
+
+.cl-btn.primary {
+  background: var(--cl-ink);
+  border-color: var(--cl-ink);
+  color: #ffffff;
+}
+
+.cl-btn.primary:hover:not(:disabled) {
+  background: #000000;
+}
+
+.cl-btn.big {
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.cl-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cl-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cl-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cl-link.quiet {
+  color: var(--cl-muted);
+}
+
+.cl-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cloud-ui :is(.cl-btn, .cl-link, .cl-x, .cl-chip, input[type=checkbox]):focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 2px;
+}
+
+.cl-muted {
+  color: var(--cl-muted);
+}
+
+.cl-grow {
+  flex: 1;
+}
+
+/* ---- Sheets ---- */
+
+.cl-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: rgba(22, 24, 27, 0.32);
+  animation: cl-fade 0.12s ease-out;
+}
+
+@keyframes cl-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.cl-sheet {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 18px 48px -12px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.cl-sheet.wide {
+  width: min(560px, 100%);
+}
+
+.cl-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 4px 24px;
+}
+
+.cl-head h2 {
+  flex: 1;
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.cl-x {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -6px 0 0;
+  border: 0;
+  border-radius: var(--cl-r);
+  background: none;
+  color: var(--cl-muted);
+  cursor: pointer;
+}
+
+.cl-x:hover:not(:disabled) {
+  background: var(--cl-line-soft);
+  color: var(--cl-ink);
+}
+
+.cl-body {
+  padding: 4px 24px 22px;
+  overflow-y: auto;
+}
+
+.cl-body p {
+  margin: 0 0 10px;
+}
+
+.cl-points {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--cl-muted);
+}
+
+.cl-points li {
+  margin: 3px 0;
+}
+
+.cl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cl-actions.split {
+  justify-content: space-between;
+}
+
+.cl-actions.split > p {
+  flex: 1;
+  margin: 0;
+}
+
+.cl-actions .cl-btn.big {
+  flex: 1;
+}
+
+.cl-alt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 14px 0 0 !important;
+  color: var(--cl-muted);
+}
+
+.cl-problem {
+  padding: 8px 12px;
+  border: 1px solid var(--cl-warn-line);
+  border-radius: var(--cl-r);
+  background: var(--cl-warn-bg);
+  color: var(--cl-warn-text);
+}
+
+/* ---- Fields ---- */
+
+.cl-field {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0 4px;
+}
+
+.cl-field > span {
+  font-weight: 500;
+}
+
+.cl-field input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-field-line);
+  border-radius: var(--cl-r);
+  background: #ffffff;
+}
+
+.cl-field input:focus {
+  border-color: var(--cl-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--cl-accent-soft);
+}
+
+.cl-field small {
+  color: var(--cl-muted);
+  font-size: 12px;
+}
+
+.cl-code-input {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cl-code-input::placeholder {
+  color: #b4b9bf;
+}
+
+.cl-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-top: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cl-check input,
+.cl-pick input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--cl-ink);
+  flex: none;
+}
+
+/* ---- The recovery code ---- */
+
+.cl-code {
+  margin: 14px 0 10px;
+  padding: 16px 12px;
+  border: 1px dashed var(--cl-field-line);
+  border-radius: var(--cl-r-lg);
+  background: #fcfcfd;
+  text-align: center;
+}
+
+.cl-code code {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  word-break: break-word;
+  user-select: all;
+}
+
+.cl-code-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+/* ---- The upload review ---- */
+
+.cl-pick {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r-lg);
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.cl-pick li + li {
+  border-top: 1px solid var(--cl-line-soft);
+}
+
+.cl-pick label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.cl-pick-text {
+  display: grid;
+  min-width: 0;
+}
+
+.cl-pick-text b {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-pick-text span {
+  color: var(--cl-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- The account ---- */
+
+.cl-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 14px;
+}
+
+.cl-who > span:last-child {
+  display: grid;
+}
+
+.cl-who b {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.cl-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cl-accent-soft);
+  color: var(--cl-accent);
+  font-weight: 600;
+}
+
+.cl-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r-lg);
+  background: #fcfcfd;
+}
+
+.cl-status > p {
+  flex: 1;
+  margin: 0 !important;
+}
+
+.cl-status .ic {
+  color: var(--cl-muted);
+}
+
+.cl-status.quiet .ic {
+  color: var(--cl-accent);
+}
+
+.cl-status.warn {
+  border-color: var(--cl-warn-line);
+  background: var(--cl-warn-bg);
+  color: var(--cl-warn-text);
+}
+
+.cl-status.warn .ic {
+  color: currentColor;
+}
+
+.cl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0 !important;
+}
+
+.cl-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cl-line-soft);
+}
+
+.cl-section h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cl-section p {
+  margin-bottom: 8px;
+}
+
+/* ---- The chip and its popover ---- */
+
+.cl-chip-wrap {
+  position: relative;
+  flex: none;
+}
+
+.cl-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--cl-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cl-chip:hover,
+.cl-chip[aria-expanded='true'] {
+  background: var(--cl-line-soft);
+  color: var(--cl-ink);
+}
+
+.cl-chip.quiet .ic {
+  color: var(--cl-accent);
+}
+
+.cl-chip.busy .ic {
+  animation: cl-breathe 1.4s ease-in-out infinite;
+}
+
+@keyframes cl-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-chip.busy .ic {
+    animation: none;
+  }
+}
+
+.cl-chip.warn {
+  border-color: var(--cl-warn-line);
+  background: var(--cl-warn-bg);
+  color: var(--cl-warn-text);
+}
+
+.cl-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid #ffffff;
+  border-radius: 50%;
+  background: #d07a12;
+}
+
+.cl-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 45;
+  width: 320px;
+  padding: 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 18px 50px -12px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.cl-notices {
+  margin: 10px 0 0;
+  padding: 0 2px;
+  list-style: none;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.cl-notices li {
+  padding: 8px 2px;
+  border-top: 1px solid var(--cl-line-soft);
+}
+
+.cl-notices li:first-child {
+  border-top: 0;
+}
+
+.cl-pop-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* ---- On the Projects home ---- */
+
+.cl-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-r-lg);
+  background: #ffffff;
+}
+
+.cl-card-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cl-accent-soft);
+  color: var(--cl-accent);
+}
+
+.cl-card-text h2 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.cl-card-text p {
+  margin: 0;
+  color: var(--cl-muted);
+  max-width: 62ch;
+}
+
+.cl-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cl-card-actions .cl-link {
+  margin-left: 6px;
+}
+
+.cl-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: -8px 0 18px;
+  color: var(--cl-muted);
+}
+
+.cl-line .ic {
+  color: var(--cl-accent);
+}
+
+.cl-line.muted .ic {
+  color: var(--cl-muted);
+}
+
+.cl-line.warn {
+  color: var(--cl-warn-text);
+}
+
+.cl-line.warn .ic {
+  color: currentColor;
+}
+
+.cl-sep {
+  color: #b4b9bf;
+}
+
+.cl-mark {
+  color: var(--cl-muted, #6b7077);
+}
+
+.cl-grp {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.cl-grp + .cl-grp::before {
+  content: '·';
+  color: #b4b9bf;
+}
+
+/* The start screen, on a device with no projects yet: under the lede. */
+.cl-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: -12px 0 22px;
+  color: var(--cl-muted);
+  font-size: 14px;
+}
+
+.cl-start .ic {
+  color: var(--cl-accent);
+}
+
+/* ---- Phones and touch: 44 px to tap, text at least 14 px, sheets from the bottom ---- */
+
+@media (max-width: 760px), (pointer: coarse) {
+  .cloud-ui {
+    --cl-tap: 44px;
+  }
+
+  .cl-x {
+    width: 44px;
+    height: 44px;
+    margin: -10px -12px 0 0;
+  }
+
+  .cl-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .cl-check {
+    min-height: 44px;
+  }
+
+  .cl-field input {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .cl-chip {
+    height: 44px;
+  }
+
+  /* The links sit 44 px tall in their lines, so those lines need no extra gap. */
+  .cl-line,
+  .cl-grp,
+  .cl-start {
+    row-gap: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .cloud-ui {
+    --cl-fs: 15px;
+  }
+
+  /* One group to a line, so no "·" is left hanging at a line's end. */
+  .cl-grp {
+    flex-basis: 100%;
+  }
+
+  .cl-grp + .cl-grp::before {
+    display: none;
+  }
+
+  .cl-line {
+    margin-top: -14px;
+  }
+
+  .cl-start {
+    margin: -6px 0 14px;
+    font-size: 15px;
+  }
+
+  .cl-field small,
+  .cl-pick-text span {
+    font-size: 14px;
+  }
+
+  .cl-scrim {
+    align-items: end;
+    padding: 0;
+  }
+
+  .cl-sheet,
+  .cl-sheet.wide {
+    width: 100%;
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+  }
+
+  .cl-head {
+    padding: 18px 16px 2px;
+  }
+
+  .cl-body {
+    padding: 4px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .cl-actions,
+  .cl-actions.split {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .cl-actions .cl-btn {
+    width: 100%;
+  }
+
+  .cl-actions.split > p {
+    text-align: center;
+  }
+
+  .cl-alt {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .cl-code code {
+    font-size: 17px;
+  }
+
+  .cl-code-actions .cl-btn {
+    flex: 1;
+  }
+
+  .cl-status {
+    flex-wrap: wrap;
+  }
+
+  .cl-status > p {
+    flex-basis: calc(100% - 40px);
+  }
+
+  .cl-status > .cl-btn {
+    width: 100%;
+  }
+
+  .cl-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .cl-card-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .cl-card-actions .cl-btn {
+    flex: 1;
+  }
+
+  .cl-card-actions .cl-link {
+    flex-basis: 100%;
+    justify-content: center;
+    margin: 0;
+  }
+
+  .cl-pop {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0 !important;
+    width: auto;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    border-radius: 14px 14px 0 0;
+  }
+
+  .cl-pop-actions .cl-btn {
+    flex: none;
+  }
+}
+
+/* The project menu's item (the menu's own styles, src/shell). */
+.menu-item .cl-menu-name {
+  color: #6b7077;
+}
+
+/* The new layout on a phone: the chip is its icon, 44 px square, beside search. */
+.app-shell.phone .cl-chip-wrap.cl-in-shell .cl-chip {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  border-radius: var(--cl-r);
+}
+
+.app-shell.phone .cl-chip-wrap.cl-in-shell .cl-chip-label {
+  display: none;
+}
+
+.app-shell.phone .cl-chip-wrap.cl-in-shell.calm {
+  display: none;
+}

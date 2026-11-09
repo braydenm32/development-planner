@@ -1,0 +1,1245 @@
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+button.secondary {
+  margin-top: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button.secondary:hover {
+  border-color: var(--accent);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.warnings p {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 0 6px;
+}
+
+.slider {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.slider input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.layers li {
+  display: grid;
+  gap: 4px;
+}
+
+.layers li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.layer-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.layers select {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.compass {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.needle {
+  position: absolute;
+  inset: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.needle::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 18px solid #c0392b;
+}
+
+.needle span {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.legend {
+  position: absolute;
+  top: 84px;
+  right: 16px;
+  display: flex;
+  gap: 6px;
+  height: 140px;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.ramp {
+  width: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.ramp-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.readout {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.problem {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 24px;
+}
+
+.lede {
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+
+.error {
+  color: var(--danger);
+  margin: 12px 0 0;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 16px 0 0;
+}
+
+/* Survey layers: what the import read, above the list (forensics A2). */
+.found-line {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 760px) {
+  .viewport {
+    grid-row: 1;
+    height: 60vh;
+  }
+
+  .legend,
+  .controls-hint {
+    display: none;
+  }
+}
+
+/* ---- Plan editor ---- */
+
+.plan-editor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.plan-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #fbfbf9;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.plan-svg.tool-select,
+.plan-svg.tool-move {
+  cursor: default;
+}
+
+.plan-svg.tool-move {
+  cursor: grab;
+}
+
+.site-boundary {
+  fill: #f1f5ec;
+  stroke: #3c4a3a;
+  stroke-width: 1.5;
+}
+
+.contour-minor {
+  fill: none;
+  stroke: #d6c9b6;
+  stroke-width: 0.7;
+}
+
+.contour-major {
+  fill: none;
+  stroke: #a8927a;
+  stroke-width: 1.1;
+}
+
+.contour-label {
+  font-size: 10px;
+  fill: #8b7660;
+}
+
+.wall {
+  fill: #474c54;
+  stroke: none;
+}
+
+.wall.internal {
+  fill: #7d838c;
+}
+
+.wall.retaining {
+  fill: url(#retaining-hatch);
+  stroke: #6e5f4b;
+  stroke-width: 1;
+}
+
+.wall.retaining.selected {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.wall.selected {
+  fill: var(--accent);
+}
+
+.wall.ghost {
+  fill: none;
+  stroke: #9aa3ad;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.wall.preview {
+  fill: rgba(47, 111, 98, 0.45);
+}
+
+.opening-gap {
+  fill: #fbfbf9;
+}
+
+.opening {
+  fill: none;
+  stroke: #2a2f36;
+  stroke-width: 1.2;
+}
+
+.opening.swing {
+  stroke-width: 0.8;
+}
+
+.opening.head {
+  stroke-dasharray: 5 3;
+}
+
+/* A garage door's panel, dashed across the opening (src/plan/garageDoor.ts). */
+.opening.garage-panel {
+  stroke-dasharray: 7 3;
+  stroke-width: 1.8;
+}
+
+.opening.selected {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.opening.ghost {
+  stroke: var(--accent);
+  opacity: 0.7;
+}
+
+.room-fill {
+  fill: #f4efe4;
+}
+
+.room-name {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #2c323a;
+}
+
+.room-area {
+  font-size: 11px;
+  fill: #5f6874;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-area.open {
+  fill: var(--danger);
+}
+
+.room-label {
+  cursor: move;
+}
+
+.room-label.selected .room-name {
+  fill: var(--accent);
+}
+
+.area {
+  fill: rgba(122, 154, 106, 0.16);
+  stroke: #6f8f60;
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+
+.area.kind-slab {
+  fill: rgba(150, 150, 145, 0.24);
+  stroke: #8b8b85;
+  stroke-dasharray: none;
+}
+
+.area.kind-driveway {
+  fill: rgba(112, 112, 110, 0.3);
+  stroke: #66665f;
+  stroke-dasharray: none;
+}
+
+.area.kind-deck {
+  fill: rgba(176, 132, 88, 0.24);
+  stroke: #9a6d45;
+  stroke-dasharray: none;
+}
+
+.area.kind-garden {
+  fill: rgba(122, 154, 106, 0.2);
+  stroke: #6f8f60;
+}
+
+.area.selected {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.room-fill.piers {
+  fill: url(#piers-hatch);
+}
+
+.stair-body {
+  fill: #fbfaf6;
+  stroke: #2a2f36;
+  stroke-width: 1.2;
+}
+
+.stair-treads,
+.stair-walk {
+  fill: none;
+  stroke: #2a2f36;
+  stroke-width: 0.8;
+}
+
+.stair-label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #2a2f36;
+}
+
+.stair.selected .stair-body,
+.stair.selected .stair-treads,
+.stair.selected .stair-walk {
+  stroke: var(--accent);
+}
+
+.stair.selected .stair-body {
+  stroke-width: 2;
+}
+
+.stair.ghost .stair-body {
+  fill: none;
+  stroke: #9aa3ad;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.stair.preview {
+  opacity: 0.6;
+}
+
+.roof-outline {
+  fill: none;
+  stroke: #a0613f;
+  stroke-width: 1.2;
+  stroke-dasharray: 9 4;
+}
+
+.roof-lines {
+  fill: none;
+  stroke: #a0613f;
+  stroke-width: 1;
+}
+
+.roof.selected .roof-outline,
+.roof.selected .roof-lines {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.roof.broken .roof-outline {
+  stroke: var(--danger);
+}
+
+.roof-draft {
+  fill: rgba(160, 97, 63, 0.08);
+  stroke: #a0613f;
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+
+.roof-marker circle {
+  fill: #fff;
+  stroke: #a0613f;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.roof-marker.on circle {
+  fill: #a0613f;
+}
+
+.roof-marker text {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #a0613f;
+  pointer-events: none;
+}
+
+.roof-marker.on text {
+  fill: #fff;
+}
+
+.area.drawing {
+  fill: rgba(122, 154, 106, 0.1);
+}
+
+.handle {
+  fill: #fff;
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: move;
+}
+
+.chain {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.guide {
+  stroke: #d0743c;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.snap {
+  fill: none;
+  stroke: #d0743c;
+  stroke-width: 1.6;
+}
+
+.tag rect {
+  fill: rgba(29, 35, 43, 0.85);
+}
+
+.tag text {
+  fill: #fff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dim {
+  font-size: 10px;
+  fill: #5f6874;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A length shown while drawing, on a halo so it reads over walls and fills. */
+.live-dim {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #2b3138;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.plan-compass {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  pointer-events: none;
+}
+
+.plan-actions {
+  position: absolute;
+  top: 86px;
+  right: 16px;
+}
+
+.plan-actions button {
+  margin: 0;
+}
+
+.scalebar {
+  position: absolute;
+  right: 16px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.scalebar div {
+  height: 6px;
+  border: 1.5px solid #4a4f57;
+  border-top: 0;
+}
+
+.plan-status {
+  right: auto;
+  max-width: calc(100% - 140px);
+}
+
+.notice {
+  color: var(--warn-text);
+}
+
+kbd {
+  font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.row button.secondary {
+  margin-top: 10px;
+}
+
+button.secondary:disabled {
+  opacity: 0.45;
+  cursor: default;
+  border-color: var(--line);
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+.tool-options {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.num {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.num > span:first-child {
+  color: var(--muted);
+}
+
+.num select {
+  max-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.num-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.num-input input,
+.num input.text {
+  width: 96px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.num input.text {
+  width: 160px;
+  text-align: left;
+}
+
+.num-input em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 18px;
+}
+
+.selection {
+  background: #f7faf9;
+  margin-left: -18px;
+  margin-right: -18px;
+  padding-left: 18px;
+  padding-right: 18px;
+  padding-bottom: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.selection h2 {
+  margin-bottom: 2px;
+}
+
+.levels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.level-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.levels li.on .level-btn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.area-summary h3:first-child {
+  margin-top: 0;
+}
+
+.stats dt.strong,
+.stats dd.strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Keep plan text legible over lines */
+.dim,
+.room-name,
+.room-area,
+.contour-label {
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 760px) {
+  .plan-status .muted,
+  .plan-actions,
+  .view-actions {
+    display: none;
+  }
+
+  .plan-status:not(:has(.notice)) {
+    display: none;
+  }
+}
+
+.panel-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.panel-toggle svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s;
+}
+
+.panel.folded .panel-toggle svg {
+  transform: rotate(-90deg);
+}
+
+/* ---- Orientation ---- */
+
+.view-actions {
+  position: absolute;
+  top: 16px;
+  right: 80px;
+  z-index: 2;
+}
+
+.orientation {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+}
+
+.orientation label {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+}
+
+.orientation select,
+.orientation input {
+  font: inherit;
+  color: var(--text);
+  padding: 3px 4px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+}
+
+.orientation .bearing {
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.orientation .bearing input {
+  width: 64px;
+}
+
+.orientation em {
+  font-style: normal;
+}
+
+/* ---- Boundary distances while moving ---- */
+
+.clearance path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+
+.clearance circle {
+  fill: var(--accent);
+}
+
+.clearance-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--accent);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* ---- Print and share ---- */
+
+.print-actions {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  z-index: 2;
+}
+
+.segmented {
+  display: flex;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.segmented button {
+  border: 0;
+  background: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.segmented button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.print-key {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.print-key span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.swatch.kind-terrain {
+  background: #9dba86;
+}
+
+.swatch.kind-floor {
+  background: #eee8dc;
+}
+
+.swatch.kind-roof {
+  background: #6d7581;
+}
+
+.parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.parts li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.parts li .muted {
+  font-size: 12px;
+}
+
+.parts li.too-big {
+  border-color: #e9c46a;
+  background: var(--warn-bg);
+}
+
+.part-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.print-notes {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--warn-text);
+}
+
+.fine-tuning {
+  margin-top: 10px;
+}
+
+.fine-tuning summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+@media (max-width: 760px) {
+  .print-key {
+    display: none;
+  }
+}
+
+/* Keep the view's buttons clear of each other when the viewport is narrow. */
+.viewport {
+  container-type: inline-size;
+}
+
+@container (max-width: 700px) {
+  .view-actions {
+    top: 64px;
+    left: 16px;
+    right: auto;
+  }
+}
+
+/* ---- Ground vs this floor ---- */
+
+.ground-overlay {
+  pointer-events: none;
+}
+
+.ground-meets,
+.ground-meets-halo {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.ground-meets-halo {
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 5;
+}
+
+.ground-meets {
+  stroke: #23395b;
+  stroke-width: 2.25;
+}
+
+.ground-meets-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #23395b;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.corner-offset {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.corner-offset.above {
+  fill: #2c5d97;
+}
+
+.corner-offset.below {
+  fill: #a14e2a;
+}
+
+.level-chip {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* The ground key sits under Fit to view, both to the right. */
+.plan-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ground-key {
+  padding: 6px 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+}
+
+.ground-key ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+}
+
+.ground-key i {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  opacity: 0.55;
+}
+
+.ground-key i.meets {
+  height: 0;
+  border-top: 2.5px solid #23395b;
+  border-radius: 0;
+  vertical-align: 3px;
+  opacity: 1;
+}
+
+.ground-key li.small {
+  font-size: 11px;
+}
+
+.ground-readout {
+  flex-basis: 100%;
+}
+
+@container (max-width: 920px) {
+  .level-chip {
+    top: 58px;
+  }
+}
+
+@container (max-width: 700px) {
+  .level-chip {
+    top: 128px;
+  }
+}
+
+@media (max-width: 760px) {
+  .level-chip {
+    top: 58px;
+  }
+}
+
+/* ---- Furniture ---- */
+
+.furniture-fill {
+  fill: #fffefb;
+  stroke: #6b737d;
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.furniture-lines {
+  fill: none;
+  stroke: #6b737d;
+  stroke-width: 0.7;
+}
+
+.furniture-code {
+  font-size: 9px;
+  font-weight: 600;
+  fill: #6b737d;
+  pointer-events: none;
+}
+
+.furniture.selected .furniture-fill,
+.furniture.selected .furniture-lines {
+  stroke: var(--accent);
+}
+
+.furniture.selected .furniture-fill {
+  stroke-width: 1.6;
+}
+
+.furniture.ghost {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.turn-handle path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.turn-handle circle {
+  fill: #fff;
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: grab;
+}
+
+.furniture-items {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.furniture-items button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.furniture-items button:hover {
+  border-color: var(--accent);
+}
+
+.furniture-items button.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.furniture-thumb {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.furniture-thumb .fill {
+  fill: #fff;
+}

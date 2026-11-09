@@ -1,0 +1,783 @@
+/* The Projects home, in the calm look (direction B): ink on white drafting paper, hairlines,
+   one cobalt accent. Every rule is scoped to .projects-home so it can sit in any shell. */
+
+.projects-home {
+  --ph-ink: #16181b;
+  --ph-muted: #6b7077;
+  --ph-line: #e1e4e7;
+  --ph-line-soft: #eef0f2;
+  --ph-field-line: #cfd3d8;
+  --ph-accent: #2346d0;
+  --ph-accent-soft: #eef1fc;
+  --ph-accent-light: #8da0e6;
+  --ph-paper: #fcfcfd;
+  --ph-grid: #f1f3f6;
+  --ph-grid-major: #e2e6ec;
+  --ph-danger: #b3261e;
+  --ph-r: 3px;
+  --ph-r-lg: 4px;
+  --ph-fs: 13px;
+
+  height: 100%;
+  overflow-y: auto;
+  background: #ffffff;
+  color: var(--ph-ink);
+  font-family: 'IBM Plex Sans', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: var(--ph-fs);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.projects-home * {
+  box-sizing: border-box;
+}
+
+.projects-home button {
+  font: inherit;
+  color: inherit;
+}
+
+.ph-ic {
+  flex: none;
+  display: block;
+}
+
+/* ---- Top bar ---- */
+
+.ph-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--ph-line);
+}
+
+.ph-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.ph-top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ph-top-actions[hidden] {
+  display: none;
+}
+
+.ph-short {
+  display: none;
+}
+
+/* ---- Buttons ---- */
+
+.ph-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r);
+  background: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ph-btn:hover {
+  border-color: var(--ph-ink);
+}
+
+.ph-btn.primary {
+  background: var(--ph-ink);
+  border-color: var(--ph-ink);
+  color: #ffffff;
+}
+
+.ph-btn.primary:hover {
+  background: #000000;
+}
+
+.ph-btn.danger {
+  background: var(--ph-danger);
+  border-color: var(--ph-danger);
+  color: #ffffff;
+}
+
+.ph-btn.big {
+  height: 40px;
+  padding: 0 18px;
+}
+
+.ph-btn:focus-visible,
+.ph-icon-btn:focus-visible,
+.ph-thumb:focus-visible,
+.ph-link:focus-visible,
+.ph-seg button:focus-visible,
+.ph-menu button:focus-visible {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: 2px;
+}
+
+.ph-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -8px -4px 0;
+  border: 0;
+  border-radius: var(--ph-r);
+  background: none;
+  color: var(--ph-muted);
+  cursor: pointer;
+}
+
+.ph-icon-btn:hover,
+.ph-icon-btn[aria-expanded='true'] {
+  background: var(--ph-line-soft);
+  color: var(--ph-ink);
+}
+
+.ph-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ph-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ph-link.danger {
+  color: var(--ph-danger);
+}
+
+/* ---- Page ---- */
+
+.ph-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 32px 72px;
+}
+
+.ph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  margin-bottom: 20px;
+}
+
+.ph-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.ph-seg {
+  display: inline-flex;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r);
+  overflow: hidden;
+}
+
+.ph-seg button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  background: #ffffff;
+  color: var(--ph-muted);
+  cursor: pointer;
+}
+
+.ph-seg button + button {
+  border-left: 1px solid var(--ph-line);
+}
+
+.ph-seg button.on {
+  background: var(--ph-ink);
+  color: #ffffff;
+}
+
+.ph-count {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.ph-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--ph-r);
+}
+
+.ph-note.warn {
+  background: #fff6e0;
+  border: 1px solid #f0deae;
+  color: #7a5300;
+}
+
+.ph-note.error {
+  background: #fdf1f0;
+  border: 1px solid #f2cbc7;
+  color: var(--ph-danger);
+}
+
+/* ---- Cards ---- */
+
+.ph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ph-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r-lg);
+  background: #ffffff;
+}
+
+.ph-card.current {
+  border-color: var(--ph-ink);
+}
+
+.ph-thumb {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 16px;
+  border: 0;
+  border-bottom: 1px solid var(--ph-line-soft);
+  border-radius: var(--ph-r-lg) var(--ph-r-lg) 0 0;
+  background-color: var(--ph-paper);
+  background-image:
+    linear-gradient(var(--ph-grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--ph-grid-major) 1px, transparent 1px),
+    linear-gradient(var(--ph-grid) 1px, transparent 1px), linear-gradient(90deg, var(--ph-grid) 1px, transparent 1px);
+  background-size:
+    60px 60px,
+    60px 60px,
+    12px 12px,
+    12px 12px;
+  background-position: -1px -1px;
+}
+
+button.ph-thumb {
+  cursor: pointer;
+}
+
+/* Absolutely placed, so a tall block can't stretch the card past its 16:10 frame. */
+.ph-thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.ph-thumb > svg {
+  position: absolute;
+  inset: 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  overflow: visible;
+}
+
+.ph-thumb > .ph-thumb-empty {
+  position: absolute;
+  inset: 0;
+  place-content: center;
+}
+
+.ph-block {
+  fill: #ffffff;
+  stroke: var(--ph-ink);
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ph-house {
+  fill: var(--ph-ink);
+  stroke: var(--ph-ink);
+  stroke-width: 0.6px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ph-thumb-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: var(--ph-muted);
+}
+
+.ph-thumb-empty svg {
+  width: 96px;
+  height: auto;
+}
+
+.ph-thumb-empty rect {
+  fill: #ffffff;
+  stroke: var(--ph-field-line);
+  stroke-dasharray: 4 3;
+}
+
+.ph-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+
+.ph-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.ph-name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-rename {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 7px;
+  margin-left: -8px;
+  border: 1px solid var(--ph-accent);
+  border-radius: var(--ph-r);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--ph-accent-soft);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ph-ink);
+}
+
+.ph-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  margin: 0;
+  color: var(--ph-muted);
+}
+
+.ph-when > span + span::before {
+  content: '·';
+  margin-right: 8px;
+}
+
+.ph-current {
+  color: var(--ph-accent);
+  font-weight: 500;
+}
+
+.ph-file {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 0;
+  color: var(--ph-muted);
+}
+
+.ph-numbers b {
+  color: var(--ph-ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.ph-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* ---- Card menu ---- */
+
+.ph-menu-wrap {
+  position: relative;
+  flex: none;
+}
+
+.ph-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: -8px;
+  z-index: 10;
+  min-width: 220px;
+  padding: 4px;
+  border: 1px solid #dcdfe3;
+  border-radius: var(--ph-r-lg);
+  background: #ffffff;
+  box-shadow: 0 10px 28px -14px rgba(22, 24, 27, 0.3);
+}
+
+.ph-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--ph-r);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ph-menu button:hover {
+  background: var(--ph-line-soft);
+}
+
+.ph-menu button .ph-ic {
+  color: var(--ph-muted);
+}
+
+/* ---- Empty states ---- */
+
+.ph-empty {
+  max-width: 460px;
+  margin: 72px auto 0;
+  text-align: center;
+}
+
+.ph-empty h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ph-empty p {
+  margin: 0 0 20px;
+  color: var(--ph-muted);
+}
+
+.ph-empty-art {
+  width: 150px;
+  margin-bottom: 18px;
+}
+
+.ph-empty-art .ph-block {
+  stroke-width: 1.2px;
+}
+
+.ph-empty .ph-empty-alt {
+  margin: 18px 0 0;
+}
+
+/* ---- Loading ---- */
+
+.ph-card.skeleton .ph-thumb {
+  background-image: none;
+  background-color: var(--ph-line-soft);
+}
+
+.ph-card.skeleton i {
+  display: block;
+  height: 12px;
+  width: 60%;
+  border-radius: 2px;
+  background: var(--ph-line-soft);
+}
+
+.ph-card.skeleton i + i {
+  width: 85%;
+}
+
+/* ---- Toast and review ---- */
+
+.ph-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: var(--ph-r-lg);
+  background: var(--ph-ink);
+  color: #ffffff;
+  transform: translateX(-50%);
+}
+
+.ph-toast .ph-link {
+  color: var(--ph-accent-light);
+  font-weight: 500;
+}
+
+.ph-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(22, 24, 27, 0.32);
+}
+
+.ph-dialog {
+  width: 100%;
+  max-width: 540px;
+  padding: 22px 24px 20px;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r-lg);
+  background: #ffffff;
+}
+
+.ph-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.ph-dialog p {
+  margin: 0 0 8px;
+}
+
+.ph-dialog ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+
+.ph-dialog li {
+  margin: 2px 0;
+}
+
+.ph-dialog .muted {
+  color: var(--ph-muted);
+}
+
+.ph-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.ph-grow {
+  flex: 1;
+}
+
+/* ---- Phone: one column, thumb-sized taps, larger text ---- */
+
+@media (max-width: 760px) {
+  .projects-home {
+    --ph-fs: 15px;
+  }
+
+  .ph-top {
+    height: 56px;
+    padding: 0 16px;
+  }
+
+  .ph-brand span,
+  .ph-long {
+    display: none;
+  }
+
+  .ph-short {
+    display: inline;
+  }
+
+  .ph-btn {
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .ph-icon-btn {
+    width: 44px;
+    height: 44px;
+    margin: -8px -10px -8px 0;
+  }
+
+  .ph-main {
+    padding: 20px 16px 96px;
+  }
+
+  .ph-head h1 {
+    font-size: 20px;
+  }
+
+  .ph-seg button {
+    height: 42px;
+    padding: 0 14px;
+  }
+
+  .ph-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .ph-thumb {
+    aspect-ratio: 2 / 1;
+  }
+
+  .ph-name,
+  .ph-rename {
+    font-size: 17px;
+  }
+
+  .ph-when,
+  .ph-numbers {
+    font-size: 14px;
+  }
+
+  .ph-card-actions .ph-btn {
+    flex: 1;
+  }
+
+  .ph-card-actions .ph-link {
+    min-height: 44px;
+  }
+
+  /* Inline links keep their look but get a thumb-sized target. */
+  .ph-empty-alt .ph-link,
+  .ph-toast .ph-link {
+    padding: 12px 6px;
+    margin: -12px -6px;
+  }
+
+  .ph-menu button {
+    height: 48px;
+  }
+
+  .ph-empty {
+    margin-top: 40px;
+  }
+
+  .ph-scrim {
+    align-items: end;
+    padding: 0;
+  }
+
+  .ph-dialog {
+    max-width: none;
+    padding: 22px 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Like a phone's own action sheet: the destructive choice on top, Keep it under the thumb. */
+  .ph-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ph-a-del {
+    order: 1;
+  }
+
+  .ph-a-dl {
+    order: 2;
+  }
+
+  .ph-a-keep {
+    order: 3;
+  }
+
+  .ph-grow {
+    display: none;
+  }
+
+  .ph-toast {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ---- The save notice ---- */
+
+/* A save that didn't land is never silent. */
+.bhp-save-problem {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  z-index: 6;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid #f0deae;
+  border-radius: 4px;
+  background: #fff6e0;
+  color: #7a5300;
+  transform: translateX(-50%);
+}
+
+/* ---- Inside the app's frame (src/shell), which brings its own top bar ---- */
+
+.projects-home.in-shell .ph-head {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.projects-home.in-shell .ph-head .ph-top-actions {
+  margin-left: auto;
+}
+
+.app-shell .bhp-save-problem {
+  top: var(--gap, 14px);
+}
+
+@media (max-width: 760px) {
+  .projects-home.in-shell .ph-head .ph-top-actions {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .projects-home.in-shell .ph-head .ph-btn {
+    flex: 1;
+  }
+
+  .app-shell .bhp-save-problem {
+    top: 56px;
+  }
+}
+
+/* Clear of the phone's bottom bar, as the shell's own toast is. */
+.app-shell.phone .ph-toast {
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}

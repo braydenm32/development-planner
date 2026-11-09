@@ -1,0 +1,538 @@
+/* The review sheet and the Undo toast, in the calm look (direction B): ink on white drafting
+   paper, hairlines, one cobalt accent. Scoped to .sf-*, so they sit over every screen. */
+
+.sf-scrim,
+.sf-toast {
+  --sf-ink: #16181b;
+  --sf-muted: #6b7077;
+  --sf-line: #e1e4e7;
+  --sf-line-soft: #eef0f2;
+  --sf-accent: #2346d0;
+  --sf-accent-soft: #eef1fc;
+  --sf-accent-light: #8da0e6;
+  --sf-paper: #fcfcfd;
+  --sf-warn-bg: #fff6e0;
+  --sf-warn-line: #f0deae;
+  --sf-warn-text: #7a5300;
+  --sf-r: 3px;
+  --sf-r-lg: 4px;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sf-scrim *,
+.sf-toast * {
+  box-sizing: border-box;
+}
+
+.sf-scrim button,
+.sf-toast button {
+  font: inherit;
+}
+
+/* ---- Review sheet ---- */
+
+.sf-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: rgba(22, 24, 27, 0.32);
+  animation: sf-fade 0.12s ease-out;
+}
+
+.sf-sheet {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: var(--sf-ink);
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r-lg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 48px -12px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.sf-grab {
+  display: none;
+}
+
+.sf-head {
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--sf-line-soft);
+}
+
+.sf-step {
+  display: block;
+  color: var(--sf-muted);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.sf-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.sf-body {
+  overflow-y: auto;
+  padding: 14px 22px 4px;
+  display: grid;
+  gap: 14px;
+}
+
+.sf-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+  margin: 0;
+}
+
+.sf-facts dt {
+  color: var(--sf-muted);
+  font-size: 12px;
+}
+
+.sf-facts dd {
+  margin: 1px 0 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-warn {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--sf-warn-line);
+  border-radius: var(--sf-r);
+  background: var(--sf-warn-bg);
+  color: var(--sf-warn-text);
+  font-weight: 550;
+}
+
+.sf-choices {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.sf-choices legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.sf-choice-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.sf-pic {
+  aspect-ratio: 1;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r);
+  background-color: var(--sf-paper);
+  background-image: linear-gradient(#f1f3f6 1px, transparent 1px), linear-gradient(90deg, #f1f3f6 1px, transparent 1px);
+  background-size: 14px 14px;
+  padding: 10px;
+  display: grid;
+}
+
+.sf-pic.solo {
+  width: 168px;
+}
+
+.sf-thumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sf-block {
+  fill: #ffffff;
+  stroke: var(--sf-ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.sf-house {
+  fill: var(--sf-accent-soft);
+  stroke: var(--sf-accent);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.sf-options {
+  display: grid;
+  gap: 8px;
+}
+
+.sf-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r);
+  cursor: pointer;
+}
+
+.sf-option.on {
+  border-color: var(--sf-accent);
+  box-shadow: inset 0 0 0 1px var(--sf-accent);
+}
+
+.sf-option input {
+  margin: 2px 0 0;
+  accent-color: var(--sf-accent);
+}
+
+.sf-option b {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.sf-tag {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sf-accent);
+  background: var(--sf-accent-soft);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+
+.sf-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--sf-muted);
+}
+
+.sf-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-bottom: 10px;
+}
+
+.sf-lists h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.sf-lists ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.sf-lists li {
+  position: relative;
+  padding-left: 14px;
+  overflow-wrap: anywhere;
+}
+
+.sf-lists li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px;
+  height: 1.5px;
+  background: var(--sf-ink);
+}
+
+.sf-lists ul.kept li::before {
+  width: 5px;
+  height: 5px;
+  top: 0.5em;
+  border-radius: 50%;
+  background: var(--sf-accent);
+}
+
+.sf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--sf-line-soft);
+}
+
+.sf-btn {
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid #cfd3d8;
+  border-radius: var(--sf-r);
+  background: #ffffff;
+  color: var(--sf-ink);
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.sf-btn:hover {
+  border-color: var(--sf-ink);
+}
+
+.sf-btn.primary {
+  background: var(--sf-ink);
+  border-color: var(--sf-ink);
+  color: #ffffff;
+}
+
+.sf-btn.primary:hover {
+  background: #000000;
+}
+
+.sf-scrim :focus-visible,
+.sf-toast :focus-visible {
+  outline: 2px solid var(--sf-accent);
+  outline-offset: 1px;
+}
+
+/* ---- Undo toast ---- */
+
+.sf-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(600px, calc(100vw - 32px));
+  padding: 6px 6px 6px 14px;
+  transform: translateX(-50%);
+  border-radius: var(--sf-r-lg);
+  background: var(--sf-ink);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  animation: sf-rise 0.16s ease-out;
+}
+
+.sf-toast > span {
+  padding: 4px 0;
+}
+
+.sf-undo {
+  flex: none;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--sf-r);
+  background: transparent;
+  color: var(--sf-accent-light);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-undo:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* A quiet link to go and look (Check the layers): it leaves the toast where it is. */
+.sf-link {
+  flex: none;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--sf-r);
+  background: transparent;
+  color: #ffffff;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.45);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sf-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration-color: #ffffff;
+}
+
+.sf-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--sf-r);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.sf-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Above the new layout's own notes and its phone bottom bar. */
+body:has(.app-shell .toast) .sf-toast {
+  bottom: 76px;
+}
+
+body:has(.app-shell.phone) .sf-toast {
+  bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+@keyframes sf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sf-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+/* ---- Phones and touch: a bottom sheet, 44 px taps, 14 px text ---- */
+
+@media (max-width: 760px), (pointer: coarse) {
+  .sf-scrim,
+  .sf-toast {
+    font-size: 15px;
+  }
+
+  .sf-scrim {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .sf-sheet {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: sf-up 0.18s ease-out;
+  }
+
+  .sf-grab {
+    display: block;
+    width: 38px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: 2px;
+    background: #d5d8dc;
+  }
+
+  .sf-head {
+    padding: 10px 16px 10px;
+  }
+
+  .sf-step,
+  .sf-facts dt,
+  .sf-choices legend,
+  .sf-lists h3 {
+    font-size: 14px;
+  }
+
+  .sf-head h2 {
+    font-size: 19px;
+  }
+
+  .sf-body {
+    padding: 12px 16px 4px;
+  }
+
+  .sf-choice-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sf-pic {
+    aspect-ratio: auto;
+    height: 150px;
+  }
+
+  .sf-pic.solo {
+    width: auto;
+  }
+
+  .sf-option {
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  .sf-option input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sf-tag {
+    font-size: 13px;
+  }
+
+  .sf-lists {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .sf-actions {
+    padding: 12px 16px 14px;
+  }
+
+  .sf-btn {
+    flex: 1;
+    min-height: 46px;
+  }
+
+  .sf-undo,
+  .sf-link,
+  .sf-close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .sf-toast {
+    width: calc(100vw - 24px);
+    max-width: none;
+  }
+
+  .sf-toast > span {
+    flex: 1;
+  }
+}
+
+@keyframes sf-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-scrim,
+  .sf-sheet,
+  .sf-toast {
+    animation: none;
+  }
+}

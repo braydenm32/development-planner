@@ -1,0 +1,869 @@
+/* The phone experience: View / Edit, the peek sheet, the 3D presets and a native feel.
+   Scoped to the shell. Desktop only gains the
+   3D presets and the tap-to-read level. */
+
+/* ---- 3D presets and the tapped level (every screen size) ---- */
+
+.app-shell .preset-bar {
+  position: absolute;
+  top: var(--gap);
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.app-shell .preset-group {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 1px);
+  background: var(--overlay);
+}
+
+.app-shell .preset-group button,
+.app-shell .preset-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-shell .preset-group button + button {
+  border-left: 1px solid var(--overlay-line);
+}
+
+@media (hover: hover) {
+  .app-shell .preset-group button:hover {
+    background: var(--line-soft);
+  }
+}
+
+.app-shell .preset-group button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.app-shell .preset-done {
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 1px);
+  background: var(--overlay);
+}
+
+.ground-pin {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  transform: translate(-50%, calc(-100% + 7px));
+  pointer-events: none;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+.ground-pin-tip {
+  display: grid;
+  gap: 1px;
+  padding: 7px 12px 8px;
+  border-radius: 4px;
+  background: #16181b;
+  color: #ffffff;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.45);
+}
+
+.ground-pin-tip b {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ground-pin-tip span {
+  font-size: 14px;
+  color: #d5d8dc;
+}
+
+.ground-pin-dot {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #16181b;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+/* The phone-only pieces stay out of the desktop. */
+.app-shell .peek-sheet,
+.app-shell .view-edit,
+.app-shell .view-lock-note,
+.app-shell .preset-done {
+  display: none;
+}
+
+.app-shell .view-lock {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ---- A native feel on a phone ---- */
+
+html:has(.app-shell.phone),
+body:has(.app-shell.phone) {
+  overscroll-behavior: none;
+}
+
+/* The page never scrolls, bounces or zooms: the canvas and the sheets do. */
+body:has(.app-shell.phone) {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* No text selection or callouts on a long press, except in the boxes you type in. */
+.app-shell.phone {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* Clear of the notch and the rounded corners, in either orientation. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+
+.app-shell.phone input,
+.app-shell.phone textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* No 300 ms wait on taps, and no double-tap zoom of the page. */
+.app-shell.phone button,
+.app-shell.phone a,
+.app-shell.phone label,
+.app-shell.phone select,
+.app-shell.phone input,
+.app-shell.phone [role='button'] {
+  touch-action: manipulation;
+}
+
+.app-shell.phone canvas {
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+/* The numbers live in the peek sheet, so the strip's line goes back to the canvas. */
+.app-shell.phone {
+  --strip-h: 0px;
+}
+
+.app-shell.phone .summary-strip {
+  display: none;
+}
+
+/* Full screen 3D, for showing people. */
+.app-shell.phone.presenting {
+  --top-h: 0px;
+  padding-top: 0;
+}
+
+.app-shell.phone.presenting .top-bar,
+.app-shell.phone.presenting .bottom-bar,
+.app-shell.phone.presenting .panel-pill,
+.app-shell.phone.presenting .float-col {
+  display: none;
+}
+
+.app-shell.phone.presenting .preset-bar {
+  top: calc(env(safe-area-inset-top) + var(--gap));
+}
+
+.app-shell.phone.presenting .peek-sheet {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+/* What floats over the canvas keeps clear of the peek sheet. */
+.app-shell.phone .shell-main {
+  --peek-h: 0px;
+}
+
+.app-shell.phone .shell-main.has-peek {
+  --peek-h: var(--peek-size, 150px);
+}
+
+.app-shell.phone .plan-actions,
+.app-shell.phone .plan-compass,
+.app-shell.phone .canvas-3d .compass {
+  bottom: calc(var(--peek-h) + var(--gap));
+}
+
+.app-shell.phone .panel-pill {
+  bottom: calc(var(--peek-h) + var(--gap));
+}
+
+/* The peek sheet has the RL range, so the 3D legend would print it twice. */
+.app-shell.phone .canvas-3d.has-peek .legend {
+  display: none;
+}
+
+/* ---- The peek sheet ---- */
+
+.app-shell.phone .peek-sheet {
+  grid-area: main;
+  align-self: end;
+  z-index: 6;
+  display: grid;
+  gap: 10px;
+  padding: 0 18px 14px;
+  border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -8px 28px -10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 200ms ease-out;
+}
+
+.app-shell.phone .peek-sheet.pulling {
+  transition: none;
+}
+
+.app-shell.phone .peek-sheet .sheet-grab {
+  margin-bottom: 0;
+}
+
+.peek-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.peek-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.peek-head .muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.peek-numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.peek-numbers > div {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-width: 0;
+}
+
+.peek-numbers dt {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.peek-numbers dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.peek-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.app-shell.phone .peek-status .chip {
+  height: auto;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 4px 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.phone .peek-status .chip::after {
+  content: none;
+}
+
+.peek-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.peek-range i {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.peek-line {
+  display: none;
+}
+
+.peek-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--warn-dot);
+}
+
+/* Slim: one line, while editing and with the phone on its side. */
+.app-shell.phone .peek-sheet.slim {
+  gap: 0;
+  padding: 0 14px 8px;
+}
+
+.app-shell.phone .peek-sheet.slim > :not(.sheet-grab, .peek-line) {
+  display: none;
+}
+
+.app-shell.phone .peek-sheet.slim .peek-line {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 40px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.peek-line b {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.peek-line > .ic:last-child {
+  flex: none;
+  margin-left: auto;
+}
+
+/* ---- View / Edit, and the plan's corners ---- */
+
+.app-shell.phone .view-edit {
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  z-index: 4;
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 3px);
+  background: var(--overlay);
+}
+
+.app-shell.phone .view-edit button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: calc(var(--r) + 1px);
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.app-shell.phone .view-edit button.on {
+  background: var(--text);
+  color: #ffffff;
+}
+
+/* Under the switch on the plan, under the presets in 3D. */
+.app-shell.phone .canvas-controls {
+  top: calc(var(--gap) + 58px);
+}
+
+.app-shell.phone .shell-main .level-chip.phone-level {
+  top: var(--gap);
+  left: var(--gap);
+  right: auto;
+  display: block;
+  max-width: calc(100% - 2 * var(--gap) - 190px);
+  padding: 0;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 3px);
+  background: var(--overlay);
+  pointer-events: auto;
+}
+
+.level-chip-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  font-size: 15px;
+  text-align: left;
+}
+
+.level-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-chip-text b {
+  font-weight: 600;
+}
+
+.level-pick {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -1px;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 3px);
+  background: #ffffff;
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.25);
+}
+
+.level-pick button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.level-pick button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* In Edit the tools stand under the level chip. */
+.app-shell.phone .has-rail .tool-rail {
+  top: calc(var(--gap) + 56px);
+  max-height: calc(100% - var(--gap) * 2 - 56px - var(--peek-h));
+}
+
+.app-shell.phone .plan-actions {
+  left: var(--gap);
+  align-items: flex-start;
+}
+
+.app-shell.phone .has-rail .plan-actions {
+  left: calc(var(--gap) + 62px);
+}
+
+.key-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.key-chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 15px 0 12px;
+  border: 1px solid var(--overlay-line);
+  border-radius: 999px;
+  background: var(--overlay);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.key-swatches {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.key-swatches i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.key-swatches .fill {
+  background: rgba(93, 143, 202, 0.65);
+}
+
+.key-swatches .cut {
+  background: rgba(227, 135, 74, 0.65);
+}
+
+.key-pop {
+  width: min(320px, calc(100vw - 2 * var(--gap) - 16px));
+}
+
+.app-shell.phone .key-pop .ground-key {
+  border-radius: calc(var(--r) + 3px);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.22);
+}
+
+/* ---- The 3D view on a phone ---- */
+
+.app-shell.phone .preset-bar {
+  left: var(--gap);
+  right: var(--gap);
+  transform: none;
+}
+
+.app-shell.phone .preset-done {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.app-shell.phone .preset-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-shell.phone .preset-group button {
+  flex: 1;
+  justify-content: center;
+  height: 44px;
+  padding: 0 8px;
+  font-size: 15px;
+}
+
+/* ---- Sheets that follow the finger ---- */
+
+.app-shell.phone .tab-panel::before,
+.app-shell.phone .inspector::before {
+  content: none;
+}
+
+.app-shell .float-card > .sheet-grab {
+  display: none;
+}
+
+.app-shell.phone .float-card > .sheet-grab {
+  position: relative;
+  display: block;
+  width: auto;
+  height: 20px;
+  margin: 0;
+  background: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.app-shell.phone .float-card > .sheet-grab::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line);
+  transform: translateX(-50%);
+}
+
+.app-shell.phone .tab-panel > header,
+.app-shell.phone .overview-sheet > header,
+.app-shell.phone .overview-sheet > .sheet-grab {
+  touch-action: none;
+}
+
+.app-shell.phone .overview-sheet {
+  padding-bottom: env(safe-area-inset-bottom);
+  overscroll-behavior: contain;
+}
+
+.app-shell.phone .inspector,
+.app-shell.phone .panel-body {
+  overscroll-behavior: contain;
+}
+
+/* View locks the fields: they read as values, not as boxes waiting to be typed in. */
+.app-shell.phone .view-lock-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.app-shell.phone .view-lock-note.after {
+  margin: 0 16px 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 0;
+}
+
+.app-shell.phone .view-lock-note button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.app-shell.phone .view-lock input,
+.app-shell.phone .view-lock select,
+.app-shell.phone .view-lock textarea {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  opacity: 1;
+  -webkit-text-fill-color: var(--text);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.app-shell.phone .view-lock .num-input,
+.app-shell.phone .view-lock .num-input input {
+  border-color: transparent;
+  background: transparent;
+}
+
+.app-shell.phone .view-lock button.danger,
+.app-shell.phone .view-lock .delete-row,
+.app-shell.phone .view-lock input[type='checkbox'],
+.app-shell.phone .view-lock input[type='range'] {
+  opacity: 0.5;
+}
+
+/* ---- Turned sideways ---- */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-shell.phone {
+    --top-h: 46px;
+  }
+
+  .app-shell.phone .bottom-bar {
+    height: calc(48px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell.phone .bottom-bar .area-link {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  .app-shell.phone .peek-sheet {
+    gap: 0;
+    left: auto;
+    padding: 0 14px 6px;
+  }
+
+  .app-shell.phone .peek-sheet > :not(.sheet-grab, .peek-line) {
+    display: none;
+  }
+
+  .app-shell.phone .peek-sheet .peek-line {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 36px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .app-shell.phone .float-col,
+  .app-shell.phone .inspector,
+  .app-shell.phone .overview-sheet {
+    max-height: 70%;
+  }
+
+  .app-shell.phone .overview-sheet {
+    max-height: 86vh;
+  }
+}
+
+/* Site › 3D: which side the street is on */
+.app-shell .street-side {
+  margin: 14px 0;
+}
+.app-shell .street-side h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.app-shell .street-side .segmented {
+  display: inline-flex;
+  margin-top: 8px;
+}
+.app-shell .street-side .segmented button {
+  min-width: 40px;
+  min-height: 32px;
+}
+
+/* ---- Share on a phone: the two files first, one tap each ---- */
+
+.app-shell .share-first {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.app-shell .share-big {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-shell .share-big.first {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.app-shell .share-big > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app-shell .share-big b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.app-shell .share-big small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.app-shell .share-big.first small {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.app-shell .share-big:active {
+  transform: translateY(1px);
+}
+
+.app-shell .share-first [role='status'] {
+  margin: 6px 2px 0;
+}
+
+.app-shell .share-next {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.app-shell .share-next > span {
+  flex: 1;
+}
+
+/* Site features' bar for lining up and tracing: under the level chip and View / Edit, which
+   stay at the top, and the Key chip steps aside with the ground key. */
+.app-shell.phone .plan-editor .site-toolbar {
+  top: 64px;
+}
+
+.app-shell .plan-editor:has(.site-toolbar) .key-chip {
+  display: none;
+}
+
+/* The 3D view's panel pill keeps to the side, clear of the house in the middle. */
+.app-shell.phone .canvas-3d .panel-pill {
+  left: var(--gap);
+  transform: none;
+}
+
+/* Turned sideways the canvas is short: the view buttons go in a row along the top, beside
+   View / Edit on the plan and the camera views in 3D, and the bottom bar is one line. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-shell.phone .bottom-bar .area-link {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 0;
+    padding: 0 4px;
+  }
+
+  .app-shell.phone .canvas-controls {
+    top: var(--gap);
+    flex-direction: row;
+  }
+
+  .app-shell.phone .canvas-plan .canvas-controls {
+    right: calc(var(--gap) + 168px);
+  }
+
+  .app-shell.phone .preset-bar {
+    right: auto;
+  }
+
+  .app-shell.phone .preset-group button {
+    padding: 0 16px;
+  }
+}

@@ -1,0 +1,334 @@
+/* Share links in Share › Send, in the calm look (direction B): ink on white,
+   hairlines, one cobalt accent. Scoped to .share-links so it sits the same anywhere. */
+
+.share-links {
+  --sl-ink: #16181b;
+  --sl-muted: #6b7077;
+  --sl-line: #e1e4e7;
+  --sl-line-soft: #eef0f2;
+  --sl-accent: #2346d0;
+  --sl-accent-soft: #eef1fc;
+  --sl-danger: #b3261e;
+  --sl-r: 3px;
+  --sl-tap: 34px;
+
+  margin: 0 0 18px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--sl-line-soft);
+  color: var(--sl-ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.share-links * {
+  box-sizing: border-box;
+}
+
+.share-links .ic {
+  flex: none;
+  display: block;
+}
+
+.share-links .sl-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 6px;
+  color: var(--sl-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.share-links .sl-line {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.share-links .sl-who {
+  color: var(--sl-ink);
+}
+
+.share-links .muted {
+  color: var(--sl-muted);
+}
+
+.share-links .sl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: var(--sl-tap);
+  padding: 0 13px;
+  border: 1px solid var(--sl-line);
+  border-radius: var(--sl-r);
+  background: #ffffff;
+  color: var(--sl-ink);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.share-links .sl-btn:hover:not(:disabled) {
+  border-color: var(--sl-ink);
+}
+
+.share-links .sl-btn.primary {
+  width: 100%;
+  border-color: var(--sl-ink);
+  background: var(--sl-ink);
+  color: #ffffff;
+}
+
+.share-links .sl-btn.primary:hover:not(:disabled) {
+  background: #000000;
+}
+
+.share-links .sl-btn.quiet {
+  min-height: 30px;
+  padding: 0 10px;
+  font-weight: 500;
+}
+
+.share-links .sl-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.share-links :is(.sl-btn, .sl-url):focus-visible {
+  outline: 2px solid var(--sl-accent);
+  outline-offset: 2px;
+}
+
+.share-links .sl-problem {
+  margin: 10px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--sl-r);
+  background: #fdecea;
+  color: var(--sl-danger);
+  font-size: 12.5px;
+}
+
+/* ---- The link just made ---- */
+
+.share-links .sl-fresh {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--sl-accent);
+  border-radius: var(--sl-r);
+  background: var(--sl-accent-soft);
+}
+
+.share-links .sl-url {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #c9d2f3;
+  border-radius: var(--sl-r);
+  background: #ffffff;
+  color: var(--sl-ink);
+  font: inherit;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.share-links .sl-fresh-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.share-links .sl-fresh-actions .sl-btn {
+  flex: 1;
+}
+
+.share-links .sl-fresh .sl-line {
+  margin: 0;
+}
+
+/* ---- The project's links ---- */
+
+.share-links .sl-list {
+  margin-top: 16px;
+}
+
+.share-links .sl-list h4 {
+  margin: 0 0 4px;
+  color: var(--sl-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.share-links .sl-list ul {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+/* When it was made and its buttons on one line, works until and last opened under them. */
+.share-links .sl-list li {
+  display: grid;
+  grid-template-areas:
+    'made acts'
+    'meta meta';
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--sl-line-soft);
+}
+
+.share-links .sl-list li:first-child {
+  border-top: 0;
+}
+
+.share-links .sl-list li.fresh .sl-made::after {
+  content: ' · new';
+  color: var(--sl-accent);
+  font-weight: 600;
+}
+
+.share-links .sl-made {
+  grid-area: made;
+  font-weight: 500;
+}
+
+.share-links .sl-meta {
+  grid-area: meta;
+  font-size: 12.5px;
+}
+
+/* ---- Phones: one hand, 44 px taps, 14 px text ---- */
+
+@media (max-width: 760px), (pointer: coarse) {
+  .share-links {
+    --sl-tap: 44px;
+    font-size: 15px;
+  }
+
+  .share-links .sl-title {
+    font-size: 15px;
+  }
+
+  .share-links .sl-line,
+  .share-links .sl-list h4,
+  .share-links .sl-meta,
+  .share-links .sl-problem {
+    font-size: 14px;
+  }
+
+  .share-links .sl-btn.quiet {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  .share-links .sl-url {
+    height: 44px;
+    font-size: 14px;
+  }
+}
+
+/* ---- How long a new link works ---- */
+
+.share-links .sl-length {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.share-links .sl-length-label {
+  flex: none;
+  color: var(--sl-muted);
+  font-size: 12.5px;
+}
+
+.share-links .sl-seg {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.share-links .sl-seg button {
+  flex: 1;
+  min-height: 30px;
+  margin-left: -1px;
+  padding: 0 8px;
+  border: 1px solid var(--sl-line);
+  background: #ffffff;
+  color: var(--sl-ink);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.share-links .sl-seg button:first-child {
+  margin-left: 0;
+  border-radius: var(--sl-r) 0 0 var(--sl-r);
+}
+
+.share-links .sl-seg button:last-child {
+  border-radius: 0 var(--sl-r) var(--sl-r) 0;
+}
+
+.share-links .sl-seg button[aria-checked='true'] {
+  position: relative;
+  border-color: var(--sl-accent);
+  background: var(--sl-accent-soft);
+  color: var(--sl-accent);
+  font-weight: 600;
+}
+
+.share-links .sl-seg button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.share-links .sl-seg button:focus-visible {
+  position: relative;
+  outline: 2px solid var(--sl-accent);
+  outline-offset: 1px;
+}
+
+/* ---- A link's buttons, and one about to end ---- */
+
+.share-links .sl-acts {
+  display: flex;
+  grid-area: acts;
+  gap: 6px;
+}
+
+.share-links .sl-soon {
+  color: #8a5a00;
+  font-weight: 500;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .share-links .sl-length-label {
+    font-size: 14px;
+  }
+
+  .share-links .sl-seg button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .share-links .sl-list li {
+    grid-template-areas:
+      'made'
+      'meta'
+      'acts';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .share-links .sl-acts {
+    margin-top: 6px;
+  }
+
+  .share-links .sl-acts .sl-btn {
+    flex: 1;
+  }
+}

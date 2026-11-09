@@ -1,0 +1,540 @@
+/* The start screen, in the calm look (direction B): ink on white drafting paper, hairlines,
+   one cobalt accent, IBM Plex Sans. Scoped to .start-screen, so it sits outside the app's frame. */
+
+.start-screen {
+  --st-ink: #16181b;
+  --st-muted: #6b7077;
+  --st-line: #e1e4e7;
+  --st-line-soft: #eef0f2;
+  --st-field-line: #cfd3d8;
+  --st-accent: #2346d0;
+  --st-accent-soft: #eef1fc;
+  --st-paper: #fcfcfd;
+  --st-danger: #b3261e;
+  --st-r: 3px;
+  --st-r-lg: 4px;
+
+  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #ffffff;
+  color: var(--st-ink);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.start-screen * {
+  box-sizing: border-box;
+}
+
+.start-screen button,
+.start-screen input {
+  font: inherit;
+  color: inherit;
+}
+
+.start-screen :focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 1px;
+}
+
+.st-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--st-line-soft);
+}
+
+.st-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.st-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 10px 0 4px;
+  border: 0;
+  border-radius: var(--st-r);
+  background: transparent;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.st-back:hover {
+  background: var(--st-line-soft);
+}
+
+.st-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-r);
+  background: #ffffff;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.st-btn:hover {
+  border-color: var(--st-ink);
+}
+
+.st-btn.primary {
+  background: var(--st-ink);
+  border-color: var(--st-ink);
+  color: #ffffff;
+}
+
+.st-btn.primary:hover {
+  background: #000000;
+}
+
+.st-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.st-short {
+  display: none;
+}
+
+.st-main {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  padding: 44px 24px 56px;
+}
+
+.st-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--st-muted);
+  font-weight: 600;
+}
+
+.st-step i {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--st-accent-soft);
+  color: var(--st-accent);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.st-main h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+}
+
+.st-lede {
+  margin: 0 0 26px;
+  max-width: 56ch;
+  color: var(--st-muted);
+  font-size: 15px;
+}
+
+.st-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.st-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--st-line);
+  border-radius: var(--st-r-lg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.st-art {
+  height: 140px;
+  border-radius: var(--st-r);
+  overflow: hidden;
+  background-color: var(--st-paper);
+  background-image: linear-gradient(#f1f3f6 1px, transparent 1px), linear-gradient(90deg, #f1f3f6 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.st-card h2 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.st-card > p {
+  margin: 0;
+  color: var(--st-muted);
+}
+
+.st-drop {
+  margin-top: auto;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 18px;
+  border: 1.5px dashed var(--st-field-line);
+  border-radius: var(--st-r);
+  color: var(--st-muted);
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.st-drop.dragging {
+  border-color: var(--st-accent);
+  background: var(--st-accent-soft);
+}
+
+.st-drop-hint {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.st-drop .st-btn {
+  min-width: 160px;
+}
+
+.st-form {
+  margin-top: auto;
+  display: grid;
+  gap: 7px;
+}
+
+.st-label {
+  display: block;
+  color: var(--st-muted);
+  font-size: 12.5px;
+  font-weight: 550;
+  margin-bottom: 4px;
+}
+
+.st-form > .st-label {
+  margin-bottom: -3px;
+}
+
+.st-opt {
+  font-weight: 400;
+}
+
+.st-size {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.st-x {
+  color: var(--st-muted);
+}
+
+/* Grid cells shrink with the screen instead of to their inputs' default width. */
+.st-size > *,
+.st-row2 > * {
+  min-width: 0;
+}
+
+.st-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.st-field {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-r);
+  background: #ffffff;
+}
+
+.st-field:focus-within {
+  border-color: var(--st-accent);
+  box-shadow: 0 0 0 1px var(--st-accent);
+}
+
+/* The field shows the focus ring, so the input inside doesn't draw a second one. */
+.start-screen .st-field input:focus-visible {
+  outline: none;
+}
+
+.st-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 6px 0;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-field span {
+  color: var(--st-muted);
+}
+
+.st-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  min-height: 34px;
+  border: 1px solid var(--st-field-line);
+  border-radius: var(--st-r);
+  overflow: hidden;
+}
+
+.st-seg button {
+  border: 0;
+  border-left: 1px solid var(--st-line);
+  background: #ffffff;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.st-seg button:first-child {
+  border-left: 0;
+}
+
+.st-seg button.on {
+  background: var(--st-ink);
+  color: #ffffff;
+}
+
+.st-note {
+  margin: 2px 0 0;
+  color: var(--st-muted);
+  font-size: 12.5px;
+}
+
+.st-error {
+  margin: 0;
+  color: var(--st-danger);
+}
+
+.st-form .st-btn {
+  margin-top: 4px;
+}
+
+/* ---- Phones and touch: one column, 44 px taps, 14 px text and up ---- */
+
+@media (max-width: 760px), (pointer: coarse) {
+  .start-screen {
+    font-size: 15px;
+  }
+
+  .st-top {
+    height: 56px;
+    padding: 0 12px 0 16px;
+  }
+
+  .st-btn,
+  .st-back,
+  .st-field,
+  .st-seg {
+    min-height: 44px;
+  }
+
+  .st-label,
+  .st-note,
+  .st-step i {
+    font-size: 14px;
+  }
+
+  .st-step i {
+    width: 26px;
+    height: 26px;
+  }
+
+  .st-field input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .st-long {
+    display: none;
+  }
+
+  .st-short {
+    display: inline;
+  }
+
+  .st-main {
+    padding: 20px 16px 40px;
+  }
+
+  .st-main h1 {
+    font-size: 27px;
+  }
+
+  .st-lede {
+    margin-bottom: 18px;
+  }
+
+  .st-choices {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .st-card {
+    padding: 14px 16px 16px;
+  }
+
+  .st-art {
+    height: 96px;
+  }
+
+  .st-drop {
+    border: 0;
+    padding: 4px 0 0;
+  }
+
+  .st-drop .st-btn,
+  .st-form .st-btn {
+    width: 100%;
+  }
+}
+
+/* ---- A sketch block, until the survey comes ---- */
+
+.sketch-chip {
+  position: absolute;
+  z-index: 4;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 4px 4px 4px 12px;
+  border: 1px solid #dcdfe3;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.97);
+  color: #16181b;
+  font-size: 12.5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sketch-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sketch-chip b {
+  font-weight: 600;
+}
+
+.sketch-chip button {
+  flex: none;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 3px;
+  background: #eef1fc;
+  color: #2346d0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sketch-chip button:hover {
+  background: #2346d0;
+  color: #ffffff;
+}
+
+/* The new layout's canvas: below the summary strip's line, clear of the tool rail. */
+.app-shell .sketch-chip {
+  top: 12px;
+  left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
+}
+
+/* On a phone: under the floor chip, clear of the canvas buttons down the right. */
+.app-shell.phone .sketch-chip {
+  top: 64px;
+  left: 12px;
+  right: 64px;
+  max-width: none;
+  justify-content: space-between;
+  transform: none;
+  font-size: 14px;
+}
+
+.app-shell.phone .sketch-chip button {
+  min-height: 36px;
+}
+
+.sketch-notice {
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #e1e4e7;
+  border-radius: 4px;
+  background: #fcfcfd;
+}
+
+.sketch-notice p {
+  margin: 0 0 8px;
+}
+
+.sketch-size {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+
+.sketch-size label {
+  display: grid;
+  gap: 2px;
+  color: #6b7077;
+  font-size: 12.5px;
+}
+
+.sketch-size input,
+.sketch-size select {
+  min-height: 30px;
+  font: inherit;
+  color: #16181b;
+}
+
+.sketch-size .row,
+.sketch-size .sketch-error {
+  grid-column: 1 / -1;
+}
+
+.sketch-error {
+  color: #b3261e;
+  margin: 0;
+}
