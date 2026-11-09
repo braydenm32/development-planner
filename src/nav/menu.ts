@@ -51,6 +51,7 @@ export type ActionId =
   | 'camera-rear'
   | 'pick-contour'
   | 'draw-section'
+  | 'grade-brush'
   | 'keyboard-help'
   | 'open-example'
   | 'guide'
@@ -577,8 +578,19 @@ export const AREAS: Area[] = [
         icon: 'shovel',
         subtitle: 'Levelling the ground under the house.',
         shows: ['cut-fill', 'warnings'],
-        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3'],
-        features: ['earthworks-cut-batter', 'earthworks-fill-batter', 'earthworks-volumes', 'earthworks-boundary-warning', 'balance-cut-fill', 'dem-results-flag'],
+        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall'],
+        features: [
+          'earthworks-cut-batter',
+          'earthworks-fill-batter',
+          'earthworks-volumes',
+          'earthworks-boundary-warning',
+          'balance-cut-fill',
+          'dem-results-flag',
+          'grade-brush',
+          'grade-level-pick',
+          'grade-areas',
+          'grade-wall-suggestions',
+        ],
       },
       {
         id: 'retaining-walls',
@@ -1332,6 +1344,26 @@ export const HOMES: Home[] = [
         run: 'now',
         shortcut: 'X',
         at: 'design/sections',
+      },
+      {
+        id: 'paint-grade',
+        label: 'Grading brush: cut or fill to a level',
+        icon: 'shovel',
+        keywords: ['brush', 'paint', 'grade', 'grading', 'level', 'levelling', 'cut to', 'fill to', 'cut down', 'fill up', 'bench', 'terrace', 'flat yard', 'eraser', 'RL'],
+        features: [],
+        action: 'grade-brush',
+        run: 'now',
+        shortcut: 'B',
+        at: 'earthworks/cut-fill',
+      },
+      {
+        id: 'suggested-walls',
+        label: 'Suggested retaining walls',
+        icon: 'retain',
+        keywords: ['suggested retaining wall', 'where do walls go', 'wall needed', 'batter', 'boundary', 'engineer', 'add wall', 'dismiss'],
+        features: [],
+        at: 'earthworks/cut-fill',
+        hint: 'Earthworks › Cut & fill lists the walls the batters need, dashed on the plan, each with why, Add and Dismiss.',
       },
       {
         id: 'finished-contours',

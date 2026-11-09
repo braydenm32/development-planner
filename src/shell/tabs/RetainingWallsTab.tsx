@@ -6,6 +6,7 @@
  */
 
 import { DemFlag } from '../../map/DemNotes'
+import { SuggestionsNote } from '../../grading/GradingPanel'
 import { RetainingTotals, RetainingToolOptions } from '../../components/PlanSections'
 import { retainedText, useRetainingWalls } from '../../components/planNumbers'
 import { RetainingWallPanel } from '../../components/RetainingWallPanel'
@@ -43,6 +44,7 @@ function Walls({ d }: { d: Loaded }) {
     return (
       <>
         <p className="muted">No retaining walls yet. Draw one where the batters run too far: it asks which side it holds back and how high.</p>
+        <SuggestionsNote plan={d.plan} survey={d.survey} earth={d.earth} />
         <Draw />
       </>
     )
@@ -51,6 +53,7 @@ function Walls({ d }: { d: Loaded }) {
     <>
       <RetainingTotals walls={walls} />
       <DemFlag what="these heights" />
+      <SuggestionsNote plan={d.plan} survey={d.survey} earth={d.earth} />
       {tall > 0 && (
         <p className="notice small">
           {tall === 1 ? 'One wall holds' : `${tall} walls hold`} back more than {ENGINEER_HEIGHT.toFixed(1)} m: an engineer needs to design {tall === 1 ? 'it' : 'them'}.

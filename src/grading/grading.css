@@ -1,0 +1,265 @@
+/* The grading brush: painted ground on the plan, the brush under the pointer, the suggested
+   retaining walls, and the brush's part of Earthworks › Cut & fill. The calm drafting look of the
+   retaining wall marks: ink on white, the cut orange and fill blue of the ground tint, amber for a wall to add. */
+
+.grade-marks,
+.grade-panel {
+  --grade-ink: #16181b;
+  --grade-muted: #6b7077;
+  --grade-line: #e1e4e7;
+  --grade-field-line: #cfd3d8;
+  --grade-cut: #e3874a;
+  --grade-fill: #5d8fca;
+  --grade-amber: #c06a08;
+  --grade-r: 3px;
+}
+
+.grade-marks {
+  pointer-events: none;
+}
+
+.grade-area .grade-fill {
+  fill-opacity: 0.22;
+}
+.grade-area.cut .grade-fill {
+  fill: var(--grade-cut);
+}
+.grade-area.fill .grade-fill {
+  fill: var(--grade-fill);
+}
+.grade-area .grade-edge {
+  fill: none;
+  stroke-width: 1.3;
+}
+.grade-area.cut .grade-edge {
+  stroke: var(--grade-cut);
+}
+.grade-area.fill .grade-edge {
+  stroke: var(--grade-fill);
+}
+
+.grade-label,
+.grade-cursor text,
+.grade-pick text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--grade-ink);
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.grade-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-opacity: 0.38;
+}
+.grade-stroke.cut {
+  stroke: var(--grade-cut);
+}
+.grade-stroke.fill {
+  stroke: var(--grade-fill);
+}
+.grade-stroke.erase {
+  stroke: #fff;
+  stroke-opacity: 0.75;
+}
+
+.grade-cursor circle {
+  fill: none;
+  stroke: var(--grade-ink);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+.grade-cursor.cut circle {
+  fill: var(--grade-cut);
+  fill-opacity: 0.12;
+}
+.grade-cursor.fill circle {
+  fill: var(--grade-fill);
+  fill-opacity: 0.12;
+}
+.grade-pick circle {
+  fill: var(--grade-ink);
+}
+
+.plan-svg.grade-brush {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.grade-suggest-line {
+  fill: none;
+  stroke: var(--grade-amber);
+  stroke-linejoin: round;
+  stroke-width: 3;
+  stroke-dasharray: 9 6;
+  stroke-linecap: round;
+}
+.grade-suggest-tag {
+  fill: #fff;
+  stroke: var(--grade-amber);
+}
+.grade-suggest-n {
+  fill: var(--grade-amber);
+}
+.grade-suggest-n-text {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #fff;
+}
+.grade-suggest-text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--grade-amber);
+}
+.grade-suggest-btn {
+  pointer-events: all;
+  cursor: pointer;
+}
+.grade-suggest-btn rect {
+  fill: #fff;
+  stroke: var(--grade-field-line);
+}
+.grade-suggest-btn text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--grade-ink);
+}
+.grade-suggest-btn.add rect {
+  fill: var(--grade-ink);
+  stroke: var(--grade-ink);
+}
+.grade-suggest-btn.add text {
+  fill: #fff;
+}
+.grade-suggest-btn:hover rect {
+  stroke: var(--grade-ink);
+}
+
+/* ---- the panel ---- */
+
+.grade-panel {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--grade-line);
+}
+.grade-panel h3 {
+  margin: 0;
+}
+.grade-panel p {
+  margin: 0;
+}
+
+.grade-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--grade-line);
+  border-radius: calc(var(--grade-r) + 2px);
+  background: #fff;
+  width: 100%;
+}
+.grade-seg button {
+  flex: 1;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--grade-r);
+  background: none;
+  color: var(--grade-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.grade-seg button.on {
+  border-color: var(--grade-ink);
+  color: var(--grade-ink);
+  font-weight: 600;
+}
+.grade-seg .sw {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: 0;
+}
+.grade-seg .sw.cut {
+  background: var(--grade-cut);
+}
+.grade-seg .sw.fill {
+  background: var(--grade-fill);
+}
+
+.grade-size {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.grade-size input {
+  width: 100%;
+}
+
+.grade-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.grade-list li {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--grade-line);
+  border-radius: var(--grade-r);
+  font-size: 13px;
+}
+.grade-list .head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.grade-list .head strong {
+  flex: 1;
+  font-weight: 600;
+}
+.grade-list .sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+  align-self: center;
+}
+.grade-list .sw.cut {
+  background: var(--grade-cut);
+}
+.grade-list .sw.fill {
+  background: var(--grade-fill);
+}
+.grade-list .n {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  border: 1px solid var(--grade-amber);
+  border-radius: 3px;
+  color: var(--grade-amber);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 16px;
+}
+.grade-list .actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.grade-list .eng {
+  color: var(--grade-amber);
+}

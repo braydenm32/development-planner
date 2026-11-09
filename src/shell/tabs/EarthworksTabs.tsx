@@ -1,4 +1,4 @@
-// Earthworks › Place, Cut & fill and Driveway, from the plan's position and cut and fill sections.
+// Earthworks › Place, Cut & fill (with the grading brush) and Driveway, from the plan's position and cut and fill sections.
 
 import {
   BatterFields,
@@ -11,6 +11,7 @@ import {
 } from '../../components/PlanSections'
 import { DrivewayCrossing } from '../../components/DrivewayCrossing'
 import { DrivewayLevels } from '../../components/DrivewayLevels'
+import { GradingPanel } from '../../grading/GradingPanel'
 import { usePlacementInfo, useRetainingWalls } from '../../components/planNumbers'
 import { areaKind } from '../../plan/model'
 import { usePlan } from '../../plan/store'
@@ -55,6 +56,7 @@ function CutFill({ d }: { d: Loaded }) {
       <EarthworksIntro />
       <BatterFields plan={d.plan} />
       <EarthworksResults plan={d.plan} survey={d.survey} earth={d.earth} terrain={d.terrain} retaining={false} />
+      <GradingPanel plan={d.plan} survey={d.survey} earth={d.earth} />
       {walls.length > 0 && (
         <p className="muted small">
           {walls.length} retaining wall{walls.length > 1 ? 's' : ''} hold back the batters.{' '}

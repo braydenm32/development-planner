@@ -69,6 +69,7 @@ import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
 import { useSectionMarks } from '../sections/SectionMarks'
+import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { PlanHints } from '../guide/PlanHints'
@@ -119,6 +120,7 @@ type Drag =
   | { type: 'group'; start: Plan; startWorld: Vec2; sels: Selection[]; solo: Selection }
   /** A box on empty ground, from a corner, to pick what's inside (Shift or Ctrl/⌘ and drag). */
   | { type: 'box'; from: Vec2; fromPx: Pt; add: boolean }
+  | { type: 'brush' }
 
 /** Where nothing can be drawn (the phone's View, a shared project): how to look. */
 const VIEW_HINT = {
@@ -519,6 +521,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
   // Section lines: drawing one with two clicks, and their A–A marks while Design › Sections is open.
   const sections = useSectionMarks({ plan, S, k: v.k, viewOnly })
+  // The grading brush (Earthworks › Cut & fill): painting ground to a level, and the retaining walls it suggests.
+  const brush = useGradeBrush({
+    plan,
+    survey,
+    terrain,
+    earth,
+    tool,
+    S,
+    k: v.k,
+    finished: planContourLines ? (contours?.finished ?? null) : null,
+    viewOnly,
+    touch: !!touch?.phone,
+  })
   // The Measure and Note tools: the ruler and the plan's text notes.
   const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, viewOnly, size })
   const path = (pts: Vec2[], close = true) =>
@@ -670,7 +685,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = null
     downAt.current = null
     setDragKind(null)
-    if (d && d.type !== 'pan') {
+    if (d?.type === 'brush') brush.cancel()
+    else if (d && d.type !== 'pan') {
       const start = usePlan.getState().gestureStart
       if (start) usePlan.setState({ plan: start, gestureStart: null })
       setCursor(null)
@@ -788,9 +804,14 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     svgRef.current!.setPointerCapture(e.pointerId)
     if (!view || view.token !== fitToken) setView(v) // freeze the fitted view once the user interacts
 
-    if (e.button === 1 || e.button === 2 || site.active || flow.active || sections.active) {
+    if (e.button === 1 || e.button === 2 || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
+      return
+    }
+
+    if (brush.down(world)) {
+      drag.current = { type: 'brush' }
       return
     }
 
@@ -979,8 +1000,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     setPointer(world)
     const d = drag.current
     const free = e.shiftKey
-    flow.move(world, sx, sy, { dragging: !!d || dragKind !== null, pointerType: e.pointerType, buttons: e.buttons })
+    flow.move(world, sx, sy, { dragging: !!d || dragKind !== null || brush.active, pointerType: e.pointerType, buttons: e.buttons })
     sections.move(world, e.shiftKey)
+    brush.move(world)
+    if (d?.type === 'brush') return
 
     if (d?.type === 'pan') {
       if (Math.hypot(sx - d.sx, sy - d.sy) < (e.pointerType === 'touch' ? TAP_SLOP : 4)) return
@@ -1158,6 +1181,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = null
     setDragKind(null)
     setBox(null)
+    if (d?.type === 'brush') {
+      downAt.current = null
+      brush.up()
+      return
+    }
     if (d?.type === 'box') {
       downAt.current = null
       const [sx, sy] = local(e)
@@ -1197,6 +1225,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const world = W(sx, sy)
     if (flow.click(world)) return
     if (sections.click(world, e.shiftKey)) return
+    if (brush.click(world)) return
     if (site.active) {
       site.click(world, e.shiftKey)
       return
@@ -1341,6 +1370,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (sections.key(e)) {
+        e.preventDefault()
+        return
+      }
+      if (brush.key(e)) {
         e.preventDefault()
         return
       }
@@ -1744,7 +1777,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     <div className={`plan-editor${viewOnly ? ' view-only' : ''}`}>
       <svg
         ref={svgRef}
-        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active ? ' flow-picking' : ''}`}
+        className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active || (brush.active && !brush.painting) ? ' flow-picking' : ''}${brush.painting ? ' grade-brush' : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -1800,6 +1833,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         )}
 
         {site.under}
+        {brush.under}
 
         {/* The house's shadows on 21 June, when the key's switch is on (src/sun) */}
         <ShadowPlanLayer plan={plan} survey={survey} terrain={terrain} earth={earth ?? null} toScreen={p => S(fromSite(p, plan.placement, survey.origin))} />
@@ -1997,6 +2031,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {site.over}
         {flow.over}
         {sections.over}
+        {brush.over}
         {mn.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <DrainageLayer plan={plan} survey={survey} terrain={terrain} S={S} k={k} />
@@ -2079,7 +2114,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {site.notice || notice ? (
           <span className="notice">{site.notice || notice}</span>
         ) : (
-          <span className="muted">{viewOnly ? VIEW_HINT[touch?.phone ? 'phone' : 'desk'] : (sections.hint ?? (site.active ? site.hint : tool === 'roof' ? ROOF_HINTS[roofMode] : HINTS[tool]))}</span>
+          <span className="muted">{viewOnly ? VIEW_HINT[touch?.phone ? 'phone' : 'desk'] : (sections.hint ?? brush.hint ?? (site.active ? site.hint : tool === 'roof' ? ROOF_HINTS[roofMode] : HINTS[tool]))}</span>
         )}
       </div>
     </div>

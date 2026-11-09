@@ -10,6 +10,7 @@ import {
 import type { Survey } from '../lib/survey'
 import type { Heightfield, Terrain } from '../lib/terrain'
 import type { WallStrip } from '../lib/terrainMesh'
+import { gradingPlatforms } from '../grading/model'
 import { drivewayPlatforms } from './driveway'
 import { earthworksOf, type Earthworks, type Plan } from './model'
 import { earthworksPlatforms, retainingStrips } from './platforms'
@@ -22,13 +23,13 @@ export interface Earth {
   strips: WallStrip[]
 }
 
-/** What the finished ground is worked out from: the levelled areas, the settings and the retaining walls. */
+/** What the finished ground is worked out from: the levelled areas (the house's, the painted grading and driveways), the settings and the retaining walls. */
 export type EarthInputs = [Platform[], Earthworks, WallStrip[]]
 
 export function earthInputs(plan: Plan, survey: Pick<Survey, 'origin' | 'boundary'>): EarthInputs {
   // Driveways with levels of their own are graded in with the rest: one finished ground for all.
   return [
-    [...earthworksPlatforms(plan, survey.origin), ...drivewayPlatforms(plan, survey.origin, survey.boundary)],
+    [...earthworksPlatforms(plan, survey.origin), ...gradingPlatforms(plan, survey.origin), ...drivewayPlatforms(plan, survey.origin, survey.boundary)],
     earthworksOf(plan),
     retainingStrips(plan, survey.origin),
   ]
