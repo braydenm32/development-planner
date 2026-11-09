@@ -9,7 +9,7 @@ import { registerRecordKind } from '../projects/session'
 export interface DaDetails {
   /** The site's street address. */
   address: string
-  /** "Lot 4 DP 12345". */
+  /** "Lot 12 DP 34567". */
   lot: string
   /** Who prepared the pack: a name, a business, or blank to write in. */
   preparedBy: string
