@@ -73,8 +73,6 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'cost-rates': RatesSection,
   'cost-about': AboutCostsSection,
   'fine-tuning': More.FineTuningSection,
-  stl: More.StlSection,
-  paper: More.PaperSection,
   'print-instructions': More.PrintInstructionsSection,
 }
 

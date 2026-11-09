@@ -1,5 +1,5 @@
-/* The Costs area: a wide panel that reads like a builder's estimate, a card of material choices
-   beside the plan, and the plan pointing out what a hovered line measures. Scoped to the shell. */
+/* The Costs area: a wide panel that reads like a builder's estimate (the material choices folded
+   into it), and the plan pointing out what a hovered line measures. Scoped to the shell. */
 
 .app-shell {
   --ok: #1f7a4d;
@@ -70,11 +70,27 @@
   font-weight: 600;
 }
 
+.ce-range-why {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .ce-right {
+  display: grid;
+  gap: 1px;
+  margin: 0;
   text-align: right;
 }
 
-.ce-right b {
+.ce-right div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ce-right dd {
+  min-width: 82px;
+  margin: 0;
   color: var(--text);
   font-weight: 500;
 }
@@ -95,6 +111,30 @@
 .ce-guide b {
   color: var(--text);
   font-weight: 500;
+}
+
+/* Complete: the two totals side by side, and a line on why they differ. */
+div.ce-guide {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r);
+  background: #f6f7f9;
+}
+
+.ce-two {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.ce-why {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .ce-guide-tag {
@@ -152,6 +192,13 @@
   gap: 10px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.ce-who-says {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .ce-seg {
@@ -222,6 +269,64 @@
   min-width: 92px;
   font-weight: 500;
   text-align: right;
+}
+
+/* The material choices, folded into the estimate above the groups. */
+.ce-picked {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ce-mat .ce-gh {
+  grid-template-columns: 16px auto minmax(0, 1fr) 0;
+}
+
+.ce-mat .cm-rows {
+  padding-top: 2px;
+}
+
+.ce-gov-note {
+  margin: 0 0 4px;
+}
+
+/* Under the groups, always unfolded: subtotal, margin, contingency, total. */
+.ce-sum {
+  padding: 10px 20px 14px 46px;
+  font-size: 13.5px;
+}
+
+.ce-sum-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.ce-sum-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ce-sum-row > span:last-child {
+  min-width: 92px;
+  text-align: right;
+}
+
+.ce-sum-row.total {
+  margin-top: 4px;
+  padding-top: 9px;
+  border-top: 1px solid var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ce-sum .muted.small {
+  margin: 6px 0 0;
 }
 
 .ce-qchip {
@@ -453,44 +558,13 @@ button.ce-ln-main {
   margin-top: 6px;
 }
 
-/* ---- Beside the plan on a wide desktop ---- */
-
-.costs-materials {
-  position: absolute;
-  top: var(--gap);
-  right: var(--gap);
-  z-index: 5;
-  width: 360px;
-  max-height: calc(100% - 2 * var(--gap) - 50px);
-  overflow-y: auto;
-}
-
-.app-shell .costs-materials > header {
-  align-items: center;
-  padding: 10px 12px 10px 16px;
-}
-
-.app-shell .costs-materials > header h3 {
-  margin: 0;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.app-shell .costs-materials > header button.link {
-  font-size: 13px;
-  text-decoration: none;
-}
-
-.costs-materials .cm-rows {
-  padding: 4px 16px 8px;
-}
+/* ---- Over the plan on a desktop ---- */
 
 .costs-legend {
   position: absolute;
   top: var(--gap);
   left: var(--free-left, 16px);
-  right: calc(360px + 2 * var(--gap) + 16px);
+  max-width: 480px;
   z-index: 4;
   padding: 10px 14px;
   color: var(--muted);
@@ -561,8 +635,80 @@ button.ce-ln-main {
 
 /* ---- More ---- */
 
-.cr-group h3 {
-  margin-top: 18px;
+/* Rates, folded by group. */
+.cr-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin: 10px 0 6px;
+}
+
+.cr-group {
+  border-top: 1px solid var(--line-soft);
+}
+
+.cr-gh {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cr-gh:disabled {
+  cursor: default;
+}
+
+.cr-gh > svg {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.cr-group.open .cr-gh > svg {
+  transform: rotate(90deg);
+}
+
+.cr-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.cr-group .cr-count:not(:empty) {
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-lines {
+  padding: 0 0 8px 24px;
+}
+
+.cr-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cr-reset:hover {
+  border-color: var(--text);
+  color: var(--text);
 }
 
 .cr-row {
@@ -765,6 +911,22 @@ button.ce-ln-main {
 .app-shell.phone .ce-split-labels {
   flex-direction: column;
   gap: 2px;
+}
+
+.app-shell.phone .ce-sum {
+  padding: 10px 16px 14px;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-who-says,
+.app-shell.phone .ce-why,
+.app-shell.phone .ce-range-why {
+  font-size: 13.5px;
+}
+
+.app-shell.phone .cr-reset {
+  min-height: 36px;
+  font-size: 14px;
 }
 
 .app-shell.phone .ce-who {

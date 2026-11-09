@@ -236,6 +236,11 @@
   flex: 1;
 }
 
+.cl-actions.pair .cl-btn.big {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
 .cl-alt {
   display: flex;
   flex-wrap: wrap;
@@ -836,6 +841,11 @@
 
   .cl-actions .cl-btn {
     width: 100%;
+  }
+
+  /* Sign in, then Create account, in reading order. */
+  .cl-actions.pair {
+    flex-direction: column;
   }
 
   .cl-actions.split > p {

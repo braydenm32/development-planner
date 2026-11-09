@@ -337,6 +337,13 @@ function bboxSize(pts: P2[]): [number, number] {
   return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]
 }
 
+/** Points turned clockwise by `deg`, as the 3D print turns the block to lay its long side along the bed (model.turn). */
+function turnedBack(pts: P2[], deg: number): P2[] {
+  const c = Math.cos(-deg * D2R)
+  const s = Math.sin(-deg * D2R)
+  return pts.map(([x, y]) => [x * c - y * s, x * s + y * c])
+}
+
 /** Gradient of a ground function by central differences over `h`, as (d/dx, d/dy). */
 const gradAt = (z: (x: number, y: number) => number, x: number, y: number, h: number): P2 => [(z(x + h / 2, y) - z(x - h / 2, y)) / h, (z(x, y + h / 2) - z(x, y - h / 2)) / h]
 
@@ -1381,7 +1388,8 @@ describe('3D print sizes and plastic volume', () => {
     wasm.setup()
   })
   const { survey, terrain } = loadSite(syntheticDxf(planeW, true))
-  const settings = (scale: number): PrintSettings => ({ ...DEFAULT_PRINT, scale, tiles: false })
+  // Printed solid: the volume below is the solid block's, and hollowing leaves the outside as it is.
+  const settings = (scale: number): PrintSettings => ({ ...DEFAULT_PRINT, scale, tiles: false, hollow: false })
 
   it.each([100, 200])('1:%s terrain, floor and roof sizes are the real sizes × 1000 / scale (plus keys and base)', scale => {
     const k = 1000 / scale
@@ -1391,8 +1399,11 @@ describe('3D print sizes and plastic volume', () => {
     const model: PrintModel = buildPrintModel(wasm, { plan, survey, ground }, settings(scale))
     const by = (name: string) => model.parts.find(p => p.name === name)!
     const size = (name: string) => [0, 1, 2].map(i => by(name).max[i] - by(name).min[i])
+    // The block is turned to lay its long side along x: its own long edge, 4.1° off north, ends up
+    // along x, a turn of 4.1° − 90°. Every size below is measured in that turned frame.
+    expect(model.turn).toBeCloseTo(4.0856 - 90, 3)
     // Terrain: the boundary's extent, and from the lowest ground minus a 3 mm base to the highest ground.
-    const [bw, bd] = bboxSize(BOUNDARY_W)
+    const [bw, bd] = bboxSize(turnedBack(BOUNDARY_W, model.turn))
     const zs = BOUNDARY_W.map(([E, N]) => planeW(E, N))
     const [tw, td, th] = size('Terrain')
     // Parts are stored as 32-bit floats in mm, about 0.05 mm at these sizes; allow 0.1 mm.
@@ -1403,7 +1414,7 @@ describe('3D print sizes and plastic volume', () => {
     // Floor: the outside of the walls turned 15°, from 300 mm under the floor less a 1.2 mm key
     // to the top of the 2.7 m walls plus a 1.2 mm key into the roof.
     const turned = SYN_OUTLINE.map(p => houseToSite(p, plan.placement, survey.origin))
-    const [fw, fd] = bboxSize(turned)
+    const [fw, fd] = bboxSize(turnedBack(turned, model.turn))
     const [gw, gd, gh] = size('Ground floor')
     near(gw, fw * k)
     near(gd, fd * k)
@@ -1411,7 +1422,7 @@ describe('3D print sizes and plastic volume', () => {
     // Roof: the 13.2 × 10.2 m outline turned 15°; its eaves are printed deep enough to key onto the
     // walls: max(150 mm, (1.2 + 0.2 + 0.6) mm at this scale).
     const outline: P2[] = [[-0.6, -0.6], [12.6, -0.6], [12.6, 9.6], [-0.6, 9.6]]
-    const [rw, rd] = bboxSize(outline.map(p => houseToSite(p, plan.placement, survey.origin)))
+    const [rw, rd] = bboxSize(turnedBack(outline.map(p => houseToSite(p, plan.placement, survey.origin)), model.turn))
     const edge = Math.max(0.15, 2.0 / k)
     const [qw, qd, qh] = size('Roof')
     near(qw, rw * k)
@@ -1438,22 +1449,30 @@ describe('3D print sizes and plastic volume', () => {
     synth.terrainVolume_cm3 = { exact: cm3, app: model.parts[0].volume }
   }, 60_000)
 
-  it('tiles: the fewest that fit the bed, e.g. 340 × 460 mm on a 225 × 225 bed is 2 × 3', () => {
+  it('tiles: the fewest that fit the bed, e.g. the 34 × 46 m block turned to 439 × 312 mm on a 225 × 225 bed is 2 × 2', () => {
     const empty: Plan = { ...syntheticPlan(), walls: [], rooms: [], areas: [] }
-    const model = buildPrintModel(wasm, { plan: empty, survey, ground: terrain.grid }, { ...DEFAULT_PRINT, scale: 100 })
-    // 34 × 46 m at 1:100: one tile across must be ≤ 225 and one up ≤ 225 (either way round).
+    const model = buildPrintModel(wasm, { plan: empty, survey, ground: terrain.grid }, { ...DEFAULT_PRINT, scale: 100, hollow: false })
     expect([DEFAULT_PRINT.bedX, DEFAULT_PRINT.bedY]).toEqual([225, 225])
-    let best: [number, number] | null = null
-    for (let nx = 1; nx <= 8; nx++)
-      for (let ny = 1; ny <= 8; ny++) {
-        const w = 340 / nx
-        const d = 460 / ny
-        const fits = (w <= 225 && d <= 225) || (d <= 225 && w <= 225)
-        if (fits && (!best || nx * ny < best[0] * best[1])) best = [nx, ny]
-      }
-    expect(best).toEqual([2, 3])
-    expect(model.parts).toHaveLength(6)
-    expect(model.parts.map(p => p.name)).toEqual(['Terrain A1', 'Terrain B1', 'Terrain A2', 'Terrain B2', 'Terrain A3', 'Terrain B3'])
+    const fewest = (W: number, D: number) => {
+      let best: [number, number] | null = null
+      for (let nx = 1; nx <= 8; nx++)
+        for (let ny = 1; ny <= 8; ny++) {
+          const w = W / nx
+          const d = D / ny
+          const fits = (w <= 225 && d <= 225) || (d <= 225 && w <= 225)
+          if (fits && (!best || nx * ny < best[0] * best[1])) best = [nx, ny]
+        }
+      return best
+    }
+    // Square to north it is 340 × 460 mm at 1:100, which takes 2 × 3. Turned so its long side runs
+    // along x it is 439 × 312 mm (its smallest box), so one tile across must be ≤ 225 and one up ≤ 225: 2 × 2.
+    expect(fewest(340, 460)).toEqual([2, 3])
+    const [tw, td] = bboxSize(turnedBack(BOUNDARY_W, model.turn)).map(v => v * 10)
+    expect(tw).toBeCloseTo(438.9, 1)
+    expect(td).toBeCloseTo(312.1, 1)
+    expect(fewest(tw, td)).toEqual([2, 2])
+    expect(model.parts).toHaveLength(4)
+    expect(model.parts.map(p => p.name)).toEqual(['Terrain A1', 'Terrain B1', 'Terrain A2', 'Terrain B2'])
     for (const p of model.parts) expect(fitsBed(p.max[0] - p.min[0], p.max[1] - p.min[1], DEFAULT_PRINT)).toBe(true)
     // Each tile's size is the box round the piece actually cut, so on a skewed block most are smaller than
     // their grid cell. The widest tile in each column and the deepest in each row still add up to the
@@ -1464,8 +1483,8 @@ describe('3D print sizes and plastic volume', () => {
     const w = (n: string) => model.parts.find(p => p.name === `Terrain ${n}`)!
     const width = (n: string) => w(n).max[0] - w(n).min[0]
     const depth = (n: string) => w(n).max[1] - w(n).min[1]
-    expect(Math.max(width('A1'), width('A2'), width('A3')) + Math.max(width('B1'), width('B2'), width('B3'))).toBeCloseTo(W, 1)
-    expect(Math.max(depth('A1'), depth('B1')) + Math.max(depth('A2'), depth('B2')) + Math.max(depth('A3'), depth('B3'))).toBeCloseTo(Dd, 1)
+    expect(Math.max(width('A1'), width('A2')) + Math.max(width('B1'), width('B2'))).toBeCloseTo(W, 1)
+    expect(Math.max(depth('A1'), depth('B1')) + Math.max(depth('A2'), depth('B2'))).toBeCloseTo(Dd, 1)
     expect(Math.min(...model.parts.map(p => p.min[0]))).toBeCloseTo(whole.min[0], 3)
     expect(Math.max(...model.parts.map(p => p.max[1]))).toBeCloseTo(whole.max[1], 3)
     expect(model.parts.reduce((t, p) => t + p.volume, 0)).toBeCloseTo(whole.volume, 0)
@@ -1837,7 +1856,8 @@ describe('sample survey and plan (made up)', () => {
         if (tiles) continue
         // Floor: the outline turned −10.3°, 300 mm floor + 2.7 m walls, plus the 1.2 mm key under it.
         const floor = parts.find(p => p.name === 'Ground floor')!
-        const [fw, fd] = bboxSize(OUTLINE.map(p => houseToSite(p, plan.placement, survey.origin)))
+        // Measured with the block turned as the print turns it, its long side along x.
+        const [fw, fd] = bboxSize(turnedBack(OUTLINE.map(p => houseToSite(p, plan.placement, survey.origin)), model.turn))
         // Internal walls under 1.2 mm as printed are thickened, which moves two outside faces out a
         // fraction of a millimetre; allow 0.1 mm.
         expect(Math.abs(floor.size[0] - fw * k)).toBeLessThan(0.1)
@@ -1845,7 +1865,7 @@ describe('sample survey and plan (made up)', () => {
         expect(floor.size[2]).toBeCloseTo(3.0 * k + 1.2, 1)
         // Terrain: the boundary's extent; highest to lowest finished ground plus the 3 mm base.
         const terrainPart = parts.find(p => p.name === 'Terrain')!
-        const [bw, bd] = bboxSize(boundaryL)
+        const [bw, bd] = bboxSize(turnedBack(boundaryL, model.turn))
         expect(terrainPart.size[0]).toBeCloseTo(bw * k, 1)
         expect(terrainPart.size[1]).toBeCloseTo(bd * k, 1)
         let lo = Infinity

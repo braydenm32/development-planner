@@ -6,6 +6,8 @@ import { useState } from 'react'
 import { TextField } from '../components/fields'
 import { saveDaPack, type PdfInput } from '../components/printFiles'
 import { useMap } from '../map/store'
+import { tabRoute } from '../nav/route'
+import { navigate, useRouter } from '../nav/router'
 import { setDaDetail, useDaDetails, type DaDetails } from './details'
 import { daOf, setDaRevision } from './model'
 
@@ -45,14 +47,37 @@ export function DaPackSection(p: PdfInput) {
       setError((err as Error).message || 'The DA pack could not be drawn.')
     }
   }
+  // The address on the title blocks: the one typed below, or the map's.
+  const typed = useDaDetails(s => s.details.address)
+  const hasAddress = !!(typed.trim() || lot?.address)
+  const toMap = () => {
+    const r = useRouter.getState().route
+    if (r.kind === 'app') navigate(tabRoute(r, 'site', 'map'))
+  }
   return (
     <>
       <h3>DA pack (PDF)</h3>
-      <p className="muted small">
-        A concept pack to take to a town planner or designer as the start of a development application: a cover checklist of what a DA
-        for a new house usually needs, the plans, elevations and sections, shadow diagrams, a cut and fill plan, the stormwater concept and
-        a table of the planning controls, each sheet with a title block. It isn’t ready to lodge.
+      <p className="sh-lede">
+        <b>Not ready to lodge.</b> A concept pack to start a development application with a town planner or designer.
       </p>
+      <details className="sh-whats">
+        <summary>What’s in it</summary>
+        <p className="muted small">
+          A cover checklist of what a DA for a new house usually needs, the plans, elevations and sections, shadow diagrams, a cut and fill plan, the
+          stormwater concept and a table of the planning controls, each sheet with a title block. Every page is in it, whatever is ticked above.
+        </p>
+      </details>
+      {!hasAddress && (
+        <div className="sh-callout" role="note">
+          <p>
+            <b>No site address yet.</b> Type it below for the title blocks, or find the block by its street address on the map
+            {lot ? '' : ' to add its Lot/DP too'}.
+          </p>
+          <button className="secondary" onClick={toMap}>
+            Go to Site › Map
+          </button>
+        </div>
+      )}
       <div className="tool-options">
         <DetailField id="da-address" field="address" label="Site address" hint={lot?.address ?? 'Street, suburb, postcode'} />
         <DetailField id="da-lot" field="lot" label="Lot and DP" hint={lot?.label ?? 'Lot 1 DP 123456'} />
