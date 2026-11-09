@@ -1,12 +1,14 @@
-// Design › Checks: the design against the Housing Code (CDC) or Wollongong's LEP and DCP (DA),
-// live. Problems first; every row names its clause and how sure the research is of it.
+// Design › Checks: the design against the Housing Code (CDC), or a council's LEP and DCP (DA) when
+// that council's rules are switched on, live. Problems first; every row names its clause and how
+// sure the research is of it.
 
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
 import { NOT_CHECKED } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
-import { PATHWAYS, setCheckSettings } from '../../checks/settings'
+import { COUNCILS, type Council } from '../../checks/councils'
+import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
 import type { CheckResult, CheckSettings, CheckStatus } from '../../checks/types'
 import { useChecks } from '../../checks/useChecks'
 import { useLoaded, type Loaded } from '../useSite'
@@ -41,13 +43,25 @@ function Checks({ d }: { d: Loaded }) {
   return (
     <div className="checks">
       <div className="segmented-choice" role="radiogroup" aria-label="Approval pathway">
-        {PATHWAYS.map(p => (
-          <button key={p.id} role="radio" aria-checked={c.pathway === p.id} className={c.pathway === p.id ? 'on' : ''} onClick={() => setCheckSettings({ pathway: p.id })} title={p.long}>
-            {p.label}
-          </button>
-        ))}
+        {PATHWAYS.map(p => {
+          const off = p.id === 'da' && !c.council
+          return (
+            <button
+              key={p.id}
+              role="radio"
+              aria-checked={c.pathway === p.id}
+              className={c.pathway === p.id ? 'on' : ''}
+              disabled={off}
+              onClick={() => setCheckSettings({ pathway: p.id })}
+              title={off ? 'Switch on your council’s rules below to check a DA' : pathwayLong(p.id, c.council)}
+            >
+              {p.label}
+            </button>
+          )
+        })}
       </div>
-      <p className="muted small">{PATHWAYS.find(p => p.id === c.pathway)!.long}</p>
+      <p className="muted small">{pathwayLong(c.pathway, c.council)}</p>
+      <CouncilSwitches council={c.council} />
       <p className="checks-summary" aria-live="polite">
         {summary.join(' · ')}
       </p>
@@ -61,7 +75,7 @@ function Checks({ d }: { d: Loaded }) {
       <details className="checks-more">
         <summary>Not checked yet</summary>
         <ul>
-          {NOT_CHECKED[c.pathway].map(t => (
+          {(c.pathway === 'da' || c.council ? NOT_CHECKED[c.pathway] : NOT_CHECKED.cdc).map(t => (
             <li key={t}>{t}</li>
           ))}
         </ul>
@@ -114,6 +128,23 @@ function CheckRow({ r }: { r: CheckResult }) {
         </div>
       )}
     </li>
+  )
+}
+
+/** Each council's own rules, switched on or off for this project. A block is in one council, so one at most. */
+function CouncilSwitches({ council }: { council: Council | null }) {
+  return (
+    <details className="checks-more council-switches">
+      <summary>Council rules · {council ? council.name : 'none on'}</summary>
+      <p className="muted small">Switch on the council your block is in to check a DA against its LEP and DCP. Only one can be on. The Housing Code checks apply across NSW either way.</p>
+      {COUNCILS.map(k => (
+        <label key={k.id} className="check">
+          <input type="checkbox" checked={council?.id === k.id} onChange={e => setCouncil(k.id, e.target.checked)} />
+          {k.name} <span className="muted small">({k.rules})</span>
+        </label>
+      ))}
+      <p className="muted small">Not listed? Its rules aren’t in the app yet, so only the Housing Code is checked.</p>
+    </details>
   )
 }
 

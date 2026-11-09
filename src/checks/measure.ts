@@ -13,7 +13,8 @@ import { areaKind, earthworksOf, floorRL, houseWalls, sortedLevels, toSite, type
 import { boundaryClearances, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
-import { DEFAULT_CHECK_SETTINGS, type CheckSettings, type CheckTree } from './types'
+import { checkSettingsOf } from './councils'
+import type { CheckSettings, CheckTree } from './types'
 
 export type EdgeRole = 'front' | 'rear' | 'side'
 
@@ -220,7 +221,7 @@ export interface MeasureInput {
 }
 
 export function measure({ plan, survey, terrain, earth, trees = [] }: MeasureInput): Measures {
-  const settings = { ...DEFAULT_CHECK_SETTINGS, ...plan.checks }
+  const settings = checkSettingsOf(plan.checks)
   const pl = plan.placement
   const site = (ring: Vec2[]) => ring.map(p => toSite(p, pl, survey.origin))
   const summaries = levelSummaries(plan)

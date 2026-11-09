@@ -412,7 +412,7 @@ function Numbers({
       {phone ? (
         peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} />
       ) : (
-        <SummaryStrip readOnly route={route} numbers={numbers} checks={{ pathway: checks.pathway, counts: checks.counts }} shown={shown} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
+        <SummaryStrip readOnly route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
       )}
       {overview && <OverviewSheet readOnly numbers={numbers} stats={terrain.stats} onBalance={() => {}} onClose={() => setOverview(false)} />}
     </>

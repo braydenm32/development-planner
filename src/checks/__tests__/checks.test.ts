@@ -14,7 +14,8 @@ import { countChecks, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, h
 import { encroachment, srzRadius, tpzRadius } from '../trees'
 import { checkTreesOf } from '../siteTrees'
 import type { SiteFeature } from '../../site/model'
-import type { CheckSettings, CheckTree } from '../types'
+import { activeCouncil, checkSettingsOf, switchCouncil } from '../councils'
+import { DEFAULT_CHECK_SETTINGS, type CheckSettings, type CheckTree } from '../types'
 
 type P2 = [number, number]
 // Falls 1 in 20 towards the south (north is higher).
@@ -74,7 +75,7 @@ function run(plan: Plan, trees: CheckTree[] = [], withEarth = false) {
     earth = { prep, result: evaluateEarthworks(prep), platforms }
   }
   const ms = measure({ plan, survey, terrain, earth, trees })
-  return { ms, survey, cdc: runChecks(ms, 'cdc'), da: runChecks(ms, 'da') }
+  return { ms, survey, cdc: runChecks(ms, 'cdc'), da: runChecks(ms, 'da', 'wollongong') }
 }
 
 const byId = (rs: ReturnType<typeof runChecks>, id: string) => rs.find(r => r.id === id)!
@@ -345,5 +346,33 @@ describe('trees', () => {
       ['a', 'T1', true, false],
       ['b', '', false, true],
     ])
+  })
+})
+
+describe('council rules switched on or off', () => {
+  it('a new project has no council on, so the DA pathway has nothing to check and reads as CDC', () => {
+    const s = checkSettingsOf(undefined)
+    expect(activeCouncil(s)).toBeNull()
+    expect(checkSettingsOf({ ...DEFAULT_CHECK_SETTINGS, pathway: 'da' }).pathway).toBe('cdc')
+    const { ms } = run(house({ councils: {} }))
+    expect(runChecks(ms, 'da')).toEqual([])
+    expect(runChecks(ms, 'cdc').length).toBeGreaterThan(0)
+  })
+  it('a plan saved before councils could be switched keeps Wollongong on', () => {
+    const old = { pathway: 'da', battleAxe: true } as CheckSettings
+    const s = checkSettingsOf(old)
+    expect(activeCouncil(s)?.id).toBe('wollongong')
+    expect(s.pathway).toBe('da')
+    expect(s.battleAxe).toBe(true)
+  })
+  it('switching a council on runs its rules; switching it off goes back to CDC', () => {
+    const on = { ...DEFAULT_CHECK_SETTINGS, ...switchCouncil(DEFAULT_CHECK_SETTINGS, 'wollongong', true), pathway: 'da' as const }
+    expect(activeCouncil(on)?.name).toBe('Wollongong')
+    const { ms } = run(house(on))
+    expect(runChecks(ms, 'da').some(r => r.source.clause.startsWith('Wollongong'))).toBe(true)
+    const off = { ...on, ...switchCouncil(on, 'wollongong', false) }
+    expect(off.councils).toEqual({ wollongong: false })
+    expect(off.pathway).toBe('cdc')
+    expect(checkSettingsOf(off).councils).toEqual({ wollongong: false })
   })
 })

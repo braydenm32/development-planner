@@ -5,7 +5,8 @@
 import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
 import { E17_REMOVAL_DISTANCE, encroachment, MINOR_ENCROACHMENT } from './trees'
-import type { CheckResult, CheckStatus, Pathway, Source } from './types'
+import { activeCouncil } from './councils'
+import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
 const m2 = (v: number) => `${v.toFixed(1)} m²`
@@ -566,9 +567,16 @@ function wollongong(ms: Measures): CheckResult[] {
   return [...out, ...treeChecks(ms, 'da')]
 }
 
-/** Every check for a pathway, in the order the panel lists them. */
-export function runChecks(ms: Measures, pathway: Pathway): CheckResult[] {
-  return pathway === 'cdc' ? housingCode(ms) : wollongong(ms)
+/** Each council's own rules (its LEP and DCP), for the DA pathway. */
+const COUNCIL_RULES: Record<CouncilId, (ms: Measures) => CheckResult[]> = { wollongong }
+
+/**
+ * Every check for a pathway, in the order the panel lists them. The DA checks are the council's own
+ * rules, so with no council switched on there are none.
+ */
+export function runChecks(ms: Measures, pathway: Pathway, council: CouncilId | null = activeCouncil(ms.settings)?.id ?? null): CheckResult[] {
+  if (pathway === 'cdc') return housingCode(ms)
+  return council ? COUNCIL_RULES[council](ms) : []
 }
 
 export interface CheckCounts {
@@ -585,7 +593,7 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
   return c
 }
 
-/** What the checks don't cover yet, by pathway: shown under the list so a clean run isn't read as approval. */
+/** What the checks don't cover yet, by pathway (DA: Wollongong's): shown under the list so a clean run isn't read as approval. */
 export const NOT_CHECKED: Record<Pathway, string[]> = {
   cdc: [
     'Whether the land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions)',

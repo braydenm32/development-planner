@@ -30,6 +30,12 @@
   background: var(--text);
   color: #ffffff;
 }
+.app-shell .segmented-choice button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 
 .app-shell .checks-summary {
   margin: 0;

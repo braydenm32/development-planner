@@ -6,10 +6,13 @@ import type { Earth } from '../plan/useEarthworks'
 import { measure, type Measures } from './measure'
 import { countChecks, runChecks, type CheckCounts } from './rules'
 import { useCheckTrees } from './siteTrees'
+import { activeCouncil, type Council } from './councils'
 import type { CheckResult, Pathway } from './types'
 
 export interface Checks {
   pathway: Pathway
+  /** The council whose rules are on (for the DA checks), if any. */
+  council: Council | null
   measures: Measures
   results: CheckResult[]
   counts: CheckCounts
@@ -21,7 +24,8 @@ export function useChecks(plan: Plan, survey: Survey, terrain: Terrain, earth: E
   const measures = useMemo(() => measure({ plan, survey, terrain, earth, trees }), [plan, survey, terrain, earth, trees])
   return useMemo(() => {
     const pathway = measures.settings.pathway
-    const results = runChecks(measures, pathway)
-    return { pathway, measures, results, counts: countChecks(results) }
+    const council = activeCouncil(measures.settings)
+    const results = runChecks(measures, pathway, council?.id ?? null)
+    return { pathway, council, measures, results, counts: countChecks(results) }
   }, [measures])
 }

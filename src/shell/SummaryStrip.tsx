@@ -12,7 +12,9 @@ import { ENGINEER_HEIGHT } from '../plan/keyNumbers'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
 import { m2, netText } from './format'
 import type { KeyNumbers } from './useKeyNumbers'
+import type { Council } from '../checks/councils'
 import type { CheckCounts } from '../checks/rules'
+import { checkedAgainst } from '../checks/settings'
 import type { Pathway } from '../checks/types'
 
 /** Where each number lives. */
@@ -32,7 +34,7 @@ interface Props {
   route: AppRoute
   numbers: KeyNumbers | null
   /** The compliance checks' tally for the chosen pathway. */
-  checks?: { pathway: Pathway; counts: CheckCounts }
+  checks?: { pathway: Pathway; council: Council | null; counts: CheckCounts }
   /** Numbers already in view: on the plan or in the open panel or inspector, and where. */
   shown: Partial<Record<NumberId, string>>
   onBalance: () => void
@@ -166,11 +168,11 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
 }
 
 /** The checks: a warning chip when something fails or needs checking, otherwise a quiet label (the strip is crowded on a phone). */
-export function ChecksChip({ checks: { pathway, counts }, shown, route, readOnly = false }: { checks: { pathway: Pathway; counts: CheckCounts }; shown?: string; route: AppRoute; readOnly?: boolean }) {
+export function ChecksChip({ checks: { pathway, council, counts }, shown, route, readOnly = false }: { checks: { pathway: Pathway; council: Council | null; counts: CheckCounts }; shown?: string; route: AppRoute; readOnly?: boolean }) {
   const name = pathway === 'cdc' ? 'CDC' : 'DA'
   const go = () => navigate({ kind: 'app', area: 'design', tab: 'checks', view: route.view, level: route.level, sel: route.sel })
   const loud = counts.fail + counts.warn > 0
-  const against = `Checked against the ${pathway === 'cdc' ? 'Housing Code' : 'Wollongong LEP and DCP'}`
+  const against = checkedAgainst(pathway, council)
   if (shown || !loud) {
     const text = counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
     if (readOnly && !shown)
@@ -184,7 +186,7 @@ export function ChecksChip({ checks: { pathway, counts }, shown, route, readOnly
         {name} checks <em>{shown}</em>
       </span>
     ) : (
-      <button className="chip ghost" onClick={go} title={`Checked against the ${pathway === 'cdc' ? 'Housing Code' : 'Wollongong LEP and DCP'}`}>
+      <button className="chip ghost" onClick={go} title={against}>
         {name} checks <em>{text}</em>
       </button>
     )
@@ -197,7 +199,7 @@ export function ChecksChip({ checks: { pathway, counts }, shown, route, readOnly
       </span>
     )
   return (
-    <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} title={`Checked against the ${pathway === 'cdc' ? 'Housing Code' : 'Wollongong LEP and DCP'}`}>
+    <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} title={against}>
       <i className="dot" /> {name} checks · {parts}
     </button>
   )

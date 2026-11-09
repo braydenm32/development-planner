@@ -354,8 +354,8 @@ export const AREAS: Area[] = [
         icon: 'check',
         subtitle: 'The design against the planning rules, as you draw.',
         shows: ['checks'],
-        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe'],
-        features: ['compliance-checks', 'checks-pathway', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
+        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch'],
+        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
       },
     ],
     more: {
