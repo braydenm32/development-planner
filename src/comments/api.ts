@@ -52,11 +52,21 @@ export function createCommentsApi(opts: { base?: string; fetch?: typeof fetch } 
   }
   const enc = encodeURIComponent
   const body = (v: unknown) => JSON.stringify(v)
+  // A reply missing a part (an older worker, a proxy's page) reads as none, rather than
+  // breaking the panels that list them.
+  const list = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+  const record = <T,>(v: unknown): T => (v && typeof v === 'object' && !Array.isArray(v) ? (v as T) : ({} as T))
 
   return {
-    seen: (token, commenter) => call('shared/comments', {}, { token, commenter }),
+    seen: async (token, commenter) => {
+      const got = record<{ mode?: CommentMode; comments?: unknown }>(await call('shared/comments', {}, { token, commenter }))
+      return { mode: got.mode === 'all' || got.mode === 'own' ? got.mode : 'off', comments: list<ViewerComment>(got.comments) }
+    },
     add: async (token, commenter, c) => (await call<{ comment: ViewerComment }>('shared/comments', { method: 'POST', body: body(c) }, { token, commenter })).comment,
-    list: id => call(`projects/${enc(id)}/comments`),
+    list: async id => {
+      const got = record<{ comments?: unknown; links?: unknown }>(await call(`projects/${enc(id)}/comments`))
+      return { comments: list<OwnerComment>(got.comments), links: record<CommentCounts>(got.links) }
+    },
     resolve: async (id, c, resolved) => (await call<{ comment: OwnerComment }>(`projects/${enc(id)}/comments/${enc(c)}/resolve`, { method: 'POST', body: body({ resolved }) })).comment,
     remove: async (id, c) => void (await call(`projects/${enc(id)}/comments/${enc(c)}`, { method: 'DELETE' })),
     setMode: async (id, link, mode) => (await call<{ link: ShareLink }>(`projects/${enc(id)}/shares/${enc(link)}/comments`, { method: 'POST', body: body({ comments: mode }) })).link,

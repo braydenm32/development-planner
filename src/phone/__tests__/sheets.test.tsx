@@ -1,6 +1,7 @@
 // Sheets that follow the finger: how far down closes one, and the street side picker in
 // Site › 3D, which turns Street view to the side picked.
 
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { useCamera } from '../cameraStore'
@@ -9,6 +10,8 @@ import { StreetSidePicker } from '../StreetSide'
 import { usePlan } from '../../plan/store'
 import { withStreetSide } from '../../plan/streetSide'
 import { house, loadBlock, words } from './block'
+import { buildIndex, search } from '../../nav/search'
+import { PaletteOffer } from '../../shell/CommandPalette'
 
 describe('dragging a sheet down', () => {
   it('closes it past a quarter of its height, and at least 80 px', () => {
@@ -97,5 +100,31 @@ describe('the street side', () => {
     useCamera.getState().go('street')
     useCamera.getState().go('street', false)
     expect(useCamera.getState().command).toEqual({ to: 'street', n: n + 2, animate: false })
+  })
+})
+
+describe('search on a phone, choosing an action', () => {
+  const item = search(buildIndex([]), 'replace survey')[0]
+
+  it('finds one that is offered to run where it lives', () => {
+    expect(item.entry.label).toBe('Replace survey')
+    expect(item.run).toBe('offer')
+  })
+
+  it('swaps the full-screen search for the offer alone, with no search box or results', () => {
+    const html = renderToStaticMarkup(<PaletteOffer item={item} run={() => {}} onClose={() => {}} />)
+    expect(html).toMatch(/^<div class="palette-backdrop offering">/)
+    expect(html).not.toContain('palette-input')
+    expect(html).not.toContain('palette-list')
+    expect(words(html)).toContain('It’s here now. Run it? Run now Not now')
+  })
+
+  it('shows the offer as a bar along the bottom, with the place it went to showing above it', () => {
+    const css = readFileSync(new URL('../../shell/shell.css', import.meta.url), 'utf8')
+    const rule = (sel: string) => new RegExp(`${sel.replace(/\./g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+    const backdrop = rule('.app-shell.phone .palette-backdrop.offering')
+    expect(backdrop).toMatch(/align-items:\s*flex-end/)
+    expect(backdrop).toMatch(/background:\s*transparent/)
+    expect(rule('.app-shell.phone .palette.offering')).toMatch(/border-radius:\s*12px 12px 0 0/)
   })
 })

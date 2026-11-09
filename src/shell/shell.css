@@ -2012,6 +2012,19 @@ button.chip:hover .chip-label {
   border-radius: 0;
 }
 
+/* Run it? after search went somewhere: a bar along the bottom, with that place showing above. */
+.app-shell.phone .palette-backdrop.offering {
+  align-items: flex-end;
+  background: transparent;
+}
+
+.app-shell.phone .palette.offering {
+  flex: 1 1 auto;
+  border-width: 1px 0 0;
+  border-radius: 12px 12px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 .app-shell.phone .palette-list li {
   min-height: 52px;
 }

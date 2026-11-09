@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { OutFile } from '../../components/printFiles'
 import { PHONE_SHARE_ORDER, canShareFiles, shareOrSave } from '../share'
 import { ShareFirst } from '../ShareFirst'
-import { house, loadBlock, shellData, words } from './block'
+import { PeekSheet } from '../PeekSheet'
+import { earthOf, house, loadBlock, numbersOf, shellData, words } from './block'
 
 const pdf: OutFile = { name: 'Phone test house.pdf', data: new Uint8Array([37, 80, 68, 70]), type: 'application/pdf' }
 
@@ -102,5 +103,17 @@ describe('handing a file over', () => {
       expect(await shareOrSave(pdf, 'x', nav, save)).toBe('saved')
       expect(save).toHaveBeenCalledWith(pdf.name, pdf.data, pdf.type)
     }
+  })
+})
+
+describe('the key numbers in a shared view', () => {
+  const { survey, terrain } = loadBlock()
+  const plan = house()
+  const n = numbersOf(plan, survey, terrain, earthOf(plan, survey, terrain))
+
+  it('says what there is to check without sending the viewer to Site features, which they can’t open', () => {
+    const peek = words(renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} checks={4} readOnly />))
+    expect(peek).not.toContain('in Site features')
+    expect(peek).toContain('4 to check: easements and tree zones')
   })
 })

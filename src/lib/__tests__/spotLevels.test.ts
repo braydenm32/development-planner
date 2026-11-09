@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseDxf } from '../dxf'
+import { readLandXml } from '../landxml'
+import { readPointsCsv } from '../pointsCsv'
 import { analyzeLayers, buildSurvey, guessRoles } from '../survey'
 import { buildTerrain, SPOT_REACH, SPOT_TOLERANCE } from '../terrain'
 import { plane, planeSurvey, point } from './fixtures'
@@ -45,5 +48,27 @@ describe('spot levels the smoothing pulls away from', () => {
     const a = buildTerrain(survey, { honourSpots: false }).grid
     const b = buildTerrain(survey).grid
     expect(Array.from(b.z)).toEqual(Array.from(a.z))
+  })
+})
+
+describe('Steepest', () => {
+  const sample = (n: string) => readFileSync(new URL(`../../../samples/${n}`, import.meta.url), 'utf8')
+  const fromRecord = (r: { dxfText: string; roles: Parameters<typeof buildSurvey>[1] }) => buildSurvey(parseDxf(r.dxfText), r.roles)
+  const steepest = (s: ReturnType<typeof buildSurvey>, honourSpots = true) => buildTerrain(s, { honourSpots }).stats.maxSlopePct
+
+  it('reads about the same for the same ground from a DXF, a points CSV and LandXML', () => {
+    const doc = parseDxf(sample('sample-block.dxf'))
+    const dxf = steepest(buildSurvey(doc, guessRoles(analyzeLayers(doc))))
+    const csv = steepest(fromRecord(readPointsCsv('sample-block.csv', sample('sample-block.csv'))))
+    const xml = steepest(fromRecord(readLandXml('sample-block.xml', sample('sample-block.xml'))))
+    // The sample block is a steady fall of about 18%; a single-cell spike along the edge of the
+    // CSV's scattered points used to read 56%.
+    expect(Math.abs(csv - dxf)).toBeLessThan(5)
+    expect(Math.abs(xml - dxf)).toBeLessThan(5)
+  })
+
+  it('one spot level pinned back into the ground barely moves it', () => {
+    const survey = bumpedSurvey(0.4)
+    expect(Math.abs(steepest(survey) - steepest(survey, false))).toBeLessThan(2)
   })
 })

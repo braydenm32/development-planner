@@ -99,6 +99,8 @@ export interface Tab extends Entry {
   shows?: NumberId[]
   /** Short line under the panel's title. */
   subtitle?: string
+  /** The line instead where the app has no cloud (GitHub Pages, a copy run at home), for a tab whose subtitle promises a cloud part. */
+  offlineSubtitle?: string
   /** The tab is the canvas alone, with no panel. */
   noPanel?: boolean
 }
@@ -867,6 +869,7 @@ export const AREAS: Area[] = [
         label: 'Send',
         icon: 'send',
         subtitle: 'A view-only link, or one file with the survey and the plan.',
+        offlineSubtitle: 'One file with the survey and the plan.',
         keywords: ['share', 'project file', 'email', 'builder', 'architect', 'link', 'view-only link', 'share link', 'read only', 'show people', 'family', 'turn off link', 'revoke', 'expire', 'expiry', 'extend link', 'how long', 'comment', 'comments', 'feedback', 'notes from', 'review', 'markup', 'resolve'],
         features: [
           'share-link-make',
