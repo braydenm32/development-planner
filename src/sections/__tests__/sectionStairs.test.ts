@@ -1,4 +1,4 @@
-// Stairs in sections, and roofs at their own eaves RL, on the made-up sample block
+// Stairs in sections, roofs at their own eaves RL and walls rising to meet them, on the made-up sample block
 // (samples/sample-block.dxf) with a plain made-up box house.
 
 import { readFileSync } from 'node:fs'
@@ -12,6 +12,7 @@ import { levelOutlines } from '../../plan/roof'
 import { textWidth } from '../../share/pdfWriter'
 import type { Pt } from '../common'
 import { paintDrawing, type Painter } from '../paint'
+import { elevationDrawing, elevationSides } from '../elevation'
 import { sectionDrawing, sectionStairs, stepOutlines } from '../section'
 
 const doc = parseDxf(readFileSync(new URL('../../../samples/sample-block.dxf', import.meta.url), 'utf8'))
@@ -118,5 +119,31 @@ describe('stairs in sections', () => {
     expect(low).toBeCloseTo(50, 9)
     const own = Math.min(...sectionDrawing(line, { plan: p, survey, terrain }).roofs.flat().map(q => q[1]))
     expect(own).toBeCloseTo(floorRL(p) + 2.7, 9)
+  })
+})
+
+describe('walls under a roof set above their ceiling', () => {
+  const line = { id: 'A', label: 'A', a: [-1, 4] as Vec2, b: [11, 4] as Vec2 }
+  const at = (rl: number): Plan => ({ ...house(), roofs: house().roofs.map(r => ({ ...r, eaves: { rl } })) })
+  const ceiling = floorRL(house()) + 2.7
+
+  it('rise to meet it in a section, so no gap shows', () => {
+    const walls = sectionDrawing(line, { plan: at(50), survey, terrain }).walls
+    expect(walls).toHaveLength(2)
+    for (const w of walls) expect(w.z1).toBeCloseTo(50, 9)
+    // Eaves set lower than the ceiling leave the walls as they are.
+    for (const w of sectionDrawing(line, { plan: at(47.5), survey, terrain }).walls) expect(w.z1).toBeCloseTo(ceiling, 9)
+  })
+
+  it('rise to meet it in every elevation', () => {
+    for (const { side } of elevationSides(house())) {
+      const tops = (plan: Plan) =>
+        elevationDrawing(side, { plan, survey, terrain })
+          .shapes.filter(s => s.kind === 'wall')
+          .map(s => Math.max(...s.pts.map(q => q[1])))
+      expect(tops(at(50)).length).toBeGreaterThan(0)
+      for (const t of tops(at(50))) expect(t).toBeCloseTo(50, 9)
+      for (const t of tops(at(47.5))) expect(t).toBeCloseTo(ceiling, 9)
+    }
   })
 })

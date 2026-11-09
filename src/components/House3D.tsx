@@ -25,7 +25,7 @@ import { pierOutlines } from '../plan/platforms'
 import { retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
-import { roofEavesRL } from '../plan/roofline'
+import { roofEavesRL, wallTopRL } from '../plan/roofline'
 
 interface Props {
   plan: Plan
@@ -102,8 +102,10 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         const len = wallLength(w)
         const d = wallDir(w)
         const openings = plan.openings.filter(o => o.wall === w.id)
+        // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
+        const height = wallTopRL(plan, w) - floorRL(plan, level.id)
         // Pieces are measured along the centreline; mitred ends reach past 0 and len.
-        for (const piece of wallPieces(len, level.height, openings)) {
+        for (const piece of wallPieces(len, height, openings)) {
           const s0 = piece.s0 <= 1e-6 ? -1e3 : piece.s0
           const s1 = piece.s1 >= len - 1e-6 ? 1e3 : piece.s1
           const part = sliceAlong(poly, w.a, d, s0, s1)

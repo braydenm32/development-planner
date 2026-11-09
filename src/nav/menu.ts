@@ -1470,7 +1470,7 @@ export const HOMES: Home[] = [
         features: ['opening-type', 'opening-width', 'opening-height', 'opening-sill', 'opening-offset', 'door-flip-hinge', 'door-flip-swing'],
       },
       { id: 'inspect-room', at: 'design/plan', hint: 'Click a room’s name on the plan: its settings open on the right.', label: 'Selected room', icon: 'room', keywords: ['rename', 'slab', 'piers', 'ground under', 'living area', 'winter sun', 'sunlight'], features: ['room-name', 'room-floor-type', 'room-ground-range', 'room-living-area'] },
-      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-over-lined-up-levels'] },
+      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-over-lined-up-levels', 'walls-rise-to-roof'] },
       {
         id: 'inspect-stair', at: 'design/plan', hint: 'Click a stair on the plan: its settings open on the right.',
         label: 'Selected stair',

@@ -9,12 +9,13 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
 import { levelSummaries, roofAboveGround, sideLabel } from '../plan/keyNumbers'
-import { areaKind, earthworksOf, floorRL, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
+import { areaKind, earthworksOf, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
 import { driveLines, type DriveLine } from '../plan/crossing'
 import { driveGround } from '../plan/driveway'
 import { boundaryClearances, outsideLot, signedClearance, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
+import { wallTopRL } from '../plan/roofline'
 import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
 import { worksOf, type Works, type WorksGround } from './trees'
@@ -238,7 +239,7 @@ export function houseHeight(plan: Plan, survey: Survey, terrain: Terrain): numbe
   for (const w of houseWalls(plan.walls)) {
     const level = plan.levels.find(l => l.id === w.level)
     if (!level) continue
-    const top = floorRL(plan, w.level) + level.height
+    const top = wallTopRL(plan, w)
     for (const p of [w.a, w.b]) {
       const s = toSite(p, plan.placement, survey.origin)
       h = Math.max(h, top - terrain.grid.sample(s[0], s[1]))
