@@ -57,6 +57,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Delete'], what: 'Delete the selection (the toast has Undo)' },
       { keys: ['mod+Z'], what: 'Undo' },
       { keys: ['mod+shift+Z'], what: 'Redo (Ctrl+Y works too)' },
+      { keys: ['mod+S'], what: 'Save now, and say where' },
     ],
   },
   {

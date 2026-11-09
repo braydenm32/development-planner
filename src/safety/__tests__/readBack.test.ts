@@ -87,8 +87,9 @@ describe('the read-back line', () => {
     expect(foundText(survey)).toBe(`${survey.contours.length} contours, 35 spot levels and the boundary`)
     expect(siteAreaText(terrain.stats)).toBe('600 m²')
     expect(rlRangeText(terrain.stats)).toBe(`RL ${terrain.stats.minRL.toFixed(2)} to ${terrain.stats.maxRL.toFixed(2)}`)
-    expect(readBackLine(site)).toBe(`Found ${survey.contours.length} contours, 35 spot levels and the boundary · 600 m² · ${rlRangeText(terrain.stats)}`)
-    expect(readBackLine(site)).toMatch(/^Found \d+ contours, 35 spot levels and the boundary · 600 m² · RL 80\.\d\d to 8[78]\.\d\d$/)
+    // The toast keeps to what matters (short enough to read in one go); the counts are behind Check the layers.
+    expect(readBackLine(site)).toBe(`Survey loaded · 600 m² · ${rlRangeText(terrain.stats)}`)
+    expect(readBackLine(site)).toMatch(/^Survey loaded · 600 m² · RL 80\.\d\d to 8[78]\.\d\d$/)
   })
 
   it('says when there was no boundary, and that there is a warning', () => {
@@ -96,7 +97,7 @@ describe('the read-back line', () => {
     expect(site.survey.boundaryIsGuess).toBe(true)
     expect(site.survey.warnings).toHaveLength(1)
     expect(foundText(site.survey)).toBe(`${site.survey.contours.length} contours and 35 spot levels, but no boundary`)
-    expect(readBackLine(site)).toMatch(/, but no boundary · [\d,]+ m² · RL [\d.]+ to [\d.]+ · 1 warning$/)
+    expect(readBackLine(site)).toMatch(/^Survey loaded, but no boundary · [\d,]+ m² · RL [\d.]+ to [\d.]+ · 1 warning$/)
   })
 
   it('reads one of a thing in the singular', () => {

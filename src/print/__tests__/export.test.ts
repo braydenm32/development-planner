@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PrintPart } from '../build'
+import { CAVEAT_LINE } from '../../legal/caveat'
 import { crc32, fileSafe, layOut, to3mf, toStl, toStlZip, zip } from '../export'
 
 /** A w x d x h box with its lowest corner at (x, y, z). */
@@ -111,6 +112,13 @@ describe('print files', () => {
     expect(model).toContain('name="Roof &amp; eaves"')
     expect(model).toContain('<base name="floor" displaycolor="#EEE8DC"/><base name="roof" displaycolor="#6B7380"/>')
     expect(model.match(/<item /g)).toHaveLength(2)
+    // The caveat travels in the file's own description.
+    expect(model).toContain(`<metadata name="Description">${CAVEAT_LINE}</metadata>`)
+  })
+
+  it('puts the caveat in a README beside the STLs', () => {
+    const files = unzip(toStlZip([box('Roof', [0, 0, 0], [1, 1, 1])]))
+    expect(new TextDecoder().decode(files.get('README.txt'))).toContain(CAVEAT_LINE)
   })
 
   it('names STL files safely and uniquely', () => {
@@ -118,6 +126,6 @@ describe('print files', () => {
     expect(fileSafe("Sam's house")).toBe('sams-house')
     expect(fileSafe('***')).toBe('part')
     const files = unzip(toStlZip([box('Roof', [0, 0, 0], [1, 1, 1]), box('Roof', [0, 0, 0], [1, 1, 1])]))
-    expect([...files.keys()]).toEqual(['roof.stl', 'roof-2.stl'])
+    expect([...files.keys()]).toEqual(['roof.stl', 'roof-2.stl', 'README.txt'])
   })
 })

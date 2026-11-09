@@ -2,13 +2,15 @@ import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import { CameraRig } from '../phone/CameraRig'
-import { useCamera, useStreetSide } from '../phone/cameraStore'
+import { useCamera } from '../phone/cameraStore'
 import { useTouchCanvas } from '../phone/device'
 import { siteFrame } from '../phone/frame'
 import { GroundPin } from '../phone/GroundPin'
 import type { Pin } from '../phone/pin'
 import * as THREE from 'three'
-import { CUT_RGB, elevationColor, FILL_RGB } from '../lib/colors'
+import { CUT_RGB, elevationColor, FILL_RGB, REFERENCE_POINT, SPOT_LEVEL } from '../lib/colors'
+import { contourText } from '../plan/finishedContours'
+import { Html } from '@react-three/drei'
 import { pointInPolygon } from '../lib/geom'
 import type { ViewSettings } from '../lib/storage'
 import type { Survey, SurveyPoint } from '../lib/survey'
@@ -58,10 +60,9 @@ export function SiteView(props: Props) {
 
   // The new layout: presets, a remembered camera, and a tap on the ground to read its level.
   const touch = useTouchCanvas()
-  const side = useStreetSide(touch?.projectKey ?? null)
   const frame = useMemo(
-    () => (touch ? siteFrame(props.plan, props.survey, terrain, refZ, props.view.exaggeration, side) : null),
-    [touch, props.plan, props.survey, terrain, refZ, props.view.exaggeration, side],
+    () => (touch ? siteFrame(props.plan, props.survey, terrain, refZ, props.view.exaggeration) : null),
+    [touch, props.plan, props.survey, terrain, refZ, props.view.exaggeration],
   )
   const [pin, setPin] = useState<Pin | null>(null)
   // A camera view starts clean: the level read off the ground goes with the old view.
@@ -106,12 +107,15 @@ function Compass({ compassRef }: { compassRef: RefObject<HTMLDivElement | null> 
   const controls = useThree(s => s.controls) as unknown as { getAzimuthalAngle(): number } | null
   useFrame(() => {
     if (!controls || !compassRef.current) return
-    // Azimuth 0 means the camera looks towards -z (north); rotate the needle to match.
+    // Azimuth 0 means the camera looks towards -z (north); the needle turns to match (the N stays upright: App.css).
     const az = controls.getAzimuthalAngle()
-    compassRef.current.style.transform = `rotate(${(-az * 180) / Math.PI}deg)`
+    compassRef.current.style.setProperty('--az', `${(-az * 180) / Math.PI}deg`)
   })
   return null
 }
+
+/** How many contour RLs are labelled in 3D at most: enough to read the fall, few enough to stay light. */
+const MAX_CONTOUR_LABELS = 10
 
 const CUT = new THREE.Color().setRGB(...CUT_RGB, THREE.SRGBColorSpace)
 const FILL = new THREE.Color().setRGB(...FILL_RGB, THREE.SRGBColorSpace)
@@ -181,6 +185,37 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
     return { major: build(true), minor: build(false) }
   }, [survey, grid, ground, refZ])
 
+  // One RL label on each major contour (its longest run on unchanged ground, at the middle), at most
+  // MAX_CONTOUR_LABELS of them spread over the range. A few DOM labels, so the 3D view stays quick.
+  const contourLabels = useMemo(() => {
+    const byZ = new Map<number, { p: [number, number]; len: number }>()
+    for (const c of survey.contours) {
+      if (!c.major) continue
+      let run: [number, number][] = []
+      let best: [number, number][] = []
+      const close = () => {
+        if (run.length > best.length) best = run
+        run = []
+      }
+      for (let k = 0; k + 1 < c.pts.length; k++) {
+        const [x1, y1] = c.pts[k]
+        const [x2, y2] = c.pts[k + 1]
+        const mx = (x1 + x2) / 2
+        const my = (y1 + y2) / 2
+        if (!pointInPolygon(mx, my, survey.boundary) || Math.abs(ground.sample(mx, my) - grid.sample(mx, my)) > 0.05) close()
+        else run.push([x1, y1], [x2, y2])
+      }
+      close()
+      if (best.length < 4) continue
+      const mid = best[Math.floor(best.length / 2)]
+      const had = byZ.get(c.z)
+      if (!had || best.length > had.len) byZ.set(c.z, { p: [mid[0], mid[1]], len: best.length })
+    }
+    const all = [...byZ.entries()].sort((a, b) => a[0] - b[0])
+    const step = Math.max(1, Math.ceil(all.length / MAX_CONTOUR_LABELS))
+    return all.filter((_, i) => i % step === 0).map(([z, { p }]) => ({ z, x: p[0], y: p[1], rl: ground.sample(p[0], p[1]) }))
+  }, [survey, grid, ground])
+
   const hoverSurface = (e: ThreeEvent<PointerEvent>) => {
     const x = e.point.x
     const y = -e.point.z
@@ -227,6 +262,11 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
             <lineSegments geometry={contourLines.major}>
               <lineBasicMaterial color="#2b211c" transparent opacity={0.85} />
             </lineSegments>
+            {contourLabels.map(l => (
+              <Html key={l.z} position={[l.x, l.rl - refZ + 0.05, -l.y]} center zIndexRange={[0, 0]} style={{ pointerEvents: 'none' }}>
+                <span className="contour-tag">{contourText(l.z)}</span>
+              </Html>
+            ))}
           </>
         )}
         <BoundaryLine survey={survey} ground={ground} refZ={refZ} />
@@ -236,10 +276,10 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
         )}
       </group>
       {view.showLevels && (
-        <Markers points={survey.levels} color="#1d2733" kind="Spot level" {...{ survey, terrain, refZ, exag, onHover }} />
+        <Markers points={survey.levels} color={SPOT_LEVEL} kind="Spot level" {...{ survey, terrain, refZ, exag, onHover }} />
       )}
       {view.showReference && (
-        <Markers points={survey.reference} color="#d2463c" kind="Reference point" {...{ survey, terrain, refZ, exag, onHover }} />
+        <Markers points={survey.reference} color={REFERENCE_POINT} kind="Reference point" {...{ survey, terrain, refZ, exag, onHover }} />
       )}
     </>
   )

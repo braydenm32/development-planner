@@ -3,7 +3,9 @@
 // Undo for at least UNDO_MS.
 
 import { create } from 'zustand'
+import type { SavedProject } from '../lib/storage'
 import type { ProjectThumbnail } from '../projects/types'
+import type { PickLayersError } from './files'
 
 /** How long an Undo toast stays (ms). Hovering or focusing it keeps it longer. */
 export const UNDO_MS = 12_000
@@ -57,8 +59,20 @@ export interface Toast {
   ms: number
 }
 
+/** A survey whose contours weren't on the layers guessed: pick them by hand, then it opens. */
+export interface LayersAsk {
+  id: number
+  fileName: string
+  dxfText: string
+  layers: PickLayersError['layers']
+  roles: PickLayersError['roles']
+  /** The survey with the layers picked, or null if it was put aside. */
+  answer: (survey: SavedProject | null) => void
+}
+
 interface SafetyState {
   review: (Review & { answer: (choice: string | null) => void }) | null
+  layers: LayersAsk | null
   toast: Toast | null
   /** A flow is busy (reading a file, saving). */
   busy: boolean
@@ -67,7 +81,7 @@ interface SafetyState {
 /** What the one file picker is for: anything, or only a survey (Replace survey) or a plan (Import plan). */
 export type PickMode = 'any' | 'survey' | 'plan'
 
-export const useSafety = create<SafetyState>(() => ({ review: null, toast: null, busy: false }))
+export const useSafety = create<SafetyState>(() => ({ review: null, layers: null, toast: null, busy: false }))
 
 const set = useSafety.setState
 const get = useSafety.getState
@@ -82,6 +96,20 @@ export function askReview(review: Review): Promise<string | null> {
       resolve(choice)
     }
     set({ review: { ...review, choice: review.choice ?? review.choices?.[0]?.id, answer } })
+  })
+}
+
+let layersId = 0
+
+/** Show the layer review for a survey with no contours found, and wait for the layers picked (null if cancelled). */
+export function askLayers(e: PickLayersError): Promise<SavedProject | null> {
+  get().layers?.answer(null)
+  return new Promise(resolve => {
+    const answer = (survey: SavedProject | null) => {
+      if (get().layers?.answer === answer) set({ layers: null })
+      resolve(survey)
+    }
+    set({ layers: { id: ++layersId, fileName: e.fileName, dxfText: e.dxfText, layers: e.layers, roles: e.roles, answer } })
   })
 }
 
