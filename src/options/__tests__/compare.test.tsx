@@ -26,6 +26,8 @@ const terrain = buildTerrain(survey)
 const option = (name: string, ffl: number): Plan => normalizePlan({ ...garageFloor(), name, placement: { e: 5006, n: 8004, rotation: 0, ffl } })
 const slab = option('Slab', 45.5)
 const piers = option('Piers', 46.3)
+/** Checked for a DA with a council's rules on, so the sun to the neighbours is one of the checks. */
+const da: Plan = { ...slab, name: 'DA', checks: { pathway: 'da', battleAxe: false, councils: { wollongong: true } } }
 
 /** What the app's own hooks give for a plan, as the strip, Checks and Costs call them. */
 function appNumbers(plan: Plan) {
@@ -57,6 +59,7 @@ describe('an option’s numbers', () => {
   it.each([
     ['slab', slab],
     ['piers', piers],
+    ['DA', da],
   ])('the %s column matches the strip, Checks and Costs for that plan', (_n, plan) => {
     const n = optionNumbers(plan, survey, terrain, emptyCosts(), [])
     const app = appNumbers(plan)
@@ -89,7 +92,8 @@ describe('the table’s rows', () => {
     expect(row('net').text(a)).toMatch(/m³ (to take away|to bring in)$/)
     expect(row('floor-area').text(a)).toBe(`${a.floorArea!.toFixed(2)} m²`)
     expect(row('ffl').text(b)).toBe('RL 46.30')
-    expect(checksText(a)).toMatch(/^\d+ pass/)
+    // Design › Checks' summary, in its order: passes after what needs doing.
+    expect(checksText(a)).toMatch(/\d+ pass$/)
   })
 
   it('marks the lowest cut and fill, and nothing on floor level or when they tie', () => {
@@ -121,6 +125,17 @@ describe('the table’s rows', () => {
     expect(bestIn(row('checks'), [c(0, 1, 0), c(0, 0, 3)])).toEqual([false, true])
     // An option that's barely drawn can't win by having nothing to fail.
     expect(bestIn(row('checks'), [c(0, 0, 0, 9), c(0, 0, 1)])).toEqual([false, true])
-    expect(checksText(c(0, 1, 0, 2))).toBe('5 pass · 1 to check · 2 not drawn yet')
+    expect(checksText(c(0, 1, 0, 2))).toBe('1 to check · 2 not drawn yet · 5 pass')
+  })
+
+  it('checks: the Checks panel’s words, trees marked for removal on their own, and what they were checked against', () => {
+    const counts = { fail: 1, warn: 0, unknown: 1, incomplete: 0, pass: 5, pending: 2, info: 0 }
+    const n = { ...a, checks: { counts, pathway: 'da' as const, council: 'Wollongong' } }
+    expect(checksText(n)).toBe('1 fail · 1 needs a fact · 2 marked for removal · 5 pass')
+    expect(checksText(n)).not.toMatch(/can’t tell yet/)
+    expect(row('checks').note!(n)).toBe('DA (Wollongong)')
+    expect(row('checks').note!(a)).toBe('CDC (Housing Code)')
+    const d = optionNumbers(da, survey, terrain, emptyCosts(), [])
+    expect(d.checks).toMatchObject({ pathway: 'da', council: 'Wollongong' })
   })
 })

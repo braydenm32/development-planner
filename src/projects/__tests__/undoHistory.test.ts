@@ -129,6 +129,35 @@ describe('Undo and Redo after a reload', () => {
     expect(saved.present.placement.ffl).toBeCloseTo(81.29, 9)
   })
 
+  it('a tree marked for removal from Checks is what the top bar’s Undo takes back', async () => {
+    const app = await load()
+    await app.actions.create({ survey: survey(), plan: garageFloor() })
+    const { useSiteStore } = await import('../../site/store')
+    const { setTreeRemoval } = await import('../../checks/siteTrees')
+    const { undoTarget } = await import('../../shell/undoTarget')
+    const site = () => useSiteStore.getState()
+    useSiteStore.setState({ focus: false, data: { ...site().data, features: [{ id: 'tree1', type: 'tree', geom: { kind: 'point', at: [3, 4] }, source: 'trace', label: 'T1', trunk: 0.3 }] } })
+    app.st().commit(dropWall)
+    // Marked from Design › Checks: the site features' history, with Site › Features not open.
+    setTreeRemoval('tree1', true)
+    expect(site().data.features[0].remove).toBe(true)
+    expect(undoTarget('undo')).toBe(site())
+    undoTarget('undo').undo()
+    expect(site().data.features[0].remove).toBeFalsy()
+    // Redo puts it back; with the site's steps taken back, Undo goes on to the plan's.
+    expect(undoTarget('redo')).toBe(site())
+    undoTarget('undo').undo()
+    expect(app.st().plan!.walls).toEqual(garageFloor().walls)
+    // Redo follows the history just changed: the plan's step comes back.
+    undoTarget('redo').redo()
+    expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 1)
+    // Marking again, then editing the plan, makes the plan's history the one Undo works on.
+    setTreeRemoval('tree1', true)
+    expect(undoTarget('undo')).toBe(site())
+    app.st().commit(dropWall)
+    expect(undoTarget('undo')).toBe(app.st())
+  })
+
   it('opens a project saved before histories were kept with an empty one', async () => {
     const app = await load()
     const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })

@@ -21,6 +21,7 @@ import { beginSectionLine } from '../sections/SectionMarks'
 import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
+import { undoTarget } from './undoTarget'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
 export interface ActionContext {
@@ -48,11 +49,12 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
   }
 
   switch (a) {
+    // The same history as the top bar's buttons (./undoTarget.ts).
     case 'undo':
-      st.undo()
+      undoTarget('undo').undo()
       return true
     case 'redo':
-      st.redo()
+      undoTarget('redo').redo()
       return true
     case 'view-plan':
     case 'view-3d':

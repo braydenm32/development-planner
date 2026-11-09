@@ -3,6 +3,8 @@
 // kilometres either way moves the sun by a few hundredths of a degree. Older projects get Sydney.
 
 import type { Plan } from '../plan/model'
+import { activeCouncil, checkSettingsOf } from '../checks/councils'
+import type { CouncilId } from '../checks/types'
 
 export interface SiteLocation {
   /** Degrees, negative south of the equator. */
@@ -23,6 +25,7 @@ export const NSW_TOWNS: { name: string; lat: number; lon: number }[] = [
   { name: 'Sydney', lat: -33.87, lon: 151.21 },
   { name: 'Newcastle', lat: -32.93, lon: 151.78 },
   { name: 'Wollongong', lat: -34.42, lon: 150.89 },
+  { name: 'Kiama', lat: -34.67, lon: 150.85 },
   { name: 'Central Coast (Gosford)', lat: -33.43, lon: 151.34 },
   { name: 'Blue Mountains (Katoomba)', lat: -33.71, lon: 150.31 },
   { name: 'Southern Highlands (Bowral)', lat: -34.48, lon: 150.42 },
@@ -46,10 +49,48 @@ export const NSW_TOWNS: { name: string; lat: number; lon: number }[] = [
 
 export const DEFAULT_LOCATION: SiteLocation = { lat: -33.87, lon: 151.21, place: 'Sydney' }
 
-/** The project's location, Sydney when it hasn't been set. */
-export function locationOf(plan: Pick<Plan, 'location'> | null | undefined): SiteLocation {
+/** The town in the list each council's checks stand for, so its rules and its sun agree. */
+export const COUNCIL_TOWN: Record<CouncilId, string> = {
+  wollongong: 'Wollongong',
+  kiama: 'Kiama',
+  'blue-mountains': 'Blue Mountains (Katoomba)',
+  'central-coast': 'Central Coast (Gosford)',
+}
+
+/** A council's town as a location; null for a council with no town in the list. */
+export function councilLocation(id: CouncilId): SiteLocation | null {
+  const t = NSW_TOWNS.find(x => x.name === COUNCIL_TOWN[id])
+  return t ? { lat: t.lat, lon: t.lon, place: t.name } : null
+}
+
+const isSet = (l: SiteLocation | undefined): l is SiteLocation => !!l && Number.isFinite(l.lat) && Number.isFinite(l.lon)
+
+/**
+ * Where the sun works from when no place has been picked: the town of the council whose rules are
+ * on (so the DA checks and the sun are for the same place), or Sydney.
+ */
+export function defaultLocationOf(plan: Pick<Plan, 'checks'> | null | undefined): SiteLocation {
+  const council = plan?.checks ? activeCouncil(checkSettingsOf(plan.checks)) : null
+  return (council && councilLocation(council.id)) || DEFAULT_LOCATION
+}
+
+/** The project's location: the place picked, else the council's town, else Sydney. */
+export function locationOf(plan: Pick<Plan, 'location' | 'checks'> | null | undefined): SiteLocation {
   const l = plan?.location
-  return l && Number.isFinite(l.lat) && Number.isFinite(l.lon) ? l : DEFAULT_LOCATION
+  return isSet(l) ? l : defaultLocationOf(plan)
+}
+
+/** The plan's place after switching council `id` on: its town, unless a place was picked other than the last council's town. */
+export function locationForCouncil(plan: Pick<Plan, 'location' | 'checks'>, id: CouncilId): SiteLocation | undefined {
+  const l = plan.location
+  // A place that is just the last council's town came from switching that council on, not from a pick.
+  const was = plan.checks ? activeCouncil(checkSettingsOf(plan.checks)) : null
+  const before = was ? councilLocation(was.id) : null
+  const picked = isSet(l) && !(before && l.place === before.place && l.lat === before.lat && l.lon === before.lon)
+  if (picked) return l
+  const town = councilLocation(id)
+  // Keep the north turn the survey was given; only the town moves.
+  return town ? { ...town, trueNorth: l?.trueNorth } : l
 }
 
 /** Roughly NSW and the ACT; outside it, AEST may not be the local time. */

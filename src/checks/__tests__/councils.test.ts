@@ -13,6 +13,9 @@ import { buildTerrain } from '../../lib/terrain'
 import { garageFloor } from '../../plan/__tests__/fixtures'
 import { normalizePlan } from '../../plan/model'
 import { readFileSync } from 'node:fs'
+import { usePlan } from '../../plan/store'
+import { DEFAULT_LOCATION, locationOf } from '../../sun/location'
+import { setCouncil } from '../settings'
 
 /** Every rule source in a table, with where it sits. */
 function sources(c: Council): [string, RuleSource][] {
@@ -88,6 +91,37 @@ describe('the registry', () => {
   it('a plan saved before councils could be switched still has Wollongong on', () => {
     expect(activeCouncil(checkSettingsOf({ pathway: 'da', battleAxe: false }))?.id).toBe('wollongong')
     expect(activeCouncil(checkSettingsOf(undefined))).toBeNull()
+  })
+})
+
+describe('the sun follows the council', () => {
+  const placed = () => normalizePlan({ ...garageFloor(), name: 'Sample house', placement: { e: 5006, n: 8004, rotation: 0, ffl: 45.5 } })
+  const plan = () => usePlan.getState().plan!
+
+  it('switching Wollongong on puts the sun at Wollongong when no place was picked', () => {
+    usePlan.getState().load(placed())
+    expect(locationOf(plan()).place).toBe('Sydney')
+    setCouncil('wollongong', true)
+    expect(plan().location?.place).toBe('Wollongong')
+    expect(locationOf(plan()).place).toBe('Wollongong')
+    // Another council moves it on, as the place came from the first council, not a pick.
+    setCouncil('kiama', true)
+    expect(plan().location?.place).toBe('Kiama')
+  })
+  it('leaves a place that was picked alone', () => {
+    usePlan.getState().load({ ...placed(), location: { lat: -33.43, lon: 151.34, place: 'Central Coast (Gosford)' } })
+    setCouncil('wollongong', true)
+    expect(plan().location?.place).toBe('Central Coast (Gosford)')
+    usePlan.getState().load({ ...placed(), location: { lat: -33.87, lon: 151.21, place: 'Sydney' } })
+    setCouncil('wollongong', true)
+    expect(plan().location?.place).toBe('Sydney')
+  })
+  it('a project saved with a council on and no place reads the council’s town', () => {
+    expect(locationOf({ checks: { pathway: 'da', battleAxe: false, councils: { wollongong: true } } }).place).toBe('Wollongong')
+    // Older projects with check settings had Wollongong on.
+    expect(locationOf({ checks: { pathway: 'cdc', battleAxe: false } }).place).toBe('Wollongong')
+    expect(locationOf({}).place).toBe('Sydney')
+    for (const c of COUNCILS) expect(locationOf({ checks: { pathway: 'da', battleAxe: false, councils: { [c.id]: true } } })).not.toBe(DEFAULT_LOCATION)
   })
 })
 

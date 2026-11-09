@@ -11,7 +11,8 @@ import type { Earth } from '../plan/useEarthworks'
 import { navigate } from '../nav/router'
 import { useShell } from '../shell/context'
 import { boundaryText, hoursText, OVER_MIN, overText, STUDY_FROM, STUDY_TO, type ShadowDiagram, type SunFacts } from './facts'
-import { coordsText, DEFAULT_LOCATION, inNsw, locationOf, mgaConvergence, NSW_TOWNS, type SiteLocation } from './location'
+import { activeCouncil, checkSettingsOf } from '../checks/councils'
+import { COUNCIL_TOWN, coordsText, DEFAULT_LOCATION, inNsw, locationOf, mgaConvergence, NSW_TOWNS, type SiteLocation } from './location'
 import { compassPoint, hourText } from './solar'
 import { setLocation, useSun } from './store'
 import { useShadowDiagram, useSunFacts } from './useSun'
@@ -29,7 +30,7 @@ export function SiteSunTab() {
   const location = locationOf(plan)
   return (
     <div className="sun-tab">
-      <LocationFields location={location} />
+      <LocationFields location={location} council={councilHere(plan, location)} />
       <h3>Sun study in 3D</h3>
       <label className="check">
         <input type="checkbox" checked={on} onChange={e => useSun.getState().setOn(e.target.checked)} />
@@ -50,7 +51,13 @@ export function SiteSunTab() {
   )
 }
 
-function LocationFields({ location }: { location: SiteLocation }) {
+/** The council's name when the place is its town (picked for it when its rules went on), for the note under Near. */
+function councilHere(plan: Plan | null, location: SiteLocation): string | null {
+  const c = activeCouncil(checkSettingsOf(plan?.checks))
+  return c && location.place === COUNCIL_TOWN[c.id] ? c.name : null
+}
+
+function LocationFields({ location, council }: { location: SiteLocation; council: string | null }) {
   const town = location.place && NSW_TOWNS.some(t => t.name === location.place) ? location.place : OTHER
   const conv = mgaConvergence(location.lat, location.lon)
   const turned = !!location.trueNorth
@@ -77,6 +84,7 @@ function LocationFields({ location }: { location: SiteLocation }) {
       <p className="muted small">
         The survey doesn&rsquo;t say where on the map it is, so the sun works from {town === OTHER ? coordsText(location) : `${location.place} (${coordsText(location)})`}. A town nearby is close enough: 10 km moves the sun by about a tenth of a
         degree.{location === DEFAULT_LOCATION && ' Projects start in Sydney.'}
+        {council && ` ${council.endsWith('s') ? `${council}’` : `${council}’s`} rules are on in Design › Checks, so the sun works from there too.`}
       </p>
       <p className="muted small">
         Times are Australian Eastern Standard Time (UTC+10), with no daylight saving. On 21 June that&rsquo;s the time on the clock; from October to April, clocks in NSW read an hour later.

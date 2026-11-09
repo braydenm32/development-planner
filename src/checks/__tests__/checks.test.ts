@@ -10,8 +10,9 @@ import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { measure, rearEdgeOf } from '../measure'
-import { countChecks, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, hcRearSetback, hcSideSetback, minWidth, runChecks } from '../rules'
-import { encroachment, srzRadius, tpzRadius } from '../trees'
+import { countChecks, countsWords, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, hcRearSetback, hcSideSetback, minWidth, runChecks } from '../rules'
+import { encroachment, srzRadius, tpzRadius, treeTitles } from '../trees'
+import { siteWarnings } from '../../site/warnings'
 import { checkTreesOf } from '../siteTrees'
 import type { SiteFeature } from '../../site/model'
 import { activeCouncil, checkSettingsOf, switchCouncil } from '../councils'
@@ -559,5 +560,82 @@ describe('sun on 21 June (Wollongong DCP B1 4.7)', () => {
     expect(da.find(r => r.id === 'da-sun-neighbours')).toBeUndefined()
     expect(cdc.find(r => r.id === 'sun-living')).toBeUndefined()
     expect(byId(da, 'da-shadow-diagrams').status).toBe('info')
+  })
+})
+
+describe('checks that agree with themselves', () => {
+  it('batters set to "Retaining wall" (0) are held by the walls, not "1 in 0", and pass', () => {
+    // Wollongong asks for 1 in 4 or flatter.
+    const walled = house({ frontEdge: 0 }, { earthworks: { margin: 0, cutBatter: 0, fillBatter: 4, subfloor: 0.4 } })
+    const r = byId(run(walled, [], true).da, 'da-batters')
+    expect(r.status).toBe('pass')
+    expect(r.value).toContain('held by retaining walls')
+    expect(r.value).not.toContain('1 in 0')
+    expect(r.note).toBeUndefined()
+    const both = house({ frontEdge: 0 }, { earthworks: { margin: 0, cutBatter: 0, fillBatter: 0, subfloor: 0.4 } })
+    expect(byId(run(both, [], true).da, 'da-batters')).toMatchObject({ status: 'pass', value: 'Cut and fill: held by retaining walls' })
+    // The side that is sloped still has to meet the rule.
+    const steep = house({ frontEdge: 0 }, { earthworks: { margin: 0, cutBatter: 0, fillBatter: 2, subfloor: 0.4 } })
+    const s = byId(run(steep, [], true).da, 'da-batters')
+    expect(s.status).toBe('fail')
+    expect(s.value).toBe('Cut: held by retaining walls; fill 1 in 2')
+    expect(s.note).toContain('1 in 4')
+  })
+
+  it('a tree’s share of its zone is the same in Site › Features and in Checks, and so is minor or major', () => {
+    const slab = { id: 'slab', level: L0, name: 'Patio', kind: 'slab' as const, pts: [[10, 6], [13, 6], [13, 10], [10, 10]] as P2[] }
+    const plan = house({ frontEdge: 0 }, { areas: [slab] })
+    const spots: P2[] = [
+      [9, 17.7], // about 6%: minor
+      [9, 15.2], // about 29%: major
+      [17, 8], // beside the patio, in the cut and fill
+    ]
+    for (const at of spots) {
+      const t: CheckTree = { id: 't1', label: 'T1', at, trunk: 0.5, height: 12, remove: false }
+      const { ms, survey, da } = run(plan, [t], true)
+      const e = encroachment(t, ms)
+      const feature: SiteFeature = { id: 't1', type: 'tree', geom: { kind: 'point', at }, source: 'trace', label: 'T1', trunk: 0.5 }
+      const [w] = siteWarnings(plan, [feature], survey.origin, ms.ground, survey.boundary)
+      expect(e.share).toBeGreaterThan(0)
+      expect(Math.abs(w.share! - e.share)).toBeLessThan(0.005)
+      expect(w.srz).toBe(e.inSrz)
+      // Amber in Features is a fail in Checks; a note there is a minor encroachment (to check) here.
+      expect(byId(da, 'tree:t1').status).toBe(w.severity === 'attn' ? 'fail' : 'warn')
+    }
+  })
+
+  it('the summary counts every row, trees marked for removal too', () => {
+    const trees: CheckTree[] = [
+      { id: 'a', label: 'T1', at: [9, 15.2], trunk: 0.5, height: 6, remove: true },
+      { id: 'b', label: 'T2', at: [2, 20], trunk: 0.3, height: 6, remove: true },
+      { id: 'c', label: 'T3', at: [9, 17.7], trunk: 0.5, height: 12, remove: false },
+    ]
+    const { da } = run(house({ frontEdge: 0 }), trees)
+    const c = countChecks(da)
+    expect(c.pending).toBe(2)
+    const words = countsWords(c)
+    expect(words).toContain('2 marked for removal')
+    const total = words.reduce((t, w) => t + Number(w.split(' ')[0]), 0)
+    expect(total).toBe(da.length)
+  })
+
+  it('tree rows are named once, and trees that would read the same are numbered', () => {
+    const at = (x: number, y: number, label: string, neighbour = false): CheckTree => ({ id: `${x}-${y}`, label, at: [x, y], trunk: 0.3, height: 6, remove: false, neighbour })
+    const trees = [at(2, 20, 'Planted tree'), at(17, 20, 'Planted tree', true), at(18, 22, 'Planted tree', true), at(3, 25, ''), at(16, 25, ''), at(5, 27, 'T4')]
+    const titles = run(house(), trees).da.filter(r => r.tree).map(r => r.title)
+    expect(titles).toEqual(['Planted tree', 'Planted tree 1 (neighbour’s)', 'Planted tree 2 (neighbour’s)', 'Tree 1', 'Tree 2', 'Tree T4'])
+    expect(new Set(titles).size).toBe(titles.length)
+    for (const t of titles) expect(t).not.toMatch(/Tree Planted tree/i)
+    expect(treeTitles(trees)).toEqual(titles)
+    // Site › Features names them the same way.
+    const { survey } = run(house(), [])
+    const near = (x: number, y: number, label: string): SiteFeature => ({ id: `${x}-${y}`, type: 'tree', geom: { kind: 'point', at: [x, y] }, source: 'trace', label, trunk: 0.5 })
+    const ws = siteWarnings(house(), [near(9, 15, 'Planted tree'), near(3, 15, 'Planted tree'), near(15, 15, 'T7')], survey.origin, null, survey.boundary)
+    expect(ws.map(w => w.text.split(' root zone')[0])).toEqual(["Planted tree 1's", "Planted tree 2's", "Tree T7's"])
+  })
+
+  it('each tree row says where the tree is from the house', () => {
+    const r = byId(run(house(), [{ id: 't1', label: 'T1', at: [9, 17.7], trunk: 0.5, height: 12, remove: false }]).da, 'tree:t1')
+    expect(r.value).toMatch(/^4\.50 m N of the house; /)
   })
 })

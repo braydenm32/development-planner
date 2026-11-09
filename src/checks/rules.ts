@@ -7,7 +7,7 @@
 import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
 import { needsEngineer } from './engineer'
-import { encroachment, MINOR_ENCROACHMENT } from './trees'
+import { encroachment, isMajor, MINOR_ENCROACHMENT, treeTitles } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
 import {
   CONTROLS,
@@ -23,6 +23,7 @@ import {
 } from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
 import { crossingChecks } from './crossing'
+import { battersText, isRetained } from '../plan/batters'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
@@ -201,10 +202,13 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
   // On the DA route the council's table says how trees are treated; without it there's nothing to check them against.
   const da = pathway === 'da' && c?.trees ? { c, rule: c.trees } : null
   if (pathway === 'da' && !da) return []
-  return ms.trees.map(t => {
+  const titles = treeTitles(ms.trees)
+  return ms.trees.map((t, i) => {
     const e = encroachment(t, ms)
     const id = `tree:${t.id}`
-    const title = `${t.neighbour ? 'Neighbour’s tree' : 'Tree'}${t.label ? ` ${t.label}` : ''}`
+    const title = titles[i]
+    // Where it is, so two trees with the same name can be told apart: "4.70 m SW of the house".
+    const where = e.toHouse === null ? 'No house yet' : e.toHouse === 0 ? 'Under the house' : `${m(e.toHouse)} ${e.side} of the house`
     if (t.remove && !t.neighbour) {
       const r = da?.rule.removal
       const near = r !== undefined && e.toHouse !== null && e.toHouse <= r.within
@@ -221,7 +225,8 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
       }
     }
     const minor = da ? da.rule.zone.minor : MINOR_ENCROACHMENT
-    const zoneStatus: CheckStatus = e.share === 0 ? 'pass' : e.inSrz || e.share > minor ? 'fail' : 'warn'
+    // The same minor/major line Site › Features draws (AS 4970), so a tree is amber in both or neither.
+    const zoneStatus: CheckStatus = e.share === 0 ? 'pass' : isMajor(e.share, e.inSrz, minor) ? 'fail' : 'warn'
     const zone = `${m(e.tpz)} protection zone`
     if (!da) {
       // The Housing Code's own rule is 3 m from the trunk; AS 4970's zone isn't a Housing Code standard, so it only warns.
@@ -233,7 +238,7 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
         tree: t.id,
         removable: !t.neighbour,
         status,
-        value: `${e.toHouse === null ? 'No house yet' : `${m(e.toHouse)} from the house`}; ${e.share === 0 ? `clear of its ${zone}` : `${pct(e.share)} of its ${zone}`}`,
+        value: `${where}; ${e.share === 0 ? `clear of its ${zone}` : `${pct(e.share)} of its ${zone}`}`,
         limit: `${m(CDC_TREE_SETBACK)} from the trunk`,
         note: close
           ? 'The house must be at least 3 m from every protected tree on the lot or next door. Driveways, paths and paving may come closer if they cut or fill no more than 150 mm.'
@@ -250,7 +255,7 @@ function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] 
       tree: t.id,
       removable: !t.neighbour,
       status,
-      value: e.share === 0 ? `Clear of its ${zone}` : `${pct(e.share)} of its ${zone}${e.inSrz ? ', and into its root zone' : ''}`,
+      value: `${where}; ${e.share === 0 ? `clear of its ${zone}` : `${pct(e.share)} of its ${zone}${e.inSrz ? ', and into its root zone' : ''}`}`,
       limit: `Up to ${pct(minor)}, and none in the ${m(e.srz)} root zone`,
       note:
         status === 'pass'
@@ -762,13 +767,15 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   const e = ms.earth
   if (c.batters) {
     const run = c.batters.run
+    // A side set to "Retaining wall" (0) has no batter to measure: the walls' own check covers it.
+    const steep = e ? [e.cutBatter, e.fillBatter].some(b => !isRetained(b) && b + 1e-6 < run) : false
     out.push({
       id: 'da-batters',
       title: 'Batter slopes',
-      status: !e ? 'pass' : e.cutBatter + 1e-6 >= run && e.fillBatter + 1e-6 >= run ? 'pass' : 'fail',
-      value: e ? `Cut 1 in ${e.cutBatter}, fill 1 in ${e.fillBatter}` : 'No cut and fill',
+      status: steep ? 'fail' : 'pass',
+      value: e ? battersText(e.cutBatter, e.fillBatter) : 'No cut and fill',
       limit: `No steeper than 1 in ${num(run)}${c.batters.prefer ? ` (1 in ${num(c.batters.prefer)} preferred)` : ''}`,
-      note: e && (e.cutBatter < run || e.fillBatter < run) ? `Set the batters to 1 in ${num(run)} under Earthworks › Cut & fill. The volumes grow.` : undefined,
+      note: steep ? `Set the batters to 1 in ${num(run)} under Earthworks › Cut & fill. The volumes grow.` : undefined,
       source: cite(c, c.batters.source),
     })
   }
@@ -952,6 +959,25 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
   const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0 }
   for (const r of rs) c[r.status]++
   return c
+}
+
+/**
+ * The counts in Design › Checks' words, in its order: "1 fail · 2 to check · 1 needs a fact ·
+ * 2 marked for removal · 9 pass". Every status is there, so the parts add up to the rows listed;
+ * Options › Compare and the DA pack word them the same. With `zeros`, the fails, checks, facts,
+ * drawings and passes show even at 0, so "0 fails" reads as checked rather than left out.
+ */
+export function countsWords(c: CheckCounts, zeros = false): string[] {
+  const part = (n: number, text: string, always = false) => (n || (zeros && always) ? text : null)
+  return [
+    part(c.fail, `${c.fail} fail${c.fail === 1 ? '' : 's'}`, true),
+    part(c.warn, `${c.warn} to check`, true),
+    part(c.unknown, `${c.unknown} need${c.unknown === 1 ? 's' : ''} a fact`, true),
+    part(c.incomplete, `${c.incomplete} not drawn yet`, true),
+    part(c.pending, `${c.pending} marked for removal`),
+    `${c.pass} pass`,
+    part(c.info, `${c.info} for info`),
+  ].filter((s): s is string => s !== null)
 }
 
 /**
