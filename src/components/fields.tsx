@@ -35,7 +35,7 @@ interface NumProps {
   label: string
   /** Value in metres (or degrees / RL when unit is not mm). */
   value: number
-  unit: 'mm' | 'm' | '°' | 'RL' | 'm²' | ':1'
+  unit: 'mm' | 'm' | '°' | 'RL' | 'm²' | ':1' | 'L'
   onCommit: (v: number) => void
   min?: number
   max?: number

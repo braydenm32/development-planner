@@ -34,6 +34,7 @@ import { stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { drawFeatureAreas, drawFeatureLegend, drawFeatureMarks, sheetFeatures, type SheetArgs } from '../site/sheet'
 import type { SiteWarning } from '../site/warnings'
+import type { StormwaterSheet } from '../drainage/stormwater'
 import { PdfDocument, textWidth, type PdfPage, type RGB } from './pdfWriter'
 
 export type Paper = 'A3' | 'A4'
@@ -59,6 +60,8 @@ export interface PlanSetInput {
   date: string
   /** Site features to draw on the site plan (survey local frame), and the warnings about them. */
   site?: { features: SiteFeature[]; warnings: SiteWarning[] }
+  /** The stormwater concept: a dashed path on the site plan and its key numbers (src/drainage). */
+  stormwater?: StormwaterSheet | null
 }
 
 const PAPER: Record<Paper, [number, number]> = { A3: [420, 297], A4: [297, 210] }
@@ -343,6 +346,24 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       along(pg, view, a, b, c.text, 1.6, 2.4, ACCENT)
     }
 
+    // Stormwater concept: a dashed line from the house to where the water goes, named as a concept.
+    const storm = input.stormwater
+    if (storm && storm.path.length === 2) {
+      const a = tf(storm.path[0])
+      const b = tf(storm.path[1])
+      const pa = view.P(a)
+      const pb = view.P(b)
+      const STORM: RGB = [0.12, 0.44, 0.7]
+      pg.lineWidth(0.4).stroke(STORM).dash([1.6, 1]).line(pa, pb)
+      pg.dash()
+      // An arrow head at the discharge point.
+      const ang = Math.atan2(pb[1] - pa[1], pb[0] - pa[0])
+      const wing = (t: number): [number, number] => [pb[0] - Math.cos(ang) * 2 - Math.sin(ang) * t, pb[1] - Math.sin(ang) * 2 + Math.cos(ang) * t]
+      pg.lineWidth(0.4).line(wing(1.1), pb).line(wing(-1.1), pb)
+      pg.fill(STORM).stroke(STORM).circle(pa[0], pa[1], 0.8, 'both')
+      along(pg, view, a, b, storm.label, 1.8, 2.4, STORM)
+    }
+
     // Key numbers
     const footprint = buildingFootprint(plan)
     const rows: [string, string][] = [
@@ -374,6 +395,7 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       rows.push([`${name}Average grade along the drive`, gradeText(g.average)])
       rows.push([`${name}Steepest ${DRIVE_RUN} m along the drive`, gradeText(g.steepest)])
     }
+    for (const row of input.stormwater?.rows ?? []) rows.push(row)
     // Wide enough for the longest label and value side by side.
     const every = fc ? (fc.minor < 1 ? `${Math.round(fc.minor * 1000)} mm` : `${fc.minor} m`) : ''
     const legend = fc ? [`Contours every ${every}, labelled every ${fc.major} m`, 'Finished ground, proposed', 'Natural ground, existing (dashed where cut or filled)'] : []

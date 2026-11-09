@@ -1,4 +1,6 @@
+import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
+import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
 
@@ -25,6 +27,10 @@ export interface Plan {
   earthworks?: Earthworks
   /** Facts about the block the checks need and the approval pathway to check; defaults apply when missing. */
   checks?: CheckSettings
+  /** The stormwater concept's tank settings (src/drainage); defaults apply when missing. */
+  stormwater?: Stormwater
+  /** What the person has told the BASIX checklist (src/basix); defaults apply when missing. */
+  basix?: BasixAnswers
 }
 
 export interface Level {

@@ -1,0 +1,54 @@
+/* Design › BASIX (BasixTab.tsx). */
+
+.app-shell .basix-lede {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.app-shell .basix-ready {
+  margin: 0 0 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.app-shell .basix h3 {
+  margin-top: 14px;
+}
+
+.basix-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.basix-row {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.basix-row .basix-item {
+  font-weight: 600;
+}
+
+.basix-row .basix-value {
+  margin: 2px 0 2px 24px;
+}
+
+.basix-row .stats,
+.basix-row .num {
+  margin-left: 24px;
+}
+
+.basix-row p {
+  margin: 4px 0 0 24px;
+}
+
+.basix-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}

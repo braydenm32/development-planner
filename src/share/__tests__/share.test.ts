@@ -54,6 +54,21 @@ describe('PDF plans', () => {
     expect(pdf).toContain('/Title (Test \\(house\\))')
   })
 
+  it('prints the stormwater concept on the site plan when given one', () => {
+    const storm = {
+      path: [survey.boundary[0], survey.boundary[1]] as [number, number][],
+      label: 'Stormwater concept: to the street (south side)',
+      rows: [['Roof catchment (plan area)', '125.0 m²'] as [string, string], ['Stormwater concept', 'to the street by gravity, 0.80 m fall over 12.0 m'] as [string, string]],
+    }
+    const pdf = text(planSetPdf({ ...input, stormwater: storm }))
+    expect(pdf).toContain('(Roof catchment \\(plan area\\)) Tj')
+    expect(pdf).toContain('(to the street by gravity, 0.80 m fall over 12.0 m) Tj')
+    expect(pdf).toContain('(Stormwater concept: to the street \\(south side\\)) Tj')
+    // Nothing of it without one, and the sheet count is unchanged either way.
+    expect(text(planSetPdf(input))).not.toContain('Stormwater concept')
+    expect(pdf).toContain('/Count 4')
+  })
+
   it('points every cross-reference at its object', () => {
     const bytes = planSetPdf({ ...input, paper: 'A4', up: 0 })
     const pdf = text(bytes)

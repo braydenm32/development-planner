@@ -14,8 +14,17 @@ import { fileSafe, to3mf, toStlZip } from '../print/export'
 import { planSetPdf, type Paper } from '../share/plans'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
+import { stormwaterSheet } from '../drainage/stormwater'
+import { loadStreetSide, type StreetSide } from '../phone/camera'
+import { projectsNow } from '../projects/session'
 import { localFeatures, siteForProject } from '../site/store'
 import { siteWarningsNow } from '../site/sync'
+
+/** The street side picked for Street view on the open project, or 'auto' (the low side) with none picked. */
+const streetSideNow = (): StreetSide => {
+  const id = projectsNow().opened?.id
+  return id ? loadStreetSide(id) : 'auto'
+}
 
 export type PrintState = { model: PrintModel | null; busy: boolean; error: string | null }
 
@@ -83,6 +92,8 @@ export function plansPdfFile(p: PdfInput): OutFile {
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
+    // The street side the plan knows: Lot facts first, then the one picked for Street view on this project.
+    stormwater: stormwaterSheet(p.plan, p.survey, p.terrain, streetSideNow()),
   })
   return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
 }

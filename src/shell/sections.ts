@@ -2,7 +2,9 @@
 // that every tab (bar the canvas-only ones) and every More item has something here.
 
 import type { ComponentType } from 'react'
+import { BasixTab } from '../basix/BasixTab'
 import { AboutCostsSection, EstimateAside, EstimateTab, MaterialsTab, QuotesTab, RatesSection } from '../costs/CostsTabs'
+import { StormwaterTab } from '../drainage/StormwaterTab'
 import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
@@ -24,10 +26,12 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
   'design/checks': ChecksTab,
+  'design/basix': BasixTab,
   'earthworks/place': PlaceTab,
   'earthworks/cut-fill': CutFillTab,
   'earthworks/retaining-walls': RetainingWallsTab,
   'earthworks/driveway': DrivewayTab,
+  'earthworks/stormwater': StormwaterTab,
   'costs/estimate': EstimateTab,
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,

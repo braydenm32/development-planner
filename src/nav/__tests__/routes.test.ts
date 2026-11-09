@@ -226,8 +226,8 @@ describe('the menu', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
       ['block', 'features', '3d', MORE],
-      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', MORE],
-      ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
+      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', 'basix', MORE],
+      ['place', 'cut-fill', 'retaining-walls', 'driveway', 'stormwater', MORE],
       ['estimate', 'materials', 'quotes', MORE],
       ['plans', 'send', '3d-print', MORE],
     ])

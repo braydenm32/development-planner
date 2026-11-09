@@ -357,6 +357,14 @@ export const AREAS: Area[] = [
         keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch'],
         features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
       },
+      {
+        id: 'basix',
+        label: 'BASIX',
+        icon: 'leaf',
+        subtitle: 'What the BASIX tool will ask for, gathered from the plan.',
+        keywords: ['basix', 'energy', 'glazing', 'windows', 'window area', 'insulation', 'hot water', 'sustainability', 'thermal', 'orientation', 'north', 'heating', 'cooling', 'lighting', 'pool', 'water target', 'NatHERS', 'certificate', 'csv'],
+        features: ['basix-checklist', 'basix-from-plan', 'basix-answers', 'basix-csv', 'basix-links'],
+      },
     ],
     more: {
       label: 'More',
@@ -463,6 +471,14 @@ export const AREAS: Area[] = [
         subtitle: 'Its levels and how steep it is.',
         keywords: ['grade', 'slope', 'car', 'garage', 'gradient', 'cross-fall', 'levels', 'kerb', 'street', 'RL', 'slab', '1 in 4'],
         features: ['driveway-grade', 'driveway-average-grade', 'driveway-cross-fall', 'driveway-verdict', 'driveway-levels', 'driveway-design-grade'],
+      },
+      {
+        id: 'stormwater',
+        label: 'Stormwater',
+        icon: 'drop',
+        subtitle: 'Roof water: the tank, then the street or the low corner.',
+        keywords: ['stormwater', 'drainage', 'downpipe', 'tank', 'rainwater', 'OSD', 'detention', 'runoff', 'catchment', 'roof area', 'gravity', 'easement', 'pump', 'low point', 'kerb', 'concept'],
+        features: ['stormwater-catchment', 'stormwater-tank', 'stormwater-fall', 'stormwater-plan-path', 'stormwater-sources'],
       },
     ],
     more: {
