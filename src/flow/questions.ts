@@ -91,13 +91,22 @@ export function questionsFor(q: QuestionInput): Question[] {
 export const waiting = (qs: Question[]) => qs.filter(x => x.kind !== 'next-step').length
 
 // ---------------------------------------------------------------------------
-// What the list knows from outside the plan: the checks' facts, which the shell works out.
+// What the list knows from outside the plan: the checks' facts, which the shell works out; and a
+// question another list (Check everything, src/steps) asked it to open, to answer.
 
 interface QuestionContext {
   facts: number
+  /** Open the list at this question; bumped each time it's asked. */
+  asked: { id: string; n: number } | null
 }
 
-export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0 }))
+export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0, asked: null }))
+
+/** Open the question list at a question, to answer it (once the plan shows the list). */
+export const askQuestion = (id: string) => useQuestionContext.setState(s => ({ asked: { id, n: (s.asked?.n ?? 0) + 1 } }))
+
+/** The list has opened at the question asked. */
+export const questionOpened = () => useQuestionContext.setState({ asked: null })
 
 export function setQuestionFacts(facts: number) {
   if (useQuestionContext.getState().facts !== facts) useQuestionContext.setState({ facts })

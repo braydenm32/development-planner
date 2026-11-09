@@ -5,7 +5,7 @@ import { useFrame, useThree, type RootState } from '@react-three/fiber'
 import { useContext, useEffect, useState } from 'react'
 import type * as THREE from 'three'
 import { CanvasFrame } from '../components/canvasFrame'
-import { between, loadPose, moveDuration, northUp, presetPose, savePose, type CameraCommand, type Frame, type Pose, type Preset, type Vec3 } from './camera'
+import { between, levelLens, loadPose, moveDuration, northUp, presetPose, savePose, toSpherical, type CameraCommand, type Frame, type Pose, type Preset, type Vec3 } from './camera'
 import { useCamera } from './cameraStore'
 import { openArea } from './frame'
 
@@ -41,6 +41,10 @@ class Rig {
   private moving = false
   private live: Live | null = null
   private get: () => RootState
+  /** The view's offset to centre it in the open part of the screen, and the rise looking level added to it (px). */
+  private shift = { w: 0, h: 0, dx: 0, dy: 0, rise: 0 }
+  /** The view's own field of view, before the lens looking level widens it. */
+  private baseFov: number | null = null
 
   constructor(get: () => RootState) {
     this.get = get
@@ -119,10 +123,32 @@ class Rig {
    * `dx`, `dy` pixels (see openArea).
    */
   offset(w: number, h: number, dx: number, dy: number) {
+    this.shift = { ...this.shift, w, h, dx, dy }
+    this.applyShift()
+  }
+
+  private applyShift() {
     const { camera } = this.parts()
+    const { w, h, dx, rise } = this.shift
+    // The rise moves the picture down: a view offset's positive y moves it up.
+    const dy = this.shift.dy - rise
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) camera.clearViewOffset()
     else camera.setViewOffset(w, h, dx, dy, w, h)
     camera.updateProjectionMatrix()
+  }
+
+  /** Looking level, the lens widens and the picture rises (levelLens) so the house above the eye line shows: checked each frame, as the camera moves. */
+  level() {
+    const p = this.current()
+    if (!p || !this.shift.h) return
+    const { camera } = this.parts()
+    this.baseFov ??= camera.fov
+    const o: Vec3 = [p.position[0] - p.target[0], p.position[1] - p.target[1], p.position[2] - p.target[2]]
+    const lens = levelLens(toSpherical(o).phi, this.baseFov, this.shift.h * (this.live?.freeHeight ?? 1))
+    if (Math.abs(lens.rise - this.shift.rise) < 0.5 && Math.abs(lens.fov - camera.fov) < 0.05) return
+    this.shift.rise = lens.rise
+    camera.fov = lens.fov
+    this.applyShift()
   }
 
   /** Fingers: slower turning and pinching, and less glide after letting go. Returns the undo. */
@@ -237,7 +263,10 @@ export function CameraRig({ frame, storageKey, upBearing, phone, hasPlan }: Prop
     }
   }, [rig, ready, hasPlan, upBearing])
 
-  useFrame(() => rig.tick(performance.now()))
+  useFrame(() => {
+    rig.tick(performance.now())
+    rig.level()
+  })
 
   return null
 }

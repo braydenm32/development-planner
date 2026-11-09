@@ -9,6 +9,7 @@ import { Icon } from '../nav/icons'
 import { HOMES, type ActionId } from '../nav/menu'
 import { usePlan } from '../plan/store'
 import { projectTitle } from '../share/project'
+import { usePhone } from '../phone/device'
 import { useShell } from './context'
 
 const ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
@@ -27,6 +28,8 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
   const button = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const title = plan ? projectTitle(plan) : project.fileName
+  // A phone's top bar has no room for Check everything: it leads the menu there instead.
+  const phone = usePhone()
 
   // Focus the asked-for item, or the first, when the menu opens; close on a click outside.
   useEffect(() => {
@@ -79,6 +82,19 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
       </button>
       {open && (
         <div ref={pop} className="menu-pop" role="dialog" aria-label="Project" onKeyDown={onKey}>
+          {phone && plan && (
+            <button
+              data-item="check-everything"
+              className="menu-item steps-menu-item"
+              onClick={() => {
+                onOpenChange(false)
+                run('check-everything')
+              }}
+            >
+              <Icon name="steps" size={16} />
+              <span>Check everything</span>
+            </button>
+          )}
           {ITEMS.map(item => {
             if (item.id === 'project-name')
               return plan ? (

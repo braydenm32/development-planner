@@ -42,6 +42,11 @@ export interface SectionStripProps {
   /** What floats over the plan's left and right edges (px): the strip's own controls keep clear of them. */
   left: number
   right: number
+  /**
+   * Where the strip starts, from the plan's left edge (px): right of the plan's tool rail, so the
+   * rail never runs over the section. The drawing stays lined up with the plan above it.
+   */
+  from?: number
   cut: Cut
   /** The cut is the one along the house, not one that's been moved. */
   alongHouse: boolean
@@ -72,7 +77,10 @@ interface Bubble {
 const signed = (m: number) => `${m >= 0 ? '+' : '−'}${Math.abs(m).toFixed(2)} m`
 
 export function SectionStrip(props: SectionStripProps) {
-  const { plan, survey, terrain, earth, S, k, width, left, right, cut, alongHouse, onReset, onLineUp, editable, phone } = props
+  const { plan, survey, terrain, earth, S, k, width: planW, left: coverL, right, cut, alongHouse, onReset, onLineUp, editable, phone } = props
+  const from = Math.max(0, props.from ?? 0)
+  const width = Math.max(0, planW - from)
+  const left = Math.max(0, coverL - from)
   const open = useStrip(s => s.open)
   const stored = useStrip(s => s.height)
   const height = !open ? FOLDED_H : phone ? PHONE_H : stored
@@ -119,16 +127,18 @@ export function SectionStrip(props: SectionStripProps) {
   const activeRL = floorRL(plan, level)
   const activeH = levelById(plan, level)?.height ?? 2.7
   const zTop = hold ?? topRL(range, activeRL + activeH / 2, bodyH - 20, k, pan) + 14 / k
-  const X = (s: number) => frame.x0 + s * k
+  // The plan's x, in the strip's own box.
+  const x0 = frame.x0 - from
+  const X = (s: number) => x0 + s * k
   const Y = (z: number) => (zTop - z) * k
 
   const painted = useMemo(() => {
     if (!open || bodyH <= 0) return null
     const p = svgPainter(true)
-    paintSectionBody(p, drawing, s => frame.x0 + s * k, z => (zTop - z) * k, bodyH, k)
+    paintSectionBody(p, drawing, s => x0 + s * k, z => (zTop - z) * k, bodyH, k)
     return p.els
     // The painter reads only these.
-  }, [open, bodyH, drawing, frame.x0, k, zTop])
+  }, [open, bodyH, drawing, x0, k, zTop])
 
   // ---- Level bands ----
   const levels = sortedLevels(plan)
@@ -349,7 +359,7 @@ export function SectionStrip(props: SectionStripProps) {
   }
 
   return (
-    <section ref={box} className={`sstrip${open ? '' : ' folded'}${phone ? ' phone' : ''}${dragging ? ` dragging-${dragging.kind}` : ''}`} style={{ height }} aria-label="Live section">
+    <section ref={box} className={`sstrip${open ? '' : ' folded'}${phone ? ' phone' : ''}${dragging ? ` dragging-${dragging.kind}` : ''}`} style={{ height, left: from }} aria-label="Live section">
       {open && !phone && (
         <div
           className="sstrip-grab"

@@ -653,6 +653,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     width: size.w,
     left: frame?.insets.l ?? 0,
     right: frame?.insets.r ?? 0,
+    from: frame?.rail ?? 0,
     projectKey: viewKey,
     editable: !viewOnly && !touch?.phone,
     handles: tool === 'select',

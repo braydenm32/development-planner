@@ -29,8 +29,10 @@ export interface Frame {
   ground?: (x: number, z: number) => number | null
   /** How much the view stretches heights, so eye height is stretched the same. */
   exaggeration?: number
-  /** How far the block's boundary is from the target towards the street, in metres: Street view's ground level is read there at the furthest. */
+  /** How far the block's boundary is from the target towards the street, in metres: Street view stands just inside it. */
   streetEdge?: number
+  /** How far the house's front is from the target towards the street, in metres: Street view never stands inside it. */
+  houseEdge?: number
 }
 
 export const PRESETS: { id: Exclude<Preset, 'house'>; label: string; long: string }[] = [
@@ -43,6 +45,10 @@ export const PRESETS: { id: Exclude<Preset, 'house'>; label: string; long: strin
 export const REAR_ELEVATION = 34
 /** Street view stands a person on the ground (C18): eyes this many metres above it. */
 export const EYE_HEIGHT = 1.6
+/** Street view stands this far inside the block's street boundary (m): on the footpath side of the front fence. */
+export const STREET_INSET = 1.2
+/** Street view never stands closer to the front of the house than this (m), so there's a house to see, not a wall: a house nearer the boundary is seen from out on the footpath. */
+export const STREET_ROOM = 6
 /** The opening view: a little higher than Street view, turned off square so two sides of the house show. */
 export const HOUSE_ELEVATION = 28
 export const HOUSE_TURN = 35
@@ -90,26 +96,48 @@ export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: num
 }
 
 /**
- * Street view: standing on the ground on the street side, eyes at EYE_HEIGHT, looking at the
- * house as someone walking past would. Without the ground (no survey under it), it stands at the
- * floor's level. It never looks up past level: the 3D view can't orbit below its target.
+ * Street view: standing on the ground on the street side, just inside the block's boundary, eyes
+ * at EYE_HEIGHT, looking at the house as someone on the footpath would. It used to stand back far
+ * enough to take the whole house in, which was often out past the block, where the survey's ground
+ * stops and the view looked at the block's cut side. Without the boundary (no house to stand in
+ * front of yet), it stands back to take it all in. Without the ground (no survey under it), it
+ * stands at the floor's level. It never looks up past level: the 3D view can't orbit below its target.
  */
 function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
   const t = f.target
   const exag = f.exaggeration ?? 1
-  // Back far enough to take the whole house in, as from across the road. Standing out past the
-  // block's edge, the eyes are at the height of the ground at that edge (the street's level):
-  // the survey's ground stops there.
-  const d = fitDistance(f.radius * 1.2, fovDeg, aspect)
+  // Where the house comes closer to the boundary than that leaves room for (or over it), it stands
+  // far enough in front of the house to see it, on the footpath.
+  const d = f.streetEdge !== undefined ? Math.max(f.streetEdge - STREET_INSET, (f.houseEdge ?? 0) + STREET_ROOM) : fitDistance(f.radius * 1.2, fovDeg, aspect)
   const dir = towards(f.street)
   const x = t[0] + dir[0] * d
   const z = t[2] + dir[2] * d
-  const at = f.streetEdge !== undefined ? Math.min(d, f.streetEdge) : d
-  const g = f.ground?.(t[0] + dir[0] * at, t[2] + dir[2] * at)
+  const g = f.ground?.(x, z)
   // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
   const ground = g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
   const eye = ground + EYE_HEIGHT * exag
   return { position: [x, eye, z], target: [t[0], Math.min(t[1], eye - d * 0.02), t[2]] }
+}
+
+/** Looking level, the picture rises by this share of the view's height (see levelLens). */
+export const RISE_SHARE = 0.3
+/** Looking level, the lens widens to this field of view (degrees, top to bottom). */
+export const LEVEL_FOV = 60
+/** Looking down more than this (degrees below level), the lens is the view's own. */
+const LENS_FROM = 15
+
+/**
+ * The lens for a camera looking level from near the ground (Street view), standing on the footpath
+ * close to the house: wider, and with the picture moved down (px) so the eye line sits low in it, as
+ * an architect's shift lens does, so the house above the eye line shows where the 3D view can't look
+ * up. Looking down more than LENS_FROM degrees (From above, Rear, the opening view) it's the view's
+ * own lens, and it changes smoothly as the view comes level, so orbiting never jumps. `phi` is the
+ * camera's angle from straight up over its target.
+ */
+export function levelLens(phi: number, fov: number, height: number): { fov: number; rise: number } {
+  const t = Math.min(Math.max((phi - (90 - LENS_FROM) * RAD) / (LENS_FROM * RAD), 0), 1)
+  const e = t * t
+  return { fov: fov + (Math.max(fov, LEVEL_FOV) - fov) * e, rise: e * height * RISE_SHARE }
 }
 
 /** Spherical parts of an offset from the target: distance, angle from straight up, and azimuth (0 = looking north). */

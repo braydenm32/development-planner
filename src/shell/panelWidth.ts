@@ -4,6 +4,9 @@
 export const PANEL_W = 332
 export const INSPECTOR_W = 300
 
+/** Check everything's list down the right of the canvas (src/steps; steps.css sets it from --steps-w). */
+export const STEPS_W = 340
+
 /** Site › Features, a retaining wall's card and the sections' drawings have the most to read: they get a wider panel (px). */
 export const WIDE_W = 440
 

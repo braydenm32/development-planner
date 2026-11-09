@@ -47,7 +47,8 @@ export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, r
     return Number.isFinite(g) ? (g - refZ) * exaggeration : null
   }
   const streetEdge = edgeDistance([cx, cy], street, survey.boundary as Vec2[]) ?? undefined
-  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street, ground, exaggeration, streetEdge }
+  const houseEdge = edgeDistance([cx, cy], street, corners) ?? undefined
+  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street, ground, exaggeration, streetEdge, houseEdge }
 }
 
 /** How far from `from` the boundary is, heading along a compass bearing; null if it never meets it. */
