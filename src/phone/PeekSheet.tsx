@@ -24,9 +24,11 @@ interface Props {
   onHeight?: (h: number) => void
   /** Easements and tree zones the plan reaches into (Site features' amber warnings). */
   checks?: number
+  /** A shared view: there's no Site features to send the viewer to, so the line says what they are instead. */
+  readOnly?: boolean
 }
 
-export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHeight, checks = 0 }: Props) {
+export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHeight, checks = 0, readOnly = false }: Props) {
   const [pull, setPull] = useState(0)
   const start = useRef<{ y: number; id: number } | null>(null)
   const moved = useRef(false)
@@ -77,10 +79,11 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
 
   const roof = n.roof ? `${n.roof.height.toFixed(2)} m above ground` : 'No roof yet'
   // Easements and tree zones first (Site › Features says which), then the balance, then batters.
+  const checkText = readOnly ? `${checks} to check: easements and tree zones` : `${checks} to check in Site features`
   const status =
     checks > 0 ? (
       <span className="chip warn">
-        <i className="dot" /> {checks} to check in Site features
+        <i className="dot" /> {checkText}
       </span>
     ) : n.earth?.outOfBalance ? (
       <span className="chip attn">
@@ -92,7 +95,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
       </span>
     ) : null
   const warn = !!status
-  const warnTitle = checks > 0 ? `${checks} to check in Site features` : n.earth?.outOfBalance ? `Out of balance · ${netText(n.earth.net)}` : `Batters cross ${n.batters}`
+  const warnTitle = checks > 0 ? checkText : n.earth?.outOfBalance ? `Out of balance · ${netText(n.earth.net)}` : `Batters cross ${n.batters}`
   return (
     <div
       ref={ref}

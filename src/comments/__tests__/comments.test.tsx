@@ -482,3 +482,22 @@ describe('Share › Send’s comments', () => {
     expect(useComments.getState().focus).toEqual({ id: 'a', n: 2 })
   })
 })
+
+describe('a reply missing a part', () => {
+  const answer = (body: unknown) => (async () => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  it('reads as no comments, rather than breaking the panels that list them', async () => {
+    expect(await createCommentsApi({ fetch: answer({ comments: [] }) }).list('p1')).toEqual({ comments: [], links: {} })
+    expect(await createCommentsApi({ fetch: answer({}) }).list('p1')).toEqual({ comments: [], links: {} })
+    expect(await createCommentsApi({ fetch: answer({ mode: 'own' }) }).seen('t', null)).toEqual({ mode: 'own', comments: [] })
+    expect(await createCommentsApi({ fetch: answer(null) }).seen('t', null)).toEqual({ mode: 'off', comments: [] })
+  })
+
+  it('leaves the owner’s list empty and its counts readable', async () => {
+    setCommentsApi(createCommentsApi({ fetch: answer({ comments: [] }) }))
+    await commentActions.loadOwner('p_missing')
+    expect(useComments.getState()).toMatchObject({ comments: [], counts: {} })
+    // The Send panel's line for a link reads its counts.
+    expect(countWords(useComments.getState().counts['h1'])).toBeNull()
+  })
+})

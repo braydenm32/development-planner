@@ -113,6 +113,18 @@ export function moveOntoBlock(plan: Plan, to: Site, from: Site | null): Plan {
   return shiftLevels(next, floorRL(next) - floorRL(plan))
 }
 
+/**
+ * The turn and shift (survey grid to survey grid, an Affine as src/site/align.ts has it) that
+ * takes the house from placement `from` to `to`: what moved the house onto a new block, for
+ * moving the things that belong with it (site features, drawings) the same way.
+ */
+export function houseMove(from: Placement, to: Placement): [number, number, number, number, number, number] {
+  const t = ((to.rotation - from.rotation) * Math.PI) / 180
+  const c = Math.cos(t)
+  const s = Math.sin(t)
+  return [c, s, -s, c, to.e - (c * from.e - s * from.n), to.n - (s * from.e + c * from.n)]
+}
+
 /** A plan opened without a survey, set square and centred on its sketch block with its floor at ground level. */
 export function placeOnSketch(plan: Plan, sketch: Site): Plan {
   return moveOntoBlock({ ...plan, placement: { ...plan.placement, rotation: 0 } }, sketch, null)

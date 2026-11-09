@@ -10,14 +10,15 @@ import { freeName, nameInProjectFile } from '../projects/ops'
 import { projectActions, projectsNow } from '../projects/session'
 import { parseProjectFile } from '../share/project'
 import { costsSummary } from '../costs/model'
-import { useSiteStore } from '../site/store'
+import { moveSiteData, siteDataOffBlock, useSiteStore } from '../site/store'
 import { isSketch, sketchAround, sketchSurvey, type SketchBlock } from '../start/sketch'
-import { centreOnBlock, fitOnBlock, moveOntoBlock, placeOnSketch, type Site } from './align'
+import { centreOnBlock, fitOnBlock, houseMove, moveOntoBlock, placeOnSketch, type Site } from './align'
 import { PickLayersError, readFile, readSite, type OpenedFile } from './files'
 import { CHECK_LAYERS, demReadBack, readBackLine } from './readBack'
 import { newPlanReview, planReview, projectReview, surveyReview } from './review'
 import { askLayers, askReview, showToast, useSafety } from './store'
 import type { SavedProject } from '../lib/storage'
+import type { ProjectMeta } from '../projects/types'
 import { planBounds } from '../plan/ops'
 import { usePhoneMode } from '../phone/device'
 import { streetSideOf, withStreetSide } from '../plan/streetSide'
@@ -88,8 +89,8 @@ function sayFound(survey: SavedProject) {
     return // the canvas says what's wrong with it
   }
   // Levels from the state's model: what came in, and how rough it is, rather than the layers.
-  if (survey.dem) return showToast({ text: demReadBack(site, survey.dem) })
-  showToast({ text: readBackLine(site), link: checkLayers() })
+  if (survey.dem) return showToast({ text: demReadBack(site, survey.dem), project: true })
+  showToast({ text: readBackLine(site), link: checkLayers(), project: true })
 }
 
 /** The project open now, opened again if Undo comes after another was opened. */
@@ -182,7 +183,7 @@ async function openPlanWithoutSurvey(p: Plan, name: string, into: OpenOptions['i
   const survey = sketchSurvey(block)
   const placed = placeOnSketch(p, readSite(survey))
   await startWith(survey, placed, into)
-  showToast({ text: `Opened ${name} on a ${survey.fileName.toLowerCase()}. Add the survey when it comes, from Site › More.` })
+  showToast({ text: `Opened ${name} on a ${survey.fileName.toLowerCase()}. Add the survey when it comes, from Site › More.`, project: true })
 }
 
 /** A new project (or the open one, with no survey yet) on ground levels from the state's model (src/map/demSite.ts), opened on Design › Plan. */
@@ -210,6 +211,10 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   }
   const moved = current ? moveOntoBlock(current, to, from) : null
   const site = useSiteStore.getState().data
+  // Stored features and drawings with none of them near the new block are on the old block's
+  // coordinates: they go where the house goes, so trees and easements stay where they were
+  // around it rather than being left kilometres away with their checks quietly off.
+  const siteOff = siteDataOffBlock(site, to.survey.boundary, to.survey.origin)
   const review = surveyReview({
     old,
     next,
@@ -219,6 +224,7 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
     kept: current,
     moved,
     siteFeatures: site.features.length + site.overlays.length,
+    siteFeaturesOff: siteOff,
   })
   const choice = await askReview(review)
   if (!choice || projectsNow().currentId !== id) return
@@ -226,10 +232,13 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
   const before = { survey: old, previous: opened.previousSurvey ?? null, plan: current }
   // The survey it replaces is kept (a sketch isn't worth keeping).
   await projectActions.saveSurvey(next, old && !isSketch(old) ? old : before.previous)
+  const siteBefore = useSiteStore.getState().data
   if (choice === 'centre' && moved && current && usePlan.getState().plan === current) {
     setPlan(moved)
     usePlan.getState().requestFit()
+    if (siteOff && siteBefore === site) useSiteStore.getState().commit(d => moveSiteData(d, houseMove(current.placement, moved.placement)))
   }
+  const siteAfter = useSiteStore.getState().data
   // The street side is kept by the way it faces, since the new boundary's sides are numbered
   // afresh; a sketch's is the one picked for it. A real survey with none set yet asks.
   const turned = plan()
@@ -252,6 +261,7 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
         setPlan(now === after ? before.plan : { ...now, placement: before.plan.placement })
         usePlan.getState().requestFit()
       }
+      if (siteAfter !== siteBefore && useSiteStore.getState().data === siteAfter) useSiteStore.getState().commit(() => siteBefore)
       showToast({ text: `Put back ${before.survey?.fileName ?? 'the survey'}.` })
     },
   })
@@ -349,6 +359,7 @@ export async function openProjectText(text: string, fileName: string): Promise<v
   host.toProject()
   showToast({
     text: `Opened “${meta.name}” as a new project.${before ? ` “${before.name}” is under All projects.` : ''}`,
+    project: true,
     undo: async () => {
       await projectActions.archive(meta.id)
       if (before) {
@@ -358,4 +369,24 @@ export async function openProjectText(text: string, fileName: string): Promise<v
       showToast({ text: `Put “${meta.name}” away under Archived.` })
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Duplicate (All projects).
+
+/** Copy a project under All projects, and say so; Undo takes the copy away again. Returns the copy. */
+export async function duplicateWithUndo(id: string): Promise<ProjectMeta> {
+  const copy = await projectActions.duplicate(id)
+  showToast({
+    text: `Duplicated as “${copy.name}”.`,
+    undo: async () => {
+      // Deleting for good is only for archived projects; the copy has nothing of its own to keep.
+      if (!projectsNow().list.some(m => m.id === copy.id)) return
+      await projectActions.archive(copy.id)
+      projectActions.deleteSoon(copy.id)
+      await projectActions.finishDelete(copy.id)
+      showToast({ text: `Took away “${copy.name}”.` })
+    },
+  })
+  return copy
 }

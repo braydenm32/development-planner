@@ -5,7 +5,7 @@
 // comment, Add a comment pins one on the plan (src/comments); sending one is the only thing that
 // keeps anything here, a token so this browser can see its own comments again.
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PlanEditor } from '../components/PlanEditor'
 import { SelectionPanel } from '../components/PlanSections'
 import { plansPdfFile, savePlansPdf } from '../components/printFiles'
@@ -139,18 +139,18 @@ function meta(name: string, content: string): HTMLMetaElement {
 
 // ---------------------------------------------------------------------------
 
-function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared: SharedProject; view: SharedCanvas; setView: (v: SharedCanvas) => void }) {
+export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared: SharedProject; view: SharedCanvas; setView: (v: SharedCanvas) => void }) {
   const phone = usePhone()
   const shellRef = useRef<HTMLDivElement>(null)
   useNativeFeel(phone)
   useSheetDrag(shellRef, phone)
 
   // The plan and the site features go in their stores as the shared revision has them, and stay so.
-  const [shown, setShown] = useState<SharedProject | null>(null)
-  if (shown !== shared) {
-    showReadOnly(shared)
-    setShown(shared)
-  }
+  // In a layout effect, not while drawing: the strip and the numbers read those stores, and a
+  // store changed during this render would change them in the middle of it. It still lands
+  // before the page paints. The page starts afresh for a share link (main.tsx), so until then
+  // there's no plan and nothing shows; a newer revision swaps in under the one showing.
+  useLayoutEffect(() => showReadOnly(shared), [shared])
   useEffect(() => () => stopReadOnly(), [])
 
   const { site } = useBuiltSite(shared.survey)
@@ -434,7 +434,7 @@ function Numbers({
   return (
     <>
       {phone ? (
-        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} />
+        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} readOnly />
       ) : (
         <SummaryStrip readOnly route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
       )}

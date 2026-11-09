@@ -9,12 +9,14 @@ import { floorRL, type Plan } from '../../plan/model'
 import { usePlan } from '../../plan/store'
 import { ensureProjects, projectActions, projectsNow } from '../../projects/session'
 import { totalFloorArea } from '../../projects/summary'
+import { useRouter } from '../../nav/router'
+import { PROJECTS } from '../../nav/route'
 import { projectFileText } from '../../share/project'
 import { m2 } from '../../shell/format'
 import { SKETCH_DATUM } from '../../start/sketch'
 import { fitOnBlock, groundAtHouse, placeOnSketch } from '../align'
 import { detectFile, readSite } from '../files'
-import { importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
+import { duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
 import { undoToast, useSafety, type Review } from '../store'
 
 // Synthetic blocks only: the tilted-plane test block, sketch blocks, and the test garage.
@@ -371,5 +373,51 @@ describe('deleting a project for good', () => {
   it('refuses a project that isn’t archived', async () => {
     const id = await garageOnPlane()
     expect(() => projectActions.deleteSoon(id)).toThrow(/Archive a project/)
+  })
+})
+
+describe('Duplicate, under All projects', () => {
+  it('says what the copy is called, and Undo takes the copy away and leaves the original', async () => {
+    const id = await garageOnPlane()
+    const name = projectsNow().list.find(m => m.id === id)!.name
+    const copy = await duplicateWithUndo(id)
+    expect(copy.id).not.toBe(id)
+    expect(useSafety.getState().toast?.text).toBe(`Duplicated as “${copy.name}”.`)
+    expect(projectsNow().list.some(m => m.id === copy.id)).toBe(true)
+
+    await undo()
+    expect(projectsNow().list.some(m => m.id === copy.id)).toBe(false)
+    expect(await projectActions.read(copy.id)).toBeNull()
+    expect(projectsNow().list.find(m => m.id === id)).toMatchObject({ name, archived: false })
+    expect(useSafety.getState().toast?.text).toBe(`Took away “${copy.name}”.`)
+  })
+
+  it('replaces an “Opened … · Undo” toast still showing, so its Undo can’t act on the wrong project', async () => {
+    const id = await garageOnPlane()
+    const done = openRead(detectFile('theirs.project.json', projectFileText(plane(), { ...garageFloor(), name: 'Theirs' })))
+    ;(await review()).answer('ok')
+    await done
+    expect(useSafety.getState().toast?.text).toMatch(/^Opened “Theirs”/)
+    await duplicateWithUndo(id)
+    expect(useSafety.getState().toast?.text).toMatch(/^Duplicated as/)
+  })
+})
+
+describe('toasts about the project as it opened', () => {
+  it('go when you leave for All projects; others stay', async () => {
+    const done = openRead(detectFile('mine.project.json', projectFileText(plane(), { ...garageFloor(), name: 'Mine' })))
+    ;(await review()).answer('ok')
+    await done
+    useRouter.setState({ route: { kind: 'app', area: 'design', tab: 'plan', view: 'plan' } })
+    expect(useSafety.getState().toast?.text).toMatch(/^Opened “Mine”/)
+    useRouter.setState({ route: PROJECTS })
+    expect(useSafety.getState().toast).toBeNull()
+
+    // A toast from All projects itself (Archived, Duplicated) isn't one of them.
+    const id = await garageOnPlane()
+    await duplicateWithUndo(id)
+    useRouter.setState({ route: { kind: 'app', area: 'design', tab: 'plan', view: 'plan' } })
+    useRouter.setState({ route: PROJECTS })
+    expect(useSafety.getState().toast?.text).toMatch(/^Duplicated as/)
   })
 })
