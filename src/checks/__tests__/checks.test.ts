@@ -7,7 +7,7 @@ import { evaluateEarthworks, prepareEarthworks } from '../../lib/earthworks'
 import { analyzeLayers, buildSurvey, guessRoles, type Survey } from '../../lib/survey'
 import { buildTerrain, type Terrain } from '../../lib/terrain'
 import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
-import { earthworksOf, type Plan, type Wall } from '../../plan/model'
+import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { measure, rearEdgeOf } from '../measure'
 import { countChecks, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, hcRearSetback, hcSideSetback, minWidth, runChecks } from '../rules'
@@ -16,6 +16,7 @@ import { checkTreesOf } from '../siteTrees'
 import type { SiteFeature } from '../../site/model'
 import { activeCouncil, checkSettingsOf, switchCouncil } from '../councils'
 import { DEFAULT_CHECK_SETTINGS, type CheckSettings, type CheckTree } from '../types'
+import { sunFacts } from '../../sun/facts'
 
 type P2 = [number, number]
 // Falls 1 in 20 towards the south (north is higher).
@@ -65,6 +66,12 @@ function house(checks: Partial<CheckSettings> = {}, patch: Partial<Plan> = {}): 
     ...patch,
   }
 }
+
+/** A flat roof over the house's outside walls, so the height and the setbacks that follow it can pass. */
+const flatRoof = (plan: Plan): Plan => ({
+  ...plan,
+  roofs: [{ id: 'roof', level: L0, pts: [[-0.1, -0.1], [10.1, -0.1], [10.1, 8.1], [-0.1, 8.1]], type: 'flat', pitch: 0, overhang: 0, gables: [false, false, false, false], lowEdge: 0 }],
+})
 
 function run(plan: Plan, trees: CheckTree[] = [], withEarth = false) {
   const { survey, terrain } = loadSite()
@@ -150,7 +157,7 @@ describe('Housing Code (CDC)', () => {
     expect(byId(cdc, 'hc-front').status).toBe('unknown')
   })
   it('passes a small single-storey house well inside the setbacks', () => {
-    const { cdc } = run(house({ frontEdge: 0 }))
+    const { cdc } = run(flatRoof(house({ frontEdge: 0 })))
     const c = countChecks(cdc)
     expect(c.fail).toBe(0)
     expect(byId(cdc, 'hc-gfa').status).toBe('pass')
@@ -167,7 +174,7 @@ describe('Housing Code (CDC)', () => {
     // West side 2 m away: passes 1.5 m (20 m wide), fails 2.5 m (30 m).
     const p = house({ frontEdge: 0 }, { placement: { e: 5002.1, n: 8005.1, rotation: 0, ffl: 50.6 } })
     expect(byId(run(p).cdc, 'hc-side').status).toBe('warn')
-    expect(byId(run(house({ frontEdge: 0, lotWidth: 20 }, { placement: p.placement })).cdc, 'hc-side').status).toBe('pass')
+    expect(byId(run(flatRoof(house({ frontEdge: 0, lotWidth: 20 }, { placement: p.placement }))).cdc, 'hc-side').status).toBe('pass')
     expect(byId(run(house({ frontEdge: 0, lotWidth: 30 }, { placement: p.placement })).cdc, 'hc-side').status).toBe('fail')
     const q = house({ frontEdge: 0 }, { placement: { e: 5001.1, n: 8005.1, rotation: 0, ffl: 50.6 } })
     expect(byId(run(q).cdc, 'hc-side').status).toBe('fail')
@@ -246,6 +253,107 @@ describe('Housing Code (CDC)', () => {
     // The pad at RL 50.3 on ground 50.25 to 50.66: under 0.5 m either way.
     expect(ms.earth!.maxCut).toBeLessThan(0.5)
     expect(byId(cdc, 'hc-works-boundary').status).toBe('pass')
+  })
+})
+
+describe('an unfinished design', () => {
+  const empty = (checks: Partial<CheckSettings> = {}) => house(checks, { walls: [], rooms: [] })
+  const statuses = (rs: ReturnType<typeof runChecks>) => Object.fromEntries(rs.map(r => [r.id, r.status]))
+
+  it('passes nothing with no house drawn: each check says what to draw', () => {
+    const { cdc, da, ms } = run(empty({ frontEdge: 0 }))
+    expect(ms.hasHouse).toBe(false)
+    expect(countChecks(cdc).pass).toBe(0)
+    expect(countChecks(da).pass).toBe(0)
+    expect(countChecks(cdc).incomplete).toBe(cdc.length)
+    for (const r of cdc) expect(r.value, r.id).toBe('Draw the outside walls as a closed outline to check this.')
+    // Without the front picked, the setbacks still ask for the fact first.
+    expect(statuses(run(empty()).cdc)).toMatchObject({ 'hc-front': 'unknown', 'hc-side': 'unknown', 'hc-rear': 'unknown', 'hc-gfa': 'incomplete', 'hc-storeys': 'incomplete' })
+  })
+
+  it('walls that don’t close are no house yet', () => {
+    const open = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 10, 8).slice(0, 3) })
+    const { cdc } = run(open)
+    expect(countChecks(cdc).pass).toBe(0)
+    expect(byId(cdc, 'hc-storeys').status).toBe('incomplete')
+  })
+
+  it('walls without a roof: the height and the setbacks that follow it wait for the roof', () => {
+    const { cdc, da } = run(house({ frontEdge: 0 }))
+    const h = byId(cdc, 'hc-height')
+    expect(h.status).toBe('incomplete')
+    expect(h.value).toBe('Add a roof to check this.')
+    // What the walls measure so far is kept in the detail.
+    expect(h.note).toMatch(/^So far: \d+\.\d\d m above existing ground\./)
+    expect(statuses(cdc)).toMatchObject({ 'hc-side': 'incomplete', 'hc-rear': 'incomplete', 'hc-storeys': 'pass', 'hc-gfa': 'pass', 'hc-front': 'pass', 'lot-inside': 'pass' })
+    expect(statuses(da)).toMatchObject({ 'da-height': 'incomplete', 'da-side-rear': 'incomplete', 'da-coverage': 'pass' })
+    // With a roof, they pass.
+    const roofed = run(flatRoof(house({ frontEdge: 0 }))).cdc
+    expect(statuses(roofed)).toMatchObject({ 'hc-height': 'pass', 'hc-side': 'pass', 'hc-rear': 'pass' })
+  })
+
+  it('a fail stands before the roof is on, since a roof only adds height', () => {
+    // 1 m from the west side fails 1.5 m and 2.5 m whatever the roof.
+    const q = house({ frontEdge: 0 }, { placement: { e: 5001.1, n: 8005.1, rotation: 0, ffl: 50.6 } })
+    expect(byId(run(q).cdc, 'hc-side').status).toBe('fail')
+  })
+
+  it('floor area over the limit to the outside of the walls waits for rooms to tell', () => {
+    const big = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.2, 19.8), rooms: [] })
+    const r = byId(run(big).cdc, 'hc-gfa')
+    expect(r.status).toBe('incomplete')
+    expect(r.value).toBe('308.0 m² to the outside of the walls. Add rooms to check this.')
+    // Under the limit, the outside of the walls is enough to pass.
+    expect(byId(run(house({ frontEdge: 0 }, { rooms: [] })).cdc, 'hc-gfa').status).toBe('pass')
+  })
+
+  it('counts the checks waiting on the design apart from the ones that pass', () => {
+    const c = countChecks(run(house({ frontEdge: 0 })).cdc)
+    expect(c.incomplete).toBeGreaterThan(0)
+    expect(c.pass + c.incomplete + c.fail + c.warn + c.unknown + c.pending).toBe(run(house({ frontEdge: 0 })).cdc.length)
+  })
+})
+
+describe('a house over the boundary', () => {
+  // 2 m further west than the usual house: its west face at x = −2, 2 m past the west side.
+  const over = (checks: Partial<CheckSettings> = { frontEdge: 0 }) => flatRoof(house(checks, { placement: { e: 4998.1, n: 8005.1, rotation: 0, ffl: 50.6 } }))
+
+  it('fails on every pathway, saying which side and by how much', () => {
+    const { cdc, da, ms } = run(over())
+    expect(ms.edges[3].clearance).toBeCloseTo(-2, 4)
+    expect(ms.outside).toEqual({ by: expect.closeTo(2, 4), all: false })
+    for (const rs of [cdc, da]) {
+      const r = byId(rs, 'lot-inside')
+      expect(r.status).toBe('fail')
+      expect(r.title).toBe('Part of the building is outside the lot')
+      expect(r.value).toBe('2.00 m over the west side')
+    }
+  })
+
+  it('shows the setbacks as over, not 0 m', () => {
+    const { cdc, da } = run(over())
+    expect(byId(cdc, 'hc-side').status).toBe('fail')
+    expect(byId(cdc, 'hc-side').value).toBe('2.00 m over the west side')
+    expect(byId(da, 'da-side-rear').value).toBe('2.00 m over the west side')
+    // Over the front boundary fails, where short of the fallback distance only warns.
+    const front = flatRoof(house({ frontEdge: 0 }, { placement: { e: 5004.1, n: 7999.1, rotation: 0, ffl: 50.6 } }))
+    expect(byId(run(front).cdc, 'hc-front').status).toBe('fail')
+    expect(byId(run(front).cdc, 'hc-front').value).toBe('1.00 m over the south side')
+  })
+
+  it('a house wholly off the lot is outside it', () => {
+    const away = flatRoof(house({ frontEdge: 0 }, { placement: { e: 4970, n: 8005.1, rotation: 0, ffl: 50.6 } }))
+    const r = byId(run(away).cdc, 'lot-inside')
+    expect(r.status).toBe('fail')
+    expect(r.title).toBe('The building is outside the lot')
+  })
+
+  it('a house inside the lot, even right on the boundary, passes', () => {
+    const on = flatRoof(house({ frontEdge: 0 }, { placement: { e: 5000.1, n: 8005.1, rotation: 0, ffl: 50.6 } }))
+    const { cdc, ms } = run(on)
+    expect(ms.outside).toBeNull()
+    expect(byId(cdc, 'lot-inside').status).toBe('pass')
+    expect(ms.edges[3].clearance).toBeCloseTo(0, 4)
   })
 })
 
@@ -374,5 +482,66 @@ describe('council rules switched on or off', () => {
     expect(off.councils).toEqual({ wollongong: false })
     expect(off.pathway).toBe('cdc')
     expect(checkSettingsOf(off).councils).toEqual({ wollongong: false })
+  })
+})
+
+describe('sun on 21 June (Wollongong DCP B1 4.7)', () => {
+  /** The checks with the day's sun worked out, as the app does once the design settles. Sydney, 2026. */
+  function withSun(plan: Plan) {
+    const { survey, terrain } = loadSite()
+    const sun = sunFacts({ plan, boundary: survey.boundary, origin: survey.origin, ground: terrain.grid, date: { year: 2026, month: 6, day: 21 } })
+    const ms = measure({ plan, survey, terrain, earth: null, sun })
+    return { ms, cdc: runChecks(ms, 'cdc'), da: runChecks(ms, 'da', 'wollongong') }
+  }
+  const northWindow = { id: 'w1', wall: 'gn', kind: 'window' as const, offset: 5, width: 2, height: 1.2, sill: 0.9, flipHinge: false, flipSwing: false }
+
+  it('flags a winter shadow that reaches next door, and says where', () => {
+    // The 10 × 8 m house is 4 m from the west side and 5 m from the south: the 9 am shadow runs about 9 m south-west.
+    const { da } = withSun(house({ frontEdge: 0 }))
+    const r = byId(da, 'da-sun-neighbours')
+    expect(r.status).toBe('warn')
+    expect(r.value).toMatch(/^Over the (south|west)/)
+    expect(r.value).toContain('9 am')
+    expect(r.source.clause).toBe('Wollongong DCP B1 4.7.2(1), (2)')
+    expect(r.limit).toContain('3 hours of continuous sun')
+    expect(r.limit).toContain('between 9 am and 3 pm on 21 June')
+  })
+
+  it('passes a house whose shadow stays on the block from 9 to 3, once it has the roof that casts it', () => {
+    const walls = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 4, 4), rooms: [], placement: { e: 5008, n: 8013, rotation: 0, ffl: 51 } })
+    expect(byId(withSun(walls).da, 'da-sun-neighbours')).toMatchObject({ status: 'incomplete', value: 'Add a roof to check this.' })
+    const roof: Roof = { id: 'roof', level: L0, pts: [[-0.1, -0.1], [4.1, -0.1], [4.1, 4.1], [-0.1, 4.1]], type: 'flat', pitch: 0, overhang: 0, gables: [false, false, false, false], lowEdge: 0 }
+    const r = byId(withSun({ ...walls, roofs: [roof] }).da, 'da-sun-neighbours')
+    expect(r.status).toBe('pass')
+    expect(r.value).toBe('The house’s shadow stays on your block from 9 am to 3 pm.')
+  })
+
+  it('lists the shadow diagrams for information, needed for a two-storey house', () => {
+    const one = byId(withSun(house()).da, 'da-shadow-diagrams')
+    expect(one.status).toBe('info')
+    expect(one.value).toContain('single storey')
+    const two = house({}, { levels: [...house().levels, { id: L1, name: 'First floor', elevation: 3, height: 2.7 }], walls: [...house().walls, ...box('u', 0, 0, 10, 8, L1)] })
+    expect(byId(withSun(two).da, 'da-shadow-diagrams').value).toBe('Needed: the house is two storeys')
+  })
+
+  it('gives the living areas’ winter sun for information on both pathways, never as a pass or a fail', () => {
+    const { cdc, da } = withSun(house({ frontEdge: 0 }, { openings: [northWindow] }))
+    for (const rs of [cdc, da]) {
+      const r = byId(rs, 'sun-living')
+      expect(r.status).toBe('info')
+      expect(r.value).toBe('Living 6 h of sun on the windows between 9 am and 3 pm on 21 June')
+      expect(r.source.confidence).toBe('unverified')
+    }
+    expect(countChecks(cdc).info).toBe(1)
+    // A room that isn't a living area isn't counted.
+    const bed = withSun(house({}, { rooms: [{ id: 'r', level: L0, name: 'Bed 1', at: [5, 4] }], openings: [northWindow] }))
+    expect(bed.cdc.find(r => r.id === 'sun-living')).toBeUndefined()
+  })
+
+  it('leaves the sun rows out until the sun has been worked out', () => {
+    const { da, cdc } = run(house({ frontEdge: 0 }))
+    expect(da.find(r => r.id === 'da-sun-neighbours')).toBeUndefined()
+    expect(cdc.find(r => r.id === 'sun-living')).toBeUndefined()
+    expect(byId(da, 'da-shadow-diagrams').status).toBe('info')
   })
 })

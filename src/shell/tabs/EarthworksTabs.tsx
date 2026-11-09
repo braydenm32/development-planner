@@ -13,6 +13,7 @@ import { DrivewayLevels } from '../../components/DrivewayLevels'
 import { usePlacementInfo, useRetainingWalls } from '../../components/planNumbers'
 import { areaKind } from '../../plan/model'
 import { usePlan } from '../../plan/store'
+import { Caveat } from '../../legal/Caveat'
 import { navigate } from '../../nav/router'
 import { pickTool, selectOnPlan, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
@@ -59,6 +60,7 @@ function CutFill({ d }: { d: Loaded }) {
           </button>
         </p>
       )}
+      <Caveat />
     </>
   )
 }

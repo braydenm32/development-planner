@@ -5,14 +5,21 @@ import { cloudActions } from '../cloud/state'
 import { balanceCutFill } from '../components/planNumbers'
 import { downloadPlan, startNewPlan } from '../components/planFile'
 import { save3mf, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
+import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
+import { openExample } from '../example/open'
 import { startContourPick } from '../flow/store'
+import { showHintsAgain } from '../guide/hints'
+import { WORDS_ID } from '../guide/sections'
+import { openGuide } from '../guide/store'
 import type { ActionId } from '../nav/menu'
-import { NEW_PROJECT, PROJECTS } from '../nav/route'
+import { NEW_PROJECT, pageRoute, PROJECTS } from '../nav/route'
 import { navigate } from '../nav/router'
 import { usePlan, type Tool } from '../plan/store'
 import { zoomPlan } from '../plan/viewMemory'
 import { pickFile } from '../safety/store'
+import { beginSectionLine } from '../sections/SectionMarks'
 import type { ShellData } from './context'
+import { openKeyboardHelp } from './keyboardHelpStore'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
 export interface ActionContext {
@@ -34,6 +41,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     pickTool(a.slice(5) as Tool)
     return true
   }
+  if (a.startsWith('term:')) {
+    openGuide(`term-${a.slice(5)}`)
+    return true
+  }
 
   switch (a) {
     case 'undo':
@@ -49,6 +60,9 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'overview':
       c.openOverview()
       return true
+    case 'keyboard-help':
+      openKeyboardHelp()
+      return true
     case 'balance': {
       const msg = balanceCutFill(shell.earth)
       if (!msg) {
@@ -63,6 +77,28 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'new-project':
       navigate(NEW_PROJECT)
+      return true
+    case 'open-example':
+      void openExample()
+      return true
+    case 'guide':
+      openGuide()
+      return true
+    case 'glossary':
+      openGuide(WORDS_ID)
+      return true
+    // Tips hidden one by one, or all at once, come back; the plan shows where they are.
+    case 'plan-tips':
+      showHintsAgain()
+      if (!planShowing()) showPlan()
+      c.toast('Tips on the plan are back on.')
+      return true
+    // The pages about the app open on their own; Back returns to the project.
+    case 'about':
+    case 'privacy':
+    case 'terms':
+    case 'accuracy':
+      navigate(pageRoute(a))
       return true
     // Sign in, or the account when signed in. A copy of the app with no cloud (GitHub Pages) says so.
     case 'cloud':
@@ -86,6 +122,13 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'reset-camera':
       shell.resetCamera()
       return true
+    // A picture of whichever canvas is showing.
+    case 'save-picture':
+      if (plan)
+        void savePicture(plan, planShowing() ? 'plan' : '3d').then(err => {
+          if (err) c.toast(err)
+        })
+      return !!plan
     // One Open: a survey, a project file or a plan, each going its own way after a review.
     case 'open-file':
     case 'open-project':
@@ -113,6 +156,17 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
         c.toast((err as Error).message || 'The plans could not be drawn.')
         return false
       }
+    case 'download-dxf':
+      try {
+        saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth })
+        return true
+      } catch (err) {
+        c.toast((err as Error).message || 'The DXF could not be written.')
+        return false
+      }
+    case 'download-schedule':
+      saveScheduleCsv(plan)
+      return true
     case 'download-3mf':
     case 'download-stls': {
       const ok = (a === 'download-3mf' ? save3mf : saveStls)({ plan, settings: shell.printPrefs.settings, print: shell.print })
@@ -132,6 +186,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       // The next click on a contour sets the active floor's level; it needs the plan.
       if (!planShowing()) showPlan()
       startContourPick()
+      return true
+    case 'draw-section':
+      // Two clicks on the plan; Design › Sections opens beside it to show the drawing.
+      beginSectionLine()
       return true
   }
   return false

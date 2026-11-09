@@ -1,4 +1,5 @@
 import { COSTS_KIND, costsSummary, normalizeCosts } from '../costs/model'
+import { OPTIONS_KIND } from '../options/model'
 import { parseProjectFile } from '../share/project'
 import { siteRecords, SITE_FILES_KIND, SITE_KIND } from '../site/store'
 import type { ProjectMeta, ProjectRecords, ProjectStore } from './types'
@@ -56,9 +57,9 @@ export function nameInProjectFile(text: string): string | null {
 
 /** A project file (.json) always becomes a new project, with its site features; it never overwrites one. */
 export async function createFromProjectFile(store: ProjectStore, text: string): Promise<ProjectMeta> {
-  const { survey, plan, site, costs } = parseProjectFile(text)
+  const { survey, plan, site, costs, options } = parseProjectFile(text)
   const name = await freeName(store, nameInProjectFile(text) ?? 'Shared project')
-  return store.create({ name, records: { survey, plan: { ...plan, name }, ...siteRecords(site), ...(costs ? { [COSTS_KIND]: costs } : {}) }, meta: { surveyFileName: survey.fileName } })
+  return store.create({ name, records: { survey, plan: { ...plan, name }, ...siteRecords(site), ...(costs ? { [COSTS_KIND]: costs } : {}), ...(options ? { [OPTIONS_KIND]: options } : {}) }, meta: { surveyFileName: survey.fileName } })
 }
 
 /** In plain words, what deleting this project removes, for the review step. */
@@ -85,8 +86,10 @@ export function describeContents(meta: ProjectMeta, records: ProjectRecords | nu
   if (records?.[COSTS_KIND]) out.push(`Its costs: ${costsSummary(normalizeCosts(records[COSTS_KIND]))}`)
   const earlier = records?.['previous-survey'] as { fileName?: string } | undefined
   if (earlier) out.push(`The survey it replaced${earlier.fileName ? ` (${earlier.fileName})` : ''}`)
+  const others = (records?.[OPTIONS_KIND] as { items?: unknown[] } | undefined)?.items
+  if (Array.isArray(others) && others.length > 1) out.push(`Its ${others.length} options (named versions of the design)`)
   if (records?.history) out.push('Its undo history')
-  const other = Object.keys(records ?? {}).filter(k => !['survey', 'plan', 'prefs', 'history', 'previous-survey', SITE_KIND, SITE_FILES_KIND, COSTS_KIND].includes(k))
+  const other = Object.keys(records ?? {}).filter(k => !['survey', 'plan', 'prefs', 'history', 'previous-survey', OPTIONS_KIND, SITE_KIND, SITE_FILES_KIND, COSTS_KIND].includes(k))
   if (other.length) out.push(`Everything else saved with it (${other.join(', ')})`)
   if (!out.length) out.push(`The project “${meta.name}”`)
   return out

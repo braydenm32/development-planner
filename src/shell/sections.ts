@@ -2,36 +2,48 @@
 // that every tab (bar the canvas-only ones) and every More item has something here.
 
 import type { ComponentType } from 'react'
+import { BasixTab } from '../basix/BasixTab'
 import { AboutCostsSection, EstimateAside, EstimateTab, MaterialsTab, QuotesTab, RatesSection } from '../costs/CostsTabs'
+import { StormwaterTab } from '../drainage/StormwaterTab'
 import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
+import { OptionsTab } from '../options/OptionsTab'
 import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
+import { ExportTab } from '../export/ExportTab'
 import { RetainingWallsTab } from './tabs/RetainingWallsTab'
 import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
+import { SectionsTab } from '../sections/SectionsTab'
+import { SiteSunTab } from '../sun/SunTab'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
   'site/block': SiteBlockTab,
   'site/features': SiteFeaturesTab,
   'site/3d': Site3dTab,
+  'site/sun': SiteSunTab,
   'design/floors': FloorsTab,
   'design/rooms': RoomsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
+  'design/sections': SectionsTab,
   'design/checks': ChecksTab,
+  'design/basix': BasixTab,
+  'design/options': OptionsTab,
   'earthworks/place': PlaceTab,
   'earthworks/cut-fill': CutFillTab,
   'earthworks/retaining-walls': RetainingWallsTab,
   'earthworks/driveway': DrivewayTab,
+  'earthworks/stormwater': StormwaterTab,
   'costs/estimate': EstimateTab,
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,
   'share/plans': PlansTab,
+  'share/export': ExportTab,
   'share/send': SendTab,
   'share/3d-print': PrintTab,
 }
@@ -47,6 +59,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'wall-preset': More.WallPresetSection,
   'opening-tool': More.OpeningToolSection,
   'garage-door-tool': More.GarageDoorToolSection,
+  'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   origin: More.OriginSection,
   rotation: More.RotationSection,

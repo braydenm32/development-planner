@@ -25,6 +25,7 @@ import {
   type Pose,
   type Vec3,
 } from '../camera'
+import { withStreetSide } from '../../plan/streetSide'
 import { siteFrame } from '../frame'
 import { pinLabel } from '../pin'
 import { house, loadBlock } from './block'
@@ -174,15 +175,16 @@ describe('the street side', () => {
   it('frames the house on the synthetic block, looking from its low (north) side', () => {
     const { survey, terrain } = loadBlock()
     const plan = house()
-    const f = siteFrame(plan, survey, terrain, 0, 1, 'auto')
+    const f = siteFrame(plan, survey, terrain, 0, 1)
     expect(bearingWord(f.street)).toBe('north')
     expect(f.radius).toBeGreaterThan(5)
     expect(f.blockRadius).toBeCloseTo(25, 6)
     // The house's middle, 1.5 m above its floor.
     expect(f.target[1]).toBeCloseTo(28.6 + 1.5, 6)
-    expect(siteFrame(plan, survey, terrain, 0, 1, 'E').street).toBeCloseTo(90, 6)
+    // With the plan's street side set (the checks' front edge), it looks from there.
+    expect(siteFrame(withStreetSide(plan, survey.boundary, 'E'), survey, terrain, 0, 1).street).toBeCloseTo(90, 6)
     // Before there is a house it frames the block.
-    expect(siteFrame(null, survey, terrain, 0, 1, 'auto').radius).toBeCloseTo(25, 6)
+    expect(siteFrame(null, survey, terrain, 0, 1).radius).toBeCloseTo(25, 6)
   })
 })
 

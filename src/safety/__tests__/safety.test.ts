@@ -78,7 +78,7 @@ describe('one Open', () => {
     expect(project.kind).toBe('project')
     const p = detectFile('house-plan.json', JSON.stringify(garageFloor()))
     expect(p).toMatchObject({ kind: 'plan', name: 'house-plan.json' })
-    expect(() => detectFile('notes.json', '{"hello": 1}')).toThrow(/survey \(.dxf\), a project file, or a plan/)
+    expect(() => detectFile('notes.json', '{"hello": 1}')).toThrow(/survey \(.dxf, LandXML .xml, or spot levels as .csv or .txt\), a project file, or a plan/)
     expect(() => detectFile('broken.json', '{"walls": [')).toThrow(/can’t be read/)
     expect(() => detectFile('readme.txt', 'Just some words')).toThrow(/isn’t one the planner can open/)
   })

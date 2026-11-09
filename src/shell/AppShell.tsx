@@ -4,6 +4,8 @@
 // comes from the menu config (src/nav/menu.ts) and the section components in src/components.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { LocalSaveChip } from '../cloud/LocalSave'
+import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
@@ -15,6 +17,8 @@ import { useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
 import { shortcutText, typingIn } from '../nav/keys'
+import { KeyboardHelp } from './KeyboardHelp'
+import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
 import { canvasOf, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
@@ -22,7 +26,9 @@ import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
+import { useSections } from '../sections/store'
 import { useSiteWarnings } from '../site/sync'
+import { SunCard } from '../sun/SunCard'
 import { runAction } from './actions'
 import { CanvasControls, Inspector, ToolCard, ToolRail } from './CanvasChrome'
 import { hasToolCard } from './toolCard'
@@ -47,6 +53,7 @@ import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../ph
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
+import { showToast } from '../safety/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
@@ -56,7 +63,8 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 /** Actions that are harmless to run as soon as a feature that lives on them is chosen. */
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
-  ['view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
+  a.startsWith('term:') ||
+  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -154,6 +162,18 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         e.preventDefault()
         if (palette) closePalette(true)
         else openPalette()
+        return
+      }
+      // ⌘S / Ctrl+S, even while typing: the work saves itself, so say where rather than opening the browser's Save Page.
+      if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (!e.repeat) void saveNow().then(text => showToast({ text }))
+        return
+      }
+      // ? lists the keys, wherever you are (not while typing).
+      if (e.key === '?' && !mod && !palette && !typingIn(e.target)) {
+        e.preventDefault()
+        openKeyboardHelp()
         return
       }
       if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
@@ -264,6 +284,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
       </button>
       <SyncChip />
+      {route.kind === 'app' && <LocalSaveChip onDownload={() => run('save-project')} />}
       <ProjectMenu open={menu.open} focusItem={menu.focus} onOpenChange={open => setMenu({ open, focus: null })} run={run} />
     </div>
   )
@@ -280,7 +301,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
             </header>
             <main className="shell-main projects">{projectsHome}</main>
           </>
-        ) : (
+        ) : route.kind === 'page' ? null /* the pages about the app show alone (src/legal), never in the frame */ : (
           <AreaView
             route={route}
             loaded={loaded}
@@ -301,6 +322,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         )}
         <AreaNav route={route} go={r => navigate(r)} variant="bottom" />
         {fileInputs}
+        <KeyboardHelp />
         {palette && <CommandPalette choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
         {toast && (
           <div key={toast.n} className="toast" role="status">
@@ -335,7 +357,7 @@ function UndoRedo() {
       <button onClick={st.undo} disabled={!canUndo} aria-label={`Undo (${shortcutText('mod+Z')})`} data-tip={`Undo ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button className="desk-only" onClick={st.redo} disabled={!canRedo} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={st.redo} disabled={!canRedo} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>
@@ -390,6 +412,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
 
   // Fitting the plan, and framing the 3D presets, keeps clear of what floats over it.
   const [peekH, setPeekH] = useState(0)
+  // The sun study's card at the foot of the 3D view: the picture moves up clear of it.
+  const [sunH, setSunH] = useState(0)
+  const sunClear = canvasKind === '3d' && sunH > 0 ? sunH + 70 : 0
   const wide = WIDE_TABS.has(tabKey)
   const wideInspector = selRetaining
   // What floats on the right of the plan for this tab (Costs › Estimate's materials), on a window wide enough.
@@ -397,10 +422,10 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print'
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? 60 : 0, r: presenting ? 0 : 60, t: 62, b: peek ? (peekH || (slim ? 52 : 190)) + 12 : 16 }
+    if (phone) return { l: rail ? 60 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
-    return { l: (rail ? 70 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: 56 }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside])
+    return { l: (rail ? 70 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: Math.max(56, sunClear) }
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
@@ -448,6 +473,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
     lastPicking.current = picking
     if (phone) setPanelHidden(picking)
   }, [picking, phone, setPanelHidden])
+  // And drawing a section line from Design › Sections.
+  const drawingSection = useSections(s => s.drawing !== null)
+  const lastDrawingSection = useRef(drawingSection)
+  useEffect(() => {
+    if (lastDrawingSection.current === drawingSection) return
+    lastDrawingSection.current = drawingSection
+    if (phone) setPanelHidden(drawingSection)
+  }, [drawingSection, phone, setPanelHidden])
   // Picking a site feature on the plan elsewhere opens Site › Features, where its details are.
   const siteSel = useSiteStore(s => s.selected)
   useEffect(() => {
@@ -490,7 +523,6 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           run={run}
           phone={phone}
           peek={peek ? (slim ? 'slim' : 'full') : null}
-          editing={editing}
           onPeekHeight={setPeekH}
         />
       ) : (
@@ -501,9 +533,10 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         style={{ ['--free-left' as string]: `${insets.l}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets }}>{canvas}</CanvasFrame.Provider>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>{canvas}</CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+          {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}`}>
             {toolCard && <ToolCard />}
@@ -560,7 +593,6 @@ function NumbersHost({
   run,
   phone,
   peek,
-  editing,
   onPeekHeight,
 }: {
   d: Loaded
@@ -574,7 +606,6 @@ function NumbersHost({
   /** A phone: the numbers sit in a sheet at the bottom of the canvas instead of the strip. */
   phone: boolean
   peek: 'full' | 'slim' | null
-  editing: boolean
   onPeekHeight: (h: number) => void
 }) {
   const numbers = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
@@ -603,7 +634,7 @@ function NumbersHost({
           <PeekSheet
             numbers={numbers}
             stats={d.terrain.stats}
-            title={canvasKind === 'plan' && editing ? 'Key numbers' : 'Showing people'}
+            title="Key numbers"
             slim={peek === 'slim'}
             onOpen={() => setOverview(true)}
             onHeight={onPeekHeight}

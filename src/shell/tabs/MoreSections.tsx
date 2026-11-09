@@ -21,6 +21,7 @@ import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { usePlan } from '../../plan/store'
 import { useShell } from '../context'
+import { ShortcutList } from '../KeyboardHelp'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
 
@@ -199,4 +200,14 @@ export function PaperSection() {
 
 export function PrintInstructionsSection() {
   return <PrintInstructions />
+}
+
+/** Design › More › Keyboard shortcuts: every key, in groups (? opens the same list anywhere). */
+export function KeyboardSection() {
+  return (
+    <>
+      <p className="muted small">Press ? anywhere to see this list over whatever you are doing.</p>
+      <ShortcutList />
+    </>
+  )
 }

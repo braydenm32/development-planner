@@ -179,19 +179,64 @@ export async function signupOptions(env: Env, req: Request, now: number): Promis
   return json({ challengeId, options })
 }
 
-async function checkGate(env: Env, invite: unknown) {
+// ---------------------------------------------------------------------------
+// Invite codes. INVITE_CODE holds one, or several separated by commas or new lines, each
+// optionally named `label:CODE`. Each account notes which it came in with, so a code that's
+// been passed around can be taken out of the list without touching the others or anyone's account.
+
+export interface Invite {
+  /** What the account notes: the label, or `#` and the first 8 hex characters of the code's SHA-256. */
+  label: string | null
+  code: string
+  /** The entry as written, `label:CODE` and all. */
+  entry: string
+}
+
+/** The invite codes INVITE_CODE holds, in order. */
+export function inviteCodes(raw: string | undefined): Invite[] {
+  return (raw ?? '')
+    .split(/[,\r\n]+/)
+    .map(e => e.trim())
+    .filter(Boolean)
+    .map(entry => {
+      const m = /^([^:]{1,40}):(.+)$/.exec(entry)
+      const label = m?.[1].trim() || null
+      const code = m && label ? m[2].trim() : entry
+      return { label, code, entry }
+    })
+}
+
+/**
+ * The invite a typed code is, or null. A code matches as its own words, or as its whole entry,
+ * so one code set before lists existed (even one with a colon or a comma) still works as it did.
+ */
+export async function matchInvite(env: Env, typed: unknown): Promise<string | null> {
+  if (typeof typed !== 'string' || !env.INVITE_CODE) return null
+  const t = typed.trim()
+  if (!t) return null
+  const whole = env.INVITE_CODE.trim()
+  let found: string | null = null
+  // Every code is compared, in time that doesn't depend on which one (if any) matches.
+  for (const i of inviteCodes(whole)) if ((sameSecret(t, i.code) || sameSecret(t, i.entry)) && found === null) found = i.label ?? (await codeTag(i.code))
+  if (found === null && sameSecret(t, whole)) found = await codeTag(whole)
+  return found
+}
+
+const codeTag = async (code: string) => `#${(await sha256Hex(code)).slice(0, 8)}`
+
+async function checkGate(env: Env, typed: unknown): Promise<{ state: Signup; invite: string | null }> {
   const state = await signupState(env)
   if (state === 'closed') throw new HttpError(403, 'signup-closed', 'New accounts aren’t open here. Sign in with your passkey, or use your recovery code.')
-  if (state === 'invite' && !(typeof invite === 'string' && env.INVITE_CODE && sameSecret(invite.trim(), env.INVITE_CODE.trim())))
-    throw new HttpError(403, 'invite', 'That invite code isn’t right.')
-  return state
+  const invite = state === 'invite' ? await matchInvite(env, typed) : null
+  if (state === 'invite' && invite === null) throw new HttpError(403, 'invite', 'That invite code isn’t right.')
+  return { state, invite }
 }
 
 export async function signupVerify(env: Env, req: Request, now: number): Promise<Response> {
   await limitAuth(env, req, now)
   const body = await readJson<{ challengeId?: unknown; response?: unknown; invite?: unknown }>(req)
   const ch = await takeChallenge(env, body.challengeId, 'signup', now)
-  const state = await checkGate(env, body.invite)
+  const { state, invite } = await checkGate(env, body.invite)
   const reg = await checkRegistration(env, req, body.response, ch.challenge)
   const user: User = { id: ch.user_id!, name: (JSON.parse(ch.data ?? '{}') as { name: string }).name, deleteAfter: null }
   const code = newRecoveryCode()
@@ -200,7 +245,7 @@ export async function signupVerify(env: Env, req: Request, now: number): Promise
   const userInsert =
     state === 'open' && (env.SIGNUP ?? 'first').trim().toLowerCase() !== 'open'
       ? env.DB.prepare('INSERT INTO users (id, name, created) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM users)').bind(user.id, user.name, now)
-      : env.DB.prepare('INSERT INTO users (id, name, created) VALUES (?, ?, ?)').bind(user.id, user.name, now)
+      : env.DB.prepare('INSERT INTO users (id, name, created, invite) VALUES (?, ?, ?, ?)').bind(user.id, user.name, now, invite)
   const results = await env.DB.batch([
     userInsert,
     credentialInsert(env, user.id, reg, now),
