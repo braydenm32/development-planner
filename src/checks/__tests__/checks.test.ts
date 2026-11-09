@@ -254,6 +254,21 @@ describe('Housing Code (CDC)', () => {
     expect(ms.earth!.maxCut).toBeLessThan(0.5)
     expect(byId(cdc, 'hc-works-boundary').status).toBe('pass')
   })
+  it('earthworks near the front boundary only: the 1 m clearance is to the side and rear (cl 3.30)', () => {
+    // The house 0.5 m from the south (front) boundary and about 5 m from the east and west.
+    const near = (checks: Partial<CheckSettings>) => house(checks, { placement: { e: 5005, n: 8000.6, rotation: 0, ffl: 50.6 } })
+    const front = run(near({ frontEdge: 0 }), [], true)
+    expect(front.ms.earth!.sideRearOnly).toBe(true)
+    expect(byId(front.cdc, 'hc-works-boundary').status).toBe('pass')
+    expect(byId(front.cdc, 'hc-works-boundary').value).toMatch(/side or rear/)
+    // No street side yet, or a battle-axe lot: every boundary counts, and the note says why.
+    const unset = byId(run(near({}), [], true).cdc, 'hc-works-boundary')
+    expect(unset.status).toBe('fail')
+    expect(unset.note).toMatch(/pick the street side/)
+    const axe = byId(run(near({ frontEdge: 0, battleAxe: true }), [], true).cdc, 'hc-works-boundary')
+    expect(axe.status).toBe('fail')
+    expect(axe.note).toMatch(/battle-axe/)
+  })
 })
 
 describe('an unfinished design', () => {
