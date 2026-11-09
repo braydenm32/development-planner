@@ -1,6 +1,7 @@
 import { signedArea, type Vec2 } from '../lib/geom'
 import {
   FLOOR_STRUCTURE,
+  houseWalls,
   newId,
   sortedLevels,
   wallDir,
@@ -20,7 +21,7 @@ import {
 } from './model'
 import { furnitureCorners, resized } from './furniture'
 import { defaultGables, simplifyRing } from './roof'
-import { stairLayout } from './stairs'
+import { followLevels, linkStairs, stairLayout } from './stairs'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
 const TOL = 1e-3
@@ -137,6 +138,13 @@ export function defaultRise(plan: Plan, level: string): number {
   return Math.round((ls[i].height + FLOOR_STRUCTURE) * 1000) / 1000
 }
 
+/** The next level up from `level`, if there is one. */
+export function levelAbove(plan: Plan, level: string): Level | undefined {
+  const ls = sortedLevels(plan)
+  const i = ls.findIndex(l => l.id === level)
+  return i >= 0 ? ls[i + 1] : undefined
+}
+
 export function newStair(plan: Plan, level: string, at: Vec2, angle: number, d: StairDefaults): Stair {
   return {
     id: newId('stair'),
@@ -146,6 +154,9 @@ export function newStair(plan: Plan, level: string, at: Vec2, angle: number, d: 
     width: d.width,
     base: 0,
     rise: defaultRise(plan, level),
+    // Joined to the floor above, so it follows that floor; a stair on the top level is joined
+    // once a level goes above it (linkStairs).
+    toLevel: levelAbove(plan, level)?.id,
     going: 0.25,
     shape: d.shape,
     turn: d.turn,
@@ -208,13 +219,15 @@ export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
   const copied = plan.walls
     .filter(w => w.level === top.id && w.kind === 'external')
     .map(w => ({ ...w, id: newId('wall'), level: level.id }))
-  return { plan: { ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }, id: level.id }
+  // A stair on the old top level that climbs a storey now arrives on the new floor.
+  return { plan: linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }), id: level.id }
 }
 
 export function deleteLevel(plan: Plan, id: string): Plan {
   if (plan.levels.length <= 1) return plan
   const walls = new Set(plan.walls.filter(w => w.level === id).map(w => w.id))
-  return {
+  // Stairs that went up to it are let go, keeping their tops (followLevels).
+  return followLevels({
     ...plan,
     levels: plan.levels.filter(l => l.id !== id),
     walls: plan.walls.filter(w => w.level !== id),
@@ -225,11 +238,12 @@ export function deleteLevel(plan: Plan, id: string): Plan {
     stairs: plan.stairs.filter(s => s.level !== id),
     furniture: plan.furniture.filter(f => f.level !== id),
     notes: (plan.notes ?? []).filter(n => n.level !== id),
-  }
+  })
 }
 
 export function updateLevel(plan: Plan, id: string, patch: Partial<Level>): Plan {
-  return { ...plan, levels: plan.levels.map(l => (l.id === id ? { ...l, ...patch } : l)) }
+  // Stairs joined to a level follow it when its height changes.
+  return followLevels({ ...plan, levels: plan.levels.map(l => (l.id === id ? { ...l, ...patch } : l)) })
 }
 
 /** Bounding box of everything drawn on the plan (all levels), or null if empty. */
@@ -242,6 +256,22 @@ export function planBounds(plan: Plan): { minX: number; minY: number; maxX: numb
     ...plan.furniture.flatMap(furnitureCorners),
   ]
   if (!pts.length) return null
+  return {
+    minX: Math.min(...pts.map(p => p[0])),
+    minY: Math.min(...pts.map(p => p[1])),
+    maxX: Math.max(...pts.map(p => p[0])),
+    maxY: Math.max(...pts.map(p => p[1])),
+  }
+}
+
+/**
+ * Bounding box of the house: its walls on every level, leaving out retaining walls, outdoor
+ * areas, roofs' eaves and furniture, so Fit house frames the house and not the driveway or the
+ * lawn. Everything drawn (planBounds) when there are no house walls yet; null if nothing is.
+ */
+export function houseBounds(plan: Plan): { minX: number; minY: number; maxX: number; maxY: number } | null {
+  const pts = houseWalls(plan.walls).flatMap(w => [w.a, w.b])
+  if (!pts.length) return planBounds(plan)
   return {
     minX: Math.min(...pts.map(p => p[0])),
     minY: Math.min(...pts.map(p => p[1])),

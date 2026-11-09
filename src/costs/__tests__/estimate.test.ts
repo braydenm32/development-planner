@@ -26,6 +26,7 @@ function quantities(): DesignQuantities {
     floorArea: 100,
     ground: { level: 'g', name: 'Ground floor', area: 100, parts: [{ type: 'slab', area: 100 }] },
     upper: { area: 0, names: [] },
+    slabUnder: { ...none(), names: [], areas: [] },
     finishes: { count: 3, area: 80, ids: ['r1', 'r2', 'r3'] },
     wet: {
       kitchen: { count: 1, area: 15, ids: ['r1'], names: ['Kitchen'] },

@@ -11,7 +11,7 @@ import type { CheckResult, CheckStatus } from '../checks/types'
 import type { Council } from '../checks/councils'
 import { countChecks, countsWords } from '../checks/rules'
 import type { PlanningFacts } from '../map/planning'
-import { areaKind, sortedLevels } from '../plan/model'
+import { areaKind } from '../plan/model'
 import { PdfDocument, textWidth, wrapText, type Font, type PdfPage, type RGB } from '../share/pdfWriter'
 import { northAngle, planSheets, sheetFrame, type PlanSetInput, type SheetFrame, type View } from '../share/plans'
 import { checklistRows, DA_SOURCES, sourcesFor, STATUS_WORDS, type ChecklistRow, type DaSheet, type RowStatus } from './checklist'
@@ -208,7 +208,7 @@ function layout(input: DaPackInput) {
   const checkHeights = checkRows.map(r => rowHeight(r, CHECK_COLS, area.w))
   const checkPages = paginate(checkHeights, area.h - CHECKS_HEAD - CHECKS_FOOT, area.h - 12 - CHECKS_FOOT)
 
-  const driveway = input.plan.areas.some(a => a.level === sortedLevels(input.plan)[0]?.id && areaKind(a) === 'driveway')
+  const driveway = input.plan.areas.some(a => areaKind(a) === 'driveway')
   // The cover's rows need the sheet numbers, which need the cover's page count: start at one page and settle.
   let coverCount = 1
   let rows: ChecklistRow[] = []

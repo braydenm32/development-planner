@@ -1,5 +1,5 @@
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { MAX_RISER, type Stair } from './model'
+import { levelById, MAX_RISER, type Level, type Plan, type Stair } from './model'
 
 /** A tread or landing: a solid block from the bottom of the stair up to `top`. */
 export interface StairStep {
@@ -115,4 +115,88 @@ export function stairComfort(s: Stair): { value: number; ok: boolean } {
   const r = s.rise / riserCount(s.rise)
   const value = 2 * r + s.going
   return { value, ok: value >= 0.55 && value <= 0.7 }
+}
+
+// ---------------------------------------------------------------------------
+// The levels a stair joins
+
+/** How close a stair's top has to come to a floor to arrive there (m). */
+export const STAIR_REACH = 0.05
+
+/** The least a stair joined to a level may climb (m), as the panel's Top and Bottom allow. */
+const MIN_RISE = 0.1
+
+const elevationOf = (plan: Plan, id: string) => levelById(plan, id)?.elevation ?? 0
+
+/** Height of a stair's top above the "Above ground floor" zero (m). */
+const topElevation = (plan: Plan, s: Stair) => elevationOf(plan, s.level) + s.base + s.rise
+
+/** The floors a stair's top meets, other than the one it starts from. */
+function floorsAtTop(plan: Plan, s: Stair): Level[] {
+  const top = topElevation(plan, s)
+  return plan.levels.filter(l => l.id !== s.level && Math.abs(l.elevation - top) < STAIR_REACH)
+}
+
+/** The level a stair goes up to: the one it's joined to, or else the one floor its top meets. */
+export function stairTopLevel(plan: Plan, s: Stair): Level | undefined {
+  if (typeof s.toLevel === 'string') return levelById(plan, s.toLevel)
+  const at = floorsAtTop(plan, s)
+  return at.length === 1 ? at[0] : undefined
+}
+
+/** The stair comes up through `levelId`'s floor, which gets a hole and the stair drawn arriving. */
+export function stairArrivesAt(plan: Plan, s: Stair, levelId: string): boolean {
+  const from = levelById(plan, s.level)
+  const to = levelById(plan, levelId)
+  return !!from && !!to && from.elevation < to.elevation && Math.abs(topElevation(plan, s) - to.elevation) < STAIR_REACH
+}
+
+/** The stair's top meets no floor: climbing it, you'd step out into the air or into a ceiling. */
+export function stairMeetsNoFloor(plan: Plan, s: Stair): boolean {
+  // A stair that starts below its own floor (steps up out of a sunken room) arrives on its own level.
+  if (s.base < 0 && Math.abs(s.base + s.rise) < STAIR_REACH) return false
+  return floorsAtTop(plan, s).length === 0
+}
+
+/** The rise that takes a stair from its bottom to `to`'s floor (m), to the micrometre. */
+const riseTo = (plan: Plan, s: Stair, to: Level) => Math.round((to.elevation - elevationOf(plan, s.level) - s.base) * 1e6) / 1e6
+
+/**
+ * Joined stairs follow their levels: each one's rise becomes the gap up to the floor it's joined
+ * to. A stair whose level is gone, or now isn't above its bottom, is let go: its top stays where it
+ * was and stairMeetsNoFloor flags it. Returns the same plan when nothing changes.
+ */
+export function followLevels(plan: Plan): Plan {
+  let changed = false
+  const stairs = plan.stairs.map(s => {
+    if (typeof s.toLevel !== 'string') return s
+    const to = levelById(plan, s.toLevel)
+    const rise = to && to.id !== s.level ? riseTo(plan, s, to) : NaN
+    if (!(rise >= MIN_RISE)) {
+      changed = true
+      return { ...s, toLevel: null }
+    }
+    if (Math.abs(rise - s.rise) < 1e-9) return s
+    changed = true
+    return { ...s, rise }
+  })
+  return changed ? { ...plan, stairs } : plan
+}
+
+/**
+ * Join each stair that isn't joined yet (an older plan's, or one drawn on the top level before a
+ * level went above it) to the one floor above that its top meets within STAIR_REACH, landing it
+ * exactly on that floor. A stair whose top meets two floors, or none, is left as it is, and so is
+ * one with a typed top (toLevel null). Returns the same plan when nothing changes.
+ */
+export function linkStairs(plan: Plan): Plan {
+  let changed = false
+  const stairs = plan.stairs.map(s => {
+    if (s.toLevel !== undefined) return s
+    const at = floorsAtTop(plan, s)
+    if (at.length !== 1 || at[0].elevation <= elevationOf(plan, s.level)) return s
+    changed = true
+    return { ...s, toLevel: at[0].id }
+  })
+  return changed ? followLevels({ ...plan, stairs }) : plan
 }

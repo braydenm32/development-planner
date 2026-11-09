@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { findSelection } from '../shell/selection'
+import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
 import {
   clampOpenings,
@@ -7,6 +8,7 @@ import {
   GARAGE_DOOR_DEFAULT,
   normalizePlan,
   OPENING_DEFAULT,
+  sortedLevels,
   WINDOW_DEFAULT,
   type AreaKind,
   type OpeningKind,
@@ -124,8 +126,9 @@ function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Sel
   return { selection: all[0] ?? null, extra: all.slice(1) }
 }
 
+/** After every change: openings stay in their walls, and stairs keep to the levels they join. */
 function tidy(p: Plan): Plan {
-  return clampOpenings(p)
+  return followLevels(linkStairs(clampOpenings(p)))
 }
 
 export const usePlan = create<PlanStore>((setState, getState) => ({
@@ -157,7 +160,8 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
       future: [],
       selection: null,
       extra: [],
-      activeLevel: plan?.levels[0]?.id ?? 'level_ground',
+      // The lowest floor, the one on the ground, whatever order the file lists the levels in.
+      activeLevel: (plan && sortedLevels(plan)[0]?.id) ?? 'level_ground',
     }),
 
   commit: fn => {
