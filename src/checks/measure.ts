@@ -51,6 +51,8 @@ export interface EarthNumbers {
   disturbed: number
   /** Closest any change to the ground (over 50 mm) comes to the boundary (m); null with none. */
   closestWorks: number | null
+  /** Whether the distances above leave out the front boundary (false: no street side set, or a battle-axe lot, so every boundary counts). */
+  sideRearOnly: boolean
   maxCut: number
   maxFill: number
   cutBatter: number
@@ -180,9 +182,16 @@ export function rearEdgeOf(sides: { inward: Vec2 }[], front: number | undefined,
   return best < 0 ? undefined : best
 }
 
-function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksResult, boundary: Vec2[], footprint: Vec2[][]): EarthNumbers {
+/**
+ * The Housing Code's earthworks limits (cl 3.30) measure from the side and rear boundaries only, so
+ * the front boundary is left out when it's known. Without a street side, or on a battle-axe lot (whose
+ * access side isn't a road frontage), every boundary counts: the safer reading.
+ */
+function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksResult, boundary: Vec2[], footprint: Vec2[][], front: number | undefined): EarthNumbers {
   const n = prep.natural
   const f = result.grid
+  const counted = boundary.map((_, i) => i).filter(i => i !== front)
+  const toSideOrRear = (p: Vec2) => counted.reduce((d, i) => Math.min(d, distToSeg(p, boundary[i], boundary[(i + 1) % boundary.length])), Infinity)
   const out = { cutNear: 0, cutMid: 0, cutFar: 0, fillOutside: 0, cutOutside: 0, closestWorks: null as number | null, disturbed: 0 }
   const a = n.cell * n.cell
   for (let j = 0; j < n.ny; j++) {
@@ -196,7 +205,7 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
         continue
       }
       out.disturbed += a
-      const d = distToRing(p, boundary)
+      const d = toSideOrRear(p)
       out.closestWorks = out.closestWorks === null ? d : Math.min(out.closestWorks, d)
       if (dz < 0) {
         const c = -dz
@@ -210,7 +219,7 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
     }
   }
   const ew = earthworksOf(plan)
-  return { ...out, maxCut: result.maxCut, maxFill: result.maxFill, cutBatter: ew.cutBatter, fillBatter: ew.fillBatter }
+  return { ...out, sideRearOnly: front !== undefined, maxCut: result.maxCut, maxFill: result.maxFill, cutBatter: ew.cutBatter, fillBatter: ew.fillBatter }
 }
 
 /** The highest point of the house above the natural ground: the roofs, and the tops of its walls. */
@@ -310,7 +319,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     storeys: all.length ? stack.storeys : 0,
     levels: outlinesBy.filter(o => o.length > 0).length,
     slopePct: terrain.stats.meanSlopePct,
-    earth: earth && earth.platforms.length ? earthNumbers(plan, earth.prep, earth.result, b, groundOutline) : null,
+    earth: earth && earth.platforms.length ? earthNumbers(plan, earth.prep, earth.result, b, groundOutline, settings.battleAxe ? undefined : front) : null,
     walls,
     groundOutline,
     outlines: all.map(site),

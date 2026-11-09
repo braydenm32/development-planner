@@ -492,8 +492,9 @@ function housingCode(ms: Measures): CheckResult[] {
     id: 'hc-works-boundary',
     title: 'Earthworks clear of the boundary',
     status: !e || e.closestWorks === null ? 'pass' : e.closestWorks > 1 ? 'pass' : 'fail',
-    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from the boundary` : 'No cut and fill',
+    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${e.sideRearOnly ? 'a side or rear boundary' : 'the boundary'}` : 'No cut and fill',
     limit: 'Toe or top of each embankment more than 1 m from side and rear boundaries',
+    note: e && !e.sideRearOnly ? (s.battleAxe ? 'On a battle-axe lot every boundary is measured.' : 'Measured to every boundary, the front included, until you pick the street side under Lot facts.') : undefined,
     source: HC('cl 3.30'),
   })
   const tall = ms.walls.filter(w => w.height > 0.6)
