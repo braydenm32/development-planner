@@ -124,11 +124,14 @@ button.secondary:hover {
   pointer-events: none;
 }
 
+/* The needle turns by --az (set by the plan and the 3D camera); the N rides at its tip but stays upright. */
 .needle {
   position: absolute;
   inset: 6px;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  transform: rotate(var(--az, 0deg));
 }
 
 .needle::before {
@@ -146,6 +149,7 @@ button.secondary:hover {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
+  transform: rotate(calc(-1 * var(--az, 0deg)));
 }
 
 .legend {
@@ -153,10 +157,57 @@ button.secondary:hover {
   top: 84px;
   right: 16px;
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.legend-ramp {
+  display: flex;
   gap: 6px;
   height: 140px;
-  font-size: 11px;
-  pointer-events: none;
+}
+
+/* What the colours and marks mean, under the ramp. */
+.legend-key {
+  list-style: none;
+  margin: 0;
+  padding: 7px 10px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+}
+
+.legend-key li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.legend-key i {
+  flex: none;
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-key i.dot {
+  width: 9px;
+  height: 9px;
+  margin: 0 1.5px;
+  border-radius: 50%;
+}
+
+.legend-key i.line {
+  height: 0;
+  border-top: 1.5px solid #2b211c;
+  border-radius: 0;
 }
 
 .ramp {
@@ -266,21 +317,23 @@ button.secondary:hover {
   stroke-width: 1.5;
 }
 
+/* Survey contours: the major ones read at 4.1:1 on white, the minor ones sit back (2.3:1). */
 .contour-minor {
   fill: none;
-  stroke: #d6c9b6;
+  stroke: #b9a991;
   stroke-width: 0.7;
 }
 
 .contour-major {
   fill: none;
-  stroke: #a8927a;
+  stroke: #8f7a62;
   stroke-width: 1.1;
 }
 
+/* Plan text is 12 px at the least, on a halo; this ink keeps 4.5:1 over the cut and fill tints. */
 .contour-label {
-  font-size: 10px;
-  fill: #8b7660;
+  font-size: 12px;
+  fill: #6a5640;
 }
 
 .wall {
@@ -363,8 +416,8 @@ button.secondary:hover {
 }
 
 .room-area {
-  font-size: 11px;
-  fill: #5f6874;
+  font-size: 12px;
+  fill: #4d5560;
   font-variant-numeric: tabular-nums;
 }
 
@@ -551,8 +604,8 @@ button.secondary:hover {
 }
 
 .dim {
-  font-size: 10px;
-  fill: #5f6874;
+  font-size: 12px;
+  fill: #4d5560;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1124,6 +1177,20 @@ button.danger {
   opacity: 1;
 }
 
+/* On a desktop too, the key folds into a "Key" pill until it's wanted, so it never sits on the house. */
+.key-chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  cursor: pointer;
+}
+
 .ground-key li.small {
   font-size: 11px;
 }
@@ -1166,9 +1233,9 @@ button.danger {
 }
 
 .furniture-code {
-  font-size: 9px;
+  font-size: 10.5px;
   font-weight: 600;
-  fill: #6b737d;
+  fill: #5c646e;
   pointer-events: none;
 }
 
@@ -1242,4 +1309,18 @@ button.danger {
 
 .furniture-thumb .fill {
   fill: #fff;
+}
+
+/* ---- 3D contour labels (src/components/SiteView.tsx) ---- */
+
+.contour-tag {
+  font: 600 12px/1 'IBM Plex Sans', system-ui, sans-serif;
+  color: #2b211c;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 2px #fff;
+  pointer-events: none;
 }

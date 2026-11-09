@@ -12,4 +12,4 @@ export interface Insets {
  * The frame floats its panels over the canvas, so fitting the plan keeps clear of them.
  * With no frame (a test rendering the plan alone), the plan fits the whole canvas.
  */
-export const CanvasFrame = createContext<{ insets: Insets } | null>(null)
+export const CanvasFrame = createContext<{ insets: Insets; toolCard?: boolean } | null>(null)

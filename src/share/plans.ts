@@ -1,3 +1,4 @@
+import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
@@ -34,6 +35,8 @@ import { stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { drawFeatureAreas, drawFeatureLegend, drawFeatureMarks, sheetFeatures, type SheetArgs } from '../site/sheet'
 import type { SiteWarning } from '../site/warnings'
+import type { ShadowDiagram } from '../sun/facts'
+import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
 import { PdfDocument, textWidth, type PdfPage, type RGB } from './pdfWriter'
 
 export type Paper = 'A3' | 'A4'
@@ -59,6 +62,8 @@ export interface PlanSetInput {
   date: string
   /** Site features to draw on the site plan (survey local frame), and the warnings about them. */
   site?: { features: SiteFeature[]; warnings: SiteWarning[] }
+  /** The house's shadows on 21 June, for a shadow diagram sheet (src/sun); none without. */
+  shadows?: ShadowDiagram | null
 }
 
 const PAPER: Record<Paper, [number, number]> = { A3: [420, 297], A4: [297, 210] }
@@ -145,6 +150,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
   sheets.push({ name: 'Site plan', draw: pg => siteSheet(pg) })
   for (const l of levels) sheets.push({ name: `${l.name} plan`, draw: pg => floorSheet(pg, l) })
   if (roofs.length) sheets.push({ name: 'Roof plan', draw: pg => roofSheet(pg) })
+  const shadows = input.shadows
+  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ name: 'Shadow diagram, 21 June', draw: pg => shadowSheet(pg, shadows) })
 
   sheets.forEach((sheet, i) => {
     const pg = doc.addPage(W, H)
@@ -166,6 +173,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(x0 + 5, y0 + strip - 9 * t, input.title, { size: 5 * t, font: 'bold' })
     pg.text(x0 + 5, y0 + strip - 16 * t, name, { size: 4 * t })
     pg.text(x0 + 5, y0 + 4, 'Concept plan only. Check all dimensions and levels on site before building.', { size: 2.2 * t, color: GREY })
+    // The one caveat every result carries out of the app, in the margin under the frame.
+    pg.text(x0, y0 - 4.5, CAVEAT_LINE, { size: 2.2 * t, color: GREY })
 
     // Scale, north arrow and sheet number on the right.
     const right = x0 + w - 5
@@ -402,6 +411,36 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       pg.text(bx + 10, ly, legend[2], { size: 2.6 })
     }
     drawFeatureLegend(pg, W - margin - 5, margin + strip + 5, features, input.site?.warnings ?? [])
+    return view
+  }
+
+  // ---- Shadow diagram ----
+  function shadowSheet(pg: PdfPage, d: ShadowDiagram): View {
+    const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
+    const boundary = survey.boundary.map(tf)
+    const outlines = levels[0] ? outlineOf(levels[0]) : []
+    const cast = d.shadows.flatMap(x => x.shadow?.rings.flat() ?? []).map(tf)
+    const view = makeView([...boundary, ...outlines.flat(), ...cast], rho, area, 100)
+    const args = { pg, toPaper: (p: Vec2) => view.P(tf(p)) }
+    const box: [number, number][] = [
+      [area.x, area.y],
+      [area.x + area.w, area.y],
+      [area.x + area.w, area.y + area.h],
+      [area.x, area.y + area.h],
+    ]
+    pg.save().clip([box])
+    drawShadows(args, d)
+    // The house over its shadows: ground floor solid, upper floors and roofs dashed.
+    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
+    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
+    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
+    pg.dash([3, 1.2])
+    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
+    pg.dash()
+    pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
+    drawShadowLabels(args, d)
+    pg.restore()
+    drawShadowKey(pg, W - margin - 5, H - margin - 5, d)
     return view
   }
 

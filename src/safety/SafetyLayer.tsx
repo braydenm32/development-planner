@@ -1,10 +1,12 @@
-// The review sheet, the Undo toast and the one file picker, mounted once by the app in both
-// layouts (and over the start screen and the Projects home).
+// The review sheet, the layer review, the Undo toast and the one file picker, mounted once by the
+// app in both layouts (and over the start screen and the Projects home).
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
-import { chooseInReview, dismissToast, pickedFor, registerPicker, showToast, undoToast, useSafety, type Toast } from './store'
+import { LayersSheet } from './LayersSheet'
+import { chooseInReview, dismissToast, pickedFor, registerPicker, undoToast, useSafety, type Toast } from './store'
+import { sayFileError } from './surveyor'
 import './safety.css'
 
 /** A north-up drawing of the block with the house on it. */
@@ -187,7 +189,7 @@ function Picker() {
         e.target.value = ''
         if (!f) return
         const run = pickedFor() === 'plan' ? importPlanFrom(f) : openFile(f)
-        run.catch((err: unknown) => showToast({ text: (err as Error)?.message || 'That file couldn’t be opened.' }))
+        run.catch(sayFileError)
       }}
     />
   )
@@ -198,6 +200,7 @@ export function SafetyLayer() {
     <>
       <Picker />
       <ReviewSheet />
+      <LayersSheet />
       <UndoToast />
     </>
   )
