@@ -243,6 +243,7 @@ describe('the menu', () => {
     expect(menu.items.map(i => i.label)).toEqual([
       'All projects…',
       'New project…',
+      'Where it’s saved',
       'Sign in and cloud saves',
       'Project name',
       'Survey file name',

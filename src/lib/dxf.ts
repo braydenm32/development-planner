@@ -32,6 +32,20 @@ export interface DxfDocument {
   skipped: Record<string, number>
 }
 
+/**
+ * A DXF the planner can't read, said plainly. The fix is a file from the surveyor in a form it does
+ * read, so where this shows, a request to send them is offered beside it (src/safety/files.ts).
+ */
+export class DxfError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DxfError'
+  }
+}
+
+/** How a binary DXF starts: it holds the same drawing, packed in a form only CAD programs read. */
+const BINARY_DXF = 'AutoCAD Binary DXF'
+
 type Pair = [number, string]
 type Group = { type: string; pairs: Pair[] }
 
@@ -46,12 +60,15 @@ const UNIT_SCALE: Record<number, number> = {
 }
 
 function readPairs(text: string): Pair[] {
+  if (text.slice(0, 64).includes(BINARY_DXF))
+    throw new DxfError('This DXF is saved in binary form, which the planner can’t read. Ask your surveyor for an ASCII DXF, or save it as one from a CAD program.')
   const lines = text.split(/\r\n|\r|\n/)
   const pairs: Pair[] = []
   for (let i = 0; i + 1 < lines.length; i += 2) {
     const code = parseInt(lines[i].trim(), 10)
     if (Number.isNaN(code)) {
-      throw new Error(`Not a valid ASCII DXF file (bad group code on line ${i + 1}).`)
+      // Where it went wrong is no help to the person, but is to whoever looks at the file.
+      throw new DxfError(`This file doesn’t read as a DXF (it goes wrong at line ${i + 1}). It may be damaged, or saved in a form the planner can’t read. Ask your surveyor to send it again as an ASCII DXF.`)
     }
     pairs.push([code, lines[i + 1].trim()])
   }
@@ -174,7 +191,7 @@ export function parseDxf(text: string): DxfDocument {
   const pairs = readPairs(text)
   const unitScale = readUnitScale(pairs)
   const section = findSection(pairs, 'ENTITIES')
-  if (!section) throw new Error('This DXF file has no ENTITIES section.')
+  if (!section) throw new DxfError('This DXF has nothing drawn in it (it has no ENTITIES section). Ask your surveyor for the contour survey as an ASCII DXF.')
 
   const groups = groupEntities(section)
   const entities: DxfEntity[] = []
