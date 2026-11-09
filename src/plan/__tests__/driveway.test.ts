@@ -278,6 +278,8 @@ describe('street end levels', () => {
     const near = nearSpotLevels(levels, [9, 12])
     expect(near.map(p => p.rl)).toEqual([81.4, 80.9, 83.1])
     expect(near.map(p => p.dist)).toEqual([1, 5, 8])
+    // With the garage end up the y axis: only those on the drive's line, not 3 m to one side.
+    expect(nearSpotLevels(levels, [9, 12], 4, 15, [9, 30]).map(p => p.rl)).toEqual([81.4, 83.1])
   })
 
   it('finds where a kerb passes closest', () => {

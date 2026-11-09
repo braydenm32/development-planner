@@ -2,7 +2,7 @@
 // same review steps; ⌘K, the summary strip and the project menu all come here.
 
 import { cloudActions } from '../cloud/state'
-import { balanceCutFill } from '../components/planNumbers'
+import { askBalance } from '../grading/balanceAsk'
 import { downloadPlan, startNewPlan } from '../components/planFile'
 import { save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
 import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
@@ -66,13 +66,13 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
     case 'keyboard-help':
       openKeyboardHelp()
       return true
+    // Balance shows what it would move first (Earthworks › Cut & fill); its own button moves the floor.
     case 'balance': {
-      const msg = balanceCutFill(shell.earth)
-      if (!msg) {
+      if (!shell.earth?.platforms.length) {
         c.toast('Draw walls on the lowest level, or a concrete slab, to see cut and fill.')
         return false
       }
-      c.toast(msg)
+      askBalance()
       return true
     }
     case 'projects':

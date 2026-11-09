@@ -64,9 +64,6 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   origin: More.OriginSection,
-  rotation: More.RotationSection,
-  'placement-actions': More.PlacementActionsSection,
-  'move-tool': More.MoveToolSection,
   'earthworks-margin': More.MarginSection,
   'subfloor-gap': More.SubfloorSection,
   'retaining-offer': OfferSettings,
@@ -81,6 +78,8 @@ export const TAB_TOOL: Record<string, Tool> = {
   'design/roofs': 'roof',
   'design/furniture': 'furniture',
   'earthworks/retaining-walls': 'retaining',
+  // Place has Move the house and says how to use it.
+  'earthworks/place': 'move',
 }
 
 /** What floats beside the plan on a desktop, on the right, for a tab that has more to show there. */

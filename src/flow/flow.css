@@ -330,3 +330,21 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
     max-height: 55%;
   }
 }
+
+/* The retaining wall a card offers, where it would go, while the card is open. */
+.flow-offer {
+  pointer-events: none;
+}
+.flow-offer-wall {
+  fill: none;
+  stroke: #d07a12;
+  stroke-opacity: 0.18;
+  stroke-linecap: butt;
+}
+.flow-offer-line {
+  fill: none;
+  stroke: #c06a08;
+  stroke-width: 2.5;
+  stroke-dasharray: 9 6;
+  stroke-linecap: round;
+}

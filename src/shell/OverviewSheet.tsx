@@ -155,9 +155,12 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                   <>
                     <h4>Retaining walls</h4>
                     <dl className="stats">
-                      <FragmentRow label={`${n.retaining.count} wall${n.retaining.count > 1 ? 's' : ''}, total length`} value={`${n.retaining.length.toFixed(1)} m`} />
-                      <FragmentRow label="Holds back up to" value={retainedText(n.retaining.maxHeight)} strong />
-                      <FragmentRow label="Face, ground to ground" value={`${n.retaining.face.toFixed(1)} m²`} />
+                      {n.retaining.count > 0 && <FragmentRow label={`${n.retaining.count} wall${n.retaining.count > 1 ? 's' : ''}, total length`} value={`${n.retaining.length.toFixed(1)} m`} />}
+                      {n.retaining.implied && (
+                        <FragmentRow label={`${n.retaining.implied.count} implied wall${n.retaining.implied.count > 1 ? 's' : ''}, not drawn`} value={`${n.retaining.implied.length.toFixed(1)} m`} />
+                      )}
+                      <FragmentRow label="Holds back up to" value={`${retainedText(n.retaining.maxHeight)}${n.retaining.impliedTallest ? ' (implied)' : ''}`} strong />
+                      {n.retaining.count > 0 && <FragmentRow label="Face, ground to ground" value={`${n.retaining.face.toFixed(1)} m²`} />}
                     </dl>
                     {n.retaining.engineer && <p className="notice small">Engineer needed: a wall holds back over {ENGINEER_TEXT}.</p>}
                   </>

@@ -553,7 +553,8 @@ describe('the panels', () => {
     usePlan.getState().load(walled)
     Object.assign(usePlan.getInitialState(), usePlan.getState())
     const list = render()
-    expect(list).toContain('Wall 1 · 14.0 m')
+    // Named by where it is (north of the house, beside the Living room), with its length and height, and the engineer mark.
+    expect(list).toContain('North wall by Living · 14.0 m 1.03 m ⚠')
     expect(list).toContain('Draw a retaining wall')
     expect(list).not.toContain('How high is the earth behind it?')
     // While the tool draws, the tab holds its options, so the tool's own card stays off the plan.
@@ -561,7 +562,7 @@ describe('the panels', () => {
     usePlan.getState().setTool('retaining')
     Object.assign(usePlan.getInitialState(), usePlan.getState())
     const drawing = render()
-    expect(drawing).toContain('Click its start and its end')
+    expect(drawing).toContain('Click its start, then each corner')
     expect(drawing).not.toContain('Draw a retaining wall')
     usePlan.getState().setTool('select')
     usePlan.getState().select({ type: 'wall', id: 'rw' })

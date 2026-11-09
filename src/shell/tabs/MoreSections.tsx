@@ -4,15 +4,12 @@ import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
   OpeningOptions,
-  PlacementActions,
   PlacementOriginFields,
-  PlacementRotationField,
   PlanFileBody,
   StairOptions,
   SubfloorField,
   WallOptions,
 } from '../../components/PlanSections'
-import { usePlacementInfo } from '../../components/planNumbers'
 import { FineTuningFields, PrintInstructions } from '../../components/ShareSections'
 import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
@@ -25,7 +22,7 @@ import { isSketch } from '../../start/sketch'
 import { usePlan } from '../../plan/store'
 import { useShell } from '../context'
 import { ShortcutList } from '../KeyboardHelp'
-import { pickTool, useLoaded, type Loaded } from '../useSite'
+import { pickTool, useLoaded } from '../useSite'
 import { Waiting } from './Waiting'
 
 // Site
@@ -104,7 +101,7 @@ export function WallPresetSection() {
   )
 }
 
-function ToolButton({ tool, label, keyName }: { tool: 'opening' | 'garage' | 'move'; label: string; keyName: string }) {
+function ToolButton({ tool, label, keyName }: { tool: 'opening' | 'garage'; label: string; keyName: string }) {
   const current = usePlan(s => s.tool)
   return (
     <div className="row">
@@ -144,30 +141,6 @@ export function StairDefaultsSection() {
 export function OriginSection() {
   const d = useLoaded()
   return d ? <PlacementOriginFields plan={d.plan} /> : <Waiting />
-}
-
-export function RotationSection() {
-  const d = useLoaded()
-  return d ? <PlacementRotationField plan={d.plan} /> : <Waiting />
-}
-
-export function PlacementActionsSection() {
-  const d = useLoaded()
-  return d ? <PlacementActionsLoaded d={d} /> : <Waiting />
-}
-
-function PlacementActionsLoaded({ d }: { d: Loaded }) {
-  const info = usePlacementInfo(d.plan, d.survey, d.terrain)
-  return <PlacementActions plan={d.plan} survey={d.survey} info={info} />
-}
-
-export function MoveToolSection() {
-  return (
-    <>
-      <p className="muted small">Drag the house around the block on the plan. Its distance to each side shows as you move it.</p>
-      <ToolButton tool="move" label="Use the Move tool" keyName="M" />
-    </>
-  )
 }
 
 export function MarginSection() {
