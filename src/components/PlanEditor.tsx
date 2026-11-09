@@ -46,7 +46,7 @@ import { setbackDims } from '../plan/setbacks'
 import { useSitePlan } from '../site/SitePlanLayer'
 import { outlineAround, roofGeometry } from '../plan/roof'
 import { roofAtPoint } from '../plan/roofPick'
-import { newRetainingWall, placeRetainingWall, useRetaining } from '../plan/retainingSession'
+import { newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
@@ -607,6 +607,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   /** The Retaining wall tool draws one straight wall from two clicks, then asks about it. */
   const placeRetainingPoint = (p: Vec2) => {
+    // While the wall just drawn asks for its earth side, a click answers that and never starts another wall.
+    if (waitingForSide()) return
     if (chain.length === 0) {
       setChain([p])
       return

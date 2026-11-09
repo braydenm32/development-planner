@@ -154,5 +154,5 @@ export function outOfBalance(plan: Plan, prep: PreparedEarthworks): boolean {
   return movesFloor(balancedFloorRL(plan, prep), floorRL(plan))
 }
 
-/** Retaining walls past this height (ground to ground) need an engineer's design: the retaining wall panel's own figure. */
-export { ENGINEER_HEIGHT } from './retaining'
+/** Retaining walls from this height (ground to ground) need an engineer: the app's one figure, from the checks. */
+export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
