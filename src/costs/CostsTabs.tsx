@@ -17,7 +17,7 @@ import { m2, whereShown } from '../shell/format'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
-import { atName, dateText, delta, estimateCsv, money, parseMoney, qtyText, rateText } from './format'
+import { atName, dateText, delta, estimateCsv, incompleteText, money, NO_TOTAL, parseMoney, qtyText, rateText } from './format'
 import { today, type CostsData } from './model'
 import {
   CHOICE_GROUPS,
@@ -89,19 +89,27 @@ function EstimateBody({ d }: { d: Loaded }) {
   return (
     <div className={`costs-est${ob ? ' ob' : ''}`}>
       <div className="ce-total">
-        <div>
-          <div className="ce-big tnum">{money(e.total)}</div>
-          <div className="ce-range tnum">
-            Likely {money(e.low)} to {money(e.high)}
+        {e.ready ? (
+          <div>
+            <div className="ce-big tnum">{money(e.total)}</div>
+            <div className="ce-range tnum">
+              Likely {money(e.low)} to {money(e.high)}
+            </div>
+            {e.missing.length > 0 && <div className="ce-incomplete">{incompleteText(e.missing)}</div>}
           </div>
-        </div>
+        ) : (
+          <div>
+            <div className="ce-big ce-none">No total yet</div>
+            <div className="ce-range">{NO_TOTAL}</div>
+          </div>
+        )}
         <div className="ce-right tnum">
           Floor area <b>{e.floorArea > 0 ? m2(e.floorArea) : '—'}</b>
           <br />
           Per m² <b>{e.perM2 === null ? '—' : money(e.perM2)}</b>
         </div>
         <FinishGuide e={e} />
-        {ob && (
+        {ob && e.ready && (
           <>
             <div className="ce-split" role="img" aria-label={`Materials and fees ${money(e.materials)}, labour ${money(e.labour)}`}>
               <i style={{ width: `${e.total > 0 ? (100 * e.materials) / e.total : 0}%` }} />
@@ -734,9 +742,16 @@ export function CostsStrip({
           </>
         ) : (
           <>
-            <button className="chip" onClick={to('estimate')}>
-              <span className="chip-label">Estimate</span> <b className="tnum">{money(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
-            </button>
+            {e.ready ? (
+              <button className="chip" onClick={to('estimate')} title={incompleteText(e.missing) || undefined}>
+                <span className="chip-label">Estimate</span> <b className="tnum">{money(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
+                {e.missing.length > 0 && <span className="badge warn">Incomplete</span>}
+              </button>
+            ) : (
+              <button className="chip ghost" onClick={to('estimate')} title={NO_TOTAL}>
+                Estimate <em>no walls yet</em>
+              </button>
+            )}
             {e.perM2 !== null && (
               <button className="chip" onClick={to('estimate')}>
                 <span className="chip-label">Per m²</span> <b className="tnum">{money(e.perM2)}</b>

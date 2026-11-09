@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest'
 import type { DesignQuantities } from '../../plan/quantities'
 import { CHOICE_LINES, choiceDeltas, estimate, rateFor, type Estimate } from '../estimate'
-import { atName, dateText, delta, estimateCsv, money, parseMoney, qtyText, rateText } from '../format'
+import { CAVEAT_LINE } from '../../legal/caveat'
+import { atName, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText } from '../format'
 import { costsSummary, emptyCosts, normalizeCosts, type CostsData } from '../model'
 import { CHOICES, CONTINGENCY, FINISH_GUIDES, FINISH_LEVELS, finishGuide, MARGIN, RANGE, rateInfo, STARTING_RATES, type RateId } from '../rates'
 
@@ -286,6 +287,51 @@ describe('material choices', () => {
   })
 })
 
+describe('an estimate for a design that isn’t finished', () => {
+  /** The house with these parts not drawn. */
+  const without = (patch: Partial<DesignQuantities>) => estimate({ ...quantities(), ...patch }, emptyCosts())
+  const noWalls: Partial<DesignQuantities> = {
+    floorArea: 0,
+    ground: null,
+    walls: { perimeter: 0, gross: 0, openings: 0, net: 0, ids: [] },
+    roofs: { ...none(), first: null },
+    windows: none(),
+    externalDoors: none(),
+    internalDoors: none(),
+    finishes: none(),
+    wet: { kitchen: named(), bathroom: named(), laundry: named(), toilet: named() },
+    earth: null,
+    outdoor: { slab: named(), driveway: named(), deck: named(), garden: named() },
+  }
+
+  it('has no total before there are outside walls: only allowances would add up', () => {
+    const e = without(noWalls)
+    expect(e.ready).toBe(false)
+    expect(e.missing).toEqual(['outside walls', 'roof', 'windows', 'outside doors', 'rooms'])
+    // The allowances still come to something, which used to show as the total.
+    expect(e.total).toBeGreaterThan(0)
+  })
+
+  it('totals once there are walls, and says what it leaves out', () => {
+    const e = without({ roofs: { ...none(), first: null }, windows: none() })
+    expect(e.ready).toBe(true)
+    expect(e.missing).toEqual(['roof', 'windows'])
+    expect(incompleteText(e.missing)).toBe('Incomplete: no roof, no windows')
+    const whole = estimate(quantities(), emptyCosts())
+    expect(whole.missing).toEqual([])
+    expect(incompleteText(whole.missing)).toBe('')
+  })
+
+  it('says so in the CSV too', () => {
+    const rows = estimateCsv(without({ roofs: { ...none(), first: null } }), 'House', 'November 2026').split('\r\n')
+    const at = rows.findIndex(r => r.startsWith(',Estimate,'))
+    expect(rows[at + 1]).toBe(',Incomplete: no roof.')
+    const none_ = estimateCsv(without(noWalls), 'House', 'November 2026').split('\r\n')
+    expect(none_.some(r => r.startsWith(',Estimate,'))).toBe(false)
+    expect(none_).toContain(',No total yet. Draw the house’s outside walls to start the estimate.')
+  })
+})
+
 describe('the CSV', () => {
   const data: CostsData = { ...emptyCosts(), quotes: { 'site-setup': quote(8450, 'Fence, Toilet & Co') } }
   const e = estimate(quantities(), data)
@@ -301,12 +347,16 @@ describe('the CSV', () => {
     expect(rows).toContain(`,Likely low (−20%),,,,,,,,${Math.round(e.low)}`)
     expect(rows).toContain(`,Per m² of floor (100.00 m²),,,,,,,,${Math.round(e.perM2!)}`)
     expect(rows).toContain(`,"House only, per m² of floor (no site works, outside works, fees or contingency)",,,,,,,,${Math.round(e.housePerM2!)}`)
-    expect(rows.length).toBe(1 + e.lines.length + e.groups.length + 1 + 5 + 1 + 1 + 1)
+    expect(rows.length).toBe(1 + e.lines.length + e.groups.length + 1 + 5 + 1 + 1 + 1 + 1)
   })
 
   it('quotes fields with commas and quote marks, and shows a quote beside its estimate', () => {
     expect(rows).toContain(`Site works,"Site set-up: temporary fence, toilet, skips",Allowance,,,${R('site-setup')},${R('site-setup')},8450,"Fence, Toilet & Co",8450`)
-    expect(rows.at(-2)).toBe(',"My ""house"": built by a builder. 1 of ' + e.quotable + ' lines quoted. Starting rates are rough NSW figures as at November 2026, GST included."')
+    expect(rows.at(-3)).toBe(',"My ""house"": built by a builder. 1 of ' + e.quotable + ' lines quoted. Starting rates are rough NSW figures as at November 2026, GST included."')
+  })
+
+  it('ends with the one caveat, as a field of its own', () => {
+    expect(rows.at(-2)).toBe(`,"${CAVEAT_LINE}"`)
   })
 
   it('adds materials and labour columns for an owner-builder', () => {

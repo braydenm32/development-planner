@@ -322,6 +322,14 @@ export const cloudActions = {
     return get().inCloud.includes(id) && !s.offline && !s.error && !s.signedOut
   },
 
+  /** Send what's waiting to the cloud now and wait for it (⌘S). True when the cloud has it all. */
+  async flush(): Promise<boolean> {
+    if (!sync) return false
+    await sync.flush()
+    const s = sync.state()
+    return !s.offline && !s.error && !s.signedOut && !s.busy
+  },
+
   /** Keep these on this device only (the review's "Not now", or a card's choice). */
   async keepHere(ids: string[]) {
     if (!sync) return

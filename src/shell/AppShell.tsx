@@ -4,6 +4,8 @@
 // comes from the menu config (src/nav/menu.ts) and the section components in src/components.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { LocalSaveChip } from '../cloud/LocalSave'
+import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
@@ -47,6 +49,7 @@ import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../ph
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
+import { showToast } from '../safety/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
@@ -56,7 +59,8 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 /** Actions that are harmless to run as soon as a feature that lives on them is chosen. */
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
-  ['view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
+  a.startsWith('term:') ||
+  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -154,6 +158,12 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         e.preventDefault()
         if (palette) closePalette(true)
         else openPalette()
+        return
+      }
+      // ⌘S / Ctrl+S, even while typing: the work saves itself, so say where rather than opening the browser's Save Page.
+      if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (!e.repeat) void saveNow().then(text => showToast({ text }))
         return
       }
       if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
@@ -264,6 +274,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
       </button>
       <SyncChip />
+      {route.kind === 'app' && <LocalSaveChip onDownload={() => run('save-project')} />}
       <ProjectMenu open={menu.open} focusItem={menu.focus} onOpenChange={open => setMenu({ open, focus: null })} run={run} />
     </div>
   )
@@ -280,7 +291,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
             </header>
             <main className="shell-main projects">{projectsHome}</main>
           </>
-        ) : (
+        ) : route.kind === 'page' ? null /* the pages about the app show alone (src/legal), never in the frame */ : (
           <AreaView
             route={route}
             loaded={loaded}
@@ -500,7 +511,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         style={{ ['--free-left' as string]: `${insets.l}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets }}>{canvas}</CanvasFrame.Provider>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>{canvas}</CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
           {rail && <ToolRail />}

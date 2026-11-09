@@ -66,6 +66,10 @@ import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
 import { roomMade, wallsPlaced } from '../flow/store'
+import { PlanHints } from '../guide/PlanHints'
+import { useRouter } from '../nav/router'
+import { StreetAsk } from '../start/StreetAsk'
+import { useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
 import { costsUndoKey } from '../costs/store'
@@ -178,6 +182,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // The new layout's touch: pinch and double tap everywhere, and on a phone in View, pan and tap to read only.
   const touch = useTouchCanvas()
   const viewOnly = !!touch?.viewOnly
+  const inDesign = useRouter(s => s.route.kind === 'app' && s.route.area === 'design')
+  // One thing at a time: the next-step tip waits while the street question is up.
+  const askingStreet = useStreetAskOpen(plan, survey.boundary)
   const newRetaining = useRetaining(s => s.newWall)
   const retainingThickness = useRetaining(s => s.thickness)
   const { commit, preview, beginGesture, endGesture, select, notify } = usePlan.getState()
@@ -250,7 +257,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const setbacks = useMemo(() => {
     const lowest = sortedLevels(plan)[0]
     if ((tool !== 'move' && !showSetbacks) || !lowest) return []
-    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey)
+    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey, { over: true })
   }, [tool, showSetbacks, plan, survey])
 
   // Site boundary and contours in the house's frame.
@@ -360,6 +367,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   useEffect(() => {
     vRef.current = v
   })
+  // A tool's card opening or closing beside the plan (pressing W, say) leaves the drawing where it
+  // is on screen: the fitted view stays put, as if it had been moved by hand, instead of refitting
+  // to the room the card leaves. vRef still holds the view last drawn, before the card.
+  const toolCard = !!frame?.toolCard
+  const cardWas = useRef(toolCard)
+  useLayoutEffect(() => {
+    if (cardWas.current === toolCard) return
+    cardWas.current = toolCard
+    if (!view || view.token !== fitToken) setView(vRef.current)
+  }, [toolCard, view, fitToken])
 
   // ---- Remembering the view (src/plan/viewMemory.ts) ----
   // What the handlers outside React need: where to remember, and the view and screen now.
@@ -485,7 +502,20 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     return { item: { ...f, at: fit.at, rotation: fit.rotation }, fit }
   })()
 
-  const finishChain = () => updateDraft(() => ({ chain: [], typed: '' }))
+  // The plan before the run of walls being drawn now, so the floor type question waits until the
+  // run ends (closed, double-clicked or Esc) rather than popping up over the drawing mid-run.
+  const chainStart = useRef<{ plan: Plan; level: string } | null>(null)
+  const askAfterChain = () => {
+    const c = chainStart.current
+    chainStart.current = null
+    if (c) wallsPlaced(c.plan, c.level)
+  }
+  // Switching tool or level drops the run, and leaving the plan ends it: ask then.
+  useEffect(() => askAfterChain, [draftKey])
+  const finishChain = () => {
+    updateDraft(() => ({ chain: [], typed: '' }))
+    askAfterChain()
+  }
 
   /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it. */
   function typedEnd(a: Vec2, toward: Vec2): Vec2 | null {
@@ -505,10 +535,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const first = chain[0]
     const closes = chain.length > 1 && Math.hypot(p[0] - first[0], p[1] - first[1]) < 0.002
     const end: Vec2 = closes ? first : p
-    const before = usePlan.getState().plan!
+    chainStart.current ??= { plan: usePlan.getState().plan!, level }
     commit(pl => addWall(pl, level, last, end, wallStyle))
-    // Walls that close round a space make a room: ask its floor type, or offer a retaining wall.
-    wallsPlaced(before, level)
+    // Walls that close round a space make a room: its floor type, or a retaining wall, is asked
+    // about when the run ends (finishChain).
     if (closes) finishChain()
     else updateDraft(() => ({ chain: [...chain, end], typed: '' }))
   }
@@ -1892,6 +1922,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {site.bar}
       {site.chips}
       {flow.html}
+      {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
+      {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
+      {frame && !viewOnly && <StreetAsk survey={survey} terrain={terrain} />}
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={floorRL} lowest={isLowest} />}
         {site.notice || notice ? (
