@@ -293,6 +293,11 @@
   font-size: 12px;
 }
 
+.cl-field small a {
+  color: var(--cl-accent);
+  overflow-wrap: anywhere;
+}
+
 .cl-code-input {
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
   letter-spacing: 0.04em;
@@ -881,4 +886,55 @@
 
 .app-shell.phone .cl-chip-wrap.cl-in-shell.calm {
   display: none;
+}
+
+/* Saved in this browser (LocalSave.tsx): the top bar's chip while not signed in, and the project
+   menu's line. A narrow bar keeps the time; on a phone the menu says it, and only a problem shows
+   in the bar, as its icon. */
+.ls-chip .ls-at {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1180px) {
+  .ls-chip .ls-label {
+    display: none;
+  }
+}
+
+.app-shell.phone .ls-wrap.quiet {
+  display: none;
+}
+
+.app-shell.phone .ls-wrap .ls-label,
+.app-shell.phone .ls-wrap .ls-at {
+  display: none;
+}
+
+.ls-line {
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px 8px;
+  color: var(--cl-muted);
+  font-size: 12px;
+}
+
+.ls-line-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cl-ink);
+  font-size: 13px;
+}
+
+.ls-line-head b {
+  font-weight: 500;
+}
+
+.ls-line-head .ic {
+  color: var(--cl-accent);
+}
+
+.ls-line.warn .ls-line-head,
+.ls-line.warn .ls-line-head .ic {
+  color: var(--cl-warn-text);
 }

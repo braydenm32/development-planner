@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import type { DesignQuantities } from '../../plan/quantities'
 import { CHOICE_LINES, choiceDeltas, estimate, rateFor, type Estimate } from '../estimate'
 import { CAVEAT_LINE } from '../../legal/caveat'
-import { atName, dateText, delta, estimateCsv, money, parseMoney, qtyText, rateText } from '../format'
+import { atName, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText } from '../format'
 import { costsSummary, emptyCosts, normalizeCosts, type CostsData } from '../model'
 import { CHOICES, CONTINGENCY, FINISH_GUIDES, FINISH_LEVELS, finishGuide, MARGIN, RANGE, rateInfo, STARTING_RATES, type RateId } from '../rates'
 
@@ -284,6 +284,51 @@ describe('material choices', () => {
     expect(line(e, 'cladding').label).toBe('External walls, weatherboard')
     expect(line(e, 'roof').label).toBe('Roofing, Terracotta, with sarking and gutters')
     expect(line(e, 'windows').label).toBe('Windows, double glazed')
+  })
+})
+
+describe('an estimate for a design that isn’t finished', () => {
+  /** The house with these parts not drawn. */
+  const without = (patch: Partial<DesignQuantities>) => estimate({ ...quantities(), ...patch }, emptyCosts())
+  const noWalls: Partial<DesignQuantities> = {
+    floorArea: 0,
+    ground: null,
+    walls: { perimeter: 0, gross: 0, openings: 0, net: 0, ids: [] },
+    roofs: { ...none(), first: null },
+    windows: none(),
+    externalDoors: none(),
+    internalDoors: none(),
+    finishes: none(),
+    wet: { kitchen: named(), bathroom: named(), laundry: named(), toilet: named() },
+    earth: null,
+    outdoor: { slab: named(), driveway: named(), deck: named(), garden: named() },
+  }
+
+  it('has no total before there are outside walls: only allowances would add up', () => {
+    const e = without(noWalls)
+    expect(e.ready).toBe(false)
+    expect(e.missing).toEqual(['outside walls', 'roof', 'windows', 'outside doors', 'rooms'])
+    // The allowances still come to something, which used to show as the total.
+    expect(e.total).toBeGreaterThan(0)
+  })
+
+  it('totals once there are walls, and says what it leaves out', () => {
+    const e = without({ roofs: { ...none(), first: null }, windows: none() })
+    expect(e.ready).toBe(true)
+    expect(e.missing).toEqual(['roof', 'windows'])
+    expect(incompleteText(e.missing)).toBe('Incomplete: no roof, no windows')
+    const whole = estimate(quantities(), emptyCosts())
+    expect(whole.missing).toEqual([])
+    expect(incompleteText(whole.missing)).toBe('')
+  })
+
+  it('says so in the CSV too', () => {
+    const rows = estimateCsv(without({ roofs: { ...none(), first: null } }), 'House', 'November 2026').split('\r\n')
+    const at = rows.findIndex(r => r.startsWith(',Estimate,'))
+    expect(rows[at + 1]).toBe(',Incomplete: no roof.')
+    const none_ = estimateCsv(without(noWalls), 'House', 'November 2026').split('\r\n')
+    expect(none_.some(r => r.startsWith(',Estimate,'))).toBe(false)
+    expect(none_).toContain(',No total yet. Draw the house’s outside walls to start the estimate.')
   })
 })
 

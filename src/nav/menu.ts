@@ -358,8 +358,8 @@ export const AREAS: Area[] = [
         icon: 'check',
         subtitle: 'The design against the planning rules, as you draw.',
         shows: ['checks'],
-        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch'],
-        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
+        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'outside the lot', 'over the boundary', 'not drawn yet', 'zone', 'heritage', 'flood', 'bushfire'],
+        features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal', 'checks-not-drawn-yet', 'checks-lot-inside', 'checks-cdc-land'],
       },
     ],
     more: {
@@ -427,8 +427,8 @@ export const AREAS: Area[] = [
         icon: 'pin',
         subtitle: 'Where the house sits and how high its floor is.',
         shows: ['ffl'],
-        keywords: ['setback', 'setbacks', 'boundary', 'distance', 'FFL', 'floor level', 'position', 'RL'],
-        features: ['ground-floor-level', 'ground-under-house', 'boundary-distance-fields'],
+        keywords: ['setback', 'setbacks', 'boundary', 'distance', 'FFL', 'floor level', 'position', 'RL', 'over the boundary', 'outside the lot'],
+        features: ['ground-floor-level', 'ground-under-house', 'boundary-distance-fields', 'boundary-over'],
       },
       {
         id: 'cut-fill',
@@ -546,8 +546,8 @@ export const AREAS: Area[] = [
         icon: 'costs',
         subtitle: 'What the design would cost to build, from its own quantities.',
         shows: ['cost'],
-        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end'],
-        features: ['cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv'],
+        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete'],
+        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv'],
       },
       {
         id: 'materials',
@@ -749,6 +749,14 @@ export const HOMES: Home[] = [
     items: [
       { id: 'all-projects', label: 'All projects…', icon: 'list', keywords: ['projects', 'open', 'switch project', 'home'], features: ['projects-home'], action: 'projects', run: 'now' },
       { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey'], features: ['project-new'], action: 'new-project', run: 'now' },
+      {
+        // "Saved in this browser · 2:14 pm", while not signed in (src/cloud/LocalSave.tsx); signed in, the cloud item says it.
+        id: 'save-state',
+        label: 'Where it’s saved',
+        icon: 'check',
+        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage'],
+        features: ['save-state', 'storage-persist'],
+      },
       {
         // Shown as "Sign in to save to the cloud…" or "Cloud saves" with the account's name (src/cloud).
         id: 'cloud',
@@ -1112,7 +1120,7 @@ export const HOMES: Home[] = [
         id: 'start-screen',
         label: 'Start screen',
         icon: 'file',
-        keywords: ['import', 'DXF', 'drop', 'open survey', 'begin', 'onboarding', 'sketch', 'no survey', 'without a survey', 'block size'],
+        keywords: ['import', 'DXF', 'drop', 'open survey', 'begin', 'onboarding', 'sketch', 'no survey', 'without a survey', 'block size', 'binary DXF', 'DWG', 'no contours', 'survey layers', 'ask the surveyor', 'ASCII DXF'],
         features: [
           'restore-saved-project',
           'start-screen',
@@ -1122,6 +1130,8 @@ export const HOMES: Home[] = [
           'import-status-error',
           'import-help',
           'start-two-choices',
+          'survey-layer-pick',
+          'surveyor-request',
           'sketch-without-survey',
           'sketch-block-size',
           'start-never-traps',
@@ -1147,6 +1157,7 @@ export const HOMES: Home[] = [
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
+      { id: 'kbd-save', label: 'Save key', keywords: ['shortcut', 'ctrl s', 'cmd s', 'save now'], features: ['kbd-save'], shortcut: 'mod+S', hint: '⌘S or Ctrl+S saves now and says where: in this browser, or to the cloud.' },
       { id: 'kbd-delete', label: 'Delete key', keywords: ['backspace', 'remove'], features: ['kbd-delete'], shortcut: 'Delete', hint: 'Delete or Backspace removes what is selected on the plan.' },
       { id: 'kbd-escape', label: 'Escape key', keywords: ['finish', 'cancel', 'deselect'], features: ['kbd-escape'], shortcut: 'Esc', hint: 'Esc finishes a run of walls, drops a half-drawn outline, or clears the selection.' },
       { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension'], features: ['kbd-typed-length'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter.' },

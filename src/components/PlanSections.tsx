@@ -46,7 +46,8 @@ import {
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
 import { stairComfort, stairCounts, stairLayout } from '../plan/stairs'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
-import { centredPlacement, placeAtClearance } from '../plan/placement'
+import { centredPlacement, placeAtClearance, signedClearance } from '../plan/placement'
+import { overText } from '../plan/setbacks'
 import { housePadRL, piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
@@ -350,11 +351,12 @@ export function PlanFileBody({ plan }: { plan: Plan }) {
   )
 }
 
-export function FragmentRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+export function FragmentRow({ label, value, strong, bad }: { label: string; value: string; strong?: boolean; bad?: boolean }) {
+  const cls = [strong && 'strong', bad && 'bad'].filter(Boolean).join(' ')
   return (
     <>
       <dt className={strong ? 'strong' : ''}>{label}</dt>
-      <dd className={strong ? 'strong' : ''}>{value}</dd>
+      <dd className={cls}>{value}</dd>
     </>
   )
 }
@@ -817,7 +819,10 @@ export function GroundUnderHouse({ plan, info }: { plan: Plan; info: PlacementIn
   )
 }
 
-/** Typed setbacks: the house's distance to each side of the block, which slides it square to that side. */
+/**
+ * Typed setbacks: the house's distance to each side of the block, which slides it square to that
+ * side. A side the house goes past shows how far, below its field in red, and a negative distance.
+ */
 export function BoundaryDistances({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo }) {
   const gross = useMemo(() => lowestOutline(plan), [plan])
   return (
@@ -825,14 +830,16 @@ export function BoundaryDistances({ plan, survey, info }: { plan: Plan; survey: 
       <h3>Distance to boundary</h3>
       <p className="muted small">Type a distance to slide the house square to that side.</p>
       {info.sides.map((s, i) => (
-        <Num
-          key={i}
-          label={sideLabel(info.sides, s)}
-          unit="mm"
-          value={Math.round(s.dist * 1000) / 1000}
-          min={0}
-          onCommit={d => setPlacement(placeAtClearance(gross, plan.placement, survey, i, d))}
-        />
+        <div key={i} className={s.over > 0 ? 'boundary-over' : undefined}>
+          <Num
+            label={sideLabel(info.sides, s)}
+            unit="mm"
+            value={Math.round(signedClearance(s) * 1000) / 1000}
+            min={0}
+            onCommit={d => setPlacement(placeAtClearance(gross, plan.placement, survey, i, d))}
+          />
+          {s.over > 0 && <p className="over-note small">{overText(s.over)} the boundary: part of the house is outside the lot.</p>}
+        </div>
       ))}
     </>
   )

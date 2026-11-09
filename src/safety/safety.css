@@ -414,6 +414,80 @@ body:has(.app-shell.phone) .sf-toast {
   }
 }
 
+/* ---- The layer review: a survey with no contours found on the layers guessed ---- */
+
+.sf-lede {
+  margin: 0;
+}
+
+.sf-layer-list {
+  padding: 10px 12px;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r);
+  display: grid;
+  gap: 8px;
+}
+
+.sf-layer-list p {
+  margin: 0;
+}
+
+.sf-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---- What to ask the surveyor: under a survey that can't be read, on any screen ---- */
+
+.sv-request {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 9px 10px 10px 12px;
+  border: 1px solid #e1e4e7;
+  border-radius: 3px;
+  background: #fcfcfd;
+  color: #16181b;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.sv-lead {
+  grid-column: 1 / -1;
+  color: #6b7077;
+}
+
+.sv-words {
+  margin: 0;
+  font-weight: 550;
+}
+
+.sv-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #cfd3d8;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #16181b;
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.sv-copy:hover {
+  border-color: #16181b;
+}
+
+.sv-copy:focus-visible {
+  outline: 2px solid #2346d0;
+  outline-offset: 1px;
+}
+
 /* ---- Phones and touch: a bottom sheet, 44 px taps, 14 px text ---- */
 
 @media (max-width: 760px), (pointer: coarse) {
@@ -515,6 +589,20 @@ body:has(.app-shell.phone) .sf-toast {
   .sf-toast {
     width: calc(100vw - 24px);
     max-width: none;
+  }
+
+  .sf-layer-list select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .sv-request {
+    font-size: 14px;
+  }
+
+  .sv-copy {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .sf-toast > span {

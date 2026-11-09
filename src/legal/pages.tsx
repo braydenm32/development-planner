@@ -70,6 +70,7 @@ export function Privacy() {
         </p>
         <ul>
           <li>your account name, as you typed it;</li>
+          <li>which invite code you signed up with (its label, or a short fingerprint of it), so a code that’s been passed around can be stopped;</li>
           <li>the public key of each passkey you’ve added, and when it was made and last used. The private key never leaves your device;</li>
           <li>a hash of your recovery code (not the code itself);</li>
           <li>your sign-in sessions, as hashes of their tokens;</li>

@@ -17,7 +17,7 @@ run_worker_first = ["/api/*"]
 
 [vars]
 # Who may create an account: "first" lets only the first person in (then it closes),
-# "invite" needs INVITE_CODE (a secret), "open" lets anyone in, "closed" nobody.
+# "invite" needs INVITE_CODE (a secret: one code, or a list, see worker/src/env.ts), "open" lets anyone in, "closed" nobody.
 SIGNUP = "first"
 # The most one person may keep in the cloud, in MB: 20 people fill the free plan's 1 GB of KV.
 QUOTA_MB = "50"
