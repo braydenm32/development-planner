@@ -8,6 +8,7 @@ import { Icon, type IconName } from '../nav/icons'
 import type { ActionId, CanvasView } from '../nav/menu'
 import { usePlan } from '../plan/store'
 import { ViewLock } from '../phone/ViewLock'
+import { useSun } from '../sun/store'
 import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
 import type { Loaded } from './useSite'
@@ -84,7 +85,13 @@ function Ctl({ icon, label, onClick, pressed }: { icon: IconName; label: string;
   )
 }
 
-/** Zoom out and in (desktop), Fit block, Fit house and North up on the plan; Reset camera and North up in 3D. On a phone, the Plan/3D switch too. */
+/** The sun study's switch: the 3D light follows the real sun, with its card to pick the day and time. */
+function SunCtl() {
+  const on = useSun(s => s.on)
+  return <Ctl icon="sun" label="Sun" pressed={on} onClick={() => useSun.getState().setOn(!on)} />
+}
+
+/** Zoom out and in (desktop), Fit block, Fit house and North up on the plan; Reset camera, Sun and North up in 3D. On a phone, the Plan/3D switch too. */
 export function CanvasControls({ canvas, up, run }: ControlsProps) {
   if (canvas === 'print') return null
   return (
@@ -99,7 +106,10 @@ export function CanvasControls({ canvas, up, run }: ControlsProps) {
           <Ctl icon="fitHouse" label="Fit house" onClick={() => run('fit-house')} />
         </>
       ) : (
-        <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
+        <>
+          <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
+          <SunCtl />
+        </>
       )}
       <Ctl icon="north" label="North up" pressed={up === 0} onClick={() => run('north-up')} />
     </div>

@@ -59,6 +59,7 @@ import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
+import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
 import { useTouchCanvas } from '../phone/device'
 import { boundsOf, clampToBounds, DOUBLE_TAP_ZOOM, isDoubleTap, pinchView, TAP_SLOP, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
 import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan } from '../plan/viewMemory'
@@ -1630,6 +1631,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
         {site.under}
 
+        {/* The house's shadows on 21 June, when the key's switch is on (src/sun) */}
+        <ShadowPlanLayer plan={plan} survey={survey} terrain={terrain} earth={earth ?? null} toScreen={p => S(fromSite(p, plan.placement, survey.origin))} />
+
         {/* Level below, for lining up */}
         {ghostPolys.map((p, i) => (
           <path key={i} className="wall ghost" d={path(p)} />
@@ -1878,6 +1882,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
+            <ShadowsKey />
           </GroundKey>
         </KeyChip>
       </div>

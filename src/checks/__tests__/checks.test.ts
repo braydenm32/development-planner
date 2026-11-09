@@ -16,6 +16,7 @@ import { checkTreesOf } from '../siteTrees'
 import type { SiteFeature } from '../../site/model'
 import { activeCouncil, checkSettingsOf, switchCouncil } from '../councils'
 import { DEFAULT_CHECK_SETTINGS, type CheckSettings, type CheckTree } from '../types'
+import { sunFacts } from '../../sun/facts'
 
 type P2 = [number, number]
 // Falls 1 in 20 towards the south (north is higher).
@@ -374,5 +375,64 @@ describe('council rules switched on or off', () => {
     expect(off.councils).toEqual({ wollongong: false })
     expect(off.pathway).toBe('cdc')
     expect(checkSettingsOf(off).councils).toEqual({ wollongong: false })
+  })
+})
+
+describe('sun on 21 June (Wollongong DCP B1 4.7)', () => {
+  /** The checks with the day's sun worked out, as the app does once the design settles. Sydney, 2026. */
+  function withSun(plan: Plan) {
+    const { survey, terrain } = loadSite()
+    const sun = sunFacts({ plan, boundary: survey.boundary, origin: survey.origin, ground: terrain.grid, date: { year: 2026, month: 6, day: 21 } })
+    const ms = measure({ plan, survey, terrain, earth: null, sun })
+    return { ms, cdc: runChecks(ms, 'cdc'), da: runChecks(ms, 'da', 'wollongong') }
+  }
+  const northWindow = { id: 'w1', wall: 'gn', kind: 'window' as const, offset: 5, width: 2, height: 1.2, sill: 0.9, flipHinge: false, flipSwing: false }
+
+  it('flags a winter shadow that reaches next door, and says where', () => {
+    // The 10 × 8 m house is 4 m from the west side and 5 m from the south: the 9 am shadow runs about 9 m south-west.
+    const { da } = withSun(house({ frontEdge: 0 }))
+    const r = byId(da, 'da-sun-neighbours')
+    expect(r.status).toBe('warn')
+    expect(r.value).toMatch(/^Over the (south|west)/)
+    expect(r.value).toContain('9 am')
+    expect(r.source.clause).toBe('Wollongong DCP B1 4.7.2(1), (2)')
+    expect(r.limit).toContain('3 hours of continuous sun')
+    expect(r.limit).toContain('between 9 am and 3 pm on 21 June')
+  })
+
+  it('passes a house whose shadow stays on the block from 9 to 3', () => {
+    const small = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 4, 4), rooms: [], placement: { e: 5008, n: 8013, rotation: 0, ffl: 51 } })
+    const r = byId(withSun(small).da, 'da-sun-neighbours')
+    expect(r.status).toBe('pass')
+    expect(r.value).toBe('The house’s shadow stays on your block from 9 am to 3 pm.')
+  })
+
+  it('lists the shadow diagrams for information, needed for a two-storey house', () => {
+    const one = byId(withSun(house()).da, 'da-shadow-diagrams')
+    expect(one.status).toBe('info')
+    expect(one.value).toContain('single storey')
+    const two = house({}, { levels: [...house().levels, { id: L1, name: 'First floor', elevation: 3, height: 2.7 }], walls: [...house().walls, ...box('u', 0, 0, 10, 8, L1)] })
+    expect(byId(withSun(two).da, 'da-shadow-diagrams').value).toBe('Needed: the house is two storeys')
+  })
+
+  it('gives the living areas’ winter sun for information on both pathways, never as a pass or a fail', () => {
+    const { cdc, da } = withSun(house({ frontEdge: 0 }, { openings: [northWindow] }))
+    for (const rs of [cdc, da]) {
+      const r = byId(rs, 'sun-living')
+      expect(r.status).toBe('info')
+      expect(r.value).toBe('Living 6 h of sun on the windows between 9 am and 3 pm on 21 June')
+      expect(r.source.confidence).toBe('unverified')
+    }
+    expect(countChecks(cdc).info).toBe(1)
+    // A room that isn't a living area isn't counted.
+    const bed = withSun(house({}, { rooms: [{ id: 'r', level: L0, name: 'Bed 1', at: [5, 4] }], openings: [northWindow] }))
+    expect(bed.cdc.find(r => r.id === 'sun-living')).toBeUndefined()
+  })
+
+  it('leaves the sun rows out until the sun has been worked out', () => {
+    const { da, cdc } = run(house({ frontEdge: 0 }))
+    expect(da.find(r => r.id === 'da-sun-neighbours')).toBeUndefined()
+    expect(cdc.find(r => r.id === 'sun-living')).toBeUndefined()
+    expect(byId(da, 'da-shadow-diagrams').status).toBe('info')
   })
 })

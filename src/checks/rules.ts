@@ -6,6 +6,8 @@ import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
 import { E17_REMOVAL_DISTANCE, encroachment, MINOR_ENCROACHMENT } from './trees'
 import { activeCouncil } from './councils'
+import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
+import { hourText } from '../sun/solar'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
@@ -228,6 +230,60 @@ function treeChecks(ms: Measures, pathway: Pathway): CheckResult[] {
 }
 
 // ---------------------------------------------------------------------------
+// Sun on 21 June (src/sun): what the shadow does to the neighbours, and the sun your own
+// living areas get, which no rule here sets a number for.
+
+const DAY = `${hourText(STUDY_FROM)} and ${hourText(STUDY_TO)} on 21 June`
+
+/** Wollongong DCP B1 4.7.2: the neighbours' sun, and the shadow diagrams a two-storey house needs. */
+function neighbourSun(ms: Measures): CheckResult[] {
+  const out: CheckResult[] = []
+  const f = ms.sun
+  if (f && ms.hasHouse && !f.empty) {
+    const over = overRuns(f.over).length > 0
+    out.push({
+      id: 'da-sun-neighbours',
+      title: 'Sun to the neighbours',
+      status: over ? 'warn' : 'pass',
+      value: overText(f),
+      limit: `Neighbours’ living room windows keep 3 hours of continuous sun, and at least half their private open space 3 hours, between ${DAY}`,
+      note: over
+        ? 'The app knows where the shadow falls next door, not where the neighbours’ windows and open space are. Use the shadow diagram (in the PDF plans) to show they keep 3 hours, or ask council how it reads the rule where they had less already.'
+        : 'The shadow never reaches next door between 9 am and 3 pm, so the house can’t take the neighbours’ sun. Trees, fences and their own house aren’t counted.',
+      source: DCP('B1 4.7.2(1), (2)'),
+    })
+  }
+  out.push({
+    id: 'da-shadow-diagrams',
+    title: 'Shadow diagrams',
+    status: 'info',
+    value: ms.storeys > 1 ? 'Needed: the house is two storeys' : 'Asked for two-storey houses; this one is single storey',
+    limit: 'Shadows at 9 am, 12 pm and 3 pm on 21 June',
+    note: 'The PDF plans (Share › Plans) include a shadow diagram sheet at those times.',
+    source: DCP('B1 4.7.2(3)'),
+  })
+  return out
+}
+
+/** The winter sun on the living areas' windows, for information on either pathway. */
+function livingSun(ms: Measures, pathway: Pathway): CheckResult[] {
+  const rooms = ms.sun?.rooms ?? []
+  if (!rooms.length) return []
+  return [
+    {
+      id: 'sun-living',
+      title: 'Winter sun to your living areas',
+      status: 'info',
+      value: `${roomsText(rooms)} of sun on the windows between ${DAY}`,
+      note:
+        'For your information: the hours when at least one window has sun on half its glass or more. It counts windows (not glass doors), the house itself and the ground, not trees, fences or the neighbours’ houses. ' +
+        (pathway === 'cdc' ? 'The Housing Code has no sun standard for your own house.' : 'Wollongong’s sun rule (B1 4.7.2) is about the neighbours’ sun.'),
+      source: { clause: 'No rule for a house’s own winter sun in the research notes (Housing Code, Wollongong DCP B1)', confidence: 'unverified', asAt: 'research notes, Nov 2026' },
+    },
+  ]
+}
+
+// ---------------------------------------------------------------------------
 // Housing Code (CDC)
 
 function housingCode(ms: Measures): CheckResult[] {
@@ -401,7 +457,7 @@ function housingCode(ms: Measures): CheckResult[] {
     source: HC('cl 3.30'),
   })
 
-  return [...out, ...treeChecks(ms, 'cdc')]
+  return [...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
 }
 
 // ---------------------------------------------------------------------------
@@ -552,6 +608,8 @@ function wollongong(ms: Measures): CheckResult[] {
     source: DCP('E22 3(1)', 'read', 'chapter E22, in force 12 Jan 2018'),
   })
 
+  out.push(...neighbourSun(ms))
+
   const bad = ms.walls.filter(w => w.height > (w.toBoundary <= 0.9 ? 0.6 : 1) + 1e-6)
   const eng = ms.walls.filter(w => w.height > 1)
   out.push({
@@ -564,7 +622,7 @@ function wollongong(ms: Measures): CheckResult[] {
     source: DCP('B1 4.17.3'),
   })
 
-  return [...out, ...treeChecks(ms, 'da')]
+  return [...out, ...livingSun(ms, 'da'), ...treeChecks(ms, 'da')]
 }
 
 /** Each council's own rules (its LEP and DCP), for the DA pathway. */
@@ -585,10 +643,11 @@ export interface CheckCounts {
   unknown: number
   pass: number
   pending: number
+  info: number
 }
 
 export function countChecks(rs: CheckResult[]): CheckCounts {
-  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, pass: 0, pending: 0 }
+  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, pass: 0, pending: 0, info: 0 }
   for (const r of rs) c[r.status]++
   return c
 }
@@ -607,7 +666,7 @@ export const NOT_CHECKED: Record<Pathway, string[]> = {
   da: [
     'Zone and the LEP map values (height, floor space ratio, overlays)',
     'Private open space (24 m², 4 m wide, 1 in 50)',
-    'Sun to the neighbours on 21 June',
+    'Where the neighbours’ living room windows and open space are, for their 3 hours of winter sun (the app knows where the shadow falls)',
     'Garage doors, parking and driveway width',
     'Fences, pools and storage',
     'Easements',

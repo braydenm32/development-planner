@@ -12,6 +12,7 @@ import { ENGINEER_HEIGHT, sideLabel } from '../plan/keyNumbers'
 import type { SiteStats } from '../lib/terrain'
 import { m2, netText } from './format'
 import type { KeyNumbers } from './useKeyNumbers'
+import { hoursText, overText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
 
 const ROOF_NAMES = { hip: 'Hip', gable: 'Gable', skillion: 'Skillion', flat: 'Flat' }
@@ -191,9 +192,33 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                 )}
               </Group>
             )}
+            {n?.sun && (
+              <Group icon="sun" title="Sun on 21 June" to={at('site', 'sun', '3d')}>
+                <SunNumbers sun={n.sun} />
+              </Group>
+            )}
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+/** Winter sun to each living area, and where the house's shadow goes from 9 to 3. */
+function SunNumbers({ sun }: { sun: SunFacts }) {
+  if (sun.empty) return <p className="muted small">No walls yet to cast a shadow.</p>
+  return (
+    <>
+      {sun.rooms.length > 0 ? (
+        <dl className="stats">
+          {sun.rooms.map(r => (
+            <FragmentRow key={r.room} label={`${r.name}, sun on its windows`} value={hoursText(r.hours)} strong />
+          ))}
+        </dl>
+      ) : (
+        <p className="muted small">No living areas yet.</p>
+      )}
+      <p className="muted small">{overText(sun)}</p>
     </>
   )
 }

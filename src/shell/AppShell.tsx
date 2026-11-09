@@ -23,6 +23,7 @@ import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
 import { useSiteWarnings } from '../site/sync'
+import { SunCard } from '../sun/SunCard'
 import { runAction } from './actions'
 import { CanvasControls, Inspector, ToolCard, ToolRail } from './CanvasChrome'
 import { hasToolCard } from './toolCard'
@@ -390,6 +391,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
 
   // Fitting the plan, and framing the 3D presets, keeps clear of what floats over it.
   const [peekH, setPeekH] = useState(0)
+  // The sun study's card at the foot of the 3D view: the picture moves up clear of it.
+  const [sunH, setSunH] = useState(0)
+  const sunClear = canvasKind === '3d' && sunH > 0 ? sunH + 70 : 0
   const wide = WIDE_TABS.has(tabKey)
   const wideInspector = selRetaining
   // What floats on the right of the plan for this tab (Costs › Estimate's materials), on a window wide enough.
@@ -397,10 +401,10 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print'
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? 60 : 0, r: presenting ? 0 : 60, t: 62, b: peek ? (peekH || (slim ? 52 : 190)) + 12 : 16 }
+    if (phone) return { l: rail ? 60 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
-    return { l: (rail ? 70 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: 56 }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside])
+    return { l: (rail ? 70 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: Math.max(56, sunClear) }
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
@@ -504,6 +508,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           <CanvasFrame.Provider value={{ insets }}>{canvas}</CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+          {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}`}>
             {toolCard && <ToolCard />}
