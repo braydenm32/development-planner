@@ -9,7 +9,7 @@ import { Icon } from '../nav/icons'
 import { areaById, type NumberId } from '../nav/menu'
 import { navigate } from '../nav/router'
 import { tabRoute, type AppRoute } from '../nav/route'
-import { ENGINEER_HEIGHT } from '../plan/keyNumbers'
+import { ENGINEER_TEXT } from '../checks/engineer'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
 import { m2, netText, whereShown } from './format'
 import type { KeyNumbers } from './useKeyNumbers'
@@ -119,18 +119,9 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                     </Chip>
                   ))}
                 {n.retaining && (
-                  <Chip
-                    id="retaining"
-                    label="Tallest wall"
-                    shown={shown.retaining}
-                    route={route}
-                    readOnly={readOnly}
-                    term="retaining-wall"
-                    title={`Holds back up to ${retainedText(n.retaining.maxHeight)}${n.retaining.engineer ? `. Over ${ENGINEER_HEIGHT.toFixed(0)} m: an engineer needs to design it.` : ''}`}
-                  >
+                  <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} term="retaining-wall" title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
                     <b>{n.retaining.maxHeight.toFixed(2)} m</b>
-                    {/* The strip is short of room: the engineer note is in the tip, and the dot says there's one. */}
-                    {n.retaining.engineer && <i className="dot" aria-label="Needs an engineer" />}
+                    {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_TEXT}</span>}
                   </Chip>
                 )}
                 {n.roof && (

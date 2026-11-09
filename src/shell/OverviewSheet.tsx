@@ -8,7 +8,8 @@ import { SiteFacts } from '../components/SiteSections'
 import { Icon, type IconName } from '../nav/icons'
 import { navigate } from '../nav/router'
 import type { AppRoute } from '../nav/route'
-import { ENGINEER_HEIGHT, sideLabel } from '../plan/keyNumbers'
+import { ENGINEER_TEXT } from '../checks/engineer'
+import { sideLabel } from '../plan/keyNumbers'
 import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
 import { m2, netText } from './format'
@@ -158,7 +159,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                       <FragmentRow label="Holds back up to" value={retainedText(n.retaining.maxHeight)} strong />
                       <FragmentRow label="Face, ground to ground" value={`${n.retaining.face.toFixed(1)} m²`} />
                     </dl>
-                    {n.retaining.engineer && <p className="notice small">Engineer needed: a wall holds back more than {ENGINEER_HEIGHT.toFixed(1)} m.</p>}
+                    {n.retaining.engineer && <p className="notice small">Engineer needed: a wall holds back over {ENGINEER_TEXT}.</p>}
                   </>
                 )}
               </Group>

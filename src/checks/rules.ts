@@ -6,6 +6,7 @@
 
 import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
+import { needsEngineer } from './engineer'
 import { encroachment, MINOR_ENCROACHMENT } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
 import {
@@ -497,7 +498,7 @@ function housingCode(ms: Measures): CheckResult[] {
     note: e && !e.sideRearOnly ? (s.battleAxe ? 'On a battle-axe lot every boundary is measured.' : 'Measured to every boundary, the front included, until you pick the street side under Lot facts.') : undefined,
     source: HC('cl 3.30'),
   })
-  const tall = ms.walls.filter(w => w.height > 0.6)
+  const tall = ms.walls.filter(w => needsEngineer(w.height))
   out.push({
     id: 'hc-retaining',
     title: 'Retaining walls',

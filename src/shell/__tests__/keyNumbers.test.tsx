@@ -301,7 +301,7 @@ describe('retaining walls', () => {
     expect(n.retaining!.length).toBeCloseTo(14, 9)
     expect(n.retaining!.maxHeight).toBe(walls[0].maxHeight)
     expect(n.retaining!.face).toBe(walls[0].faceArea)
-    expect(n.retaining!.engineer).toBe(walls[0].maxHeight > ENGINEER_HEIGHT)
+    expect(n.retaining!.engineer).toBe(walls[0].maxHeight >= ENGINEER_HEIGHT)
     expect(words(strip(n))).toContain(`Tallest wall ${walls[0].maxHeight.toFixed(2)} m`)
     expect(strip(n)).toContain(`Holds back up to ${retainedText(walls[0].maxHeight)}`)
   })
@@ -311,22 +311,19 @@ describe('retaining walls', () => {
     floorArea: null,
     ffl: 63.2,
     earth: null,
-    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight > ENGINEER_HEIGHT },
+    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight >= ENGINEER_HEIGHT },
     roof: null,
     batterSides: [],
     batters: null,
     placement: null,
   })
 
-  it('asks for an engineer only past 1 m: a dot on the chip, and the words in its tip', () => {
-    // The strip is short of room, so the chip keeps to its number (B41).
-    expect(words(strip(withWall(1.2)))).toContain('Tallest wall 1.20 m')
-    expect(strip(withWall(1.2))).toContain('Over 1 m: an engineer needs to design it.')
-    expect(strip(withWall(1.2))).toContain('aria-label="Needs an engineer"')
-    for (const h of [1.0, 0.8]) {
-      expect(strip(withWall(h))).not.toContain('engineer')
-      expect(strip(withWall(h))).not.toContain('Needs an engineer')
-    }
+  it('asks for an engineer from 600 mm, the figure the checks use', () => {
+    expect(ENGINEER_HEIGHT).toBe(0.6)
+    expect(words(strip(withWall(1.2)))).toContain('Tallest wall 1.20 m Engineer > 600 mm')
+    expect(words(strip(withWall(0.8)))).toContain('Tallest wall 0.80 m Engineer > 600 mm')
+    expect(words(strip(withWall(0.6)))).toContain('Engineer')
+    expect(words(strip(withWall(0.5)))).not.toContain('Engineer')
   })
 })
 

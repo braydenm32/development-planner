@@ -5,14 +5,14 @@ import { useMemo } from 'react'
 import { navigate } from '../nav/router'
 import { useCheckTrees } from '../checks/siteTrees'
 import { Num } from '../components/fields'
-import { volumesWithout } from '../lib/earthworks'
 import type { Survey } from '../lib/survey'
 import type { Plan } from '../plan/model'
 import { housePadRL } from '../plan/platforms'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { addSuggestion, dismissWall } from './actions'
-import { areaM2, areaName, BRUSH_MAX, BRUSH_MIN, gradePlatformId, type BrushMode, type GradeArea } from './model'
+import { areaM2, areaName, BRUSH_MAX, BRUSH_MIN, type BrushMode, type GradeArea } from './model'
+import { ownVolumes } from './ownVolumes'
 import { beginBrush, BRUSH_KEY, setBrushLevel, setBrushMode, setBrushRadius, startLevelPick, stopBrush, stopLevelPick, useBrush } from './store'
 import { ENGINEER_NOTE } from './suggest'
 import { planWallSuggestions, undismissAll } from './walls'
@@ -24,26 +24,9 @@ const MODES: { id: BrushMode; label: string }[] = [
   { id: 'erase', label: 'Eraser' },
 ]
 
-const m3 = (v: number) => `${Math.abs(v) < 0.05 ? '0.0' : v.toFixed(1)} m³`
+const m3 = (v: number) => (v < 0.05 ? 'none' : `${v.toFixed(1)} m³`)
 
-/** Each painted area's own cut and fill: the earthworks with it, less the earthworks without it. */
-function useOwnVolumes(earth: Earth | null, areas: GradeArea[]) {
-  return useMemo(() => {
-    const out = new Map<string, { cut: number; fill: number }>()
-    if (!earth) return out
-    const all = new Set(areas.map(a => gradePlatformId(a.id)))
-    for (const a of areas) {
-      const id = gradePlatformId(a.id)
-      const w = volumesWithout(earth.prep, p => p.id === id)
-      out.set(a.id, { cut: earth.result.cut - w.cut, fill: earth.result.fill - w.fill })
-    }
-    if (areas.length > 1) {
-      const w = volumesWithout(earth.prep, p => !!p.id && all.has(p.id))
-      out.set('', { cut: earth.result.cut - w.cut, fill: earth.result.fill - w.fill })
-    }
-    return out
-  }, [earth, areas])
-}
+const useOwnVolumes = (earth: Earth | null, areas: GradeArea[]) => useMemo(() => ownVolumes(earth, areas), [earth, areas])
 
 const removeArea = (id: string) =>
   usePlan.getState().commit(p => {
@@ -170,7 +153,7 @@ export function GradingPanel({ plan, survey, earth }: { plan: Plan; survey: Surv
                   </div>
                   {s.engineer && <span className="small eng">{ENGINEER_NOTE}</span>}
                   <div className="actions">
-                    <button className="secondary" onClick={() => addSuggestion(s, survey.origin)}>
+                    <button className="secondary" onClick={() => addSuggestion(s, survey, earth?.prep.natural ?? null)}>
                       Add wall
                     </button>
                     <button className="link" onClick={() => dismissWall(s, survey.origin)}>
