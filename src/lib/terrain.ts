@@ -47,6 +47,12 @@ export interface SiteStats {
   maxRL: number
   /** Mean slope across the site, as a percentage. */
   meanSlopePct: number
+  /**
+   * The steepest ground on the site, as a percentage: the 95th percentile of the grid's cell
+   * slopes, so the steepest twentieth of the lot. Not the single steepest cell, because one
+   * cell is easily a spike: a long thin triangle along the edge of scattered points, or a spot
+   * level pinned back into the smoothed ground, can read three times the slope around it.
+   */
   maxSlopePct: number
   /** Compass bearing (degrees, 0 = north) the site generally falls towards. */
   fallBearing: number
@@ -174,11 +180,14 @@ export function buildTerrain(survey: Survey, opts: TerrainOptions = {}): Terrain
   return { grid, tin, stats: siteStats(grid, survey.boundary) }
 }
 
+/** Which cell slope counts as 'Steepest' (see SiteStats.maxSlopePct). */
+const STEEPEST_PERCENTILE = 0.95
+
 function siteStats(grid: Heightfield, boundary: Vec2[]): SiteStats {
   let minRL = Infinity
   let maxRL = -Infinity
   let slopeSum = 0
-  let maxSlope = 0
+  const slopes: number[] = []
   let n = 0
   let gx = 0
   let gy = 0
@@ -195,12 +204,14 @@ function siteStats(grid: Heightfield, boundary: Vec2[]): SiteStats {
       const dy = (grid.at(i, j + 1) - grid.at(i, j - 1)) / (2 * cell)
       const s = Math.hypot(dx, dy)
       slopeSum += s
-      if (s > maxSlope) maxSlope = s
+      slopes.push(s)
       gx += dx
       gy += dy
       n++
     }
   }
+  const steep = Float64Array.from(slopes).sort()
+  const maxSlope = steep.length ? steep[Math.floor(STEEPEST_PERCENTILE * (steep.length - 1))] : 0
   // Downhill is the negative gradient; bearing measured clockwise from north (+y).
   const bearing = (Math.atan2(-gx, -gy) * 180) / Math.PI
   return {

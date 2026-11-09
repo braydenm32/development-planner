@@ -3,6 +3,7 @@
 // Undo for at least UNDO_MS.
 
 import { create } from 'zustand'
+import { useRouter } from '../nav/router'
 import type { SavedProject } from '../lib/storage'
 import type { ProjectThumbnail } from '../projects/types'
 import type { PickLayersError } from './files'
@@ -56,6 +57,11 @@ export interface Toast {
   undo?: () => Promise<void> | void
   /** Runs once when the toast goes without Undo (time ran out, dismissed, or another toast took its place). */
   settle?: () => void
+  /**
+   * About the project as it opened ("Opened …", what a survey gave): it goes when you leave for
+   * All projects, where it would only be in the way, and its Undo would act on a project you've left.
+   */
+  project?: boolean
   ms: number
 }
 
@@ -122,10 +128,10 @@ export function chooseInReview(id: string) {
 let toastId = 0
 
 /** Show a toast; with `undo`, it offers Undo for at least UNDO_MS. A toast already showing settles first. */
-export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; ms?: number }): number {
+export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; project?: boolean; ms?: number }): number {
   const old = get().toast
   const id = ++toastId
-  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
+  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, project: t.project, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
   old?.settle?.()
   return id
 }
@@ -137,6 +143,17 @@ export function dismissToast(id: number) {
   set({ toast: null })
   t.settle?.()
 }
+
+/** Off to All projects: a toast about the project as it opened goes (see Toast.project). */
+export function leftProject() {
+  const t = get().toast
+  if (t?.project) dismissToast(t.id)
+}
+
+// However you get there (the projects button, Back, a link), All projects clears them.
+useRouter.subscribe((s, prev) => {
+  if (s.route.kind === 'projects' && prev.route.kind !== 'projects') leftProject()
+})
 
 /** Undo what the toast offers. Resolves once it's put back. */
 export async function undoToast(id: number): Promise<void> {

@@ -74,6 +74,11 @@ export interface SurveyReviewInput {
   moved: Plan | null
   /** Site features with the project, to say they stay. */
   siteFeatures?: number
+  /**
+   * Those features (and drawings) are all away from the new block, as on a survey on other
+   * coordinates: centring the house takes them with it, keeping it leaves them with it.
+   */
+  siteFeaturesOff?: boolean
 }
 
 export function surveyReview(i: SurveyReviewInput): Review {
@@ -82,6 +87,9 @@ export function surveyReview(i: SurveyReviewInput): Review {
   const sketchAfter = isSketch(next)
   const drawn = !!plan && planLine(plan) !== 'nothing drawn yet'
   const fit = plan ? fitOnBlock(plan, to.survey) : ({ fit: 'empty', distance: 0 } as const)
+  const featuresOff = !!i.siteFeatures && !!i.siteFeaturesOff
+  const features = i.siteFeatures ? count(i.siteFeatures, 'site feature') : ''
+  const one = i.siteFeatures === 1
 
   const choices: ReviewChoice[] = []
   const movedChoice = (): ReviewChoice | null => {
@@ -91,22 +99,26 @@ export function surveyReview(i: SurveyReviewInput): Review {
     const was = plan ? floorRL(plan) : null
     const height = plan && i.from ? heightToKeep(plan, i.from) : null
     const how = height !== null ? 'the same height above the ground as before' : 'at ground level, as it was far from the ground before'
+    const withIt = featuresOff ? ` Your ${features} ${one ? 'moves' : 'move'} with it.` : ''
     return {
       id: 'centre',
       label: sketchBefore ? 'Centre the house on the surveyed block' : 'Centre the house on the new block',
       detail: drawn
-        ? `Turned square to it as it was to the old block. Floor at ${rl(ffl)}${was !== null && Math.abs(was - ffl) >= 0.005 ? ` (was ${rl(was)})` : ''}, ${how}${g ? `; the ground under it is ${rl(g.min)} to ${rl(g.max).slice(3)}` : ''}.`
-        : 'Your plan starts in the middle of the new block, floor at ground level.',
+        ? `Turned square to it as it was to the old block. Floor at ${rl(ffl)}${was !== null && Math.abs(was - ffl) >= 0.005 ? ` (was ${rl(was)})` : ''}, ${how}${g ? `; the ground under it is ${rl(g.min)} to ${rl(g.max).slice(3)}` : ''}.${withIt}`
+        : `Your plan starts in the middle of the new block, floor at ground level.${withIt}`,
       thumb: thumbOf(to, i.moved),
     }
   }
   const keptChoice = (): ReviewChoice | null => {
     if (!i.kept || !drawn) return null
-    const g = groundUnder(i.kept, to)
+    // Off the block there's no ground to read: the levels there are only the edge of the survey, carried out.
+    const off = fitOnBlock(i.kept, to.survey).fit === 'outside'
+    const g = off ? null : groundUnder(i.kept, to)
+    const ground = off ? '; it’s off the new block, so there’s no ground under it to read' : g ? `; the ground under it is ${rl(g.min)} to ${rl(g.max).slice(3)}` : ''
     return {
       id: 'keep',
       label: 'Keep the house where it is',
-      detail: `Same coordinates as now. Floor stays at ${rl(floorRL(i.kept))}${g ? `; the ground under it is ${rl(g.min)} to ${rl(g.max).slice(3)}` : ''}.`,
+      detail: `Same coordinates as now. Floor stays at ${rl(floorRL(i.kept))}${ground}.${featuresOff ? ` Your ${features} ${one ? 'stays' : 'stay'} with it, off the new block.` : ''}`,
       thumb: thumbOf(to, i.kept),
     }
   }
@@ -123,7 +135,9 @@ export function surveyReview(i: SurveyReviewInput): Review {
   ]
   const kept = [
     drawn ? `Your plan: ${planLine(plan)}.` : 'Your plan.',
-    ...(i.siteFeatures ? [`Your site features (${count(i.siteFeatures, 'feature')}).`] : []),
+    ...(i.siteFeatures
+      ? [featuresOff ? `Your site features (${count(i.siteFeatures, 'feature')}). ${one ? 'It’s' : 'They’re'} off the new block, so ${one ? 'it goes' : 'they go'} where the house goes.` : `Your site features (${count(i.siteFeatures, 'feature')}).`]
+      : []),
     ...(i.old && !sketchBefore ? [`${i.old.fileName}, with its layer settings: Undo, or Replace survey later, can put it back.`] : []),
   ]
   return {

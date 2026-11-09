@@ -9,7 +9,7 @@ import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fileSafe } from '../print/export'
 import { projectFileText } from '../share/project'
-import { openFile as openAnyFile } from '../safety/flows'
+import { duplicateWithUndo, openFile as openAnyFile } from '../safety/flows'
 import { ACCEPT, showToast } from '../safety/store'
 import { projectSiteFromRecords } from '../site/store'
 import { costsFromRecords } from '../costs/persist'
@@ -414,7 +414,7 @@ export function ProjectsHome(props: Props) {
                               role="menuitem"
                               onClick={() =>
                                 act(async () => {
-                                  const copy = await p.duplicate(m.id)
+                                  const copy = await duplicateWithUndo(m.id)
                                   setRenaming(copy.id)
                                 })
                               }
