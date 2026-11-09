@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest'
 import { useCamera } from '../cameraStore'
 import { sheetOffset, SHEETS, shouldClose } from '../sheetDrag'
 import { StreetSidePicker } from '../StreetSide'
-import { loadBlock, words } from './block'
+import { usePlan } from '../../plan/store'
+import { withStreetSide } from '../../plan/streetSide'
+import { house, loadBlock, words } from './block'
 
 describe('dragging a sheet down', () => {
   it('closes it past a quarter of its height, and at least 80 px', () => {
@@ -42,18 +44,20 @@ describe('the street side', () => {
   const { survey, terrain } = loadBlock()
 
   it('starts on the low side, and says which way that faces', () => {
-    const html = renderToStaticMarkup(<StreetSidePicker projectKey="p1" survey={survey} terrain={terrain} />)
+    const html = renderToStaticMarkup(<StreetSidePicker survey={survey} terrain={terrain} />)
     expect(words(html)).toContain('The low side faces north.')
     expect(html).toMatch(/<button class="on" aria-pressed="true">Low side<\/button>/)
   })
 
-  it('shows the side picked for the project', () => {
-    useCamera.getState().setStreetSide('p2', 'E')
+  it("shows the plan's street side, the one the checks use", () => {
+    usePlan.getState().load(withStreetSide(house(), survey.boundary, 'E'))
     // A static render reads the store's server snapshot, its initial state.
-    Object.assign(useCamera.getInitialState(), useCamera.getState())
-    const html = renderToStaticMarkup(<StreetSidePicker projectKey="p2" survey={survey} terrain={terrain} />)
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
+    const html = renderToStaticMarkup(<StreetSidePicker survey={survey} terrain={terrain} />)
     expect(html).toMatch(/<button class="on" aria-pressed="true">E<\/button>/)
-    expect(useCamera.getState().streetSides).toMatchObject({ p2: 'E' })
+    expect(usePlan.getState().plan?.checks?.frontEdge).toBe(1)
+    usePlan.getState().load(null)
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
   })
 
   it('counts each camera order, so the same one twice still moves the camera', () => {

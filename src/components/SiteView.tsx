@@ -2,7 +2,7 @@ import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import { CameraRig } from '../phone/CameraRig'
-import { useCamera, useStreetSide } from '../phone/cameraStore'
+import { useCamera } from '../phone/cameraStore'
 import { useTouchCanvas } from '../phone/device'
 import { siteFrame } from '../phone/frame'
 import { GroundPin } from '../phone/GroundPin'
@@ -58,10 +58,9 @@ export function SiteView(props: Props) {
 
   // The new layout: presets, a remembered camera, and a tap on the ground to read its level.
   const touch = useTouchCanvas()
-  const side = useStreetSide(touch?.projectKey ?? null)
   const frame = useMemo(
-    () => (touch ? siteFrame(props.plan, props.survey, terrain, refZ, props.view.exaggeration, side) : null),
-    [touch, props.plan, props.survey, terrain, refZ, props.view.exaggeration, side],
+    () => (touch ? siteFrame(props.plan, props.survey, terrain, refZ, props.view.exaggeration) : null),
+    [touch, props.plan, props.survey, terrain, refZ, props.view.exaggeration],
   )
   const [pin, setPin] = useState<Pin | null>(null)
   // A camera view starts clean: the level read off the ground goes with the old view.

@@ -56,7 +56,8 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 /** Actions that are harmless to run as soon as a feature that lives on them is chosen. */
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
-  ['view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
+  a.startsWith('term:') ||
+  ['guide', 'glossary', 'plan-tips', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const
@@ -501,7 +502,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         style={{ ['--free-left' as string]: `${insets.l}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets }}>{canvas}</CanvasFrame.Provider>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard }}>{canvas}</CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
           {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
           {rail && <ToolRail />}

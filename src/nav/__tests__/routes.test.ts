@@ -243,13 +243,14 @@ describe('the menu', () => {
     expect(menu.items.map(i => i.label)).toEqual([
       'All projects…',
       'New project…',
+      'Open an example',
       'Sign in and cloud saves',
       'Project name',
       'Survey file name',
-      'Save project file',
+      'Download a backup (project file)',
       'Open…',
       'Export plan',
-      'New plan',
+      'Start the plan again',
     ])
   })
 

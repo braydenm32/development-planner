@@ -16,6 +16,7 @@ import { buildSiteSolid } from './lib/terrainMesh'
 import { emptyPlan } from './plan/model'
 import { defaultPlacement } from './plan/placement'
 import { usePlan } from './plan/store'
+import { migrateStoredStreetSide } from './plan/streetSide'
 import { startToolDefaults } from './plan/toolDefaults'
 import { startCostRecords } from './costs/persist'
 import { useEarthworks } from './plan/useEarthworks'
@@ -131,6 +132,11 @@ export default function App() {
     if (!openedId || plan || !site?.survey || !site.terrain) return
     usePlan.getState().load(emptyPlan(defaultPlacement(site.survey, site.terrain)))
   }, [openedId, plan, site])
+
+  // An older project's street side, kept by its 3D view on this device, becomes its plan's (once).
+  useEffect(() => {
+    if (openedId && plan && project && site?.survey && plan.checks?.frontEdge === undefined) migrateStoredStreetSide(openedId, project, site.survey.boundary)
+  }, [openedId, plan, project, site])
 
   // The card on the Projects home shows this site's area and outline.
   const siteSummary = useMemo(

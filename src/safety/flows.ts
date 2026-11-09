@@ -19,7 +19,9 @@ import { newPlanReview, planReview, projectReview, surveyReview } from './review
 import { askReview, showToast, useSafety } from './store'
 import type { SavedProject } from '../lib/storage'
 import { planBounds } from '../plan/ops'
-import { useCamera } from '../phone/cameraStore'
+import { usePhoneMode } from '../phone/device'
+import { streetSideOf, withStreetSide } from '../plan/streetSide'
+import { askStreetSide } from '../start/streetQuestion'
 
 // ---------------------------------------------------------------------------
 // What the app tells the flows: how to go into the project, and the site it has built.
@@ -136,8 +138,12 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
       await projectActions.saveSurvey(survey)
     } else await projectActions.create(records)
   })
+  // A new project is for drawing on, so a phone opens it in Edit rather than View.
+  usePhoneMode.getState().setMode('edit')
   host.toProject()
   sayFound(survey)
+  // The survey doesn't say where the street is: ask, unless the plan that came with it does.
+  if (!isSketch(survey) && withPlan?.checks?.frontEdge === undefined) askStreetSide(projectsNow().currentId)
 }
 
 // ---------------------------------------------------------------------------
@@ -147,10 +153,9 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
 export async function startSketch(block: SketchBlock, into: OpenOptions['into'] = 'new'): Promise<void> {
   const survey = sketchSurvey(block)
   const site = readSite(survey)
-  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into)
-  // Street view in 3D looks from the street side picked here.
-  const id = projectsNow().currentId
-  if (id) useCamera.getState().setStreetSide(id, block.street)
+  // The street side picked here is the plan's: the checks and Street view in 3D both use it.
+  const start = withStreetSide(emptyPlan(defaultPlacement(site.survey, site.terrain)), site.survey.boundary, block.street)
+  await startWith(survey, start, into)
 }
 
 /** A plan opened with no survey: it goes on a sketch block sized to fit it. */
@@ -202,6 +207,15 @@ export async function replaceSurvey(next: SavedProject): Promise<void> {
     setPlan(moved)
     usePlan.getState().requestFit()
   }
+  // The street side is kept by the way it faces, since the new boundary's sides are numbered
+  // afresh; a sketch's is the one picked for it. A real survey with none set yet asks.
+  const turned = plan()
+  const side = next.sketch ? next.sketch.street : turned && from ? streetSideOf(turned, from.survey.boundary) : 'auto'
+  if (turned && side !== 'auto') {
+    const faced = withStreetSide(turned, to.survey.boundary, side)
+    if (faced.checks?.frontEdge !== turned.checks?.frontEdge) setPlan(faced)
+  }
+  if (!isSketch(next) && plan()?.checks?.frontEdge === undefined) askStreetSide(id)
   const after = plan()
   showToast({
     text: isSketch(old) && !isSketch(next) ? `Your block is now ${next.fileName}.` : `Survey replaced with ${next.fileName}.`,
@@ -274,7 +288,7 @@ export async function newPlan(): Promise<void> {
   setPlan({ ...emptyPlan(current.placement), name: current.name })
   usePlan.getState().setActiveLevel('level_ground')
   showToast({
-    text: 'Started a new, empty plan.',
+    text: 'Started the plan again: it’s empty now.',
     undo: async () => {
       await backTo(id)
       setPlan(current)

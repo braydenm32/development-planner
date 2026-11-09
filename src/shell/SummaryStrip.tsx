@@ -44,23 +44,25 @@ interface Props {
   readOnly?: boolean
 }
 
-function Chip({ id, label, shown, children, title, route, readOnly }: { id: NumberId; label: string; shown?: string; children: ReactNode; title?: string; route: AppRoute; readOnly?: boolean }) {
+function Chip({ id, label, shown, children, title, term, route, readOnly }: { id: NumberId; label: string; shown?: string; children: ReactNode; title?: string; term?: string; route: AppRoute; readOnly?: boolean }) {
   const [area, tab] = HOME[id]
   const go = () => navigate({ kind: 'app', area, tab, view: areaById(area)!.tabs.find(t => t.id === tab)?.view ?? route.view, level: route.level, sel: route.sel })
+  // A chip whose label is a planning word says what it means (src/guide/Term.tsx), with its own note under that.
+  const tip = term ? { 'data-term': term, 'data-term-note': title } : { title }
   if (shown)
     return (
-      <span className="chip ghost" title={`${label} is ${shown}`}>
+      <span className="chip ghost" {...(term ? { 'data-term': term, 'data-term-note': `${label} is ${shown}` } : { title: `${label} is ${shown}` })}>
         {label} <em>{shown}</em>
       </span>
     )
   if (readOnly)
     return (
-      <span className="chip" title={title}>
+      <span className="chip" {...tip}>
         <span className="chip-label">{label}</span> {children}
       </span>
     )
   return (
-    <button className="chip" onClick={go} title={title}>
+    <button className="chip" onClick={go} {...tip}>
       <span className="chip-label">{label}</span> {children}
     </button>
   )
@@ -81,21 +83,21 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                 <b>{m2(n.floorArea)}</b>
               </Chip>
             )}
-            <Chip id="ffl" label="FFL" shown={shown.ffl} route={route} readOnly={readOnly} title="Ground floor level">
+            <Chip id="ffl" label="FFL" shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title="Ground floor level">
               <b>RL {n.ffl.toFixed(2)}</b>
             </Chip>
             {n.earth &&
               (n.earth.outOfBalance && !shown['cut-fill'] && readOnly ? (
                 <span className="chip attn">
                   <Icon name="warn" size={14} />
-                  <span className="attn-text">
+                  <span className="attn-text" data-term="out-of-balance">
                     Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
                   </span>
                 </span>
               ) : n.earth.outOfBalance && !shown['cut-fill'] ? (
                 <span className="chip attn">
                   <Icon name="warn" size={14} />
-                  <button className="attn-text" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}>
+                  <button className="attn-text" data-term="out-of-balance" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}>
                     Out of balance<span className="attn-net"> · {netText(n.earth.net)}</span>
                   </button>
                   <button className="act" onClick={onBalance} title={`Move the floor to RL ${n.earth.balancedRL?.toFixed(2)}, where cut and fill are about equal`}>
@@ -103,37 +105,38 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                   </button>
                 </span>
               ) : (
-                <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly}>
+                <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill">
                   <b>
                     {n.earth.cut.toFixed(1)} · {n.earth.fill.toFixed(1)} m³
                   </b>
                 </Chip>
               ))}
             {n.retaining && (
-              <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
+              <Chip id="retaining" label="Tallest wall" shown={shown.retaining} route={route} readOnly={readOnly} term="retaining-wall" title={`Holds back up to ${retainedText(n.retaining.maxHeight)}`}>
                 <b>{n.retaining.maxHeight.toFixed(2)} m</b>
                 {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_HEIGHT.toFixed(0)} m</span>}
               </Chip>
             )}
             {n.roof && (
-              <Chip id="roof-height" label="Roof" shown={shown['roof-height']} route={route} readOnly={readOnly} title="The most the roof rises above the natural ground under it">
+              <Chip id="roof-height" label="Roof" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The most the roof rises above the natural ground under it">
                 <b>{n.roof.height.toFixed(2)} m</b> above ground
               </Chip>
             )}
             {n.batters &&
               (readOnly && !shown.warnings ? (
-                <span className="chip warn" title={`The earthworks run past ${n.batters}.`}>
+                <span className="chip warn" data-term="batter" data-term-note={`The earthworks run past ${n.batters}.`}>
                   <i className="dot" /> Batters cross {n.batters}
                 </span>
               ) : shown.warnings ? (
-                <span className="chip ghost">
+                <span className="chip ghost" data-term="batter">
                   Batters <em>{shown.warnings}</em>
                 </span>
               ) : (
                 <button
                   className="chip warn"
                   onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan', level: route.level, sel: route.sel })}
-                  title={`The earthworks run past ${n.batters}. Hold them back with a retaining wall, or move the house.`}
+                  data-term="batter"
+                  data-term-note={`The earthworks run past ${n.batters}. Hold them back with a retaining wall, or move the house.`}
                 >
                   <i className="dot" /> Batters cross {n.batters}
                 </button>
@@ -170,6 +173,7 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
 /** The checks: a warning chip when something fails or needs checking, otherwise a quiet label (the strip is crowded on a phone). */
 export function ChecksChip({ checks: { pathway, council, counts }, shown, route, readOnly = false }: { checks: { pathway: Pathway; council: Council | null; counts: CheckCounts }; shown?: string; route: AppRoute; readOnly?: boolean }) {
   const name = pathway === 'cdc' ? 'CDC' : 'DA'
+  const term = pathway === 'cdc' ? 'cdc' : 'da'
   const go = () => navigate({ kind: 'app', area: 'design', tab: 'checks', view: route.view, level: route.level, sel: route.sel })
   const loud = counts.fail + counts.warn > 0
   const against = checkedAgainst(pathway, council)
@@ -177,16 +181,16 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
     const text = counts.unknown ? `${counts.unknown} need${counts.unknown > 1 ? '' : 's'} a fact` : 'pass'
     if (readOnly && !shown)
       return (
-        <span className="chip ghost" title={against}>
+        <span className="chip ghost" data-term={term} data-term-note={against}>
           {name} checks <em>{text}</em>
         </span>
       )
     return shown ? (
-      <span className="chip ghost" title={`The ${name} checks are ${shown}`}>
+      <span className="chip ghost" data-term={term} data-term-note={`The ${name} checks are ${shown}`}>
         {name} checks <em>{shown}</em>
       </span>
     ) : (
-      <button className="chip ghost" onClick={go} title={against}>
+      <button className="chip ghost" onClick={go} data-term={term} data-term-note={against}>
         {name} checks <em>{text}</em>
       </button>
     )
@@ -194,12 +198,12 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const parts = [counts.fail && `${counts.fail} fail${counts.fail > 1 ? 's' : ''}`, counts.warn && `${counts.warn} to check`].filter(Boolean).join(' · ')
   if (readOnly)
     return (
-      <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} title={against}>
+      <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>
         <i className="dot" /> {name} checks · {parts}
       </span>
     )
   return (
-    <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} title={against}>
+    <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} data-term={term} data-term-note={against}>
       <i className="dot" /> {name} checks · {parts}
     </button>
   )

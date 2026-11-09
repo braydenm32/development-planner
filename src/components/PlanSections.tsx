@@ -331,7 +331,7 @@ export function PlanFileBody({ plan }: { plan: Plan }) {
           Import
         </button>
         <button className="secondary danger" onClick={startNewPlan}>
-          New
+          Start again
         </button>
       </div>
       <input
@@ -768,7 +768,7 @@ export function PlacementRotationField({ plan }: { plan: Plan }) {
 
 /** The ground floor's RL (it includes that floor's "Above ground floor" height). */
 export function FloorLevelField({ plan }: { plan: Plan }) {
-  return <Num label="Ground floor level" unit="RL" value={floorRL(plan)} onCommit={rl => setPlacement({ ffl: fflForGroundRL(plan, rl) })} />
+  return <Num label="Ground floor level (FFL)" unit="RL" value={floorRL(plan)} onCommit={rl => setPlacement({ ffl: fflForGroundRL(plan, rl) })} />
 }
 
 export function PlacementActions({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo | null }) {
