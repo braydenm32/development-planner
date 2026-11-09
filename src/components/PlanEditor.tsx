@@ -59,6 +59,7 @@ import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
+import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
 import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
@@ -107,7 +108,8 @@ const emptyDraft = (key: string): Draft => ({ key, chain: [], areaPts: [], typed
 type Drag =
   | { type: 'pan'; sx: number; sy: number; start: View }
   | { type: 'joint'; level: string; from: Vec2; anchor: Vec2 | null; exclude: Set<string> }
-  | { type: 'wall'; id: string; start: Plan; startWorld: Vec2; dir: Vec2 }
+  /** `cycle`: the walls under the press, when the wall was already selected, so a click without a drag steps to the next. */
+  | { type: 'wall'; id: string; start: Plan; startWorld: Vec2; dir: Vec2; cycle?: Wall[] }
   | { type: 'opening'; id: string; wall: Wall }
   | { type: 'room'; id: string; offset: Vec2 }
   | { type: 'areaVertex'; id: string; index: number }
@@ -129,7 +131,7 @@ const VIEW_HINT = {
 }
 
 const HINTS: Record<Tool, string> = {
-  select: 'Click to select. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
+  select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
   wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Hold Shift to turn off snapping. For a retaining wall, use the Retaining wall tool (T).',
   retaining: "Click the retaining wall's start, then its end (or type a length in mm and press Enter). It then asks which side it holds back and how high. Esc cancels.",
   door: 'Click on a wall to add a door.',
@@ -753,19 +755,34 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     setDragKind(drag.current?.type ?? null)
   }
 
+  // The line about walls on one another stays while the wall it names is selected.
+  const stackNote = useRef<{ text: string; id: string } | null>(null)
+  const noteStack = (stack: Wall[], id: string) => {
+    const text = stackNotice(stack, id)
+    stackNote.current = text ? { text, id } : null
+    notify(text)
+  }
+  useEffect(() => {
+    const note = stackNote.current
+    if (!note || (selection?.type === 'wall' && selection.id === note.id)) return
+    stackNote.current = null
+    if (usePlan.getState().notice === note.text) notify(null)
+  }, [selection, notify])
+
   type Hit =
     | { type: 'opening'; item: Opening }
     | { type: 'room'; item: Room }
     | { type: 'furniture'; item: Furniture }
     | { type: 'stair'; item: Stair }
-    | { type: 'wall'; item: Wall }
+    | { type: 'wall'; item: Wall; stack: Wall[] }
     | { type: 'area'; item: Area }
     | { type: 'roof'; item: Roof }
 
   /**
    * What a click at a point picks, in order: a door or window, a room's name, furniture, a
    * stair, a wall, an area, a roof. `insideRooms` also picks a room by a tap anywhere in it,
-   * as a finger on a phone expects.
+   * as a finger on a phone expects. Where walls sit on one another it picks the selected one,
+   * else the top one, with the whole stack so a second click can step to the next.
    */
   const pickAt = (world: Vec2, sx: number, sy: number, insideRooms = false): Hit | null => {
     const op = openingHit(world)
@@ -776,11 +793,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     if (piece) return { type: 'furniture', item: piece }
     const stair = [...stairs].reverse().find(st => stairContains(st, world))
     if (stair) return { type: 'stair', item: stair }
-    const wall = walls.find(w => {
+    const stack = wallStackAt(walls, w => {
       const poly = polys.get(w.id)
       return (poly && pointInPolygon(world[0], world[1], poly)) || closestOnSegment(world, w.a, w.b).dist < w.thickness / 2 + 3 / v.k
     })
-    if (wall) return { type: 'wall', item: wall }
+    const wall = pickFromStack(stack, selection?.type === 'wall' ? selection.id : undefined)
+    if (wall) return { type: 'wall', item: wall, stack }
     const area = plan.areas.find(a => a.level === level && pointInPolygon(world[0], world[1], a.pts))
     if (area) return { type: 'area', item: area }
     if (insideRooms) {
@@ -936,10 +954,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       case 'wall': {
         const wall = hit.item
+        const again = hit.stack.length > 1 && isSel('wall', wall.id)
         select({ type: 'wall', id: wall.id })
+        if (!again) noteStack(hit.stack, wall.id)
         beginGesture()
         const d = wallDir(wall)
-        drag.current = { type: 'wall', id: wall.id, start: plan, startWorld: world, dir: d }
+        drag.current = { type: 'wall', id: wall.id, start: plan, startWorld: world, dir: d, cycle: again ? hit.stack : undefined }
         return
       }
       case 'area':
@@ -1042,6 +1062,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     if (d?.type === 'wall') {
+      if (d.cycle) {
+        // A press on walls that sit on one another: still a click until it moves past the slop.
+        if (downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) <= (e.pointerType === 'touch' ? TAP_SLOP : 4)) return
+        d.cycle = undefined
+      }
       let delta: Vec2 = [world[0] - d.startWorld[0], world[1] - d.startWorld[1]]
       if (!free) {
         // Walls move square to themselves, in 10 mm steps.
@@ -1165,6 +1190,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       if (moved <= TAP_SLOP && comments.click(W(s[0], s[1]))) return
       if (moved > TAP_SLOP || doubleTapped(e, s)) return
       const hit = pickAt(W(s[0], s[1]), s[0], s[1], true)
+      if (hit?.type === 'wall' && hit.stack.length > 1) {
+        // Walls on one another: a tap on the selected one steps to the next.
+        const pick = isSel('wall', hit.item.id) ? (nextInStack(hit.stack, hit.item.id) ?? hit.item) : hit.item
+        select({ type: 'wall', id: pick.id })
+        noteStack(hit.stack, pick.id)
+        return
+      }
       select(hit ? { type: hit.type, id: hit.item.id } : null)
       return
     }
@@ -1220,6 +1252,15 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const moved = downAt.current ? Math.hypot(sx - downAt.current.x, sy - downAt.current.y) : 0
     downAt.current = null
     if (d?.type === 'pan' && moved > 4) settle()
+    if (d?.type === 'wall' && d.cycle && e.button === 0) {
+      // A click on a selected wall with others under it: the next one in the stack.
+      const next = nextInStack(d.cycle, d.id)
+      if (next) {
+        select({ type: 'wall', id: next.id })
+        noteStack(d.cycle, next.id)
+      }
+      return
+    }
     if (e.button !== 0 || moved > 4 || (d && d.type !== 'pan')) return
 
     const world = W(sx, sy)

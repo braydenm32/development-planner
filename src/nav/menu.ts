@@ -364,6 +364,7 @@ export const AREAS: Area[] = [
           'click-select',
           'drag-wall',
           'drag-wall-end-handles',
+          'walls-on-one-another',
           'drag-opening',
           'drag-room-label',
           'drag-stair',

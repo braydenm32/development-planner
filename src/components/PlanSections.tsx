@@ -63,6 +63,7 @@ import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
+import { WallsHere } from './WallsHere'
 import { balanceCutFill, lowestOutline, retainedText, useRetainingWalls } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { DrivewayLevels } from './DrivewayLevels'
@@ -423,6 +424,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     return (
       <section className="selection">
         <h2>{isRetaining(w) ? 'Retaining wall' : 'Wall'}</h2>
+        <WallsHere wall={w} plan={plan} />
         <Num label="Length (centreline)" unit="mm" value={wallLength(w)} min={0.05} onCommit={len => st.commit(p => setWallLength(p, w.id, len))} />
         <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
         <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />

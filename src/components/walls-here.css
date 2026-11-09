@@ -1,0 +1,17 @@
+/* The walls over or under a selected wall, in its panel. */
+.walls-here {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.walls-here > span {
+  color: var(--muted, inherit);
+}
+
+.walls-here button {
+  min-height: 32px;
+}
