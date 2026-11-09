@@ -611,7 +611,7 @@ function NumbersHost({
           />
         )
       ) : (
-        <SummaryStrip route={route} numbers={numbers} checks={{ pathway: checks.pathway, counts: checks.counts }} shown={shown} onBalance={() => run('balance')} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
+        <SummaryStrip route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => run('balance')} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
       )}
       {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
     </>

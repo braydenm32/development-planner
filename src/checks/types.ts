@@ -6,6 +6,9 @@ import type { Vec2 } from '../lib/geom'
 /** CDC: complying development under the Housing Code. DA: development application under the council's LEP and DCP. */
 export type Pathway = 'cdc' | 'da'
 
+/** A council whose LEP and DCP the checks know (src/checks/councils.ts). */
+export type CouncilId = 'wollongong'
+
 /**
  * How sure the research is of a rule, as marked in docs/research:
  * read = from the official text; secondary = from an official explainer or summary;
@@ -46,6 +49,11 @@ export interface CheckResult {
 /** Facts about the block the survey doesn't hold, kept with the plan. */
 export interface CheckSettings {
   pathway: Pathway
+  /**
+   * Which council's rules are switched on for the DA checks. A block is in one council, so at most one is on.
+   * Missing on plans saved before councils could be switched (see checkSettingsOf).
+   */
+  councils?: Partial<Record<CouncilId, boolean>>
   /** The lot reaches the road by an access handle that the survey boundary leaves out. */
   battleAxe: boolean
   /** Lot area on the title, handle included (m²). The LEP measures floor space ratio against it. */
@@ -62,7 +70,7 @@ export interface CheckSettings {
   lepFsr?: number
 }
 
-export const DEFAULT_CHECK_SETTINGS: CheckSettings = { pathway: 'cdc', battleAxe: false }
+export const DEFAULT_CHECK_SETTINGS: CheckSettings = { pathway: 'cdc', battleAxe: false, councils: {} }
 
 /** A tree as the checks see it (adapter over the site features' trees). Positions in the survey's local frame. */
 export interface CheckTree {
