@@ -43,7 +43,7 @@ import {
   updateWall,
 } from '../plan/ops'
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
-import { stairComfort, stairCounts, stairLayout } from '../plan/stairs'
+import { stairComfort, stairCounts, stairLayout, stairMeetsNoFloor } from '../plan/stairs'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
 import { centredPlacement, placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
@@ -64,7 +64,7 @@ import { RoomSun } from '../sun/RoomSun'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
-import { balanceCutFill, lowestOutline, retainedText, useRetainingWalls } from './planNumbers'
+import { balanceCutFill, houseOutline, retainedText, rotateHouse, useRetainingWalls } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { DrivewayLevels } from './DrivewayLevels'
 import { RoofModeSwitch } from './RoofModeSwitch'
@@ -75,6 +75,9 @@ const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'skillion', label: 'Skillion (single slope)' },
   { id: 'flat', label: 'Flat' },
 ]
+
+/** The stair panel's "Goes up to" choice for a top typed in by hand, not joined to a level. */
+const CUSTOM_TOP = '__custom'
 
 const STAIR_SHAPES: { id: StairShape; label: string }[] = [
   { id: 'straight', label: 'Straight' },
@@ -562,6 +565,17 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const counts = stairCounts(s)
     const set = (patch: Partial<typeof s>) => st.commit(p => updateStair(p, s.id, patch))
     const length = s.shape === 'straight' ? (L.risers - 1) * s.going : null
+    // The floors it can go up to: any above its bottom step, or a top typed in by hand.
+    const from = levelById(plan, s.level)
+    const ups = sortedLevels(plan).filter(l => l.id !== s.level && l.elevation > (from?.elevation ?? 0) + s.base + 0.1)
+    const joined = typeof s.toLevel === 'string' ? s.toLevel : CUSTOM_TOP
+    const goesTo = [...ups.map(l => ({ id: l.id, label: l.name })), { id: CUSTOM_TOP, label: 'Custom top RL' }]
+    const typedTop = (t: number) => {
+      if (t <= bottom + 0.1) return
+      // Typing the joined floor's own level keeps it joined; any other top is the person's own.
+      const keep = typeof s.toLevel === 'string' && Math.abs(floorRL(plan, s.toLevel) - t) < 0.0005
+      set({ rise: t - bottom, ...(keep ? {} : { toLevel: null }) })
+    }
     return (
       <section className="selection">
         <h2>Stair</h2>
@@ -579,8 +593,12 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         )}
         <Num label="Width" unit="mm" value={s.width} min={0.5} onCommit={width => set({ width })} />
         <Num label="Tread depth (going)" unit="mm" value={s.going} min={0.15} onCommit={going => set({ going })} />
+        <Select label="Goes up to" value={joined} options={goesTo} onChange={id => set({ toLevel: id === CUSTOM_TOP ? null : id })} />
         <Num label="Bottom" unit="RL" value={bottom} onCommit={b => b < top - 0.1 && set({ base: b - floorRL(plan, s.level), rise: top - b })} />
-        <Num label="Top" unit="RL" value={top} onCommit={t => t > bottom + 0.1 && set({ rise: t - bottom })} />
+        <Num label="Top" unit="RL" value={top} onCommit={typedTop} />
+        {stairMeetsNoFloor(plan, s) && (
+          <p className="notice small">Its top (RL {top.toFixed(2)}) meets no floor. Pick the level it goes up to, or add a level above.</p>
+        )}
         <Num label="Direction" unit="°" value={s.angle} onCommit={angle => set({ angle: ((angle % 360) + 360) % 360 })} />
         <dl className="stats">
           <FragmentRow label="Risers" value={counts.risers} />
@@ -604,7 +622,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             Start on the ground
           </button>
         </div>
-        <p className="muted small">Drag the stair to move it. The level above gets an opening where the stair arrives.</p>
+        <p className="muted small">Drag the stair to move it. The floor it goes up to gets an opening where the stair arrives, and its top follows that floor's level.</p>
         <div className="row">{del}</div>
       </section>
     )
@@ -790,7 +808,7 @@ export function PlacementOriginFields({ plan }: { plan: Plan }) {
 }
 
 export function PlacementRotationField({ plan }: { plan: Plan }) {
-  return <Num label="Rotation (anticlockwise)" unit="°" value={plan.placement.rotation} onCommit={rotation => setPlacement({ rotation })} />
+  return <Num label="Rotation (anticlockwise)" unit="°" value={plan.placement.rotation} onCommit={rotation => setPlacement(rotateHouse(plan, rotation))} />
 }
 
 /** The ground floor's RL (it includes that floor's "Above ground floor" height). */
@@ -806,7 +824,7 @@ export function PlacementActions({ plan, survey, info }: { plan: Plan; survey: S
     let r = closest.angle
     while (r > 45) r -= 90
     while (r <= -45) r += 90
-    setPlacement({ rotation: Math.round(r * 10) / 10 })
+    setPlacement(rotateHouse(plan, Math.round(r * 10) / 10))
   }
 
   const centreOnBlock = () => {
@@ -835,11 +853,13 @@ export function PlacementActions({ plan, survey, info }: { plan: Plan; survey: S
 
 export function GroundUnderHouse({ plan, info }: { plan: Plan; info: PlacementInfo }) {
   const ffl = floorRL(plan)
+  // The ground is under every level; the floor compared with it is the lowest one.
+  const floor = plan.levels.length > 1 ? 'Lowest floor' : 'Floor'
   return (
     <dl className="stats">
-      <FragmentRow label="Ground under the house" value={`RL ${info.minRL.toFixed(2)} to ${info.maxRL.toFixed(2)}`} />
-      <FragmentRow label="Floor vs highest ground" value={`${Math.abs(ffl - info.maxRL).toFixed(2)} m ${ffl >= info.maxRL ? 'above' : 'below'}`} />
-      <FragmentRow label="Floor vs lowest ground" value={`${Math.abs(ffl - info.minRL).toFixed(2)} m ${ffl >= info.minRL ? 'above' : 'below'}`} />
+      <FragmentRow label={plan.levels.length > 1 ? 'Ground under the house (all levels)' : 'Ground under the house'} value={`RL ${info.minRL.toFixed(2)} to ${info.maxRL.toFixed(2)}`} />
+      <FragmentRow label={`${floor} vs highest ground`} value={`${Math.abs(ffl - info.maxRL).toFixed(2)} m ${ffl >= info.maxRL ? 'above' : 'below'}`} />
+      <FragmentRow label={`${floor} vs lowest ground`} value={`${Math.abs(ffl - info.minRL).toFixed(2)} m ${ffl >= info.minRL ? 'above' : 'below'}`} />
     </dl>
   )
 }
@@ -849,15 +869,17 @@ export function GroundUnderHouse({ plan, info }: { plan: Plan; info: PlacementIn
  * side. A side the house goes past shows how far, below its field in red, and a negative distance.
  */
 export function BoundaryDistances({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo }) {
-  const gross = useMemo(() => lowestOutline(plan), [plan])
+  const gross = useMemo(() => houseOutline(plan).rings, [plan])
   return (
     <>
       <h3>Distance to boundary</h3>
-      <p className="muted small">Type a distance to slide the house square to that side.</p>
+      <p className="muted small">
+        Type a distance to slide the house square to that side.{info.sides.some(s => s.level) && ' Each is measured from the nearest level.'}
+      </p>
       {info.sides.map((s, i) => (
         <div key={i} className={s.over > 0 ? 'boundary-over' : undefined}>
           <Num
-            label={sideLabel(info.sides, s)}
+            label={s.level ? `${sideLabel(info.sides, s)}, ${s.level}` : sideLabel(info.sides, s)}
             unit="mm"
             value={Math.round(signedClearance(s) * 1000) / 1000}
             min={0}

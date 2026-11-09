@@ -6,6 +6,7 @@ import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
+import { linkStairs } from './stairs'
 
 /**
  * A house plan. All plan geometry is in metres in the house's own frame
@@ -232,8 +233,18 @@ export interface Stair {
   width: number
   /** Height of the bottom of the stair above the level's floor (m); negative is below it. */
   base: number
-  /** Total height climbed (m). */
+  /**
+   * Total height climbed (m). With `toLevel` set it follows that level: the app keeps it at the
+   * gap between the two floors less `base` (see followLevels in ./stairs).
+   */
   rise: number
+  /**
+   * The level the stair goes up to, so its top follows that floor when a level's height changes.
+   * null: a top RL the person typed, left where they put it. Missing (plans saved before stairs
+   * were joined to levels, or a stair on the top level): joined on load to the one level its top
+   * meets, when there is just one.
+   */
+  toLevel?: string | null
   /** Tread depth (m). */
   going: number
   shape: StairShape
@@ -358,7 +369,7 @@ export function emptyPlan(placement: Placement): Plan {
 
 /** Fill in anything an older saved plan is missing. */
 export function normalizePlan(p: Plan): Plan {
-  return migrateFloorTypes({
+  return linkStairs(migrateFloorTypes({
     ...p,
     rooms: p.rooms ?? [],
     openings: p.openings ?? [],
@@ -370,7 +381,7 @@ export function normalizePlan(p: Plan): Plan {
     // Kept only when there are some, so older plans load exactly as they were saved.
     ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
-  })
+  }))
 }
 
 /** A saved plan's grading, kept only when there's some to keep. */

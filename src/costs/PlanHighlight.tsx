@@ -37,7 +37,7 @@ export function CostsPlanLayer(props: Props) {
   return <Highlight {...props} target={pointed.target} />
 }
 
-function Highlight({ plan, level, survey, terrain, earth, S, k, target }: Props & { target: Target }) {
+export function Highlight({ plan, level, survey, terrain, earth, S, k, target }: Props & { target: Target }) {
   const ids = useMemo(() => new Set(target.ids ?? []), [target])
   const walls = plan.walls.filter(w => w.level === level)
   const site = (p: Vec2) => S(fromSite(p, plan.placement, survey.origin))
@@ -52,8 +52,12 @@ function Highlight({ plan, level, survey, terrain, earth, S, k, target }: Props 
     }
     case 'walls':
     case 'retaining': {
-      const polys = wallPolygons(walls)
-      for (const [id, poly] of polys) if (ids.has(id)) shapes.push({ d: path(poly, S), cls: 'solid' })
+      // A cost line counts walls on every level: those on other floors show as outlines, so the
+      // line's whole count is on the plan, and this floor's stand out.
+      for (const l of plan.levels) {
+        const polys = l.id === level ? wallPolygons(walls) : wallPolygons(plan.walls.filter(w => w.level === l.id && ids.has(w.id)))
+        for (const [id, poly] of polys) if (ids.has(id)) shapes.push({ d: path(poly, S), cls: l.id === level ? 'solid' : 'line' })
+      }
       break
     }
     case 'openings': {
@@ -81,7 +85,8 @@ function Highlight({ plan, level, survey, terrain, earth, S, k, target }: Props 
       break
     }
     case 'areas':
-      for (const a of plan.areas) if (a.level === level && ids.has(a.id)) shapes.push({ d: path(a.pts, S), cls: 'fill' })
+      // As for walls: areas drawn on other floors (a split level's slab under its rooms) as outlines.
+      for (const a of plan.areas) if (ids.has(a.id)) shapes.push({ d: path(a.pts, S), cls: a.level === level ? 'fill' : 'line' })
       break
     case 'roofs':
       // Every roof, whatever floor it sits on: a roof plan over the floor plan.
