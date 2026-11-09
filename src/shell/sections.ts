@@ -80,6 +80,8 @@ export const TAB_TOOL: Record<string, Tool> = {
   'design/roofs': 'roof',
   'design/furniture': 'furniture',
   'earthworks/retaining-walls': 'retaining',
+  // Place has Move the house and says how to use it.
+  'earthworks/place': 'move',
 }
 
 /** What floats beside the plan on a desktop, on the right, for a tab that has more to show there. */

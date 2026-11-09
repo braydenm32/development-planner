@@ -5,7 +5,7 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { onNaturalGround } from '../plan/floorTypes'
 import { planarFaces, roomShape } from '../plan/geometry'
-import { floorVsGround, formatOffset, groundRange, groundUnder, levelFloorRL, type GroundOverlay as Overlay } from '../plan/groundOverlay'
+import { floorVsGround, formatOffset, groundRange, groundUnder, levelFloorRL, type GroundOverlay as Overlay, type WorksOverlay as Works } from '../plan/groundOverlay'
 import { sortedLevels, type Plan, type Room } from '../plan/model'
 
 const FILL = rgbCss(FILL_RGB)
@@ -48,6 +48,10 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
   const matrix = [ex[0] - at[0], ex[1] - at[1], ey[0] - at[0], ey[1] - at[1], at[0], at[1]].map(n => n.toFixed(4)).join(' ')
   const label = meetsLabel(o.meets, toScreen, size, avoid, within)
   const box = { x: 0, y: 0, width: size.w, height: size.h }
+  // Hatched as well as shaded, so this tint (the floor against the ground, over the whole block)
+  // never reads as the cut and fill itself, which Earthworks › Cut & fill shows solid.
+  const unit = Math.hypot(ex[0] - at[0], ex[1] - at[1]) || 1
+  const gap = 9 / unit
   return (
     <g className="ground-overlay" mask={near ? 'url(#ground-near)' : undefined}>
       {near && (
@@ -68,8 +72,17 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
         <clipPath id="ground-clip">
           <path d={o.clip} />
         </clipPath>
+        <defs>
+          {(['above', 'below'] as const).map(side => (
+            <pattern key={side} id={`ground-hatch-${side}`} patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform="rotate(45)">
+              <line x1={0} y1={0} x2={0} y2={gap} stroke={side === 'above' ? FILL : CUT} strokeWidth={1.4 / unit} strokeOpacity={subtle ? 0.25 : 0.45} />
+            </pattern>
+          ))}
+        </defs>
         {o.above.map((d, k) => d && <path key={`above-${k}`} d={d} fill={FILL} fillOpacity={layerOpacity(k, subtle)} fillRule="evenodd" />)}
         {o.below.map((d, k) => d && <path key={`below-${k}`} d={d} fill={CUT} fillOpacity={layerOpacity(k, subtle)} fillRule="evenodd" />)}
+        {o.above[0] && <path d={o.above[0]} fill="url(#ground-hatch-above)" fillRule="evenodd" />}
+        {o.below[0] && <path d={o.below[0]} fill="url(#ground-hatch-below)" fillRule="evenodd" />}
         <path className="ground-meets-halo" d={o.meetsPath} />
         <path className="ground-meets" d={o.meetsPath} />
       </g>
@@ -78,6 +91,32 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
           Ground meets floor (RL {o.rl.toFixed(2)})
         </text>
       )}
+    </g>
+  )
+}
+
+/** How strongly each layer of the works tint is painted: clearly there from the first 20 mm, a shade more every half metre. */
+const worksOpacity = (k: number) => (k === 0 ? 0.22 : 0.12)
+
+/**
+ * The cut and fill itself, on Earthworks › Cut & fill: the finished ground against the natural
+ * ground, solid and only where the earth is moved, with a line round the edge of the works.
+ */
+export function WorksTint({ overlay: o, toScreen }: { overlay: Works; toScreen: (p: Vec2) => Vec2 }) {
+  const at = toScreen([o.x0, o.y0])
+  const ex = toScreen([o.x0 + o.cell, o.y0])
+  const ey = toScreen([o.x0, o.y0 + o.cell])
+  const matrix = [ex[0] - at[0], ex[1] - at[1], ey[0] - at[0], ey[1] - at[1], at[0], at[1]].map(n => n.toFixed(4)).join(' ')
+  return (
+    <g className="ground-overlay works-tint">
+      <g transform={`matrix(${matrix})`} clipPath="url(#works-clip)">
+        <clipPath id="works-clip">
+          <path d={o.clip} />
+        </clipPath>
+        {o.fill.map((d, k) => d && <path key={`fill-${k}`} d={d} fill={FILL} fillOpacity={worksOpacity(k)} fillRule="evenodd" />)}
+        {o.cut.map((d, k) => d && <path key={`cut-${k}`} d={d} fill={CUT} fillOpacity={worksOpacity(k)} fillRule="evenodd" />)}
+        <path className="works-edge" d={o.edge} />
+      </g>
     </g>
   )
 }
@@ -203,21 +242,50 @@ export function LevelChip({ name, rl, below, action }: { name: string; rl: numbe
   )
 }
 
-/** Turns the ground tint on and off, with a key to its colours. */
-export function GroundKey({ on, onChange, lowest, children }: { on: boolean; onChange: (on: boolean) => void; lowest: boolean; children?: ReactNode }) {
+/**
+ * Turns the ground tint on and off, with a key to its colours. `works`: the tint is the cut and
+ * fill itself (Earthworks › Cut & fill), not the floor against the ground.
+ */
+export function GroundKey({
+  on,
+  onChange,
+  lowest,
+  works = false,
+  children,
+}: {
+  on: boolean
+  onChange: (on: boolean) => void
+  lowest: boolean
+  works?: boolean
+  children?: ReactNode
+}) {
   return (
     <div className="ground-key">
       <label className="check">
         <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-        Ground vs this floor
+        {works ? 'Cut and fill' : 'Ground vs this floor'}
       </label>
-      {on && (
+      {on && works && (
         <ul>
           <li>
-            <i style={{ background: FILL }} /> Floor above ground{lowest ? ' (fill or piers)' : ''}
+            <i className="solid" style={{ background: CUT }} /> Ground cut down
           </li>
           <li>
-            <i style={{ background: CUT }} /> Floor below ground (cut)
+            <i className="solid" style={{ background: FILL }} /> Ground filled up
+          </li>
+          <li>
+            <i className="works" /> Edge of the works
+          </li>
+          <li className="small">A shade darker every 0.5 m</li>
+        </ul>
+      )}
+      {on && !works && (
+        <ul>
+          <li>
+            <i className="hatch" style={{ backgroundColor: FILL }} /> Floor above ground{lowest ? ' (fill or piers)' : ''}
+          </li>
+          <li>
+            <i className="hatch" style={{ backgroundColor: CUT }} /> Floor below ground (cut)
           </li>
           <li>
             <i className="meets" /> Ground meets floor

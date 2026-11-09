@@ -538,6 +538,12 @@ body:has(.app-shell.phone) {
   width: min(320px, calc(100vw - 2 * var(--gap) - 16px));
 }
 
+/* Opened, the key holds the layer switches: solid, so the plan's lines don't show through its text. */
+.key-pop .ground-key {
+  background: var(--panel, #fff);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.22);
+}
+
 .app-shell.phone .key-pop .ground-key {
   border-radius: calc(var(--r) + 3px);
   box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.22);

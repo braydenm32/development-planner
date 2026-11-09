@@ -634,6 +634,7 @@ export const AREAS: Area[] = [
           'grade-wall-suggestions',
           'balance-keep-net',
           'implied-retaining-walls',
+          'cut-fill-works-tint',
           'cut-fill-folds',
         ],
       },
@@ -717,6 +718,7 @@ export const AREAS: Area[] = [
           'driveway-long-section',
           'driveway-crossing-checks',
           'driveway-from-slab',
+          'driveway-spot-on-line',
         ],
       },
       {
@@ -987,7 +989,7 @@ export const AREAS: Area[] = [
 const TOOL_FEATURES: Partial<Record<Tool, string[]>> = {
   select: ['tool-select'],
   wall: ['tool-wall', 'new-wall-thickness', 'new-wall-kind', 'new-tool-settings-kept'],
-  retaining: ['tool-retaining', 'new-retaining-type'],
+  retaining: ['tool-retaining', 'new-retaining-type', 'tool-card-compact'],
   door: ['tool-door', 'new-opening-width', 'new-opening-height'],
   window: ['tool-window', 'new-window-sill'],
   room: ['tool-room'],

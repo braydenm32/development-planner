@@ -4,7 +4,7 @@ import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, closestOnSegment, planarFaces, roomShape, wallPolygons } from '../plan/geometry'
-import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes } from '../plan/groundOverlay'
+import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
 import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
   areaKind,
@@ -57,7 +57,7 @@ import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
 import { finishedContours, finishedShown, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
-import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
+import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip, WorksTint } from './GroundOverlay'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
@@ -217,6 +217,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const newRetaining = useRetaining(s => s.newWall)
   // Earthworks › Retaining walls tags every wall with its height, and its list lights the wall pointed at or zooms to it.
   const onRetainingTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'retaining-walls')
+  const onCutFillTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'cut-fill')
   const wallHover = useWallFocus(s => s.hover)
   const wallChanged = useWallFocus(s => s.changed)
   const wallZoom = useWallFocus(s => s.zoom)
@@ -349,6 +350,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const contours = useMemo(
     () => (earth && earth.result.cut + earth.result.fill > 0.01 ? finishedContours(survey, terrain.grid, earth.result.grid, earth.strips) : null),
     [earth, survey, terrain],
+  )
+  // On Earthworks › Cut & fill the tint is the cut and fill itself, only where the earth is moved,
+  // in place of the floor against the ground over the whole block (which reads as cut far past the batters).
+  const works = useMemo(
+    () => (onCutFillTab && showGround && earth && earth.result.cut + earth.result.fill > 0.01 ? worksOverlay(earth.prep.natural, earth.result.grid, survey.boundary) : null),
+    [onCutFillTab, showGround, earth, survey],
   )
   // Drawn as the user last chose; until then only in Earthworks, where the ground is the subject.
   const [finishedPref, setFinishedPref] = useState(readFinishedPref)
@@ -1969,7 +1976,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {/* Stairs coming up through this floor: the hole in it, over the rooms' fill */}
         <g className="arriving-stairs">{arrivingStairs.map(st => stairSymbol(st, false, false, true))}</g>
 
-        {ground && (
+        {works && <WorksTint overlay={works} toScreen={p => S(fromSite(p, plan.placement, survey.origin))} />}
+        {ground && !works && (
           <GroundOverlay
             near={
               nearHouse && {
@@ -2189,7 +2197,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           </div>
         )}
         <KeyChip>
-          <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest}>
+          <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest} works={onCutFillTab && !!earth && earth.result.cut + earth.result.fill > 0.01}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
             {comments.key}

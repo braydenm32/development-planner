@@ -131,7 +131,8 @@ export default function App() {
     if (on !== apart) changePrintPrefs({ apart: on })
   }
   // Setbacks on the plan: always in Earthworks › Place, elsewhere when the plan's key switches them on.
-  const placing = route.kind === 'app' && route.area === 'earthworks' && route.tab === 'place'
+  const inEarthworks = route.kind === 'app' && route.area === 'earthworks'
+  const placing = inEarthworks && route.tab === 'place'
 
   // A project with no plan yet starts an empty one on its block (saved to that project).
   useEffect(() => {
@@ -250,9 +251,10 @@ export default function App() {
             onShowGroundChange={planGround => changeView({ ...view, planGround })}
             earth={earth}
             viewKey={openedId}
-            showSetbacks={placing || view.planSetbacks}
-            setbacksSwitch={placing ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
-            earthworks={route.kind === 'app' && route.area === 'earthworks'}
+            // In Earthworks the boundary distances are Place's: shown there, and not repeated as a Key switch on its other tabs.
+            showSetbacks={placing || (view.planSetbacks && !inEarthworks)}
+            setbacksSwitch={placing || inEarthworks ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
+            earthworks={inEarthworks}
           />
         ) : null
       ) : site?.survey && site.terrain && site.solid && mode === 'print' ? (

@@ -922,6 +922,18 @@ button.chip:hover .chip-label {
   font-weight: 600;
 }
 
+.tool-card.compact > header {
+  gap: 4px;
+}
+
+.tool-card.compact h2 {
+  margin-right: auto;
+}
+
+.tool-card.compact > header:only-child {
+  border-bottom: 0;
+}
+
 .tool-card .tool-options,
 .tool-card > p {
   margin: 0;

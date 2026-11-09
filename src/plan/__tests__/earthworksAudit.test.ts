@@ -15,6 +15,10 @@ import { firstFloorPlan, levelGrounds, meanGroundUnder } from '../levelGround'
 import { areaKind, floorRL, fromSite, type Area, type Plan, type Wall } from '../model'
 import { asDriveway, driveReason, driveSlabs } from '../driveFromSlab'
 import type { Vec2 } from '../../lib/geom'
+import { Heightfield } from '../../lib/terrain'
+import { superlevel, worksOverlay } from '../groundOverlay'
+import { kerbLevel, kerbText } from '../../checks/crossing'
+import type { CrossingShape, DriveLine } from '../crossing'
 import { retainingProfile } from '../retaining'
 import { answerRunHeight, cancelNewRetaining, extendRun, keepNewRetaining, newRetainingWall, placeRetainingWall, useRetaining } from '../retainingSession'
 import { usePlan } from '../store'
@@ -193,5 +197,41 @@ describe('a driveway drawn as a concrete slab', () => {
     expect(areaKind(made.areas.find(a => a.id === 'a1')!)).toBe('driveway')
     expect(made.areas.find(a => a.id === 'a1')!.name).toBe('Concrete slab driveway')
     expect(driveSlabs(made, survey).map(x => x.area.id)).toEqual(['a3'])
+  })
+})
+
+describe('the cut and fill tint', () => {
+  it('shows only where the ground is moved, in half-metre shades', () => {
+    // A flat 20 x 20 m grid with a 1.2 m pit dug in its middle 6 x 6 m.
+    const n = 21
+    const flat = new Float32Array(n * n).fill(50)
+    const dug = flat.slice()
+    for (let j = 7; j <= 13; j++) for (let i = 7; i <= 13; i++) dug[j * n + i] = 48.8
+    const natural = new Heightfield(0, 0, 1, n, n, flat)
+    const finished = new Heightfield(0, 0, 1, n, n, dug)
+    const o = worksOverlay(natural, finished, [[0, 0], [20, 0], [20, 20], [0, 20]])
+    // Cut to 0.5 and 1.0 m, not to 1.5 m; no fill at all.
+    expect(o.cut.map(d => d.length > 0)).toEqual([true, true, true, false, false])
+    expect(o.fill.every(d => d === '')).toBe(true)
+    expect(o.edge.length).toBeGreaterThan(0)
+    // The edge of the works stays within a cell of the pit: nowhere near the block's edge.
+    const moved = new Float64Array(n * n).map((_, k) => Math.abs(dug[k] - flat[k]))
+    const pts = superlevel(moved, n, n, 0.02).lines.flat()
+    expect(Math.min(...pts.map(p => Math.min(p[0], p[1])))).toBeGreaterThan(6)
+    expect(Math.max(...pts.map(p => Math.max(p[0], p[1])))).toBeLessThan(14)
+    // Worked out once for each result.
+    expect(worksOverlay(natural, finished, [[0, 0], [20, 0], [20, 20], [0, 20]])).toBe(o)
+  })
+})
+
+describe('the kerb chosen for the street end', () => {
+  it('is the one the crossing starts from, after a typed one', () => {
+    const shape = { footpath: 3, fall: 0.025, ramp: [{ length: 0.45, rise: 0.15 }] } as unknown as CrossingShape
+    const line = { boundary: [0, 0], natural: 81, facts: {}, chosenKerb: 80.4 } as unknown as DriveLine
+    const k = kerbLevel(line, shape)!
+    expect(k).toEqual({ rl: 80.4, from: 'chosen' })
+    expect(kerbText(k, shape)).toMatch(/chosen for the drive’s street end/)
+    expect(kerbLevel({ ...line, facts: { kerb: { rl: 80.1, from: 'typed' } } } as DriveLine, shape)).toEqual({ rl: 80.1, from: 'typed' })
+    expect(kerbLevel({ ...line, chosenKerb: undefined } as DriveLine, shape)!.from).toBe('survey')
   })
 })
