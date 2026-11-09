@@ -76,6 +76,7 @@ export function Privacy() {
           <li>your sign-in sessions, as hashes of their tokens;</li>
           <li>your projects and everything in them: survey, plan, site features, costs, and each project’s settings;</li>
           <li>your view-only links: a hash of each link’s token, when it was made, last opened and ended or expires (not who opened it);</li>
+          <li>comments left on your links that take them (see below);</li>
           <li>short-lived counters to slow down guessing and abuse, which can include your IP address and are cleared after a day or so.</li>
         </ul>
         <p>Like any web host, Cloudflare handles your IP address and the usual request details to deliver the page. We don’t use them to identify you.</p>
@@ -86,6 +87,9 @@ export function Privacy() {
       <S id="links" title="View-only links">
         <p>
           A view-only link shows the survey and plan of that project to anyone who has the link, with no sign-in. Share it only with people you’re happy to see your block and house. You can end a link at any time from the project, and links stop working when you delete your account. A link’s page asks search engines not to list it and doesn’t pass on where the visitor came from.
+        </p>
+        <p>
+          If you tick Comments on a link, anyone with it can pin a short note on the plan for you. For each comment we keep its text, where on the plan it sits, the name the commenter chose to give (if any), when it was left and whether you’ve marked it done. To let them see their own comments again, their browser keeps a random token and we keep only a hash of it. We don’t ask for an email or sign-in, and we keep nothing else about them. You can delete a comment at any time. Comments go when you end the link (after a short while to undo) or delete your account.
         </p>
       </S>
       <S id="use" title="What we use it for">

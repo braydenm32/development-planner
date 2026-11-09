@@ -77,6 +77,7 @@ import { StreetAsk } from '../start/StreetAsk'
 import { useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
+import { useCommentsPlan } from '../comments/PlanComments'
 import { DrainageLayer } from '../drainage/DrainageLayer'
 import { costsUndoKey } from '../costs/store'
 import './editing.css'
@@ -504,6 +505,17 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     finished: planContourLines ? (contours?.finished ?? null) : null,
     siteActive: site.active,
     viewOnly,
+  })
+  // Comments from share links: their pins, and on a shared view, tapping a spot for a new one.
+  const comments = useCommentsPlan({
+    plan,
+    level,
+    S,
+    size,
+    fitTo: pts => {
+      setAround({ pts, token: fitToken })
+      setView(null)
+    },
   })
   // Section lines: drawing one with two clicks, and their A–A marks while Design › Sections is open.
   const sections = useSectionMarks({ plan, S, k: v.k, viewOnly })
@@ -1127,6 +1139,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const moved = downAt.current ? Math.hypot(s[0] - downAt.current.x, s[1] - downAt.current.y) : Infinity
       downAt.current = null
       if (moved > TAP_SLOP) settle()
+      if (moved <= TAP_SLOP && comments.click(W(s[0], s[1]))) return
       if (moved > TAP_SLOP || doubleTapped(e, s)) return
       const hit = pickAt(W(s[0], s[1]), s[0], s[1], true)
       select(hit ? { type: hit.type, id: hit.item.id } : null)
@@ -2017,6 +2030,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <SnapMarker p={S(cursor.p)} kind={cursor.kind} />
         )}
       </svg>
+      {comments.pins}
 
       <div className="plan-compass" title="North">
         <div className="needle" style={{ ['--az' as string]: `${northDeg}deg` }}>
@@ -2043,6 +2057,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
+            {comments.key}
             <ShadowsKey />
           </GroundKey>
         </KeyChip>
@@ -2054,6 +2069,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {site.bar}
       {site.chips}
       {flow.html}
+      {comments.html}
       {mn.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}

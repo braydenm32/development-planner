@@ -1,10 +1,11 @@
 // The Contour & Gable Worker: one origin for the built app (Workers static assets) and its
 // API under /api/ (./api.ts), so the session cookie is first-party everywhere (Safari blocks the
-// other kind), plus an hourly clean-up of deleted accounts. The main module exports only its
-// handlers: workerd refuses anything else here.
+// other kind), plus an hourly clean-up of deleted accounts and of comments on links turned off.
+// The main module exports only its handlers: workerd refuses anything else here.
 
 import { purgeAccounts } from './account'
 import { handleApi } from './api'
+import { tidyComments } from './comments'
 import type { Env } from './env'
 
 export default {
@@ -15,8 +16,9 @@ export default {
     return new Response('Not found', { status: 404 })
   },
 
-  /** The cron trigger (wrangler.toml): deletes, for good, accounts whose 30 days are up. */
+  /** The cron trigger (wrangler.toml): deletes, for good, accounts whose 30 days are up, and comments on links turned off. */
   async scheduled(_controller: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     ctx.waitUntil(purgeAccounts(env, Date.now()))
+    ctx.waitUntil(tidyComments(env, Date.now()))
   },
 }

@@ -3,6 +3,7 @@
 // "open in new tab" all work; a plain click goes there without reloading.
 
 import { useEffect, useRef } from 'react'
+import { CommentsBadge } from '../comments/OwnerComments'
 import { Icon, Logo } from '../nav/icons'
 import { AREAS, areaById, MORE } from '../nav/menu'
 import { PROJECTS, tabRoute, type AppRoute, type Route } from '../nav/route'
@@ -23,6 +24,7 @@ export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant:
           <a key={a.id} className={`area-link${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} {...linkTo(tabRoute(route, a.id, a.defaultTab), go)}>
             <Icon name={a.icon!} size={variant === 'rail' ? 20 : 22} />
             <span>{a.label}</span>
+            {a.id === 'share' && <CommentsBadge keep />}
           </a>
         )
       })}
@@ -45,6 +47,7 @@ export function TabBar({ route, go }: { route: AppRoute; go: Go }) {
         return (
           <a key={t.id} className={`tab${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} {...linkTo(tabRoute(route, area.id, t.id), go)}>
             {t.label}
+            {area.id === 'share' && t.id === 'send' && <CommentsBadge />}
           </a>
         )
       })}

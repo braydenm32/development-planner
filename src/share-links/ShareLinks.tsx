@@ -1,9 +1,12 @@
 // Share › Send: "Share a view-only link" for the open project, lasting 30 days, 90 days or a
 // year, the link just made with Copy and the phone's share sheet, and the project's links with
 // when each was made, works until and was last opened, each with Add 30 days and Turn off. Only
-// where the app has its cloud (not on GitHub Pages).
+// where the app has its cloud (not on GitHub Pages). A link can take comments on the plan too:
+// its ticks, its count and the comments left are from src/comments.
 
 import { useEffect, useRef, useState } from 'react'
+import { CommentsSection, LinkCommentCount, LinkCommentsSetting, NextLinkComments } from '../comments/OwnerComments'
+import { commentActions } from '../comments/store'
 import { cloudActions, useCloud, type CloudState } from '../cloud/state'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
@@ -46,10 +49,18 @@ export function ShareLinksSection() {
 
   // The list, once signed in and the project is in the cloud (again when it opens or arrives there).
   useEffect(() => {
-    if (phase === 'signed-in' && projectId && inCloud) void shareLinkActions.load(projectId)
+    if (phase === 'signed-in' && projectId && inCloud) {
+      void shareLinkActions.load(projectId)
+      void commentActions.loadOwner(projectId)
+    }
   }, [phase, projectId, inCloud])
 
-  return <ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={now} />
+  return (
+    <>
+      <ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={now} />
+      {phase === 'signed-in' && projectId && <CommentsSection projectId={projectId} />}
+    </>
+  )
 }
 
 /** What the section shows for the cloud's phase, the open project and its links. */
@@ -97,6 +108,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
           ))}
         </div>
       </div>
+      <NextLinkComments mode={state.comments} disabled={busy} />
       <button className="sl-btn primary" disabled={busy} onClick={() => void shareLinkActions.make(projectId)}>
         <Icon name="link" size={16} />
         {busy ? (making === 'upload' ? 'Saving to the cloud…' : 'Making the link…') : inCloud ? 'Share a view-only link' : 'Save to the cloud and share a link'}
@@ -124,7 +136,9 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
                     <span className={until.soon ? 'sl-soon' : undefined}>{until.text}</span>
                     {' · '}
                     {l.lastOpened ? `last opened ${edited(l.lastOpened, now)}` : 'not opened yet'}
+                    <LinkCommentCount link={l} />
                   </span>
+                  <LinkCommentsSetting projectId={projectId} link={l} />
                   <span className="sl-acts">
                     {l.expires !== null && (
                       <button

@@ -47,6 +47,7 @@ const ICONS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   pin: '<path d="M12 21s-6-5.6-6-10.2a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><circle cx="12" cy="10.8" r="2.2"/>',
+  comment: '<path d="M4.5 5.5h15v10.2h-8.3L7 19.5v-3.8H4.5z"/><path d="M8.5 9.4h7M8.5 12.2h4.5"/>',
   scale: '<path d="M12 4v16M6 20h12"/><path d="M5 8h14"/><path d="m5 8-2.6 6h5.2zM19 8l-2.6 6h5.2z"/>',
   sliders: '<path d="M4 7h9.5M18 7h2M4 17h3.5M11.5 17H20"/><circle cx="15.8" cy="7" r="2.2"/><circle cx="9.5" cy="17" r="2.2"/>',
   send: '<path d="M4.5 11.5 20 4l-6.6 16-2.2-6.4z"/><path d="m11.2 13.6 3.6-3.6"/>',
