@@ -53,6 +53,8 @@ export interface HeightRule {
 /** da-storeys: the most storeys, and fewer on a battle-axe lot unless the DCP's objectives are met (a warning, not a fail). */
 export interface StoreysRule {
   max: number
+  /** The DCP says "generally": more storeys warn, with this note, rather than fail. */
+  generally?: string
   source: RuleSource
   battleAxe?: { max: number; note: string; source: RuleSource }
 }
@@ -68,28 +70,49 @@ export interface FsrRule {
   source: RuleSource
 }
 
-/** da-front: the front setback (m). */
-export interface FrontRule {
+/**
+ * The front setback for a band of site area (m). With `average`, the two nearest houses' setbacks
+ * come into it: 'instead' means their average applies and `min` is only the fallback (so less
+ * warns), 'or-greater' means the greater of `min` and their average (so less fails, more warns).
+ */
+export interface FrontSetback {
   min: number
-  /** What it's measured to, for the limit: "to the front facade (infill)". */
+  average?: 'instead' | 'or-greater'
+}
+
+/** da-front: the front setback. */
+export interface FrontRule {
+  bands: AreaBand<FrontSetback>[]
+  /** What a plain distance is measured to, for the limit: "to the front facade (infill)". */
   to: string
-  /** Garages and carports (m). */
-  garage?: number
-  /** Why a battle-axe lot can't be checked against it yet. */
-  battleAxeNote: string
+  /** Whose average counts, for the limit: "the average of the two nearest houses within 40 m". */
+  neighbours?: string
+  /** Garages and carports, for the limit: "garages 5.5 m". */
+  garage?: string
+  /** Said whenever the front is checked, such as mapped building lines that can replace it. */
+  note?: string
+  /** A battle-axe lot: a setback from the lot in front, or why it can't be checked yet. */
+  battleAxe: { min: number; note?: string; source: RuleSource } | { note: string }
   source: RuleSource
 }
 
-/** da-side-rear: side and rear setbacks to walls (m), more where the house rises over a height. */
-export interface SideRearRule {
+/** A setback from the side or rear boundaries (m). */
+export interface SetbackRule {
   min: number
-  tall?: { over: number; min: number }
+  /** More once the house rises over a height (m): a step up to `min`, or `perMetre` more for each metre over. */
+  tall?: { over: number; min?: number; perMetre?: number }
+  /** Two-storey parts (the upper floor) instead of a height (m). */
+  upper?: number
+  /** Said whenever it's checked: what the check leaves out. */
+  note?: string
   source: RuleSource
 }
 
 /** da-coverage: the most of the site buildings can cover, as a share, by site area. */
 export interface CoverageRule {
   bands: AreaBand<number>[]
+  /** The share or this area (m²), whichever is greater. */
+  atLeast?: number
   /** Shown when the title area differs from the survey's: whether the DCP counts the handle. */
   handleNote?: string
   source: RuleSource
@@ -97,15 +120,31 @@ export interface CoverageRule {
 
 /** da-landscaped: the least landscaped area (m²), by site area. */
 export interface LandscapedRule {
+  /** What the DCP calls it, when not "Landscaped area": "Pervious area". */
+  name?: string
   bands: AreaBand<Slice>[]
   /** Share of it that has to be behind the building line. */
   behindBuildingLine?: number
   source: RuleSource
 }
 
-/** da-batters: no batter steeper than 1 in `run`. */
+/** da-batters: no batter steeper than 1 in `run`, and 1 in `prefer` preferred. */
 export interface BattersRule {
   run: number
+  prefer?: number
+  source: RuleSource
+}
+
+/** da-cut-fill: how deep the cut and how high the fill can be (m). */
+export interface CutFillRule {
+  cut: number
+  /** Cut within 1 m of a boundary (the band the checks measure), when it's held lower there. */
+  nearCut?: number
+  fill: number
+  /** Only what's outside the house counts: inside, the house's walls retain it. */
+  outsideHouse?: boolean
+  /** The DCP says "generally": more warns rather than fails. */
+  generally?: boolean
   source: RuleSource
 }
 
@@ -129,14 +168,18 @@ export interface ErosionRule {
   source: RuleSource
 }
 
-/** da-retaining: retaining wall heights (m), lower near a side or rear boundary. */
+/** da-retaining: retaining wall heights (m), lower near a boundary. */
 export interface RetainingRule {
-  /** Within this far of a side or rear boundary (m), */
-  near: number
+  /** Within this far of a boundary (m), */
+  near?: number
   /** walls hold back at most this (m), */
-  nearMax: number
+  nearMax?: number
   /** and this elsewhere (m). */
   max: number
+  /** Which boundaries `near` is measured to, for the limit: "a side or rear boundary". */
+  nearWhat?: string
+  /** Over these heights a wall needs a professional engineer's design (a warning), rather than not being allowed. */
+  engineer?: boolean
   /** Walls over a height need more: "terraced and engineered", and what the note says they need. */
   tall?: { over: number; limit: string; note: string }
   source: RuleSource
@@ -175,33 +218,44 @@ export interface Council {
   rearUpper?: RearUpperRule
   fsr?: FsrRule
   front?: FrontRule
-  sideRear?: SideRearRule
+  /** Side and rear setbacks as one rule (da-side-rear), or each on its own (da-side, da-rear). */
+  sideRear?: SetbackRule
+  side?: SetbackRule
+  rear?: SetbackRule
   coverage?: CoverageRule
   landscaped?: LandscapedRule
   batters?: BattersRule
+  cutFill?: CutFillRule
   geotech?: GeotechRule
   erosion?: ErosionRule
   retaining?: RetainingRule
   trees?: TreeRule
+  /**
+   * Controls the research read the council's text for and found it has none of its own (so there's
+   * nothing to check), as against ones it couldn't read, which the checks list as not checked.
+   */
+  absent?: ControlKey[]
   /** What its checks don't cover yet, for the list under the checks. */
   notChecked: string[]
 }
 
-/** The controls a council's table can hold, by its key, with the check's title for when it's missing. */
-export const CONTROLS = {
-  height: 'Building height',
-  storeys: 'Storeys',
-  rearUpper: 'Upper floor and the rear boundary',
-  fsr: 'Floor space ratio',
-  front: 'Front setback',
-  sideRear: 'Side and rear setbacks',
-  coverage: 'Site coverage',
-  landscaped: 'Landscaped area',
-  batters: 'Batter slopes',
-  geotech: 'Geotechnical report',
-  erosion: 'Erosion and sediment control',
-  retaining: 'Retaining walls',
-  trees: 'Trees',
-} as const satisfies Partial<Record<keyof Council, string>>
+/** The controls the checks know, in the panel's order, with the title the not-checked list uses and whether a table has it. */
+export const CONTROLS = [
+  { key: 'height', title: 'Building height', has: (c: Council) => !!c.height },
+  { key: 'storeys', title: 'Storeys', has: (c: Council) => !!c.storeys },
+  { key: 'rearUpper', title: 'Upper floor and the rear boundary', has: (c: Council) => !!c.rearUpper },
+  { key: 'fsr', title: 'Floor space ratio', has: (c: Council) => !!c.fsr },
+  { key: 'front', title: 'Front setback', has: (c: Council) => !!c.front },
+  { key: 'side', title: 'Side setbacks', has: (c: Council) => !!(c.sideRear || c.side) },
+  { key: 'rear', title: 'Rear setback', has: (c: Council) => !!(c.sideRear || c.rear) },
+  { key: 'coverage', title: 'Site coverage', has: (c: Council) => !!c.coverage },
+  { key: 'landscaped', title: 'Landscaped area', has: (c: Council) => !!c.landscaped },
+  { key: 'batters', title: 'Batter slopes', has: (c: Council) => !!c.batters },
+  { key: 'cutFill', title: 'Depth of cut and fill', has: (c: Council) => !!c.cutFill },
+  { key: 'geotech', title: 'Geotechnical report', has: (c: Council) => !!c.geotech },
+  { key: 'erosion', title: 'Erosion and sediment control', has: (c: Council) => !!c.erosion },
+  { key: 'retaining', title: 'Retaining walls', has: (c: Council) => !!c.retaining },
+  { key: 'trees', title: 'Trees', has: (c: Council) => !!c.trees },
+] as const
 
-export type ControlKey = keyof typeof CONTROLS
+export type ControlKey = (typeof CONTROLS)[number]['key']

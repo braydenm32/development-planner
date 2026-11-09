@@ -5,10 +5,9 @@
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
-import { missingControls, notChecked } from '../../checks/rules'
+import { controlCount, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
-import { COUNCILS, type Council } from '../../checks/councils'
-import { CONTROLS } from '../../checks/councils/types'
+import { activeCouncil, COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
 import type { CheckResult, CheckSettings, CheckStatus } from '../../checks/types'
 import { useChecks } from '../../checks/useChecks'
@@ -132,11 +131,10 @@ function CheckRow({ r }: { r: CheckResult }) {
   )
 }
 
-/** How many of the controls the app checks a council's table has, when it doesn't have them all: "9 of 13 controls". */
+/** How many of its controls the app checks for a council, when it doesn't have them all: "; 9 of 11 controls". */
 function coverage(k: Council): string {
-  const missing = missingControls(k).length
-  const all = Object.keys(CONTROLS).length
-  return missing ? `; ${all - missing} of ${all} controls` : ''
+  const { have, of } = controlCount(k)
+  return have < of ? `; ${have} of ${of} controls` : ''
 }
 
 /** Each council's own rules, switched on or off for this project. A block is in one council, so one at most. */
@@ -162,6 +160,9 @@ function CouncilSwitches({ council }: { council: Council | null }) {
 
 function LotFacts({ m, s }: { m: Measures; s: CheckSettings }) {
   const needsFront = s.frontEdge === undefined
+  // Until the map value is entered, the council's own figure if its DCP has one; blank (0) for a council whose DCP has none.
+  const council = activeCouncil(s)
+  const height = s.lepHeight ?? (council ? (council.height?.fallback?.max ?? 0) : 9)
   const edgeOptions = [{ id: -1, label: 'Not set' }, ...m.edges.map(e => ({ id: e.index, label: `${e.label} · ${e.length.toFixed(2)} m` }))]
   return (
     <details className="checks-more lot-facts" open={needsFront}>
@@ -187,7 +188,7 @@ function LotFacts({ m, s }: { m: Measures; s: CheckSettings }) {
       {s.lotWidth === undefined && <div className="muted small">Not set: side setbacks show the result for both ways of reading it.</div>}
       <div className="muted small">Survey boundary {m.lotArea.toFixed(1)} m²</div>
       <Num label="Title area" value={s.titleArea ?? m.lotArea} unit="m²" decimals={1} min={1} onCommit={v => setCheckSettings({ titleArea: v })} />
-      <Num label="LEP height limit" value={s.lepHeight ?? 9} unit="m" decimals={1} min={1} onCommit={v => setCheckSettings({ lepHeight: v })} />
+      <Num label="LEP height limit" value={height} unit="m" decimals={1} min={0} onCommit={v => setCheckSettings({ lepHeight: v > 0 ? v : undefined })} />
       <Num label="LEP floor space ratio" value={s.lepFsr ?? 0} unit=":1" decimals={2} min={0} onCommit={v => setCheckSettings({ lepFsr: v > 0 ? v : undefined })} />
     </details>
   )

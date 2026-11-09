@@ -4,16 +4,27 @@
 // others off. Each council's rules are a data table in this folder (see types.ts).
 
 import { DEFAULT_CHECK_SETTINGS, type CheckSettings, type CouncilId } from '../types'
+import { BLUE_MOUNTAINS } from './blueMountains'
+import { CENTRAL_COAST } from './centralCoast'
+import { KIAMA } from './kiama'
 import type { Council } from './types'
 import { WOLLONGONG } from './wollongong'
 
 export type { Council } from './types'
 
-/** Every council with its own rules in the app, by id. */
-export const COUNCIL_TABLES: Record<CouncilId, Council> = { wollongong: WOLLONGONG }
+/**
+ * Every council with its own rules in the app, by id. Shellharbour and Lake Macquarie aren't here
+ * yet: their current DCPs couldn't be read (docs/research/councils/README.md).
+ */
+export const COUNCIL_TABLES: Record<CouncilId, Council> = {
+  wollongong: WOLLONGONG,
+  kiama: KIAMA,
+  'blue-mountains': BLUE_MOUNTAINS,
+  'central-coast': CENTRAL_COAST,
+}
 
-/** The councils, in the order the switches list them. */
-export const COUNCILS: Council[] = Object.values(COUNCIL_TABLES)
+/** The councils, by name, as the switches list them. */
+export const COUNCILS: Council[] = Object.values(COUNCIL_TABLES).sort((a, b) => a.name.localeCompare(b.name))
 
 /** Lower case, words only, for matching a name however it's written. */
 const key = (s: string) =>

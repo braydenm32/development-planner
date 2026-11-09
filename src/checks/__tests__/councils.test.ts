@@ -23,7 +23,8 @@ function sources(c: Council): [string, RuleSource][] {
     if (typeof o.in === 'string' && typeof o.clause === 'string') out.push([path, o as unknown as RuleSource])
     else for (const [k, w] of Object.entries(o)) walk(`${path}.${k}`, w)
   }
-  for (const k of Object.keys(CONTROLS)) walk(k, c[k as keyof typeof CONTROLS])
+  for (const { key } of CONTROLS) walk(key, (c as unknown as Record<string, unknown>)[key])
+  walk('sideRear', c.sideRear)
   return out
 }
 

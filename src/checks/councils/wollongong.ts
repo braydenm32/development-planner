@@ -77,11 +77,12 @@ export const WOLLONGONG: Council = {
   rearUpper: { min: 8, source: { in: 'b1', clause: 'B1 4.1.2(4)', sure: 'read' } },
   fsr: { source: { in: 'lep', clause: 'cl 4.4(2), 4.5(3)', sure: 'read' } },
   front: {
-    min: 6,
+    bands: [{ value: { min: 6 } }],
     to: 'to the front facade (infill)',
-    garage: 5.5,
-    battleAxeNote:
-      'B1 measures this from the primary street frontage, and a battle-axe lot reaches the street only by its handle. B1 has no battle-axe front setback of its own, so ask council which boundary it treats as the front.',
+    garage: 'garages 5.5 m',
+    battleAxe: {
+      note: 'B1 measures this from the primary street frontage, and a battle-axe lot reaches the street only by its handle. B1 has no battle-axe front setback of its own, so ask council which boundary it treats as the front.',
+    },
     source: { in: 'b1', clause: 'B1 4.2.2(1)', sure: 'read' },
   },
   sideRear: { min: 0.9, tall: { over: 7, min: 3 }, source: { in: 'b1', clause: 'B1 4.3.2(1), (2)', sure: 'read' } },
@@ -127,6 +128,8 @@ export const WOLLONGONG: Council = {
     tall: { over: 1, limit: 'terraced and engineered', note: 'need an engineer and justification' },
     source: { in: 'b1', clause: 'B1 4.17.3', sure: 'read' },
   },
+  // B1 and E19 set no depth for cut or fill of their own: E19's 1 m is when a geotechnical report is needed.
+  absent: ['cutFill'],
   trees: {
     removal: {
       within: 3,

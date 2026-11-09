@@ -8,7 +8,18 @@ import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
 import { encroachment, MINOR_ENCROACHMENT } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
-import { CONTROLS, type AreaBand, type ControlKey, type Council, type CoverageRule, type LandscapedRule, type RuleSource } from './councils/types'
+import {
+  CONTROLS,
+  type AreaBand,
+  type ControlKey,
+  type Council,
+  type CoverageRule,
+  type CutFillRule,
+  type FrontRule,
+  type LandscapedRule,
+  type RuleSource,
+  type SetbackRule,
+} from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
 
@@ -434,6 +445,112 @@ const WORDS = ['no', 'one', 'two', 'three', 'four', 'five']
 const word = (n: number) => WORDS[n] ?? `${n}`
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
+/** The setback a rule asks for from a house this high (m). */
+function setbackNeed(r: SetbackRule, H: number): number {
+  const t = r.tall
+  if (!t || H <= t.over) return r.min
+  return t.perMetre !== undefined ? r.min + t.perMetre * (H - t.over) : (t.min ?? r.min)
+}
+
+/** What a setback rule allows, in words. */
+function setbackLimit(r: SetbackRule): string {
+  if (r.upper !== undefined) return `${num(r.min)} m for single-storey parts, ${num(r.upper)} m for two-storey parts`
+  const t = r.tall
+  if (!t) return `${num(r.min)} m to walls`
+  if (t.perMetre !== undefined) return `${num(r.min)} m to walls up to ${num(t.over)} m high, plus ${t.perMetre === 0.25 ? 'a quarter' : pct(t.perMetre)} of the height above ${num(t.over)} m`
+  return `${num(r.min)} m to walls; ${num(t.min ?? r.min)} m where walls are over ${num(t.over)} m high`
+}
+
+/** Why a taller house is held to more. */
+const tallNote = (r: SetbackRule) =>
+  r.tall?.perMetre !== undefined
+    ? 'Uses the house’s tallest point, so a lower wall may need less.'
+    : `The house rises over ${num(r.tall!.over)} m, so this uses ${num(r.tall!.min ?? r.min)} m throughout; lower walls may need less.`
+
+/** A setback from one kind of boundary (the sides, or the rear), which needs the front picked to tell them apart. */
+function setbackCheck(ms: Measures, c: Council, r: SetbackRule, id: string, title: string, es: Edge[]): CheckResult {
+  if (!front(ms) || !es.length) return { id, title, status: 'unknown', limit: setbackLimit(r), note: NEED_FRONT, source: cite(c, r.source) }
+  const need = setbackNeed(r, ms.height)
+  const low = minClear(es)
+  const high = r.upper !== undefined ? minClear(es, true) : null
+  const near = closest(es)
+  const ok = (low === null || low + 1e-6 >= need) && (high === null || high + 1e-6 >= r.upper!)
+  return {
+    id,
+    title,
+    status: low === null ? 'pass' : ok ? 'pass' : 'fail',
+    value: low === null ? 'No house yet' : `${m(low)} to the ${near?.label.toLowerCase()}${high !== null ? `, upper floor ${m(high)}` : ''}`,
+    limit: setbackLimit(r),
+    note: [need > r.min ? tallNote(r) : '', r.note ?? ''].filter(Boolean).join(' ') || undefined,
+    source: cite(c, r.source),
+  }
+}
+
+/** The front setback, by the band of site area the lot is in, or from the lot in front on a battle-axe lot. */
+function frontCheck(ms: Measures, c: Council, fr: FrontRule, f: Edge | undefined): CheckResult {
+  const s = ms.settings
+  const at = f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined
+  const ba = fr.battleAxe
+  if (s.battleAxe && 'min' in ba) {
+    return {
+      id: 'da-front',
+      title: 'Setback from the lot in front',
+      status: !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, ba.min),
+      value: at,
+      limit: `${num(ba.min)} m from the rear boundary of the lot in front`,
+      note: f ? ba.note : NEED_FRONT,
+      source: cite(c, ba.source),
+    }
+  }
+  const b = bandOf(fr.bands, ms.lotArea)
+  const garage = fr.garage ? `; ${fr.garage}` : ''
+  const who = fr.neighbours ?? 'the two nearest houses'
+  const limit =
+    b.average === 'instead'
+      ? `${cap(who)}, else ${num(b.min)} m${garage}`
+      : b.average === 'or-greater'
+        ? `${num(b.min)} m or ${who}, whichever is greater${garage}`
+        : `${num(b.min)} m ${fr.to}${garage}`
+  // Without the neighbours' setbacks, an 'instead' fallback only warns when short, and an 'or-greater' one can't pass outright.
+  const short = f && f.clearance !== null ? f.clearance + 1e-6 < b.min : false
+  const status: CheckStatus =
+    s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : b.average === 'instead' ? (short ? 'warn' : 'pass') : short ? 'fail' : b.average === 'or-greater' ? 'warn' : 'pass'
+  const why =
+    b.average === 'instead'
+      ? 'The neighbours’ setbacks aren’t known, so this uses the fallback distance.'
+      : b.average === 'or-greater'
+        ? `The neighbours’ setbacks aren’t known: if their average is more than ${num(b.min)} m, that applies.`
+        : ''
+  return {
+    id: 'da-front',
+    title: 'Front setback',
+    status,
+    value: at,
+    limit,
+    note: s.battleAxe ? ba.note : f ? [why, fr.note ?? ''].filter(Boolean).join(' ') || undefined : NEED_FRONT,
+    source: cite(c, fr.source),
+  }
+}
+
+/** The depth of cut and the height of fill, against a council's limits. */
+function cutFillCheck(ms: Measures, c: Council, r: CutFillRule): CheckResult {
+  const e = ms.earth
+  const limit = `${r.nearCut !== undefined ? `Cut ${len(r.nearCut)} within 1 m of a boundary, ${len(r.cut)} elsewhere` : `Cut ${len(r.cut)}`}; fill ${len(r.fill)}${r.outsideHouse ? ', outside the house' : ''}`
+  if (!e) return { id: 'da-cut-fill', title: 'Depth of cut and fill', status: 'pass', value: 'No cut and fill', limit, source: cite(c, r.source) }
+  const cut = r.outsideHouse ? e.cutOutside : r.nearCut !== undefined ? Math.max(e.cutMid, e.cutFar) : e.maxCut
+  const fill = r.outsideHouse ? e.fillOutside : e.maxFill
+  const over = cut > r.cut + 1e-6 || fill > r.fill + 1e-6 || (r.nearCut !== undefined && e.cutNear > r.nearCut + 1e-6)
+  return {
+    id: 'da-cut-fill',
+    title: 'Depth of cut and fill',
+    status: over ? (r.generally ? 'warn' : 'fail') : 'pass',
+    value: `${r.nearCut !== undefined ? `Cut ${m(e.cutNear)} within 1 m of the boundary, ${m(cut)} elsewhere` : `Cut ${m(cut)}`}; fill ${m(fill)}${r.outsideHouse ? ', outside the house' : ''}`,
+    limit,
+    note: `${over && r.generally ? 'The DCP says “generally”, so more needs a case in the DA. ' : ''}Measured from the natural ground to the levelled ground.`,
+    source: cite(c, r.source),
+  }
+}
+
 /**
  * The DA checks for council `c`: each control its table holds, in the order the panel lists them.
  * A control the table leaves out (its source couldn't be read) isn't checked; notChecked lists it.
@@ -463,13 +580,14 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   if (c.storeys) {
     const r = c.storeys
     const ba = s.battleAxe ? r.battleAxe : undefined
+    const over = ms.storeys > r.max
     out.push({
       id: 'da-storeys',
       title: 'Storeys',
-      status: ms.storeys > r.max ? 'fail' : ba && ms.storeys > ba.max ? 'warn' : 'pass',
+      status: over ? (r.generally ? 'warn' : 'fail') : ba && ms.storeys > ba.max ? 'warn' : 'pass',
       value: storeysText(ms),
       limit: ba ? `${cap(word(ba.max))} storey${ba.max === 1 ? '' : 's'} on a battle-axe lot unless the objectives are met; ${word(r.max)} at most` : cap(word(r.max)),
-      note: ba && ms.storeys > ba.max ? ba.note : undefined,
+      note: over && r.generally ? r.generally : ba && ms.storeys > ba.max ? ba.note : undefined,
       source: cite(c, ba ? ba.source : r.source),
     })
   }
@@ -504,24 +622,13 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   }
 
   const f = front(ms)
-  if (c.front) {
-    const fr = c.front
-    out.push({
-      id: 'da-front',
-      title: 'Front setback',
-      status: s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, fr.min),
-      value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
-      limit: `${num(fr.min)} m ${fr.to}${fr.garage !== undefined ? `; garages ${num(fr.garage)} m` : ''}`,
-      note: s.battleAxe ? fr.battleAxeNote : f ? undefined : NEED_FRONT,
-      source: cite(c, fr.source),
-    })
-  }
+  if (c.front) out.push(frontCheck(ms, c, c.front, f))
 
   if (c.sideRear) {
     const sr = c.sideRear
     const others = ms.edges.filter(e => e.role !== 'front')
-    const tall = sr.tall !== undefined && H > sr.tall.over
-    const need = tall ? sr.tall!.min : sr.min
+    const need = setbackNeed(sr, H)
+    const tall = need > sr.min
     const closestSide = closest(others)
     const sideMin = minClear(others)
     out.push({
@@ -529,19 +636,20 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: 'Side and rear setbacks',
       status: sideMin === null ? 'pass' : atLeast(sideMin, need),
       value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${closestSide?.label.toLowerCase()}`,
-      limit: `${num(sr.min)} m to walls${sr.tall ? `; ${num(sr.tall.min)} m where walls are over ${num(sr.tall.over)} m high` : ''}`,
-      note: f
-        ? tall
-          ? `The house rises over ${num(sr.tall!.over)} m, so this uses ${num(sr.tall!.min)} m throughout; lower walls may need less.`
-          : undefined
-        : 'Until the front is picked under Lot facts, every side is held to this.',
+      limit: setbackLimit(sr),
+      note: f ? (tall ? tallNote(sr) : undefined) : 'Until the front is picked under Lot facts, every side is held to this.',
       source: cite(c, sr.source),
     })
+  }
+  if (c.side) out.push(setbackCheck(ms, c, c.side, 'da-side', 'Side setbacks', sides(ms)))
+  if (c.rear) {
+    const r = rear(ms)
+    out.push(setbackCheck(ms, c, c.rear, 'da-rear', 'Rear setback', r ? [r] : []))
   }
 
   if (c.coverage) {
     const cv = c.coverage
-    const cover = (a: number) => coverageShare(cv, a) * a
+    const cover = (a: number) => Math.max(coverageShare(cv, a) * a, cv.atLeast ?? 0)
     out.push({
       id: 'da-coverage',
       title: 'Site coverage',
@@ -562,7 +670,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
     const behind = ls.behindBuildingLine === undefined ? '' : `; ${ls.behindBuildingLine === 0.5 ? 'half' : pct(ls.behindBuildingLine)} behind the building line`
     out.push({
       id: 'da-landscaped',
-      title: 'Landscaped area',
+      title: ls.name ?? 'Landscaped area',
       status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
       value: `About ${m2(land)}`,
       limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
@@ -579,11 +687,13 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: 'Batter slopes',
       status: !e ? 'pass' : e.cutBatter + 1e-6 >= run && e.fillBatter + 1e-6 >= run ? 'pass' : 'fail',
       value: e ? `Cut 1 in ${e.cutBatter}, fill 1 in ${e.fillBatter}` : 'No cut and fill',
-      limit: `No steeper than 1 in ${num(run)}`,
+      limit: `No steeper than 1 in ${num(run)}${c.batters.prefer ? ` (1 in ${num(c.batters.prefer)} preferred)` : ''}`,
       note: e && (e.cutBatter < run || e.fillBatter < run) ? `Set the batters to 1 in ${num(run)} under Earthworks › Cut & fill. The volumes grow.` : undefined,
       source: cite(c, c.batters.source),
     })
   }
+
+  if (c.cutFill) out.push(cutFillCheck(ms, c, c.cutFill))
 
   if (c.geotech) {
     const g = c.geotech
@@ -616,17 +726,22 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
 
   if (c.retaining) {
     const rw = c.retaining
-    const bad = ms.walls.filter(w => w.height > (w.toBoundary <= rw.near ? rw.nearMax : rw.max) + 1e-6)
+    const near = rw.near !== undefined && rw.nearMax !== undefined ? { within: rw.near, max: rw.nearMax } : null
+    const bad = ms.walls.filter(w => w.height > (near && w.toBoundary <= near.within ? near.max : rw.max) + 1e-6)
     const eng = rw.tall ? ms.walls.filter(w => w.height > rw.tall!.over) : []
+    const heights = near ? `${len(near.max)} within ${len(near.within)} of ${rw.nearWhat ?? 'a side or rear boundary'}, ${len(rw.max)} elsewhere` : `${len(rw.max)}`
+    const many = bad.length > 1 ? 's are' : ' is'
     out.push({
       id: 'da-retaining',
       title: 'Retaining walls',
-      status: bad.length ? 'fail' : 'pass',
+      status: bad.length ? (rw.engineer ? 'warn' : 'fail') : 'pass',
       value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
-      limit: `${len(rw.nearMax)} within ${len(rw.near)} of a side or rear boundary, ${len(rw.max)} elsewhere${rw.tall ? `; over ${len(rw.tall.over)} ${rw.tall.limit}` : ''}`,
-      note: bad.length
-        ? `${bad.length} wall${bad.length > 1 ? 's are' : ' is'} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`
-        : undefined,
+      limit: rw.engineer ? `Over ${heights}: designed by a professional engineer` : `${near ? heights : `Up to ${heights}`}${rw.tall ? `; over ${len(rw.tall.over)} ${rw.tall.limit}` : ''}`,
+      note: !bad.length
+        ? undefined
+        : rw.engineer
+          ? `${bad.length} wall${many} over these heights, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
+          : `${bad.length} wall${many} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
       source: cite(c, rw.source),
     })
   }
@@ -670,8 +785,17 @@ export const NOT_CHECKED: { cdc: string[] } = {
   ],
 }
 
-/** The controls a council's table leaves out because the research couldn't read them from its own text. */
-export const missingControls = (c: Council): ControlKey[] => (Object.keys(CONTROLS) as ControlKey[]).filter(k => c[k] === undefined)
+/**
+ * The controls a council's table leaves out because the research couldn't read them from its own
+ * text (not the ones its text doesn't have, which there's nothing to check against).
+ */
+export const missingControls = (c: Council): ControlKey[] => CONTROLS.filter(k => !k.has(c) && !c.absent?.includes(k.key)).map(k => k.key)
+
+/** How many of the controls a council has rules for, of the ones its text could have: 9 of 11. */
+export function controlCount(c: Council): { have: number; of: number } {
+  const have = CONTROLS.filter(k => k.has(c)).length
+  return { have, of: have + missingControls(c).length }
+}
 
 /**
  * What the checks don't cover yet: the Housing Code's list on the CDC route; on the DA route, the
@@ -679,5 +803,7 @@ export const missingControls = (c: Council): ControlKey[] => (Object.keys(CONTRO
  */
 export function notChecked(pathway: Pathway, council: Council | null): string[] {
   if (pathway === 'cdc' || !council) return NOT_CHECKED.cdc
-  return [...missingControls(council).map(k => `${CONTROLS[k]}: ${council.name}’s own rule isn’t in the app yet`), ...council.notChecked]
+  const title = (k: ControlKey) => CONTROLS.find(x => x.key === k)!.title
+  const whose = council.name.endsWith('s') ? `${council.name}’` : `${council.name}’s`
+  return [...missingControls(council).map(k => `${title(k)}: ${whose} own rule isn’t in the app yet`), ...council.notChecked]
 }
