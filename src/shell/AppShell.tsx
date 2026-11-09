@@ -501,7 +501,6 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           run={run}
           phone={phone}
           peek={peek ? (slim ? 'slim' : 'full') : null}
-          editing={editing}
           onPeekHeight={setPeekH}
         />
       ) : (
@@ -571,7 +570,6 @@ function NumbersHost({
   run,
   phone,
   peek,
-  editing,
   onPeekHeight,
 }: {
   d: Loaded
@@ -585,7 +583,6 @@ function NumbersHost({
   /** A phone: the numbers sit in a sheet at the bottom of the canvas instead of the strip. */
   phone: boolean
   peek: 'full' | 'slim' | null
-  editing: boolean
   onPeekHeight: (h: number) => void
 }) {
   const numbers = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
@@ -614,7 +611,7 @@ function NumbersHost({
           <PeekSheet
             numbers={numbers}
             stats={d.terrain.stats}
-            title={canvasKind === 'plan' && editing ? 'Key numbers' : 'Showing people'}
+            title="Key numbers"
             slim={peek === 'slim'}
             onOpen={() => setOverview(true)}
             onHeight={onPeekHeight}

@@ -5,7 +5,7 @@ import { PlanEditor } from './components/PlanEditor'
 import { PrintPreview } from './components/PrintPreview'
 import { SiteView, type HoverInfo } from './components/SiteView'
 import { useBuiltSite } from './lib/builtSite'
-import { RAMP_CSS } from './lib/colors'
+import { CUT_RGB, FILL_RGB, RAMP_CSS, REFERENCE_POINT, rgbCss, SPOT_LEVEL } from './lib/colors'
 import { MORE } from './nav/menu'
 import { canvasOf, formatHash, NEW_PROJECT, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
 import { navigate, startRouter, useRouter } from './nav/router'
@@ -246,6 +246,7 @@ export default function App() {
             viewKey={openedId}
             showSetbacks={placing || view.planSetbacks}
             setbacksSwitch={placing ? undefined : { on: view.planSetbacks, onChange: planSetbacks => changeView({ ...view, planSetbacks }) }}
+            earthworks={route.kind === 'app' && route.area === 'earthworks'}
           />
         ) : null
       ) : site?.survey && site.terrain && site.solid && mode === 'print' ? (
@@ -317,12 +318,41 @@ export default function App() {
           <div className="view-actions">
             <OrientationControl value={view.up} onChange={changeUp} />
           </div>
-          <div className="legend">
-            <div className="ramp" style={{ background: RAMP_CSS }} />
-            <div className="ramp-labels">
-              <span>RL {site.terrain.stats.maxRL.toFixed(2)}</span>
-              <span>RL {site.terrain.stats.minRL.toFixed(2)}</span>
+          <div className="legend" aria-label="Key">
+            <div className="legend-ramp">
+              <div className="ramp" style={{ background: RAMP_CSS }} />
+              <div className="ramp-labels">
+                <span>RL {site.terrain.stats.maxRL.toFixed(2)}</span>
+                <span>RL {site.terrain.stats.minRL.toFixed(2)}</span>
+              </div>
             </div>
+            <ul className="legend-key">
+              {showEarth && (
+                <>
+                  <li>
+                    <i style={{ background: rgbCss(CUT_RGB) }} /> Cut
+                  </li>
+                  <li>
+                    <i style={{ background: rgbCss(FILL_RGB) }} /> Fill
+                  </li>
+                </>
+              )}
+              {view.showContours && (
+                <li>
+                  <i className="line" /> Contour
+                </li>
+              )}
+              {view.showLevels && (
+                <li>
+                  <i className="dot" style={{ background: SPOT_LEVEL }} /> Spot level
+                </li>
+              )}
+              {view.showReference && (
+                <li>
+                  <i className="dot" style={{ background: REFERENCE_POINT }} /> Reference point
+                </li>
+              )}
+            </ul>
           </div>
           <div className="readout">
             {hover ? (

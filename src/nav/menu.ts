@@ -977,8 +977,8 @@ export const HOMES: Home[] = [
         id: '3d-overlays',
         label: 'In the 3D view',
         icon: 'cube',
-        keywords: ['compass', 'legend', 'colours', 'point at the ground', 'orbit'],
-        features: ['compass-3d', 'elevation-legend-3d', 'ground-hover-readout', 'marker-hover-readout', 'orbit-controls-hint', 'survey-problem-message', 'ground-tap-level'],
+        keywords: ['compass', 'legend', 'key', 'colours', 'contour labels', 'point at the ground', 'orbit'],
+        features: ['compass-3d', 'elevation-legend-3d', 'key-3d', 'contour-labels-3d', 'ground-hover-readout', 'marker-hover-readout', 'orbit-controls-hint', 'survey-problem-message', 'ground-tap-level'],
         at: 'site/3d',
       },
       {

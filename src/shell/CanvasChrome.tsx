@@ -21,7 +21,7 @@ export function ToolRail() {
     <div className="tool-rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical">
       {RAIL.map((t, i) => (
         <span key={t.id} className={i === 1 ? 'tool-gap' : undefined}>
-          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(t.id)} title={`${t.label} (${t.key})`} aria-label={`${t.label} tool`}>
+          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(t.id)} data-tip={`${t.label} ${t.key}`} aria-label={`${t.label} tool (${t.key})`}>
             <Icon name={(t.icon ?? 'select') as IconName} size={19} />
           </button>
         </span>
@@ -75,9 +75,10 @@ interface ControlsProps {
   run: (a: ActionId) => void
 }
 
+/** A view button: its name shows beside the icon on a desktop and is the icon's label on a phone. */
 function Ctl({ icon, label, onClick, pressed }: { icon: IconName; label: string; onClick: () => void; pressed?: boolean }) {
   return (
-    <button onClick={onClick} aria-pressed={pressed} title={label}>
+    <button onClick={onClick} aria-pressed={pressed} aria-label={label}>
       <Icon name={icon} size={16} />
       <span>{label}</span>
     </button>

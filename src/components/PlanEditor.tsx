@@ -52,7 +52,7 @@ import { stairContains, stairLayout } from '../plan/stairs'
 import { isOpeningTool, usePlan, type RoofMode, type Tool } from '../plan/store'
 import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
-import { finishedContours, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
+import { finishedContours, finishedShown, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, LevelChip } from './GroundOverlay'
 import { OrientationControl } from './OrientationControl'
@@ -156,12 +156,14 @@ interface PlanEditorProps {
   showSetbacks?: boolean
   /** The plan key's Setbacks switch; left out where setbacks always show (Earthworks › Place). */
   setbacksSwitch?: { on: boolean; onChange: (on: boolean) => void }
+  /** Shown from Earthworks, where the finished contours draw unless they've been switched off. */
+  earthworks?: boolean
 }
 
 /** How long after the last wheel notch the view counts as settled, and is remembered (ms). */
 const WHEEL_SETTLE_MS = 250
 
-export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShowGroundChange, earth, viewKey = null, showSetbacks = false, setbacksSwitch }: PlanEditorProps) {
+export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShowGroundChange, earth, viewKey = null, showSetbacks = false, setbacksSwitch, earthworks = false }: PlanEditorProps) {
   const plan = usePlan(s => s.plan)!
   const tool = usePlan(s => s.tool)
   const level = usePlan(s => s.activeLevel)
@@ -300,9 +302,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     () => (earth && earth.result.cut + earth.result.fill > 0.01 ? finishedContours(survey, terrain.grid, earth.result.grid, earth.strips) : null),
     [earth, survey, terrain],
   )
-  const [finishedOn, setFinishedOn] = useState(readFinishedPref)
+  // Drawn as the user last chose; until then only in Earthworks, where the ground is the subject.
+  const [finishedPref, setFinishedPref] = useState(readFinishedPref)
+  const finishedOn = finishedShown(finishedPref, earthworks)
   const changeFinished = (on: boolean) => {
-    setFinishedOn(on)
+    setFinishedPref(on)
     saveFinishedPref(on)
   }
   const planContourLines = useMemo(
@@ -1884,7 +1888,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       </svg>
 
       <div className="plan-compass" title="North">
-        <div className="needle" style={{ transform: `rotate(${northDeg}deg)` }}>
+        <div className="needle" style={{ ['--az' as string]: `${northDeg}deg` }}>
           <span>N</span>
         </div>
       </div>
@@ -1904,7 +1908,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             {fitButton}
           </div>
         )}
-        <KeyChip collapse={!!touch?.phone}>
+        <KeyChip>
           <GroundKey on={showGround} onChange={onShowGroundChange} lowest={isLowest}>
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}

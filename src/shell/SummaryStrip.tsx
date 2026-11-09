@@ -1,6 +1,7 @@
 // One quiet line of the key numbers under the top bar. Each chip goes to the panel that is
-// its number's home; a chip steps back to a dashed label when the open panel or the plan
-// already shows its number (CALM 5). Out of balance is the one loud chip, with its fix.
+// its number's home; a chip steps back to a label pointing at where the number already shows
+// ("Floor → panel") when the open panel or the plan has it (CALM 5). Out of balance is the one
+// loud chip, with its fix.
 
 import type { ReactNode } from 'react'
 import { retainedText } from '../components/planNumbers'
@@ -10,7 +11,7 @@ import { navigate } from '../nav/router'
 import { tabRoute, type AppRoute } from '../nav/route'
 import { ENGINEER_HEIGHT } from '../plan/keyNumbers'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
-import { m2, netText } from './format'
+import { m2, netText, whereShown } from './format'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
 import type { CheckCounts } from '../checks/rules'
@@ -52,7 +53,7 @@ function Chip({ id, label, shown, children, title, term, route, readOnly }: { id
   if (shown)
     return (
       <span className="chip ghost" {...(term ? { 'data-term': term, 'data-term-note': `${label} is ${shown}` } : { title: `${label} is ${shown}` })}>
-        {label} <em>{shown}</em>
+        {label} <em>{whereShown(shown)}</em>
       </span>
     )
   if (readOnly)
@@ -129,7 +130,7 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                 </span>
               ) : shown.warnings ? (
                 <span className="chip ghost" data-term="batter">
-                  Batters <em>{shown.warnings}</em>
+                  Batters <em>{whereShown(shown.warnings)}</em>
                 </span>
               ) : (
                 <button
@@ -149,7 +150,7 @@ export function SummaryStrip({ route, numbers: n, checks, shown, onBalance, onOv
                 </span>
               ) : shown['site-checks'] ? (
                 <span className="chip ghost">
-                  To check <em>{shown['site-checks']}</em>
+                  To check <em>{whereShown(shown['site-checks'])}</em>
                 </span>
               ) : (
                 <button
@@ -188,7 +189,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
       )
     return shown ? (
       <span className="chip ghost" data-term={term} data-term-note={`The ${name} checks are ${shown}`}>
-        {name} checks <em>{shown}</em>
+        {name} checks <em>{whereShown(shown)}</em>
       </span>
     ) : (
       <button className="chip ghost" onClick={go} data-term={term} data-term-note={against}>
