@@ -151,7 +151,7 @@ async function downloadProject(m: ProjectMeta, read: (id: string) => Promise<Rec
   const survey = r?.survey as SavedProject | undefined
   const plan = r?.plan as Plan | undefined
   if (!survey || !plan) throw new Error('This project has no survey and plan to put in a file yet.')
-  saveFile(`${fileSafe(m.name)}.project.json`, projectFileText(survey, { ...plan, name: m.name }, projectSiteFromRecords(r), costsFromRecords(r)), 'application/json')
+  saveFile(`${fileSafe(m.name)}.project.json`, projectFileText(survey, { ...plan, name: m.name }, projectSiteFromRecords(r), costsFromRecords(r), r?.options), 'application/json')
 }
 
 // ---------------------------------------------------------------------------

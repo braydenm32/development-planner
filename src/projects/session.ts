@@ -358,6 +358,24 @@ export async function finishDelete(id?: string): Promise<void> {
   for (const d of id ? [id] : [...doomed.keys()]) if (doomed.has(d)) await deleteForGood(d)
 }
 
+/**
+ * Swap the plan in the editor for another, writing records beside it in the same save (an
+ * option switch, src/options). `build` gets the plan open now, after any waiting edit has been
+ * saved, and says what to write and which plan to open. The undo history is dropped: Undo never
+ * reaches across to the plan that was open before. Throws if the save fails, leaving the editor as it was.
+ */
+export async function swapPlan(build: (open: Plan) => { records: Record<string, unknown>; plan: Plan }): Promise<void> {
+  const id = get().currentId
+  if (!id) return
+  await flushPlan()
+  const open = usePlan.getState().plan
+  if (!open || get().currentId !== id) return
+  const { records, plan } = build(open)
+  const meta = await store.save(id, { records: { ...records, plan, history: null }, meta: summaryFor(id, plan) })
+  upsert(meta)
+  loadIntoEditor(plan, meta.name)
+}
+
 /** Records of any project, for the delete review and the project-file download. */
 export const readProject = (id: string) => store.read(id)
 
