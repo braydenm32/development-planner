@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { evaluateEarthworks, prepareEarthworks, type Platform } from '../../lib/earthworks'
 import { parseDxf } from '../../lib/dxf'
 import { pointInPolygon, type Vec2 } from '../../lib/geom'
 import { analyzeLayers, buildSurvey, guessRoles } from '../../lib/survey'
 import { buildTerrain } from '../../lib/terrain'
 import { planeSurvey } from '../../lib/__tests__/fixtures'
-import { CHANGED, contourInterval, contourLines, finishedContours, type ContourRun } from '../finishedContours'
+import { CHANGED, contourInterval, contourLines, finishedContours, finishedShown, readFinishedPref, saveFinishedPref, type ContourRun } from '../finishedContours'
 import { garageFloor } from './fixtures'
 import { planSetPdf } from '../../share/plans'
 
@@ -167,5 +167,28 @@ describe('finished-ground contours', () => {
     expect(withKey).toContain('(Contours every 500 mm, labelled every 1 m) Tj')
     const without = text(planSetPdf(base))
     expect(without).not.toContain('Finished ground, proposed')
+  })
+})
+
+describe('whether the finished contours draw', () => {
+  it('follows the switch once it has been set, and until then shows them only in Earthworks', () => {
+    expect(finishedShown(null, true)).toBe(true)
+    expect(finishedShown(null, false)).toBe(false)
+    expect(finishedShown(true, false)).toBe(true)
+    expect(finishedShown(false, true)).toBe(false)
+  })
+
+  it('reads the switch from this browser as on, off, or not set', () => {
+    const kept = new Map<string, string>()
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v) })
+    try {
+      expect(readFinishedPref()).toBeNull()
+      saveFinishedPref(true)
+      expect(readFinishedPref()).toBe(true)
+      saveFinishedPref(false)
+      expect(readFinishedPref()).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

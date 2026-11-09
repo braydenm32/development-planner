@@ -23,7 +23,7 @@ const ICONS = {
   stair: '<path d="M4 20h4.5v-4h4v-4h4V8H20"/>',
   furniture: '<path d="M6 11V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3"/><path d="M4 12.2a1.9 1.9 0 0 1 3.8 0V14h8.4v-1.8a1.9 1.9 0 0 1 3.8 0V17H4z"/><path d="M6 17v2.2M18 17v2.2"/>',
   fitBlock: '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/><path d="m8.4 8.6 6.6-1 1.2 7.8-6.8.9z"/>',
-  fitHouse: '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/><path d="M8 12.2 12 8.8l4 3.4V16H8z"/>',
+  fitHouse: '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/><path d="M7 12.4 12 8l5 4.4"/><path d="M8.6 11.2V16h6.8v-4.8"/><path d="M11 16v-2.6h2V16"/>',
   north: '<path d="M12 3.5 16.5 19 12 16l-4.5 3z" fill="currentColor" fill-opacity=".18"/>',
   pencil: '<path d="M4.5 19.5l1-4.2L16 4.8l3.2 3.2L8.7 18.5z"/><path d="m13.8 7 3.2 3.2"/>',
   check: '<path d="m5 12.5 4.4 4.4L19 7.3"/>',
@@ -68,6 +68,8 @@ const ICONS = {
   cloudOff: '<path d="M7 18.5h10.3a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-11-1.1A4.4 4.4 0 0 0 7 18.5z"/><path d="m4 4 16 16"/>',
   key: '<circle cx="8" cy="15.5" r="3.7"/><path d="M10.7 12.8 19 4.5M15.6 7.9l2.6 2.6M17.6 5.9l2 2"/>',
   link: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.3 1.3"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.3-1.3"/>',
+  ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/>',
+  note: '<path d="M4.5 4.5h15v11h-6l-3.5 4v-4h-5.5z"/><path d="M8 9h8M8 12h5"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',
 }
 

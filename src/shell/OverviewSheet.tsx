@@ -9,10 +9,11 @@ import { Icon, type IconName } from '../nav/icons'
 import { navigate } from '../nav/router'
 import type { AppRoute } from '../nav/route'
 import { ENGINEER_HEIGHT, sideLabel } from '../plan/keyNumbers'
+import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
 import { m2, netText } from './format'
 import type { KeyNumbers } from './useKeyNumbers'
-import { hoursText, overText, type SunFacts } from '../sun/facts'
+import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
 
 const ROOF_NAMES = { hip: 'Hip', gable: 'Gable', skillion: 'Skillion', flat: 'Flat' }
@@ -99,7 +100,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                     <h4>Distance to boundary</h4>
                     <dl className="stats">
                       {n.placement.sides.map((s, i) => (
-                        <FragmentRow key={i} label={sideLabel(n.placement!.sides, s)} value={`${Math.round(s.dist * 1000)} mm`} />
+                        <FragmentRow key={i} label={sideLabel(n.placement!.sides, s)} value={s.over > 0 ? overText(s.over) : `${Math.round(s.dist * 1000)} mm`} bad={s.over > 0} />
                       ))}
                     </dl>
                   </>
@@ -218,7 +219,7 @@ function SunNumbers({ sun }: { sun: SunFacts }) {
       ) : (
         <p className="muted small">No living areas yet.</p>
       )}
-      <p className="muted small">{overText(sun)}</p>
+      <p className="muted small">{shadowText(sun)}</p>
     </>
   )
 }

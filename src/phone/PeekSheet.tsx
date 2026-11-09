@@ -1,6 +1,6 @@
-// "Showing people": the key numbers in a small sheet at the bottom of the plan and the 3D
-// view on a phone. A tap, or a pull up, opens the Overview with every number. Each number
-// comes from the same helper, in the same format, as the strip and the Overview (CALM 8).
+// "Key numbers": a small sheet at the bottom of the plan and the 3D view on a phone. A tap,
+// or a pull up, opens the Overview with every number. Each number comes from the same helper,
+// in the same format, as the strip and the Overview (CALM 8).
 
 import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { RAMP_CSS } from '../lib/colors'
@@ -15,7 +15,7 @@ export const PULL_TO_OPEN = 48
 interface Props {
   numbers: KeyNumbers
   stats: SiteStats
-  /** "Showing people" while viewing; "Key numbers" while editing. */
+  /** The sheet's heading ("Key numbers"). */
   title: string
   /** One line, while editing (the tools need the height) or with the phone turned sideways. */
   slim?: boolean
@@ -32,7 +32,8 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
   const moved = useRef(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Tell what floats on the canvas how tall the sheet is, so it stays clear.
+  // Tell what floats on the canvas how tall the sheet is, so it stays clear; the body gets it too,
+  // for the toasts that live outside the shell (src/safety).
   useLayoutEffect(() => {
     const el = ref.current
     const shell = el?.closest<HTMLElement>('.app-shell')
@@ -40,12 +41,14 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
     const ro = new ResizeObserver(() => {
       const h = Math.round(el.getBoundingClientRect().height)
       shell.style.setProperty('--peek-size', `${h}px`)
+      document.body.style.setProperty('--peek-size', `${h}px`)
       onHeight?.(h)
     })
     ro.observe(el)
     return () => {
       ro.disconnect()
       shell.style.removeProperty('--peek-size')
+      document.body.style.removeProperty('--peek-size')
     }
   }, [onHeight])
 

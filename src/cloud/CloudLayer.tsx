@@ -13,6 +13,9 @@ import { cloudActions, startCloud, useCloud } from './state'
 import { chipLook, longDate, megabytes, projects } from './words'
 import './cloud.css'
 
+/** Where to ask for an invite code. */
+const CONTACT = 'hello@contourandgable.com'
+
 export function CloudLayer() {
   const sheet = useCloud(s => s.sheet)
   // Is there a cloud here, and who is signed in? Nothing else is sent before he signs in.
@@ -148,10 +151,25 @@ function CreateSheet() {
           <label className="cl-field">
             <span>Invite code</span>
             <input value={invite} onChange={e => setInvite(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={busy} />
+            <small>
+              Don’t have a code? Email <a href={`mailto:${CONTACT}?subject=${encodeURIComponent('An invite code for Contour & Gable')}`}>{CONTACT}</a>
+            </small>
           </label>
         )}
         {!works && <p className="cl-problem">{NO_PASSKEYS}</p>}
         <Problem />
+        {/* In tabs of their own, so what's typed here is still here when you come back. */}
+        <p className="cl-agree">
+          By creating an account you agree to the{' '}
+          <a href="#/terms" target="_blank" rel="noopener">
+            Terms
+          </a>{' '}
+          and{' '}
+          <a href="#/privacy" target="_blank" rel="noopener">
+            Privacy policy
+          </a>
+          .
+        </p>
         <div className="cl-actions">
           <button type="submit" className="cl-btn primary big" disabled={busy || !ready || !works}>
             <Icon name="key" size={18} />

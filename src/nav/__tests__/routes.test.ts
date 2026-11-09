@@ -10,7 +10,7 @@ import { MORE_SECTIONS, TAB_PANELS } from '../../shell/sections'
 import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
-import { areaRoute, canvasOf, defaultRoute, everyRoute, formatHash, parseHash, PROJECTS, tabRoute, type AppRoute, type Route } from '../route'
+import { areaRoute, canvasOf, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, tabRoute, type AppRoute, type Route } from '../route'
 import { buildIndex, search, type SearchItem } from '../search'
 
 const places = allPlaces()
@@ -242,7 +242,7 @@ describe('the menu', () => {
       ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'checks', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['estimate', 'materials', 'quotes', MORE],
-      ['plans', 'send', '3d-print', MORE],
+      ['plans', 'export', 'send', '3d-print', MORE],
     ])
     for (const a of AREAS) {
       expect(a.tabs.some(t => t.id === a.defaultTab), a.id).toBe(true)
@@ -256,13 +256,19 @@ describe('the menu', () => {
     expect(menu.items.map(i => i.label)).toEqual([
       'All projects…',
       'New project…',
+      'Open an example',
+      'Where it’s saved',
       'Sign in and cloud saves',
       'Project name',
       'Survey file name',
-      'Save project file',
+      'Download a backup (project file)',
       'Open…',
       'Export plan',
-      'New plan',
+      'Start the plan again',
+      'About Contour & Gable',
+      'Privacy policy',
+      'Terms of use',
+      'How accurate is this?',
     ])
   })
 
@@ -546,6 +552,22 @@ describe('the router', () => {
     expect(routeNow()).toEqual({ kind: 'app', area: 'earthworks', tab: 'retaining-walls', view: '3d', level: 'level_upper', sel: 'w7' })
   })
 
+  it('opens the pages about the app from a typed link, with no project, and Back leaves them', () => {
+    const b = fakeBrowser('https://example.test/app/#/design/plan?view=plan')
+    stop = startRouter()
+    for (const page of PAGE_IDS) {
+      navigate(pageRoute(page))
+      expect(routeNow()).toEqual({ kind: 'page', page })
+      expect(b.url.hash).toBe(`#/${page}`)
+    }
+    b.history.back()
+    expect(routeNow()).toEqual({ kind: 'page', page: 'terms' })
+    stop()
+    fakeBrowser('https://example.test/app/#/privacy')
+    stop = startRouter()
+    expect(routeNow()).toEqual({ kind: 'page', page: 'privacy' })
+  })
+
   it('follows a typed link and tidies it into its full form', () => {
     const b = fakeBrowser('https://example.test/app/#/design/plan?view=plan')
     stop = startRouter()
@@ -631,6 +653,16 @@ describe('⌘K search', () => {
     expect(search(index, 'pdf').some(r => r.action === 'download-pdf')).toBe(true)
   })
 
+  it('finds the measure and note tools and the DXF, picture and schedule exports by plain words', () => {
+    for (const q of ['measure', 'ruler', 'distance', 'slope']) expect(search(index, q).some(r => r.action === 'tool:measure'), q).toBe(true)
+    for (const q of ['note', 'label', 'text']) expect(search(index, q).some(r => r.action === 'tool:note'), q).toBe(true)
+    expect(search(index, 'measure').find(r => r.action === 'tool:measure')).toMatchObject({ shortcut: 'L' })
+    expect(search(index, 'note').find(r => r.action === 'tool:note')).toMatchObject({ shortcut: 'E' })
+    const atExport = (q: string) => search(index, q).some(r => (r.place.kind === 'tab' && r.place.area.id === 'share' && r.place.tab.id === 'export') || r.entry.at === 'share/export')
+    for (const q of ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'schedule', 'doors', 'windows']) expect(atExport(q), q).toBe(true)
+    expect(search(index, 'dxf').some(r => r.action === 'download-dxf')).toBe(true)
+  })
+
   it('finds the retaining wall tool, finished contours and the 1:50 scale', () => {
     expect(search(index, 'retaining wall').slice(0, 3).map(r => r.key)).toEqual(
       expect.arrayContaining(['tab:earthworks/retaining-walls', 'command:tool-retaining']),
@@ -671,6 +703,17 @@ describe('⌘K search', () => {
     for (const words of ['sign in', 'log in', 'passkey', 'Face ID', 'recovery code', 'sign out', 'account']) expect(search(index, words)[0]?.entry.id, words).toBe('cloud')
     expect(search(index, 'offline').some(r => r.entry.id === 'sync-chip'), 'offline').toBe(true)
     expect(search(index, 'this device only').some(r => r.entry.id === 'cloud-upload'), 'this device only').toBe(true)
+  })
+
+  it('finds the pages about the app by the words people use for them', () => {
+    const pageOf = (q: string) => search(index, q).slice(0, 3).find(r => r.action === 'about' || r.action === 'privacy' || r.action === 'terms' || r.action === 'accuracy')?.action
+    expect(pageOf('how accurate is this')).toBe('accuracy')
+    expect(pageOf('disclaimer')).toBe('accuracy')
+    expect(pageOf('privacy policy')).toBe('privacy')
+    expect(pageOf('cookies')).toBe('privacy')
+    expect(pageOf('terms and conditions')).toBe('terms')
+    expect(pageOf('contact')).toBe('about')
+    expect(pageOf('who makes this')).toBe('about')
   })
 
   it('finds view-only links by the words people use for them', () => {

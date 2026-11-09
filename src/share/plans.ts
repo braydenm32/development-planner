@@ -1,3 +1,4 @@
+import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
@@ -172,6 +173,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(x0 + 5, y0 + strip - 9 * t, input.title, { size: 5 * t, font: 'bold' })
     pg.text(x0 + 5, y0 + strip - 16 * t, name, { size: 4 * t })
     pg.text(x0 + 5, y0 + 4, 'Concept plan only. Check all dimensions and levels on site before building.', { size: 2.2 * t, color: GREY })
+    // The one caveat every result carries out of the app, in the margin under the frame.
+    pg.text(x0, y0 - 4.5, CAVEAT_LINE, { size: 2.2 * t, color: GREY })
 
     // Scale, north arrow and sheet number on the right.
     const right = x0 + w - 5

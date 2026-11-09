@@ -120,6 +120,10 @@ const minClear = (es: Edge[], upper = false) => {
 }
 const closest = (es: Edge[]) => es.reduce<Edge | null>((b, e) => (e.clearance !== null && (!b || e.clearance < (b.clearance ?? Infinity)) ? e : b), null)
 const NEED_FRONT = 'Pick the side that faces the lot in front (or the street) under Lot facts, and this can be checked.'
+/** A distance to the boundary, or how far over it the house goes: "1.20 m", "0.40 m over". */
+const dist = (d: number) => (d >= 0 ? m(d) : `${m(-d)} over`)
+/** "1.20 m to the west side", or "0.40 m over the west side" where the house goes past it. */
+const toEdge = (d: number, e: Edge | null | undefined) => `${dist(d)}${d >= 0 ? ' to' : ''} the ${e?.label.toLowerCase()}`
 
 /** Pass when `value` is at least `min` (or at most, with `max`). */
 /** "1 storey", or "1 storey (2 levels)" when some levels sit beside each other rather than stacked. */
@@ -309,10 +313,15 @@ function housingCode(ms: Measures): CheckResult[] {
   out.push({
     id: 'hc-gfa',
     title: 'Gross floor area',
-    status: !ms.hasHouse ? 'pass' : ms.grossArea <= gfa ? 'pass' : ms.roomsArea <= gfa ? 'warn' : 'fail',
-    value: ms.hasHouse ? `${m2(ms.grossArea)} to the outside of the walls (rooms ${m2(ms.roomsArea)})` : 'No floors yet',
+    // Over the limit to the outside of the walls, the rooms decide it: with none drawn, it can't be told.
+    status: !ms.hasHouse || ms.grossArea <= gfa ? 'pass' : !ms.hasRooms ? 'incomplete' : ms.roomsArea <= gfa ? 'warn' : 'fail',
+    value: !ms.hasHouse
+      ? 'No floors yet'
+      : !ms.hasRooms && ms.grossArea > gfa
+        ? `${m2(ms.grossArea)} to the outside of the walls. ${DRAW.rooms}`
+        : `${m2(ms.grossArea)} to the outside of the walls${ms.hasRooms ? ` (rooms ${m2(ms.roomsArea)})` : ''}`,
     limit: `${m2(gfa)} on a ${m2(area)} lot`,
-    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between these two. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
+    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
     source: HC_TABLE('cl 3.9'),
   })
 
@@ -342,7 +351,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-front',
       title: 'Setback from the lot in front',
       status: !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, 3),
-      value: f ? (f.clearance === null ? 'No house yet' : `${m(f.clearance)} to the ${f.label.toLowerCase()}`) : undefined,
+      value: f ? (f.clearance === null ? 'No house yet' : toEdge(f.clearance, f)) : undefined,
       limit: '3 m from the rear boundary of the lot in front',
       note: f ? undefined : NEED_FRONT,
       source: HC('cl 3.10(15)'),
@@ -352,8 +361,9 @@ function housingCode(ms: Measures): CheckResult[] {
     out.push({
       id: 'hc-front',
       title: 'Front setback',
-      status: !f ? 'unknown' : f.clearance === null ? 'pass' : f.clearance + 1e-6 >= need ? 'pass' : 'warn',
-      value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
+      // Short of the fallback only warns (the neighbours may allow it), but over the front boundary fails.
+      status: !f ? 'unknown' : f.clearance === null ? 'pass' : f.clearance + 1e-6 >= need ? 'pass' : f.clearance < 0 ? 'fail' : 'warn',
+      value: f && f.clearance !== null ? toEdge(f.clearance, f) : undefined,
       limit: `The average of the two nearest houses within 40 m, else ${m(need)}`,
       note: f ? 'The neighbours’ setbacks aren’t known, so this uses the fallback distance.' : NEED_FRONT,
       source: HC_TABLE('cl 3.10(1), (3)'),
@@ -375,7 +385,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-side',
       title: 'Side setbacks',
       status: sideMin === null ? 'pass' : sideMin + 1e-6 >= hi ? 'pass' : sideMin + 1e-6 >= lo ? 'warn' : 'fail',
-      value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${c?.label.toLowerCase()}`,
+      value: sideMin === null ? 'No house yet' : toEdge(sideMin, c),
       limit: needs.map(n => `${m(n.need)} if the lot is ${n.label}`).join('; '),
       note:
         needs.length > 1
@@ -398,7 +408,7 @@ function housingCode(ms: Measures): CheckResult[] {
       id: 'hc-rear',
       title: 'Rear setback',
       status: low === null ? 'pass' : ok ? 'pass' : 'fail',
-      value: low === null ? 'No house yet' : `${m(low)} to the ${r.label.toLowerCase()}${twoStorey && high !== null ? `, upper floor ${m(high)}` : ''}`,
+      value: low === null ? 'No house yet' : `${toEdge(low, r)}${twoStorey && high !== null ? `, upper floor ${dist(high)}` : ''}`,
       limit: `${m(rearLow)} up to 4.5 m high, ${m(rearHigh)} above`,
       note:
         (s.battleAxe ? 'A battle-axe lot’s rear boundary is the one opposite the side the house faces (cl 3.3(2)). ' : '') +
@@ -457,7 +467,7 @@ function housingCode(ms: Measures): CheckResult[] {
     source: HC('cl 3.30'),
   })
 
-  return [...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
+  return [lotCheck(ms), ...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
 }
 
 // ---------------------------------------------------------------------------
@@ -497,7 +507,7 @@ function wollongong(ms: Measures): CheckResult[] {
       id: 'da-rear-upper',
       title: 'Upper floor out of the rear 8 m',
       status: !r ? 'unknown' : r.upperClearance === null ? 'pass' : atLeast(r.upperClearance, 8),
-      value: r && r.upperClearance !== null ? `${m(r.upperClearance)} to the ${r.label.toLowerCase()}` : undefined,
+      value: r && r.upperClearance !== null ? toEdge(r.upperClearance, r) : undefined,
       limit: 'Single storey only within 8 m of the rear boundary',
       note: r ? undefined : NEED_FRONT,
       source: DCP('B1 4.1.2(4)'),
@@ -523,7 +533,7 @@ function wollongong(ms: Measures): CheckResult[] {
     id: 'da-front',
     title: 'Front setback',
     status: s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, 6),
-    value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
+    value: f && f.clearance !== null ? toEdge(f.clearance, f) : undefined,
     limit: '6 m to the front facade (infill); garages 5.5 m',
     note: s.battleAxe
       ? 'B1 measures this from the primary street frontage, and a battle-axe lot reaches the street only by its handle. B1 has no battle-axe front setback of its own, so ask council which boundary it treats as the front.'
@@ -541,7 +551,7 @@ function wollongong(ms: Measures): CheckResult[] {
     id: 'da-side-rear',
     title: 'Side and rear setbacks',
     status: sideMin === null ? 'pass' : atLeast(sideMin, need),
-    value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${c?.label.toLowerCase()}`,
+    value: sideMin === null ? 'No house yet' : toEdge(sideMin, c),
     limit: '0.9 m to walls; 3 m where walls are over 7 m high',
     note: f ? (H > 7 ? 'The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.' : undefined) : 'Until the front is picked under Lot facts, every side is held to this.',
     source: DCP('B1 4.3.2(1), (2)'),
@@ -622,40 +632,130 @@ function wollongong(ms: Measures): CheckResult[] {
     source: DCP('B1 4.17.3'),
   })
 
-  return [...out, ...livingSun(ms, 'da'), ...treeChecks(ms, 'da')]
+  return [lotCheck(ms), ...out, ...livingSun(ms, 'da'), ...treeChecks(ms, 'da')]
 }
 
 /** Each council's own rules (its LEP and DCP), for the DA pathway. */
 const COUNCIL_RULES: Record<CouncilId, (ms: Measures) => CheckResult[]> = { wollongong }
+
+// ---------------------------------------------------------------------------
+// What a check needs drawn before it can pass
+
+/** The parts of the design a check measures. */
+export type Part = 'outline' | 'roof' | 'rooms'
+
+const has = (ms: Measures, p: Part) => (p === 'outline' ? ms.hasHouse : p === 'roof' ? ms.hasRoof : ms.hasRooms)
+
+/** What to draw, for the first part a check is waiting on. */
+const DRAW: Record<Part, string> = {
+  outline: 'Draw the outside walls as a closed outline to check this.',
+  roof: 'Add a roof to check this.',
+  rooms: 'Add rooms to check this.',
+}
+
+/**
+ * What each check measures of the design: it waits for these before it can pass. The height and
+ * the setbacks that grow with it wait for a roof, since the walls alone stand lower.
+ */
+const NEEDS: Record<string, Part[]> = {
+  'lot-inside': ['outline'],
+  'hc-gfa': ['outline'],
+  'hc-height': ['outline', 'roof'],
+  'hc-storeys': ['outline'],
+  'hc-front': ['outline'],
+  'hc-side': ['outline', 'roof'],
+  'hc-rear': ['outline', 'roof'],
+  'hc-landscaped': ['outline'],
+  'hc-cut': ['outline'],
+  'hc-fill': ['outline'],
+  'hc-works-boundary': ['outline'],
+  'hc-retaining': ['outline'],
+  'da-height': ['outline', 'roof'],
+  'da-storeys': ['outline'],
+  'da-fsr': ['outline'],
+  'da-front': ['outline'],
+  'da-side-rear': ['outline', 'roof'],
+  'da-coverage': ['outline'],
+  'da-landscaped': ['outline'],
+  'da-batters': ['outline'],
+  'da-geotech': ['outline'],
+  'da-erosion': ['outline'],
+  'da-retaining': ['outline'],
+  // The shadow is the house's, so it waits for the walls and the roof that cast it.
+  'da-sun-neighbours': ['outline', 'roof'],
+}
+
+/** A tree is measured against the house; retaining walls once there are some, house or not. */
+const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && ms.walls.length ? [] : (NEEDS[r.id] ?? []))
+
+/**
+ * A check can't pass on a design that's missing what it measures (an empty plan used to show
+ * "8 pass", and walls without a roof a passing height): it says what to draw instead. A fail
+ * or a warning stands, since drawing more only adds to the house.
+ */
+export function waitForDesign(r: CheckResult, ms: Measures): CheckResult {
+  const missing = partsOf(r, ms).find(p => !has(ms, p))
+  if (!missing || r.status !== 'pass') return r
+  const sofar = missing !== 'outline' && r.value ? `So far: ${r.value}.` : ''
+  return { ...r, status: 'incomplete', value: DRAW[missing], note: [sofar, r.note].filter(Boolean).join(' ') || undefined }
+}
+
+/** The survey's boundary, which every pathway's setbacks are measured from. */
+const LOT: Source = { clause: 'Lot boundary, from the survey', confidence: 'read', asAt: 'the survey you imported' }
+
+/** The house inside the lot: a hard fail on every pathway when any of it is over the boundary. */
+function lotCheck(ms: Measures): CheckResult {
+  const o = ms.outside
+  if (!o) return { id: 'lot-inside', title: 'Building inside the lot', status: 'pass', value: 'Inside the survey boundary', source: LOT }
+  const over = ms.edges.filter(e => e.clearance !== null && e.clearance < 0).sort((a, b) => a.clearance! - b.clearance!)
+  return {
+    id: 'lot-inside',
+    title: o.all ? 'The building is outside the lot' : 'Part of the building is outside the lot',
+    status: 'fail',
+    value: over.length ? over.map(e => toEdge(e.clearance!, e)).join(', ') : 'A corner of the lot is inside the house',
+    limit: 'All of the building inside the lot',
+    note: 'Move the house under Earthworks › Place: type a distance to a side there to slide the house square to it.',
+    source: LOT,
+  }
+}
 
 /**
  * Every check for a pathway, in the order the panel lists them. The DA checks are the council's own
  * rules, so with no council switched on there are none.
  */
 export function runChecks(ms: Measures, pathway: Pathway, council: CouncilId | null = activeCouncil(ms.settings)?.id ?? null): CheckResult[] {
-  if (pathway === 'cdc') return housingCode(ms)
-  return council ? COUNCIL_RULES[council](ms) : []
+  const rs = pathway === 'cdc' ? housingCode(ms) : council ? COUNCIL_RULES[council](ms) : []
+  return rs.map(r => waitForDesign(r, ms))
 }
 
 export interface CheckCounts {
   fail: number
   warn: number
   unknown: number
+  /** Waiting for more of the design (see waitForDesign). */
+  incomplete: number
   pass: number
   pending: number
   info: number
 }
 
 export function countChecks(rs: CheckResult[]): CheckCounts {
-  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, pass: 0, pending: 0, info: 0 }
+  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0 }
   for (const r of rs) c[r.status]++
   return c
 }
 
+/**
+ * The CDC checks' biggest gap, pinned at the top of Checks so a clean run isn't read as a CDC:
+ * whether the land can use one at all. The section 10.7 planning certificate says (docs/research).
+ */
+export const CDC_LAND =
+  'Not checked: whether this land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions). The council’s section 10.7 planning certificate says.'
+
 /** What the checks don't cover yet, by pathway (DA: Wollongong's): shown under the list so a clean run isn't read as approval. */
 export const NOT_CHECKED: Record<Pathway, string[]> = {
+  // Whether the land can use a CDC at all is pinned at the top of Checks instead (CDC_LAND).
   cdc: [
-    'Whether the land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions)',
     'Private open space (24 m², 3 × 3 m, 1 in 50)',
     'Privacy screens, balconies and decks',
     'Garage door width and garage setback; parking to AS/NZS 2890.1',

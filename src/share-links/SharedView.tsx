@@ -17,6 +17,7 @@ import { DEFAULT_VIEW, type ViewSettings } from '../lib/storage'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildSiteSolid } from '../lib/terrainMesh'
+import { Caveat } from '../legal/Caveat'
 import { Icon, Logo } from '../nav/icons'
 import type { ActionId, NumberId } from '../nav/menu'
 import type { AppRoute } from '../nav/route'
@@ -359,6 +360,7 @@ function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared: Share
             {ready && !presenting && <CanvasControls canvas={canvas} up={view.up} run={run} />}
           </TouchCanvas.Provider>
         </main>
+        <SharedFooter />
         {note && (
           <div key={note.n} className="toast" role="status">
             {note.text}
@@ -369,6 +371,21 @@ function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared: Share
         )}
       </div>
     </LockedFor.Provider>
+  )
+}
+
+/**
+ * The foot of the page: whose it is, the caveat, and the way in for someone who'd like their own.
+ * Links open in tabs of their own, so the shared view stays where it is.
+ */
+function SharedFooter() {
+  return (
+    <footer className="shared-foot">
+      <p>
+        <b>Made with Contour &amp; Gable</b> · <a href={`${import.meta.env?.BASE_URL ?? '/'}#/projects/new`} target="_blank" rel="noopener">Plan your own</a>
+      </p>
+      <Caveat className="shared-caveat" newTab />
+    </footer>
   )
 }
 

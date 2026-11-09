@@ -3,7 +3,6 @@
 import { ResetCameraButton, SiteFacts, ViewToggles } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import { navigate } from '../../nav/router'
-import { useTouchCanvas } from '../../phone/device'
 import { StreetSidePicker } from '../../phone/StreetSide'
 import { SketchNotice } from '../../start/SketchNotice'
 import { useShell } from '../context'
@@ -30,12 +29,11 @@ export function SiteBlockTab() {
 
 export function Site3dTab() {
   const { view, changeView, resetCamera, survey, terrain } = useShell()
-  const key = useTouchCanvas()?.projectKey
   const set = (patch: Partial<ViewSettings>) => changeView({ ...view, ...patch })
   return (
     <>
       <ViewToggles view={view} onChange={set} />
-      {key && survey && terrain && <StreetSidePicker projectKey={key} survey={survey} terrain={terrain} />}
+      {survey && terrain && <StreetSidePicker survey={survey} terrain={terrain} />}
       <ResetCameraButton onReset={resetCamera} />
     </>
   )

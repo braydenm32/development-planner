@@ -1,0 +1,80 @@
+/* The start screen's first lines: what the app does, a picture of a finished design, and the
+   example to open. The picture floats beside the heading so the two ways in stay in view. */
+
+.st-what {
+  float: right;
+  width: 320px;
+  margin: 0 0 12px 28px;
+}
+
+.st-what img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--st-line);
+  border-radius: var(--st-r-lg);
+  background: #eef1f4;
+}
+
+.st-what figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.st-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--st-accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.st-btn:focus-visible,
+.st-link:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 2px;
+}
+
+.st-says {
+  max-width: 50ch;
+  margin: 0 0 18px;
+  color: var(--st-ink);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.st-main .st-choices {
+  clear: both;
+}
+
+@media (max-width: 760px) {
+  .st-what {
+    float: none;
+    width: 100%;
+    margin: 0 0 14px;
+  }
+
+  .st-what img {
+    aspect-ratio: 2 / 1;
+  }
+
+  .st-what figcaption .st-btn {
+    min-height: 44px;
+  }
+
+  .st-link {
+    min-height: 44px;
+  }
+
+  .st-says {
+    font-size: 15px;
+  }
+}

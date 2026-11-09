@@ -31,8 +31,6 @@ import {
 } from '../plan/model'
 import {
   addLevelAbove,
-  deleteLevel,
-  deleteSelection,
   planBounds,
   setWallLength,
   updateArea,
@@ -46,7 +44,8 @@ import {
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
 import { stairComfort, stairCounts, stairLayout } from '../plan/stairs'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
-import { centredPlacement, placeAtClearance } from '../plan/placement'
+import { centredPlacement, placeAtClearance, signedClearance } from '../plan/placement'
+import { overText } from '../plan/setbacks'
 import { housePadRL, piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
@@ -54,6 +53,9 @@ import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { crossedBoundaries, levelSummaries, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import type { Earth } from '../plan/useEarthworks'
+import { copySelected, deleteLevelWithReview, deleteSelected, duplicateSelected } from '../plan/editActions'
+import { selectionCounts } from '../plan/editing'
+import { shortcutText } from '../nav/keys'
 import { Num, Select, TextField } from './fields'
 import { LevelFloorType, RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
@@ -279,12 +281,7 @@ export function LevelsBody({ plan, beforePick }: { plan: Plan; beforePick?: () =
         {levels.length > 1 && (
           <button
             className="secondary danger"
-            onClick={() => {
-              const l = levels.find(x => x.id === level)
-              if (!l || !confirm(`Delete ${l.name} and everything on it?`)) return
-              st.commit(p => deleteLevel(p, l.id))
-              st.setActiveLevel(sortedLevels(usePlan.getState().plan!)[0].id)
-            }}
+            onClick={() => void deleteLevelWithReview(level)}
           >
             Delete level
           </button>
@@ -332,7 +329,7 @@ export function PlanFileBody({ plan }: { plan: Plan }) {
           Import
         </button>
         <button className="secondary danger" onClick={startNewPlan}>
-          New
+          Start again
         </button>
       </div>
       <input
@@ -351,11 +348,12 @@ export function PlanFileBody({ plan }: { plan: Plan }) {
   )
 }
 
-export function FragmentRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+export function FragmentRow({ label, value, strong, bad }: { label: string; value: string; strong?: boolean; bad?: boolean }) {
+  const cls = [strong && 'strong', bad && 'bad'].filter(Boolean).join(' ')
   return (
     <>
       <dt className={strong ? 'strong' : ''}>{label}</dt>
-      <dd className={strong ? 'strong' : ''}>{value}</dd>
+      <dd className={cls}>{value}</dd>
     </>
   )
 }
@@ -373,8 +371,34 @@ interface SelectionProps {
 /** Settings and numbers for the selected wall, opening, room, roof, stair, area or piece of furniture; a room leads with its area. */
 export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps) {
   const selection = usePlan(s => s.selection)
+  const extra = usePlan(s => s.extra)
   const st = usePlan.getState()
   if (!selection) return null
+  // Several items: a short summary and what can be done with them together.
+  if (extra.length > 0) {
+    const all = [selection, ...extra]
+    return (
+      <section className="selection multi">
+        <h2>{all.length} items selected</h2>
+        <p className="muted small">{selectionCounts(all)}</p>
+        <p className="muted small">Drag one to move them together, or use the arrow keys (Shift for bigger steps). Esc clears the selection.</p>
+        <div className="row">
+          <button className="secondary" onClick={() => copySelected()}>
+            Copy
+          </button>
+          <button className="secondary" onClick={() => duplicateSelected()}>
+            Duplicate
+          </button>
+          <button className="secondary danger" onClick={() => deleteSelected()}>
+            Delete
+          </button>
+        </div>
+        <p className="muted small">
+          <kbd>{shortcutText('mod+C')}</kbd> copy, <kbd>{shortcutText('mod+V')}</kbd> paste, <kbd>{shortcutText('mod+D')}</kbd> duplicate.
+        </p>
+      </section>
+    )
+  }
   const pl = plan.placement
   /** Finished ground (after cut and fill) at a plan point. */
   const groundAt = (p: Vec2) => {
@@ -385,10 +409,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
   const del = (
     <button
       className="secondary danger"
-      onClick={() => {
-        st.commit(p => deleteSelection(p, selection))
-        st.select(null)
-      }}
+      onClick={() => deleteSelected()}
     >
       Delete
     </button>
@@ -770,7 +791,7 @@ export function PlacementRotationField({ plan }: { plan: Plan }) {
 
 /** The ground floor's RL (it includes that floor's "Above ground floor" height). */
 export function FloorLevelField({ plan }: { plan: Plan }) {
-  return <Num label="Ground floor level" unit="RL" value={floorRL(plan)} onCommit={rl => setPlacement({ ffl: fflForGroundRL(plan, rl) })} />
+  return <Num label="Ground floor level (FFL)" unit="RL" value={floorRL(plan)} onCommit={rl => setPlacement({ ffl: fflForGroundRL(plan, rl) })} />
 }
 
 export function PlacementActions({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo | null }) {
@@ -819,7 +840,10 @@ export function GroundUnderHouse({ plan, info }: { plan: Plan; info: PlacementIn
   )
 }
 
-/** Typed setbacks: the house's distance to each side of the block, which slides it square to that side. */
+/**
+ * Typed setbacks: the house's distance to each side of the block, which slides it square to that
+ * side. A side the house goes past shows how far, below its field in red, and a negative distance.
+ */
 export function BoundaryDistances({ plan, survey, info }: { plan: Plan; survey: Survey; info: PlacementInfo }) {
   const gross = useMemo(() => lowestOutline(plan), [plan])
   return (
@@ -827,14 +851,16 @@ export function BoundaryDistances({ plan, survey, info }: { plan: Plan; survey: 
       <h3>Distance to boundary</h3>
       <p className="muted small">Type a distance to slide the house square to that side.</p>
       {info.sides.map((s, i) => (
-        <Num
-          key={i}
-          label={sideLabel(info.sides, s)}
-          unit="mm"
-          value={Math.round(s.dist * 1000) / 1000}
-          min={0}
-          onCommit={d => setPlacement(placeAtClearance(gross, plan.placement, survey, i, d))}
-        />
+        <div key={i} className={s.over > 0 ? 'boundary-over' : undefined}>
+          <Num
+            label={sideLabel(info.sides, s)}
+            unit="mm"
+            value={Math.round(signedClearance(s) * 1000) / 1000}
+            min={0}
+            onCommit={d => setPlacement(placeAtClearance(gross, plan.placement, survey, i, d))}
+          />
+          {s.over > 0 && <p className="over-note small">{overText(s.over)} the boundary: part of the house is outside the lot.</p>}
+        </div>
       ))}
     </>
   )

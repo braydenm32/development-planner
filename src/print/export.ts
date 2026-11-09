@@ -1,3 +1,4 @@
+import { CAVEAT_LINE } from '../legal/caveat'
 import type { PrintPart } from './build'
 
 // ---- ZIP (stored, no compression; 3MF files are ZIP packages too) ----
@@ -144,6 +145,7 @@ export function to3mf(parts: PrintPart[], title: string): Uint8Array {
 <model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
 <metadata name="Title">${escapeXml(title)}</metadata>
 <metadata name="Application">Contour and Gable</metadata>
+<metadata name="Description">${escapeXml(CAVEAT_LINE)}</metadata>
 <resources>${materials}${objects.join('\n')}</resources>
 <build>${items.join('')}</build>
 </model>`
@@ -221,11 +223,15 @@ export const fileSafe = (s: string) =>
 export function toStlZip(parts: PrintPart[]): Uint8Array {
   const used = new Set<string>()
   return zip(
-    parts.map(p => {
-      let name = fileSafe(p.name)
-      for (let i = 2; used.has(name); i++) name = `${fileSafe(p.name)}-${i}`
-      used.add(name)
-      return { name: `${name}.stl`, data: toStl(p) }
-    }),
+    [
+      ...parts.map(p => {
+        let name = fileSafe(p.name)
+        for (let i = 2; used.has(name); i++) name = `${fileSafe(p.name)}-${i}`
+        used.add(name)
+        return { name: `${name}.stl`, data: toStl(p) }
+      }),
+      // STL has nowhere to say it, so the caveat travels as a note beside the parts.
+      { name: 'README.txt', data: new TextEncoder().encode(`Made with Contour and Gable.\r\n\r\n${CAVEAT_LINE}\r\n`) },
+    ],
   )
 }
