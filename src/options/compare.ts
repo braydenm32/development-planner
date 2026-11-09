@@ -24,7 +24,7 @@ const m3 = (v: number) => `${v.toFixed(1)} m³`
 const dash = '—'
 
 export const ROWS: Row[] = [
-  { id: 'floor-area', label: 'Floor area', text: n => (n.floorArea === null ? dash : m2(n.floorArea)), value: n => n.floorArea, best: 'high' },
+  { id: 'floor-area', label: 'Floor area', text: n => (n.floorArea === null ? dash : m2(n.floorArea)), value: n => n.floorArea, best: 'none' },
   { id: 'ffl', label: 'Floor level (FFL)', text: n => `RL ${n.ffl.toFixed(2)}`, value: n => n.ffl, best: 'none' },
   { id: 'cut', label: 'Cut', text: n => (n.earth ? m3(n.earth.cut) : dash), value: n => n.earth?.cut ?? null, best: 'low' },
   { id: 'fill', label: 'Fill', text: n => (n.earth ? m3(n.earth.fill) : dash), value: n => n.earth?.fill ?? null, best: 'low' },
