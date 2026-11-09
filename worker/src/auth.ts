@@ -19,7 +19,7 @@ import type { Env } from './env'
 import { b64url, fromB64url, HttpError, json, randomBytes, randomId, readJson, sameSecret, sha256Hex } from './http'
 import { clearedCookie, clientIp, endSession, rateLimit, requireUser, sessionCookie, sessionInsert, type User } from './session'
 
-const RP_NAME = 'Block & House Planner'
+const RP_NAME = 'Contour & Gable'
 const CHALLENGE_MS = 5 * 60 * 1000
 const MINUTE = 60 * 1000
 /** EdDSA, ES256 and RS256: what platform passkeys use. Fixed, so options and checks agree. */

@@ -68,7 +68,7 @@ jobs:
       - name: Say where it is
         run: |
           {
-            echo "### Block & House Planner is live"
+            echo "### Contour & Gable is live"
             echo
             echo "Its address is in Cloudflare: **Workers & Pages › block-and-house-planner**, the *.workers.dev link. It is kept out of this public log."
             echo

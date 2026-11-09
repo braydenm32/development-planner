@@ -198,7 +198,7 @@ export function levelEndpoints(plan: Plan, level: string): Vec2[] {
 export function parsePlanFile(text: string): Plan {
   const p = JSON.parse(text) as Plan
   if (!p || p.version !== 1 || !Array.isArray(p.walls) || !Array.isArray(p.levels) || !p.placement) {
-    throw new Error('This file is not a Block & House Planner plan.')
+    throw new Error('This file is not a Contour & Gable plan.')
   }
   return normalizePlan(p)
 }

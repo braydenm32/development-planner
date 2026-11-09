@@ -143,7 +143,7 @@ export function to3mf(parts: PrintPart[], title: string): Uint8Array {
   const model = `<?xml version="1.0" encoding="UTF-8"?>
 <model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
 <metadata name="Title">${escapeXml(title)}</metadata>
-<metadata name="Application">Block and House Planner</metadata>
+<metadata name="Application">Contour and Gable</metadata>
 <resources>${materials}${objects.join('\n')}</resources>
 <build>${items.join('')}</build>
 </model>`
@@ -174,7 +174,7 @@ export function toStl(part: PrintPart): Uint8Array {
   const n = t.length / 3
   const buf = new ArrayBuffer(84 + n * 50)
   const dv = new DataView(buf)
-  const header = new TextEncoder().encode(`Block and House Planner: ${part.name}`.slice(0, 80))
+  const header = new TextEncoder().encode(`Contour and Gable: ${part.name}`.slice(0, 80))
   new Uint8Array(buf, 0, 80).set(header)
   dv.setUint32(80, n, true)
   let o = 84

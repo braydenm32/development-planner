@@ -256,7 +256,7 @@ export function ProjectsHome(props: Props) {
         <header className="ph-top">
           <div className="ph-brand">
             <Logo />
-            <span>Block &amp; House Planner</span>
+            <span>Contour &amp; Gable</span>
           </div>
           {actions}
         </header>

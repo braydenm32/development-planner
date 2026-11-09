@@ -1,8 +1,8 @@
-# Block and House Planner
+# Contour & Gable
 
 A free, browser-based planner for designing a house on a sloping block: import a contour survey, draw floor plans, model roofs and earthworks, and export a 3D-printable site model with removable floors and roof.
 
-Everything runs in the browser. Survey files are read locally and saved in the browser's own storage; nothing is uploaded.
+Everything runs in the browser. Survey files are read locally and saved in the browser's own storage. Nothing is uploaded unless you sign in to save to the cloud or make a view-only link.
 
 ## Status
 
