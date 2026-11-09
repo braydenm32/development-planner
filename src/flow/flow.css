@@ -356,7 +356,8 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
 .plan-editor .q-pill,
 .plan-editor .q-tray {
   position: absolute;
-  bottom: 64px;
+  /* Above the live section under the plan, when it's open (src/sectionStrip). */
+  bottom: calc(64px + var(--section-strip-h, 0px));
   left: calc(var(--free-left, 0px) + 4px);
   z-index: 7;
 }
@@ -572,7 +573,7 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
   .plan-editor .q-pill,
   .plan-editor .q-tray {
     left: 12px;
-    bottom: calc(var(--peek-h, 0px) + 12px);
+    bottom: calc(var(--peek-h, 0px) + 12px + var(--section-strip-h, 0px));
   }
 
   .plan-editor .q-pill {
