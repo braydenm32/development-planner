@@ -95,3 +95,97 @@ body:has(.app-shell.phone) h4.drive-ground,
 body:has(.app-shell.phone) .drive-chip {
   font-size: 14px;
 }
+
+/* The driveway's street crossing: the kerb level, the long section and its checks. */
+
+.drive-crossing .check-list {
+  margin-top: 4px;
+}
+
+.drive-state {
+  display: grid;
+  gap: 4px;
+}
+
+.drive-profile {
+  margin: 8px 0 2px;
+}
+
+.drive-profile svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfd;
+}
+
+.drive-profile .seg {
+  stroke: var(--text);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+}
+
+.drive-profile .seg.warn {
+  stroke: #c98a00;
+}
+
+.drive-profile .seg.bad {
+  stroke: var(--danger);
+  stroke-width: 3;
+}
+
+.drive-profile text {
+  font-size: 11px;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.drive-profile text.grade {
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fbfcfd;
+  stroke-width: 3px;
+}
+
+.drive-profile text.grade.warn {
+  fill: #8a5d00;
+}
+
+.drive-profile text.grade.bad {
+  fill: var(--danger);
+}
+
+.drive-profile text.rl {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+/* The council's land, from the boundary to the gutter. */
+.drive-profile .verge {
+  fill: #eef1f4;
+}
+
+.drive-profile .seg.council {
+  stroke: var(--muted);
+}
+
+.drive-profile .mark line {
+  stroke: var(--line);
+  stroke-dasharray: 2 2;
+}
+
+.drive-profile .scrape circle {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2;
+}
+
+.drive-profile .scrape text {
+  fill: var(--danger);
+  font-weight: 600;
+}
+
+.drive-profile figcaption {
+  margin-top: 4px;
+}

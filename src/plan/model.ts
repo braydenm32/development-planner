@@ -169,6 +169,19 @@ export interface Area {
   top?: number
   /** Driveways: the levels it is built to at each end. Missing follows the ground. */
   drive?: DriveLevels
+  /** Driveways: the street levels its footpath crossing is checked against. Missing until one is given. */
+  crossing?: CrossingFacts
+}
+
+/**
+ * The street side of a driveway's footpath crossing, as the person gives it: the kerb's level
+ * where the drive meets the road (the gutter's lowest point), typed or read from the state's
+ * elevation data, and the footpath's width from the kerb to the boundary. See src/plan/crossing.ts.
+ */
+export interface CrossingFacts {
+  kerb?: { rl: number; from: 'typed' | 'state' }
+  /** Kerb to boundary (m); missing takes the council's standard, or the app's. */
+  footpath?: number
 }
 
 /** Where a driveway's street-end level comes from: the kerb, a surveyed spot level, or a typed RL. */

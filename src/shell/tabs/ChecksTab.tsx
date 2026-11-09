@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
 import { CDC_LAND, CDC_LAND_MAPPED, controlCount, notChecked } from '../../checks/rules'
+import { isDriveCheck } from '../../checks/crossing'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, COUNCILS, type Council } from '../../checks/councils'
 import { PATHWAYS, pathwayLong, setCheckSettings, setCouncil } from '../../checks/settings'
@@ -34,7 +35,10 @@ export function ChecksTab() {
 function Checks({ d }: { d: Loaded }) {
   const c = useChecks(d.plan, d.survey, d.terrain, d.earth)
   const unsized = useUnsizedTrees()
-  const rows = [...c.results].sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status))
+  const sorted = [...c.results].sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status))
+  // The driveway's crossing checks sit together under their own heading.
+  const rows = sorted.filter(r => !isDriveCheck(r.id))
+  const drive = sorted.filter(r => isDriveCheck(r.id))
   const s = c.measures.settings
   const summary = [
     c.counts.fail && `${c.counts.fail} fail${c.counts.fail > 1 ? 's' : ''}`,
@@ -81,6 +85,16 @@ function Checks({ d }: { d: Loaded }) {
           <CheckRow key={r.id} r={r} />
         ))}
       </ul>
+      {drive.length > 0 && (
+        <>
+          <h4 className="checks-group">Driveway and street crossing</h4>
+          <ul className="check-list">
+            {drive.map(r => (
+              <CheckRow key={r.id} r={r} />
+            ))}
+          </ul>
+        </>
+      )}
       {s.frontEdge !== undefined && <LotFacts m={c.measures} s={s} />}
       <details className="checks-more">
         <summary>Not checked yet</summary>
@@ -102,7 +116,7 @@ function Checks({ d }: { d: Loaded }) {
   )
 }
 
-function CheckRow({ r }: { r: CheckResult }) {
+export function CheckRow({ r }: { r: CheckResult }) {
   const [open, setOpen] = useState(r.status === 'unknown')
   return (
     <li className={`check-row ${r.status}`}>

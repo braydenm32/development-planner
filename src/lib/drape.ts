@@ -175,6 +175,25 @@ export function driveEnds(poly: Vec2[]): { a: Vec2; b: Vec2; u: Vec2; length: nu
   return a && b ? { a, b, u: f.u, length: f.length } : null
 }
 
+/**
+ * How wide a driveway is across its long axis: the narrowest and widest stretch, and at each end
+ * (just inside it), sampled every 0.25 m. Null for an outline with no length.
+ */
+export function driveWidth(poly: Vec2[]): { min: number; max: number; a: number; b: number } | null {
+  const f = driveFrame(poly)
+  if (!f) return null
+  const w = (s: number) => {
+    const c = f.across(s)
+    return c ? c[1] - c[0] : 0
+  }
+  const n = Math.max(2, Math.ceil(f.length / 0.25))
+  // Away from the very ends, where a skewed end tapers to a point.
+  const inset = Math.min(0.25, f.length / 4)
+  const ws: number[] = []
+  for (let k = 0; k <= n; k++) ws.push(w(f.s0 + inset + ((f.s1 - f.s0 - 2 * inset) * k) / n))
+  return { min: Math.min(...ws), max: Math.max(...ws), a: ws[0], b: ws[ws.length - 1] }
+}
+
 /** A grade as "1 in 7.9 (13%)", or "level (0%)" when it rounds to 0 %. */
 export function gradeText(g: number): string {
   return g < 0.005 ? 'level (0%)' : `1 in ${(1 / g).toFixed(1)} (${(g * 100).toFixed(0)}%)`

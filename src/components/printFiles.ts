@@ -22,6 +22,7 @@ import { measure } from '../checks/measure'
 import { notChecked, runChecks } from '../checks/rules'
 import { checkTreesOf } from '../checks/siteTrees'
 import { daOf } from '../da/model'
+import { projectsNow } from '../projects/session'
 import { daPackPdf } from '../da/pack'
 import { stormwaterSheet } from '../drainage/stormwater'
 import { localFeatures, siteForProject } from '../site/store'
@@ -120,7 +121,7 @@ export function daPackFile(p: PdfInput): OutFile {
   // The checks as Design › Checks works them out, but always for a DA: the land's flags, then the council's rules.
   const trees = checkTreesOf(localFeatures(undefined, true), p.survey.boundary)
   const sun = keptSunFacts({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() })
-  const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun })
+  const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun, dem: !!projectsNow().opened?.survey?.dem })
   const council = activeCouncil(measures.settings)
   const checks = [...(planning ? mapChecks(planning, 'da') : []), ...(council ? runChecks(measures, 'da', council.id) : [])]
   const pdf = daPackPdf({

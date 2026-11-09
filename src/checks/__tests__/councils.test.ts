@@ -25,6 +25,7 @@ function sources(c: Council): [string, RuleSource][] {
   }
   for (const { key } of CONTROLS) walk(key, (c as unknown as Record<string, unknown>)[key])
   walk('sideRear', c.sideRear)
+  walk('crossing', c.crossing)
   return out
 }
 

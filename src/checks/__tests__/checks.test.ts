@@ -266,7 +266,8 @@ describe('an unfinished design', () => {
     expect(countChecks(cdc).pass).toBe(0)
     expect(countChecks(da).pass).toBe(0)
     expect(countChecks(cdc).incomplete).toBe(cdc.length)
-    for (const r of cdc) expect(r.value, r.id).toBe('Draw the outside walls as a closed outline to check this.')
+    // The driveway's crossing checks wait for a driveway instead.
+    for (const r of cdc) expect(r.value, r.id).toBe(r.id.startsWith('drive-') ? 'Draw a driveway (Area tool, kind Driveway) to check this.' : 'Draw the outside walls as a closed outline to check this.')
     // Without the front picked, the setbacks still ask for the fact first.
     expect(statuses(run(empty()).cdc)).toMatchObject({ 'hc-front': 'unknown', 'hc-side': 'unknown', 'hc-rear': 'unknown', 'hc-gfa': 'incomplete', 'hc-storeys': 'incomplete' })
   })

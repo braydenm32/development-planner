@@ -196,6 +196,37 @@ export interface TreeRule {
   zone: { minor: number; source: RuleSource }
 }
 
+/**
+ * The driveway and its footpath crossing, from the council's DCP and its standard crossing
+ * drawings. Not one of the CONTROLS: AS/NZS 2890.1 fills in whatever a council doesn't say
+ * (src/checks/crossing.ts), so a council without it isn't counted short.
+ */
+export interface CrossingRule {
+  /** The steepest a driveway can be on the property (rise over run); "generally" warns rather than fails. */
+  maxGrade?: { max: number; generally?: boolean; source: RuleSource }
+  /**
+   * The footpath crossing: the width from the kerb to the boundary its drawing shows (m), the
+   * layback up from the gutter's invert (each piece's length and grade), the fall across the rest
+   * towards the road its drawing builds to, and the most it allows. `firm` fails a crossing
+   * outside the band; otherwise it warns, for the council to set the levels.
+   */
+  footpath?: {
+    width?: number
+    ramp?: { length: number; grade: number }[]
+    fall?: number
+    maxFall: number
+    firm?: boolean
+    /** Past `maxFall` it warns; past this it fails, for a council whose drawing sets an outer limit. */
+    steepest?: { fall: number; says: string }
+    note?: string
+    source: RuleSource
+  }
+  /** A change of grade over `change` (or over AS/NZS 2890.1's limits) needs a transition at least `length` long (m). */
+  transitions?: { change?: number; length: number; source: RuleSource }
+  /** The crossing's width at the boundary and at the kerb, its splays included (m). */
+  width?: { boundary: number; kerb: number; source: RuleSource }
+}
+
 /** One council's LEP and DCP rules for a dwelling house, as the research read them. */
 export interface Council {
   id: CouncilId
@@ -236,6 +267,8 @@ export interface Council {
    * own shadow (src/sun); not one of the CONTROLS, so a council without it isn't counted short.
    */
   sun?: { hours: number; source: RuleSource; diagrams?: RuleSource }
+  /** The driveway and its footpath crossing (src/checks/crossing.ts). */
+  crossing?: CrossingRule
   /**
    * Controls the research read the council's text for and found it has none of its own (so there's
    * nothing to check), as against ones it couldn't read, which the checks list as not checked.
