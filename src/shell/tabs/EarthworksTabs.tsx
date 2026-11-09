@@ -14,6 +14,7 @@ import { usePlacementInfo, useRetainingWalls } from '../../components/planNumber
 import { areaKind } from '../../plan/model'
 import { usePlan } from '../../plan/store'
 import { Caveat } from '../../legal/Caveat'
+import { DemFlag } from '../../map/DemNotes'
 import { navigate } from '../../nav/router'
 import { pickTool, selectOnPlan, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
@@ -28,6 +29,7 @@ function Place({ d }: { d: Loaded }) {
   return (
     <>
       <FloorLevelField plan={d.plan} />
+      <DemFlag what="these levels" />
       {info ? (
         <>
           <GroundUnderHouse plan={d.plan} info={info} />
@@ -76,6 +78,7 @@ export function DrivewayTab() {
   }
   return drives.length ? (
     <>
+      <DemFlag what="these levels and grades" />
       {drives.map(a => {
         const on = selection?.type === 'area' && selection.id === a.id
         return (

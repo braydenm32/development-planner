@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { projectsNow, registerRecordKind } from '../projects/session'
 import { showToast } from '../safety/store'
 import type { Vec2 } from '../lib/geom'
+import { demPlace, type DemBlock } from './demSite'
 import { errorsOf, fitBoundary, nudgeFit, type GridFit } from './fit'
 import { toMga, zoneOf } from './geo'
 import { MAP_KIND, normalizeMapPlace, type MapPlace } from './model'
@@ -153,4 +154,11 @@ export function mapForProject(): MapPlace | undefined {
 export function mapFromRecords(records: Record<string, unknown> | null): MapPlace | undefined {
   const p = normalizeMapPlace(records?.[MAP_KIND])
   return p?.include ? p : undefined
+}
+
+/** Put a block made from the state's ground levels on its lot (exactly: the lot is its boundary), and read the planning layers. */
+export function placeDemBlock(block: DemBlock, lot: Lot) {
+  const place = demPlace(block, lot, useMap.getState().place)
+  useMap.setState({ place, error: null })
+  if (!place.planning) void refreshPlanning()
 }

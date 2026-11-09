@@ -5,6 +5,7 @@ import type { ViewSettings } from '../../lib/storage'
 import { navigate } from '../../nav/router'
 import { StreetSidePicker } from '../../phone/StreetSide'
 import { SketchNotice } from '../../start/SketchNotice'
+import { DemNotice } from '../../map/DemNotes'
 import { useShell } from '../context'
 
 export function SiteBlockTab() {
@@ -14,6 +15,7 @@ export function SiteBlockTab() {
   return (
     <>
       <SketchNotice />
+      <DemNotice />
       <SiteFacts stats={terrain.stats} />
       {warnings > 0 && (
         <p className="notice small">

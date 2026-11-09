@@ -209,3 +209,24 @@
   stroke-dasharray: 8 5;
   pointer-events: none;
 }
+
+/* State ground levels: the offer, the reading, and the notes that stay with the block. */
+.state-ground {
+  display: grid;
+  gap: 8px;
+}
+
+.state-ground > p {
+  margin: 0;
+}
+
+.state-ground-busy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.dem-notice .muted {
+  margin: 6px 0 0;
+}

@@ -2,6 +2,7 @@
 // that council's rules are switched on, live. Problems first; every row names its clause and how
 // sure the research is of it.
 
+import { DemFlag } from '../../map/DemNotes'
 import { useState } from 'react'
 import { Num, Select } from '../../components/fields'
 import type { Measures } from '../../checks/measure'
@@ -45,6 +46,7 @@ function Checks({ d }: { d: Loaded }) {
   ].filter(Boolean)
   return (
     <div className="checks">
+      <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />
       <div className="segmented-choice" role="radiogroup" aria-label="Approval pathway">
         {PATHWAYS.map(p => {
           const off = p.id === 'da' && !c.council

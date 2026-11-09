@@ -60,6 +60,8 @@ export function ReplaceSurveySection() {
       <p className="muted small">
         {sketch ? (
           <>Now a sketch block. When the survey comes, add it here: your plan is kept, centred on the surveyed block at the same height above the ground.</>
+        ) : project.dem ? (
+          <>Now ground levels from the state’s elevation model, about ±{project.dem.accuracy} m. When the survey comes, add it here: it replaces the levels, and your plan is kept.</>
         ) : (
           <>
             Now <b>{project.fileName}</b>. Choose another DXF and a review shows how the block and house will line up before anything changes. Undo puts it back.
@@ -68,7 +70,7 @@ export function ReplaceSurveySection() {
       </p>
       <div className="row">
         <button className="secondary" onClick={replaceSurvey}>
-          {sketch ? 'Add the survey…' : 'Replace survey…'}
+          {sketch || project.dem ? 'Add the survey…' : 'Replace survey…'}
         </button>
       </div>
       <PreviousSurvey />

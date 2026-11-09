@@ -14,7 +14,7 @@ import { useSiteStore } from '../site/store'
 import { isSketch, sketchAround, sketchSurvey, type SketchBlock } from '../start/sketch'
 import { centreOnBlock, fitOnBlock, moveOntoBlock, placeOnSketch, type Site } from './align'
 import { PickLayersError, readFile, readSite, type OpenedFile } from './files'
-import { CHECK_LAYERS, readBackLine } from './readBack'
+import { CHECK_LAYERS, demReadBack, readBackLine } from './readBack'
 import { newPlanReview, planReview, projectReview, surveyReview } from './review'
 import { askLayers, askReview, showToast, useSafety } from './store'
 import type { SavedProject } from '../lib/storage'
@@ -87,6 +87,8 @@ function sayFound(survey: SavedProject) {
   } catch {
     return // the canvas says what's wrong with it
   }
+  // Levels from the state's model: what came in, and how rough it is, rather than the layers.
+  if (survey.dem) return showToast({ text: demReadBack(site, survey.dem) })
   showToast({ text: readBackLine(site), link: checkLayers() })
 }
 
@@ -181,6 +183,12 @@ async function openPlanWithoutSurvey(p: Plan, name: string, into: OpenOptions['i
   const placed = placeOnSketch(p, readSite(survey))
   await startWith(survey, placed, into)
   showToast({ text: `Opened ${name} on a ${survey.fileName.toLowerCase()}. Add the survey when it comes, from Site › More.` })
+}
+
+/** A new project (or the open one, with no survey yet) on ground levels from the state's model (src/map/demSite.ts), opened on Design › Plan. */
+export async function startFromGround(survey: SavedProject, into: OpenOptions['into'] = 'new'): Promise<void> {
+  const site = readSite(survey)
+  await startWith(survey, emptyPlan(defaultPlacement(site.survey, site.terrain)), into)
 }
 
 // ---------------------------------------------------------------------------

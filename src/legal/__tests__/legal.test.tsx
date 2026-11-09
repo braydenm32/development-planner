@@ -66,6 +66,13 @@ describe('the pages', () => {
     for (const s of ['Cut and fill', 'Retaining walls', 'over 1.0 m', 'Planning checks', 'Housing Code', '20%', '3D prints', 'PDF plans']) expect(t, s).toContain(s)
   })
 
+  it('say how rough the state’s ground levels are, and what reading them sends', () => {
+    const a = textOf(html('accuracy'))
+    for (const s of ['NSW 5 m elevation model', '±0.9 m', 'don’t use them for design', 'registered surveyor']) expect(a, s).toContain(s)
+    const p = textOf(html('privacy'))
+    for (const s of ['NSW Spatial Services elevation service', 'longitude and latitude', 'Nothing is sent until you ask', 'never in a view-only link']) expect(p, s).toContain(s)
+  })
+
   it('name no person', () => {
     for (const page of PAGE_IDS) expect(html(page)).not.toMatch(/\b(Brayden|Mr|Mrs)\b/)
   })

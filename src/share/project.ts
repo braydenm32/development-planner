@@ -1,4 +1,4 @@
-import type { SavedProject } from '../lib/storage'
+import { normalizeDemSource, type SavedProject } from '../lib/storage'
 import { normalizePlan, type Plan } from '../plan/model'
 import { normalizeProjectSite, type ProjectSite } from '../site/store'
 import { normalizeCosts, type CostsData } from '../costs/model'
@@ -52,11 +52,12 @@ export function parseProjectFile(text: string): { survey: SavedProject; plan: Pl
     throw new Error('This file is not a Contour & Gable project.')
   }
   const s = f.survey
+  const dem = normalizeDemSource(s?.dem)
   if (f.app !== 'block-and-house-planner' || f.version !== 1 || !s?.dxfText || !s.roles || !f.plan || f.plan.version !== 1) {
     throw new Error('This file is not a Contour & Gable project.')
   }
   return {
-    survey: { fileName: s.fileName || 'survey.dxf', dxfText: s.dxfText, roles: s.roles, ...(s.sketch ? { sketch: s.sketch } : {}) },
+    survey: { fileName: s.fileName || 'survey.dxf', dxfText: s.dxfText, roles: s.roles, ...(s.sketch ? { sketch: s.sketch } : {}), ...(dem ? { dem } : {}) },
     plan: normalizePlan(f.plan),
     site: normalizeProjectSite(f.site),
     costs: f.costs && typeof f.costs === 'object' ? normalizeCosts(f.costs) : null,

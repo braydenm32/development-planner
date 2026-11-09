@@ -3,7 +3,7 @@
 // maps say about the lot. The aerial photo and the lot's lines then show under the plan, and the
 // land's flags join Design › Checks.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { activeCouncil, checkSettingsOf, councilFor } from '../checks/councils'
 import { setCheckSettings, setCouncil } from '../checks/settings'
 import type { Vec2 } from '../lib/geom'
@@ -12,11 +12,14 @@ import { navigate } from '../nav/router'
 import { usePlan } from '../plan/store'
 import { useShell } from '../shell/context'
 import { gridToMga } from './fit'
-import { fromMga, type LonLat } from './geo'
+import { fromMga, middleOf } from './geo'
 import { MapPicker, type MapViewState } from './MapPicker'
 import type { MapPlace } from './model'
 import type { PlanningFacts } from './planning'
-import { lotById, lotsOfProperty, MapServiceError, parseLotDp, PLANNING_CREDIT, searchAddress, type AddressHit, type Lot } from './services'
+import { isSketch } from '../start/sketch'
+import { LotSearch } from './LotSearch'
+import { StateGround } from './StateGround'
+import { PLANNING_CREDIT, type Lot } from './services'
 import { adjustPlace, placeOnLot, refreshPlanning, removePlace, setMapOptions, useMap, type SurveyOutline } from './store'
 import { fitWords } from './words'
 import './map.css'
@@ -26,10 +29,9 @@ const START: MapViewState = { center: [150.8931, -34.4248], zoom: 15 }
 
 const outlineOf = (survey: Survey): SurveyOutline => ({ boundary: survey.boundary.map(p => [p[0] + survey.origin[0], p[1] + survey.origin[1]] as Vec2), origin: survey.origin })
 
-const middleOf = (ring: LonLat[]): LonLat => [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length]
-
 export function MapTab() {
-  const { survey } = useShell()
+  const { survey, project } = useShell()
+  const noSurvey = isSketch(project) || !!project.dem
   const place = useMap(s => s.place)
   const [view, setView] = useState<MapViewState>(() => (place ? { center: middleOf(place.lot.ring), zoom: 19 } : START))
   const [found, setFound] = useState<Lot[]>([])
@@ -66,17 +68,24 @@ export function MapTab() {
           <p className="muted small">
             Find your block to see it on the aerial photo and read its zone and hazards from the NSW planning maps. What you type, and where the block is, go to NSW Government map services; nothing else leaves this browser.
           </p>
-          <Search onLots={show} />
+          <LotSearch onLots={show} />
           <MapPicker view={view} onView={setView} lots={found} selected={picked?.id ?? place?.lot.id ?? null} onPick={pick} />
           {picked ? (
             <div className="map-picked">
               <b>{picked.label}</b>
-              <div className="row">
-                <button className="primary" onClick={() => place_(picked)}>
-                  Fit my survey to this lot
-                </button>
-              </div>
-              <p className="muted small">The survey’s boundary is laid over the lot’s lines and turned until they match. You can nudge it after.</p>
+              {noSurvey ? (
+                // A sketch, or levels from the state's model: nothing of the surveyor's to fit, so the lot can give the block instead.
+                <StateGround key={picked.id} lot={picked} into="replace" />
+              ) : (
+                <>
+                  <div className="row">
+                    <button className="primary" onClick={() => place_(picked)}>
+                      Fit my survey to this lot
+                    </button>
+                  </div>
+                  <p className="muted small">The survey’s boundary is laid over the lot’s lines and turned until they match. You can nudge it after.</p>
+                </>
+              )}
             </div>
           ) : (
             <p className="muted small">Tap your lot on the map to pick it.</p>
@@ -89,107 +98,6 @@ export function MapTab() {
             </div>
           )}
         </>
-      )}
-    </div>
-  )
-}
-
-function Search({ onLots }: { onLots: (lots: Lot[]) => void }) {
-  const [text, setText] = useState('')
-  const [hits, setHits] = useState<AddressHit[]>([])
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const ctrl = useRef<AbortController | null>(null)
-
-  // Addresses as you type, a moment after you stop.
-  const q = text.trim()
-  const typing = q.length >= 4 && !parseLotDp(q)
-  useEffect(() => {
-    if (!typing) return
-    const c = new AbortController()
-    const t = setTimeout(() => searchAddress(q, c.signal).then(setHits, () => {}), 300)
-    return () => {
-      clearTimeout(t)
-      c.abort()
-    }
-  }, [q, typing])
-  const shownHits = typing ? hits : []
-
-  const run = async (job: (signal: AbortSignal) => Promise<Lot[]>, none: string) => {
-    ctrl.current?.abort()
-    const c = new AbortController()
-    ctrl.current = c
-    setBusy(true)
-    setError(null)
-    try {
-      const lots = await job(c.signal)
-      if (c.signal.aborted) return
-      if (!lots.length) setError(none)
-      else {
-        setHits([])
-        onLots(lots)
-      }
-    } catch (e) {
-      if (!c.signal.aborted) setError(e instanceof MapServiceError ? e.message : 'That search didn’t work. Try again in a minute.')
-    } finally {
-      if (!c.signal.aborted) setBusy(false)
-    }
-  }
-
-  const submit = () => {
-    const id = parseLotDp(text)
-    if (id) return run(async s => [(await lotById(id, s))].filter((l): l is Lot => !!l), `No lot ${id.replace(/\//g, ' ').replace(/\s+/g, ' ')} was found. Check the numbers on your title or survey.`)
-    if (shownHits[0]) return choose(shownHits[0])
-    return run(
-      async s => {
-        const h = await searchAddress(text, s)
-        return h[0] ? lotsOfProperty(h[0].propId, s) : []
-      },
-      'No address like that was found. Try the street number and name, and the suburb.',
-    )
-  }
-  const choose = (h: AddressHit) => {
-    setText(h.address)
-    void run(s => lotsOfProperty(h.propId, s), 'That address has no lot on the map. Try its Lot and DP instead.')
-  }
-
-  return (
-    <div className="map-search">
-      <form
-        className="row"
-        onSubmit={e => {
-          e.preventDefault()
-          void submit()
-        }}
-      >
-        <input
-          type="search"
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Address, or Lot and DP"
-          aria-label="Address, or Lot and DP"
-          autoComplete="off"
-          enterKeyHint="search"
-        />
-        <button className="secondary" type="submit" disabled={busy || !text.trim()}>
-          {busy ? 'Finding…' : 'Find'}
-        </button>
-      </form>
-      {shownHits.length > 0 && (
-        <ul className="map-hits" role="listbox" aria-label="Addresses found">
-          {shownHits.map(h => (
-            <li key={`${h.address}|${h.propId}`}>
-              <button className="link" role="option" aria-selected={false} onClick={() => choose(h)}>
-                {h.address}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {error && (
-        <p className="notice small" role="alert">
-          {error}
-        </p>
       )}
     </div>
   )

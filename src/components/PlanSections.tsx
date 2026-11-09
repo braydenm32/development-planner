@@ -2,6 +2,7 @@
 // fill, and the plan file. Design, Earthworks and their More render them (src/shell/tabs), and
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
+import { DemFlag } from '../map/DemNotes'
 import { useMemo, useRef, useState } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
@@ -746,6 +747,7 @@ export function EarthworksResults({ plan, survey, earth, terrain, retaining = tr
         <FragmentRow label="Deepest cut" value={`${r.maxCut.toFixed(2)} m`} />
         <FragmentRow label="Deepest fill" value={`${r.maxFill.toFixed(2)} m`} />
       </dl>
+      <DemFlag what="these volumes" />
       {crossed && (
         <p className="notice small">
           Batters cross {crossed}. Draw a retaining wall there (Retaining wall tool) to hold them back, or move the house.
