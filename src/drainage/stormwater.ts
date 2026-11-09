@@ -331,6 +331,12 @@ export interface StormwaterSheet {
   /** What the path is, for its label: "Stormwater concept: to the street (south side)". */
   label: string
   rows: [string, string][]
+  /** The verdict in a sentence, for the DA pack's stormwater sheet. */
+  verdict?: string
+  /** Where downpipes most often go (the roofs' convex eaves corners), in the house frame. */
+  downpipes?: Vec2[]
+  /** Which way the block falls: an arrow from `at` (survey local frame) towards `bearing`, and its words. */
+  fall?: { at: Vec2; bearing: number; text: string }
 }
 
 export function stormwaterSheet(plan: Plan, survey: Survey, terrain: Terrain): StormwaterSheet | null {
@@ -344,5 +350,12 @@ export function stormwaterSheet(plan: Plan, survey: Survey, terrain: Terrain): S
   if (report.verdict === 'street') rows.push(['Stormwater concept', `to the street by gravity, ${report.fall!.toFixed(2)} m fall over ${report.run!.toFixed(1)} m`])
   else if (report.verdict === 'away') rows.push(['Stormwater concept', 'falls away from the street: easement or pump, see engineer'])
   else if (report.verdict === 'no-street' && report.low) rows.push(['Stormwater concept', `to the low point of the block (${report.low.name})`])
-  return { path: report.path, label: `Stormwater concept: to ${destinationText(report)}`, rows }
+  return {
+    path: report.path,
+    label: `Stormwater concept: to ${destinationText(report)}`,
+    rows,
+    verdict: verdictText(report),
+    downpipes: downpipeSpots(plan),
+    fall: { at: report.centre, bearing: report.fallBearing, text: `The block falls to the ${bearingName(report.fallBearing)}` },
+  }
 }

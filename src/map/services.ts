@@ -29,6 +29,8 @@ export interface Lot {
   /** "Lot 4 DP12345". */
   label: string
   ring: LonLat[]
+  /** The street address it was found by, when it was found by address: for the DA pack's title blocks. */
+  address?: string
 }
 
 export interface AddressHit {
