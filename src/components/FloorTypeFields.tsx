@@ -2,7 +2,11 @@
 // layout's Levels), and a room's own in its settings. The usual two show first; the rest wait
 // behind "More floor types", as in the card that asks.
 
-import { useState } from 'react'
+import { useContext, useState } from 'react'
+import type { Vec2 } from '../lib/geom'
+import { buildingOutline, faceAround, offsetPolygon, planarFaces } from '../plan/geometry'
+import { cutUnderPiers } from '../plan/platforms'
+import { ShellContext } from '../shell/context'
 import {
   DEFAULT_FLOOR_TYPE,
   FLOOR_TYPES,
@@ -15,7 +19,7 @@ import {
   setLevelFloorType,
   type FloorTypeId,
 } from '../plan/floorTypes'
-import { levelById, type Plan, type Room } from '../plan/model'
+import { earthworksOf, levelById, type Plan, type Room } from '../plan/model'
 import { updateRoom } from '../plan/ops'
 import { usePlan } from '../plan/store'
 import { Select } from './fields'
@@ -53,6 +57,7 @@ export function LevelFloorType({ plan, level }: { plan: Plan; level: string }) {
       />
       <MoreLink shown={choices.length} onMore={() => setMore(true)} />
       <p className="muted small">{floorTypeInfo(t ?? DEFAULT_FLOOR_TYPE).earthworks} Rooms follow this unless a room says otherwise.</p>
+      {t && floorTypeInfo(t).ground === 'natural' && <PiersCut plan={plan} rings={buildingOutline(planarFaces(plan.walls.filter(w => w.level === level))).outlines} />}
     </div>
   )
 }
@@ -79,6 +84,32 @@ export function RoomFloorType({ plan, room }: { plan: Plan; room: Room }) {
       />
       <MoreLink shown={choices.length} onMore={() => setMore(true)} />
       {t !== 'framed' && <p className="muted small">{floorTypeInfo(t).earthworks}</p>}
+      {t !== 'framed' && floorTypeInfo(t).ground === 'natural' && <PiersCut plan={plan} rings={roomRing(plan, room)} />}
     </div>
+  )
+}
+
+/** A room's floor, out to the outside of its walls; none while its walls don't enclose it. */
+function roomRing(plan: Plan, room: Room): Vec2[][] {
+  const f = faceAround(room.at, planarFaces(plan.walls.filter(w => w.level === room.level)))
+  return f ? [offsetPolygon(f.pts, f.thickness.map(t => -t / 2))] : []
+}
+
+/**
+ * A floor on piers sitting at or below the ground: the earthworks dig the ground out under it to
+ * keep the gap under the framing, so say how deep, where it's picked.
+ */
+function PiersCut({ plan, rings }: { plan: Plan; rings: Vec2[][] }) {
+  const shell = useContext(ShellContext)
+  const survey = shell?.survey
+  const terrain = shell?.terrain
+  const depth = survey && terrain ? cutUnderPiers(plan, rings, survey.origin, terrain.grid) : 0
+  if (depth < 0.02) return null
+  const gap = Math.round(earthworksOf(plan).subfloor * 1000)
+  return (
+    <p className="notice small">
+      The ground here is up to {depth.toFixed(2)} m too high to leave the {gap} mm gap under the floor, so it’s dug out under it. A slab on ground, or a
+      higher floor, would need less cut.
+    </p>
   )
 }

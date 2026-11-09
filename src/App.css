@@ -491,6 +491,16 @@ button.secondary:hover {
   fill: #2a2f36;
 }
 
+/* "17R to Entry": how many risers, and the level the stair takes you to. */
+.stair-dest {
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: #2a2f36;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+}
+
 .stair.selected .stair-body,
 .stair.selected .stair-treads,
 .stair.selected .stair-walk {
@@ -532,11 +542,11 @@ button.secondary:hover {
   stroke-width: 3px;
 }
 
+/* Solid and a warm tint, so a roof never reads as a setback line or a level below's outline (both dashed). */
 .roof-outline {
-  fill: none;
+  fill: rgba(160, 97, 63, 0.05);
   stroke: #a0613f;
-  stroke-width: 1.2;
-  stroke-dasharray: 9 4;
+  stroke-width: 1.6;
 }
 
 .roof-lines {
@@ -741,8 +751,19 @@ button.danger {
   color: var(--muted);
 }
 
+/* A choice sits beside its label when it fits, and wraps under it, full length, when it doesn't,
+   so a long value ("External (brick veneer, 270 mm)") is never cut short. */
+.num:has(> select) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
 .num select {
-  max-width: 190px;
+  max-width: 100%;
+  margin-left: auto;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 6px;

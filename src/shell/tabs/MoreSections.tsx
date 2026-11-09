@@ -3,7 +3,6 @@
 import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
-  OpeningOptions,
   PlacementActions,
   PlacementOriginFields,
   PlacementRotationField,
@@ -112,26 +111,6 @@ function ToolButton({ tool, label, keyName }: { tool: 'opening' | 'garage' | 'mo
         {label} <kbd>{keyName}</kbd>
       </button>
     </div>
-  )
-}
-
-export function OpeningToolSection() {
-  return (
-    <>
-      <p className="muted small">An opening is a gap in a wall with no door: an archway or an open carport side. Click on a wall to place one.</p>
-      <ToolButton tool="opening" label="Use the Opening tool" keyName="O" />
-      <OpeningOptions kind="opening" />
-    </>
-  )
-}
-
-export function GarageDoorToolSection() {
-  return (
-    <>
-      <p className="muted small">A garage door has no swing: a dashed panel across the opening on the plan, and a closed panel in 3D. Click on a wall to place one.</p>
-      <ToolButton tool="garage" label="Use the Garage door tool" keyName="G" />
-      <OpeningOptions kind="garage" />
-    </>
   )
 }
 

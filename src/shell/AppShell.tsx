@@ -430,9 +430,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print'
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? 60 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
+    if (phone) return { l: rail ? 68 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
-    return { l: (rail ? 70 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: Math.max(56, sunClear) }
+    return { l: (rail ? 80 : 14) + col, r: inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16, t: 56, b: Math.max(56, sunClear) }
   }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
 

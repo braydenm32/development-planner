@@ -9,6 +9,8 @@ import { useCosts } from '../costs/store'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
 import { fileStepNow, undoFileStep } from '../safety/fileUndo'
+// Undo and Redo that change another floor go to it and say so.
+import '../plan/undoLevel'
 
 type Kind = 'plan' | 'site'
 

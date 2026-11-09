@@ -121,6 +121,24 @@ export function defaultGables(pts: Vec2[]): boolean[] {
   return g
 }
 
+/**
+ * Click a gable roof's end marker: a hipped end becomes a gable and a gable end becomes hipped.
+ * Two gable ends can't share a corner, so a new gable hips the ends either side of it; `hipped`
+ * says how many that changed, for the plan to say so.
+ */
+export function toggleGable(gables: boolean[], n: number, m: number): { gables: boolean[]; hipped: number } {
+  const g = Array.from({ length: n }, (_, i) => !!gables[i])
+  g[m] = !g[m]
+  let hipped = 0
+  if (g[m])
+    for (const j of [(m + 1) % n, (m - 1 + n) % n])
+      if (j !== m && g[j]) {
+        g[j] = false
+        hipped++
+      }
+  return { gables: g, hipped }
+}
+
 class MeshBuilder {
   pos: number[] = []
   tris: number[] = []

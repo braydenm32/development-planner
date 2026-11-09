@@ -185,3 +185,29 @@ export function earthworksBarriers(plan: Plan, origin: Vec2): Barrier[] {
 export function retainingStrips(plan: Plan, origin: Vec2): WallStrip[] {
   return plan.walls.filter(isRetaining).map(w => ({ a: toSite(w.a, plan.placement, origin), b: toSite(w.b, plan.placement, origin), half: w.thickness / 2 }))
 }
+
+/** Grid spacing (m) that cutUnderPiers reads the ground at. */
+const PIER_PROBE = 0.5
+
+/**
+ * How deep the ground has to be dug out under a floor on piers inside `rings` (house frame, on
+ * the lowest level) to keep the gap under its framing: the most the natural ground rises above
+ * the floor, less the framing and the gap. 0 when it's clear everywhere.
+ */
+export function cutUnderPiers(plan: Plan, rings: Vec2[][], origin: Vec2, ground: { sample: (x: number, y: number) => number }): number {
+  const ew = earthworksOf(plan)
+  const keep = floorRL(plan) - FLOOR_STRUCTURE - ew.subfloor
+  let deepest = 0
+  for (const ring of rings) {
+    if (ring.length < 3) continue
+    const xs = ring.map(p => p[0])
+    const ys = ring.map(p => p[1])
+    for (let x = Math.min(...xs) + PIER_PROBE / 2; x < Math.max(...xs); x += PIER_PROBE)
+      for (let y = Math.min(...ys) + PIER_PROBE / 2; y < Math.max(...ys); y += PIER_PROBE) {
+        if (!pointInPolygon(x, y, ring)) continue
+        const s = toSite([x, y], plan.placement, origin)
+        deepest = Math.max(deepest, ground.sample(s[0], s[1]) - keep)
+      }
+  }
+  return deepest
+}

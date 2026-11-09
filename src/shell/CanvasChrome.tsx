@@ -1,13 +1,14 @@
 // What floats on the canvas: the tool rail with the current tool's options beside it, the
 // selection inspector, and the fit and orientation controls.
 
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
 import { TOOLS } from '../components/tools'
 import { ZoomButtons } from '../components/ZoomButtons'
 import { Icon, type IconName } from '../nav/icons'
 import type { ActionId, CanvasView } from '../nav/menu'
-import { usePlan } from '../plan/store'
+import { isOpeningTool, usePlan, type Selection, type Tool } from '../plan/store'
 import { ViewLock } from '../phone/ViewLock'
 import { useSun } from '../sun/store'
 import { findSelection } from './selection'
@@ -24,7 +25,8 @@ export function ToolRail() {
       {RAIL.map((t, i) => (
         <span key={t.id} className={i === 1 ? 'tool-gap' : undefined}>
           <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(tool === t.id && (t.id === 'measure' || t.id === 'note') ? 'select' : t.id)} data-tip={`${t.label} ${t.key}`} aria-label={`${t.label} tool (${t.key})`}>
-            <Icon name={(t.icon ?? 'select') as IconName} size={19} />
+            <Icon name={(t.icon ?? 'select') as IconName} size={17} />
+            <span className="tool-name">{t.short ?? t.label}</span>
           </button>
         </span>
       ))}
@@ -32,11 +34,26 @@ export function ToolRail() {
   )
 }
 
-/** The current tool's settings for what it draws next, in a small card beside the rail. */
+/** What a tool draws, as the selection names it: the Roof tool draws roofs, the Door tool openings. */
+const drawsKind = (tool: Tool): Selection['type'] | null =>
+  isOpeningTool(tool) ? 'opening' : tool === 'roof' || tool === 'stair' || tool === 'area' || tool === 'wall' || tool === 'furniture' ? tool : null
+
+/** "roof", "stair": the thing in words, for the card's note. */
+const KIND_WORDS: Partial<Record<Selection['type'], string>> = { roof: 'roof', stair: 'stair', area: 'area', wall: 'wall', furniture: 'piece of furniture', opening: 'opening' }
+
+/**
+ * The current tool's settings for what it draws next, in a small card beside the rail. While one
+ * of the things it draws is selected (the roof just drawn, say), the inspector shows that one's
+ * settings, so the card folds its own away rather than show the same fields side by side.
+ */
 export function ToolCard() {
   const tool = usePlan(s => s.tool)
+  const selected = usePlan(s => s.selection?.type ?? null)
+  const [nextOpen, setNextOpen] = useState(false)
   const def = TOOLS.find(t => t.id === tool)
   if (!def || !hasToolCard(tool)) return null
+  const folded = !nextOpen && selected !== null && selected === drawsKind(tool)
+  const word = selected ? (KIND_WORDS[selected] ?? 'item') : 'item'
   return (
     <section className="float-card tool-card" aria-label={`${def.label} tool`}>
       <header>
@@ -47,7 +64,21 @@ export function ToolCard() {
           Done
         </button>
       </header>
-      {tool === 'move' ? <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p> : <ToolOptions />}
+      {tool === 'move' ? (
+        <p className="muted small">Drag the house on the plan to move it. Its distance to each side of the block shows as you go.</p>
+      ) : folded ? (
+        <div className="tool-options">
+          {tool === 'roof' && <RoofModeSwitch />}
+          <p className="muted small">
+            The selected {word}’s settings are on the right.{' '}
+            <button className="link" onClick={() => setNextOpen(true)}>
+              Settings for the next one
+            </button>
+          </p>
+        </div>
+      ) : (
+        <ToolOptions />
+      )}
     </section>
   )
 }

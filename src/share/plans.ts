@@ -42,6 +42,7 @@ import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
 import { PdfDocument, textWidth, wrapText, type PdfPage, type RGB } from './pdfWriter'
 import { sectionsOf } from '../sections/lines'
 import { drawingSheets, drawSectionMarks } from '../sections/sheets'
+import { roofEavesRL } from '../plan/roofline'
 
 export type Paper = 'A3' | 'A4'
 
@@ -966,7 +967,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       const level = plan.levels.find(l => l.id === roof.level)
       const c = view.P(centroidOf(g.outline))
       const kind = { hip: 'Hip roof', gable: 'Gable roof', skillion: 'Skillion roof', flat: 'Flat roof' }[roof.type]
-      const rl = level ? floorRL(plan, level.id) + level.height + g.height : null
+      const rl = level ? roofEavesRL(plan, roof) + g.height : null
       pg.text(c[0], c[1] + 1.2, roof.type === 'flat' ? kind : `${kind}, ${roof.pitch.toFixed(1)}°`, { size: 2.8, font: 'bold', align: 'center' })
       pg.text(c[0], c[1] - 2.6, `${g.area.toFixed(1)} m²${rl !== null ? `, top RL ${rl.toFixed(2)}` : ''}, eaves ${mm(roof.overhang)} mm`, {
         size: 2.4,

@@ -229,7 +229,19 @@ export interface Roof {
   gables: boolean[]
   /** Skillion roofs: the edge of `pts` at the low side. */
   lowEdge: number
+  /**
+   * Where its eaves line sits (see roofEavesRL in ./roofline). Missing: on top of its own level's
+   * walls, at that level's ceiling. Set, it shares a roofline with another level or roof, or sits at
+   * a typed RL (a section's eaves drag will set this too).
+   */
+  eaves?: RoofEaves
 }
+
+/**
+ * A roof's eaves line: a typed RL, another level's ceiling (it follows that level), or another
+ * roof's eaves (it follows that roof), so roofs over a split-level house can share one roofline.
+ */
+export type RoofEaves = { rl: number } | { level: string } | { roof: string }
 
 export type StairShape = 'straight' | 'l' | 'u'
 

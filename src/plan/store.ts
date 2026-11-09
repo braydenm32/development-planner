@@ -145,7 +145,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   roofDefaults: { type: 'hip', pitch: 22.5, overhang: 0.45 },
   roofMode: 'building',
   stairDefaults: { shape: 'straight', width: 0.9, turn: 'left' },
-  areaDefault: 'slab',
+  areaDefault: 'garden',
   furnitureDefaults: { kind: 'bed-queen', rotation: 0 },
   notice: null,
   fitToken: 0,
