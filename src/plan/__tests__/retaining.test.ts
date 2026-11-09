@@ -530,10 +530,10 @@ describe('the engineer figure', () => {
 
 describe('a side label under the section', () => {
   it('reads the finished ground: a filled side says filled, and a side the pad cuts is never kept natural', () => {
-    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0.2, fill: 1.12, net: 0.6, by: null })).toEqual({ head: 'Uphill · RL 80.45', change: 'mostly fill (up to 1.12 m)' })
-    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0, fill: 1.12, net: 0.6, by: null }).change).toBe('filled up to 1.12 m')
+    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0.2, fill: 1.12, net: 0.6, by: null })).toEqual({ head: 'Uphill · RL 80.45', change: 'mostly fill, up to 1.12 m' })
+    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0, fill: 1.12, net: 0.6, by: null }).change).toBe('filled 1.12 m')
     const padCut = sideLabel({ slope: 'Downhill', level: null, cut: 3.2, fill: 0, net: -2, by: 'house pad' })
-    expect(padCut.change).toBe('cut up to 3.20 m by the house pad')
+    expect(padCut.change).toBe('cut 3.20 m by the house pad')
     expect(padCut.change).not.toContain('kept natural')
     expect(sideLabel({ slope: 'Downhill', level: null, cut: 0.01, fill: 0, net: 0, by: null }).change).toBe('kept natural')
   })

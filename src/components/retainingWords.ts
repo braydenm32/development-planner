@@ -40,8 +40,8 @@ export function sideLabel(o: SideLook): { head: string; change: string } {
   else {
     const fill = big(o.fill) && (!big(o.cut) || o.net >= 0)
     const most = (fill ? o.fill : o.cut).toFixed(2)
-    change = big(o.cut) && big(o.fill) ? `mostly ${fill ? 'fill' : 'cut'} (up to ${most} m)` : `${fill ? 'filled' : 'cut'} up to ${most} m`
-    if (!o.level) change += o.by ? ` by the ${o.by}` : ' by levelled ground beside it'
+    change = big(o.cut) && big(o.fill) ? `mostly ${fill ? 'fill' : 'cut'}, up to ${most} m` : `${fill ? 'filled' : 'cut'} ${most} m`
+    if (!o.level) change += o.by ? ` by the ${o.by}` : ' by other earthworks'
   }
   return { head, change }
 }

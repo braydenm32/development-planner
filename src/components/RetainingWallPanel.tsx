@@ -157,7 +157,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
   ].join(', ')
   // What the height box shows: the answer as typed, and why the ground gives another height when it does.
   const asked = r.askedHeight
-  const note = heightNote(w.retain, prof, plan)
+  const note = heightNote(w.retain, prof, plan, nat)
   // The earth side still ends up lower than the open side: nothing has raised it yet.
   const lean = prof.samples.reduce((t, x) => t + x[r.high] - x[low], 0) / prof.samples.length
   const wrongWay = lean < -0.02

@@ -311,7 +311,7 @@ export function levelsForHeight(r: Retain, plan: Plan, prof: RetainingProfile, h
  * The finished ground has the last word: other levelled ground (the house pad, a slab, painted ground)
  * can meet the wall, and the ground in front can rise and fall along it.
  */
-export function heightNote(r: Retain | undefined, prof: RetainingProfile, plan: Plan): string | null {
+export function heightNote(r: Retain | undefined, prof: RetainingProfile, plan: Plan, natural?: RetainingProfile): string | null {
   const asked = r?.askedHeight
   if (!r || asked === undefined || Math.abs(prof.maxHeight - asked) < 0.03) return null
   const got = prof.maxHeight.toFixed(2)
@@ -320,8 +320,12 @@ export function heightNote(r: Retain | undefined, prof: RetainingProfile, plan: 
   const pad = housePadRL(plan, wl)
   const set = r.highLevel !== undefined ? sideRL(plan, r.highLevel, wl) : null
   const off = set !== null ? prof.samples.filter(x => Math.abs(x[r.high] - set) > 0.03) : []
+  // The earth behind spilling round the wall's ends raises the open side in front of it.
+  const spills = !!natural && prof.samples.some((x, i) => x[low] - (natural.samples[i]?.[low] ?? x[low]) > 0.05)
   const why =
-    off.length && off.every(x => Math.abs(x[r.high] - pad) < 0.03)
+    spills
+      ? ": earth behind it spills round the wall's ends and raises the ground in front (a longer wall, or return walls, would stop it)"
+      : off.length && off.every(x => Math.abs(x[r.high] - pad) < 0.03)
       ? ': the house pad meets the wall there'
       : off.length
         ? houseGap(prof.wall, plan, r.high) !== null
