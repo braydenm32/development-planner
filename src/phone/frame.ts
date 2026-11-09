@@ -6,7 +6,8 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { floorRL, toSite, type Plan } from '../plan/model'
 import { planBounds } from '../plan/ops'
-import { streetBearing, type Frame, type StreetSide } from './camera'
+import type { Frame } from './camera'
+import { streetBearingOf } from '../plan/streetSide'
 
 type Vec2 = [number, number]
 
@@ -14,13 +15,13 @@ type Vec2 = [number, number]
  * The frame for the presets. `refZ` and `exaggeration` are the 3D view's: heights are
  * metres above `refZ`, stretched by the exaggeration.
  */
-export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, refZ: number, exaggeration: number, side: StreetSide): Frame {
+export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, refZ: number, exaggeration: number): Frame {
   const xs = survey.boundary.map(p => p[0])
   const ys = survey.boundary.map(p => p[1])
   const bx = (Math.min(...xs) + Math.max(...xs)) / 2
   const by = (Math.min(...ys) + Math.max(...ys)) / 2
   const blockRadius = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2
-  const street = streetBearing(survey.boundary as Vec2[], terrain.stats.fallBearing, side)
+  const street = streetBearingOf(plan, survey.boundary as Vec2[], terrain.stats.fallBearing)
 
   // Everything drawn (the house, its decks and driveway), in the site's frame.
   const b = plan ? planBounds(plan) : null

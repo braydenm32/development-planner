@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { CloudLayer } from './cloud'
+import { GuideLayer } from './guide/GuideSheet'
+import { TermTip } from './guide/Term'
 import { readShareHash } from './share-links/address'
 import { SharedView } from './share-links/SharedView'
 
@@ -30,5 +32,8 @@ createRoot(document.getElementById('root')!).render(
         <CloudLayer />
       </>
     )}
+    {/* The guide and what each planning word means, over every screen; a shared view has no example to open. */}
+    <GuideLayer example={!shared} />
+    <TermTip />
   </StrictMode>,
 )

@@ -58,6 +58,18 @@
   font-size: 13px;
 }
 
+/* No total before there are outside walls; with one, what it leaves out. */
+.ce-big.ce-none {
+  color: var(--muted);
+}
+
+.ce-incomplete {
+  margin-top: 2px;
+  color: var(--warn-ink, var(--warn-text));
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .ce-right {
   text-align: right;
 }

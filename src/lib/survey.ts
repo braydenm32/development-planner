@@ -184,6 +184,17 @@ export function guessRoles(layers: LayerInfo[]): Record<string, LayerRole> {
   return roles
 }
 
+/**
+ * The DXF reads, but no layer set as contours or spot levels has any: the layers have to be
+ * picked by hand (the start screen opens the layer review for it).
+ */
+export class NoGroundError extends Error {
+  constructor() {
+    super('No contours or spot levels found on the layers set to hold them. Pick which layers hold them under Site › More › Survey layers.')
+    this.name = 'NoGroundError'
+  }
+}
+
 function median(values: number[]): number {
   const s = [...values].sort((a, b) => a - b)
   const m = s.length >> 1
@@ -229,7 +240,7 @@ export function buildSurvey(doc: DxfDocument, roles: Record<string, LayerRole>):
     ...levels.map(p => [p.x, p.y] as Vec2),
   ]
   if (allXY.length < 3) {
-    throw new Error('No contours or spot levels found. Check which layers are set as contours or spot levels.')
+    throw new NoGroundError()
   }
 
   let boundaryIsGuess = false

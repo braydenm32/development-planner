@@ -132,19 +132,16 @@ describe('the fall of the sample block', () => {
     expect(low.rl).toBeGreaterThanOrEqual(terrain.stats.minRL - 0.05)
   })
 
-  it('takes the street as the low side until the front is picked, then follows Lot facts', () => {
-    const auto = streetEdgeOf(plan, survey, 'auto', terrain.stats.fallBearing)!
+  it("takes the street as the low side until the plan's street side is set, then follows it", () => {
+    const auto = streetEdgeOf(plan, survey, terrain.stats.fallBearing)!
     expect(auto.from).toBe('low-side')
     expect(auto.edge).toBe(edgeFacing(survey.boundary, terrain.stats.fallBearing))
-    const picked = streetEdgeOf(plan, survey, 'N', terrain.stats.fallBearing)!
-    expect(picked.from).toBe('picked')
-    expect(boundaryEdges(survey.boundary)[picked.edge].name).toBe('north side')
-    const lot = streetEdgeOf({ ...plan, checks: { pathway: 'cdc', battleAxe: false, frontEdge: 2 } }, survey, 'N', terrain.stats.fallBearing)!
-    expect(lot).toEqual({ edge: 2, from: 'lot-facts' })
+    const set = streetEdgeOf({ ...plan, checks: { pathway: 'cdc', battleAxe: false, frontEdge: 2 } }, survey, terrain.stats.fallBearing)!
+    expect(set).toEqual({ edge: 2, from: 'set' })
   })
 
   it('drains to the street by gravity when the street is the low side', () => {
-    const r = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, 'auto', terrain.stats.fallBearing))
+    const r = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, terrain.stats.fallBearing))
     expect(r.verdict).toBe('street')
     expect(r.house).not.toBeNull()
     expect(r.street!.rl).toBeLessThan(r.house!.rl)
@@ -161,7 +158,7 @@ describe('the fall of the sample block', () => {
     // The side facing the other way from the fall.
     const high = edgeFacing(survey.boundary, (terrain.stats.fallBearing + 180) % 360)!
     expect(high).not.toBe(low.edge)
-    const r = fallReport(plan, survey, terrain, { edge: high, from: 'lot-facts' })
+    const r = fallReport(plan, survey, terrain, { edge: high, from: 'set' })
     expect(r.verdict).toBe('away')
     expect(r.street!.name).toBe(edges[high].name)
     expect(r.path[1]).toEqual(low.p)
@@ -171,7 +168,7 @@ describe('the fall of the sample block', () => {
 
   it('has no discharge point without walls', () => {
     const empty = { ...plan, walls: [], openings: [], rooms: [], roofs: [] }
-    const r = fallReport(empty, survey, terrain, streetEdgeOf(empty, survey, 'auto', terrain.stats.fallBearing))
+    const r = fallReport(empty, survey, terrain, streetEdgeOf(empty, survey, terrain.stats.fallBearing))
     expect(r.verdict).toBe('no-house')
     expect(r.house).toBeNull()
     expect(r.path).toEqual([])

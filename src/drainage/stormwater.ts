@@ -6,7 +6,7 @@
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Heightfield, type Terrain } from '../lib/terrain'
-import type { StreetSide } from '../phone/camera'
+import { frontEdgeOf } from '../plan/streetSide'
 import { buildingOutline, planarFaces } from '../plan/geometry'
 import { sortedLevels, toSite, type Plan, type RoofType } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
@@ -171,24 +171,18 @@ export function edgeFacing(boundary: Vec2[], bearing: number): number | null {
 }
 
 /** Where the street side came from, so the panel can say how sure it is. */
-export type StreetFrom = 'lot-facts' | 'picked' | 'low-side'
-
-const SIDE_BEARING: Record<Exclude<StreetSide, 'auto'>, number> = { N: 0, E: 90, S: 180, W: 270 }
+export type StreetFrom = 'set' | 'low-side'
 
 /**
- * Which side of the block the street is on: the front picked under Design › Checks › Lot facts
- * (kept with the plan) first, then the side picked for Street view, else the low side, which is
- * where most blocks drain to.
+ * Which side of the block the street is on: the plan's street side (set under Design › Checks ›
+ * Lot facts, or for Street view in 3D) when there is one, else the low side, which is where most
+ * blocks drain to.
  */
-export function streetEdgeOf(plan: Plan, survey: Survey, side: StreetSide, fallBearing: number): { edge: number; from: StreetFrom } | null {
+export function streetEdgeOf(plan: Plan, survey: Survey, fallBearing: number): { edge: number; from: StreetFrom } | null {
   const b = survey.boundary
   if (b.length < 3) return null
-  const front = plan.checks?.frontEdge
-  if (front !== undefined && front >= 0 && front < b.length) return { edge: front, from: 'lot-facts' }
-  if (side !== 'auto') {
-    const e = edgeFacing(b, SIDE_BEARING[side])
-    if (e !== null) return { edge: e, from: 'picked' }
-  }
+  const front = frontEdgeOf(plan, b)
+  if (front !== undefined) return { edge: front, from: 'set' }
   const e = edgeFacing(b, fallBearing)
   return e === null ? null : { edge: e, from: 'low-side' }
 }
@@ -339,9 +333,9 @@ export interface StormwaterSheet {
   rows: [string, string][]
 }
 
-export function stormwaterSheet(plan: Plan, survey: Survey, terrain: Terrain, side: StreetSide): StormwaterSheet | null {
+export function stormwaterSheet(plan: Plan, survey: Survey, terrain: Terrain): StormwaterSheet | null {
   const roofs = roofCatchments(plan)
-  const report = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, side, terrain.stats.fallBearing))
+  const report = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, terrain.stats.fallBearing))
   if (!roofs.length && !report.house) return null
   const sw = stormwaterOf(plan)
   const rows: [string, string][] = []

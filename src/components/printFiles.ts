@@ -12,19 +12,13 @@ import type { Earth } from '../plan/useEarthworks'
 import type { PrintModel, PrintSettings } from '../print/build'
 import { fileSafe, to3mf, toStlZip } from '../print/export'
 import { planSetPdf, type Paper } from '../share/plans'
+import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
 import { stormwaterSheet } from '../drainage/stormwater'
-import { loadStreetSide, type StreetSide } from '../phone/camera'
-import { projectsNow } from '../projects/session'
 import { localFeatures, siteForProject } from '../site/store'
 import { siteWarningsNow } from '../site/sync'
-
-/** The street side picked for Street view on the open project, or 'auto' (the low side) with none picked. */
-const streetSideNow = (): StreetSide => {
-  const id = projectsNow().opened?.id
-  return id ? loadStreetSide(id) : 'auto'
-}
+import { keptShadowDiagram, winterDay } from '../sun/facts'
 
 export type PrintState = { model: PrintModel | null; busy: boolean; error: string | null }
 
@@ -92,8 +86,10 @@ export function plansPdfFile(p: PdfInput): OutFile {
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
+    terrain: p.terrain,
+    shadows: keptShadowDiagram({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() }),
     // The street side the plan knows: Lot facts first, then the one picked for Street view on this project.
-    stormwater: stormwaterSheet(p.plan, p.survey, p.terrain, streetSideNow()),
+    stormwater: stormwaterSheet(p.plan, p.survey, p.terrain),
   })
   return { name: `${fileSafe(title)}-plans.pdf`, data: pdf, type: 'application/pdf' }
 }
@@ -106,5 +102,5 @@ export async function saveProjectFile(project: SavedProject, plan: Plan) {
 
 /** The project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */
 export async function projectFile(project: SavedProject, plan: Plan): Promise<OutFile> {
-  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject()), type: 'application/json' }
+  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject(), useOptions.getState().rec), type: 'application/json' }
 }

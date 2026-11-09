@@ -26,6 +26,38 @@
   stroke-linejoin: round;
 }
 
+.setback.over .setback-line,
+.setback.over .setback-tick {
+  stroke: var(--danger);
+}
+
+.setback.over .setback-label {
+  fill: var(--danger);
+}
+
 .setbacks-key {
   margin-top: 2px;
+}
+
+/* A side the house goes past, in the Place panel's typed setbacks and the Overview: red, "−1.20 m over". */
+.app-shell .boundary-over .num-input input {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* Read-only on a phone (View), the number is still red. */
+.app-shell.phone .view-lock .boundary-over .num-input input {
+  color: var(--danger);
+  -webkit-text-fill-color: var(--danger);
+}
+
+.app-shell .over-note {
+  margin: 2px 0 6px;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.app-shell .stats dd.bad {
+  color: var(--danger);
+  font-weight: 600;
 }

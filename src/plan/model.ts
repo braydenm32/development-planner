@@ -2,6 +2,7 @@ import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
+import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId } from './floorTypes'
 
 /**
@@ -22,6 +23,8 @@ export interface Plan {
   stairs: Stair[]
   /** Missing in plans saved before furniture; filled in as [] when loaded. */
   furniture: Furniture[]
+  /** Short text labels dropped on the plan. Missing in plans saved before notes; filled in as [] when loaded. */
+  notes?: PlanNote[]
   placement: Placement
   /** Cut and fill settings; defaults apply when missing. */
   earthworks?: Earthworks
@@ -31,6 +34,23 @@ export interface Plan {
   stormwater?: Stormwater
   /** What the person has told the BASIX checklist (src/basix); defaults apply when missing. */
   basix?: BasixAnswers
+  /** Section lines drawn across the plan (Design › Sections). Missing in plans saved before them, which have none. */
+  sections?: SectionLine[]
+  /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
+  location?: SiteLocation
+}
+
+/**
+ * A cut through the house and the ground, drawn as a line across the plan (in the house frame) and
+ * named like a cut A–A. Its drawing runs from `a` on the left to `b` on the right, looking to the
+ * line's left.
+ */
+export interface SectionLine {
+  id: string
+  /** The letter at both ends: A, B, … */
+  label: string
+  a: Vec2
+  b: Vec2
 }
 
 export interface Level {
@@ -122,6 +142,8 @@ export interface Room {
   at: Vec2
   /** Lowest level only: this room's own floor type. Missing follows its level's (see roomFloorType). */
   foundation?: Foundation
+  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's name (see isLiving). */
+  living?: boolean
 }
 
 /**
@@ -221,6 +243,14 @@ export interface Furniture {
   label?: string
 }
 
+/** A short text label on the plan, on one level, at a point in the house's frame (m). */
+export interface PlanNote {
+  id: string
+  level: string
+  at: Vec2
+  text: string
+}
+
 export interface Earthworks {
   /** Level ground this far past the edge of slabs (m). */
   margin: number
@@ -317,7 +347,18 @@ export function normalizePlan(p: Plan): Plan {
     roofs: p.roofs ?? [],
     stairs: p.stairs ?? [],
     furniture: p.furniture ?? [],
+    notes: p.notes ?? [],
+    // Kept only when there are some, so older plans load exactly as they were saved.
+    ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
   })
+}
+
+const isPoint = (v: unknown): v is Vec2 => Array.isArray(v) && v.length === 2 && v.every(n => typeof n === 'number' && Number.isFinite(n))
+
+/** A section line that can be drawn: an id, a label and two ends. */
+export const isSectionLine = (s: unknown): s is SectionLine => {
+  const x = s as SectionLine | null
+  return !!x && typeof x.id === 'string' && typeof x.label === 'string' && isPoint(x.a) && isPoint(x.b)
 }
 
 export function earthworksOf(plan: Plan): Earthworks {

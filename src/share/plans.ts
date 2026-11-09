@@ -1,3 +1,4 @@
+import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
@@ -28,14 +29,18 @@ import { driveDesign, driveEndPoints, driveGround, type DriveGround } from '../p
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { setbackDims } from '../plan/setbacks'
 import { retainingProfiles } from '../plan/retaining'
-import type { Heightfield } from '../lib/terrain'
+import type { Heightfield, Terrain } from '../lib/terrain'
 import { roofGeometry } from '../plan/roof'
 import { stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { drawFeatureAreas, drawFeatureLegend, drawFeatureMarks, sheetFeatures, type SheetArgs } from '../site/sheet'
 import type { SiteWarning } from '../site/warnings'
 import type { StormwaterSheet } from '../drainage/stormwater'
+import type { ShadowDiagram } from '../sun/facts'
+import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
 import { PdfDocument, textWidth, type PdfPage, type RGB } from './pdfWriter'
+import { sectionsOf } from '../sections/lines'
+import { drawingSheets, drawSectionMarks } from '../sections/sheets'
 
 export type Paper = 'A3' | 'A4'
 
@@ -62,6 +67,10 @@ export interface PlanSetInput {
   site?: { features: SiteFeature[]; warnings: SiteWarning[] }
   /** The stormwater concept: a dashed path on the site plan and its key numbers (src/drainage). */
   stormwater?: StormwaterSheet | null
+  /** The natural ground, for the sections and elevations; without it they're left out. */
+  terrain?: Terrain
+  /** The house's shadows on 21 June, for a shadow diagram sheet (src/sun); none without. */
+  shadows?: ShadowDiagram | null
 }
 
 const PAPER: Record<Paper, [number, number]> = { A3: [420, 297], A4: [297, 210] }
@@ -144,22 +153,30 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
   const retainingPolys = wallPolygons(retaining)
   const profiles = input.ground ? retainingProfiles(plan, survey.origin, input.ground) : []
 
-  const sheets: { name: string; draw: (pg: PdfPage) => View }[] = []
+  const sheets: { name: string; draw: (pg: PdfPage) => View; north?: boolean }[] = []
   sheets.push({ name: 'Site plan', draw: pg => siteSheet(pg) })
   for (const l of levels) sheets.push({ name: `${l.name} plan`, draw: pg => floorSheet(pg, l) })
   if (roofs.length) sheets.push({ name: 'Roof plan', draw: pg => roofSheet(pg) })
+  // Sections and elevations (src/sections), at their own scale, with no north arrow.
+  if (input.terrain) {
+    for (const s of drawingSheets({ plan, survey, terrain: input.terrain, finished: input.ground }, area)) {
+      sheets.push({ name: s.name, north: false, draw: pg => (s.draw(pg), { scale: s.scale, k: 1000 / s.scale, P: p => [p[0], p[1]], angle: () => 90 }) })
+    }
+  }
+  const shadows = input.shadows
+  if (shadows?.shadows.some(x => x.shadow)) sheets.push({ name: 'Shadow diagram, 21 June', draw: pg => shadowSheet(pg, shadows) })
 
   sheets.forEach((sheet, i) => {
     const pg = doc.addPage(W, H)
     pg.round()
     const view = sheet.draw(pg)
-    titleBlock(pg, sheet.name, view, i + 1, sheets.length)
+    titleBlock(pg, sheet.name, view, i + 1, sheets.length, sheet.north !== false)
   })
   return doc.output()
 
   // ---------------------------------------------------------------------------
 
-  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number) {
+  function titleBlock(pg: PdfPage, name: string, view: View, n: number, of: number, northArrow = true) {
     const x0 = margin
     const y0 = margin
     const w = W - 2 * margin
@@ -169,6 +186,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(x0 + 5, y0 + strip - 9 * t, input.title, { size: 5 * t, font: 'bold' })
     pg.text(x0 + 5, y0 + strip - 16 * t, name, { size: 4 * t })
     pg.text(x0 + 5, y0 + 4, 'Concept plan only. Check all dimensions and levels on site before building.', { size: 2.2 * t, color: GREY })
+    // The one caveat every result carries out of the app, in the margin under the frame.
+    pg.text(x0, y0 - 4.5, CAVEAT_LINE, { size: 2.2 * t, color: GREY })
 
     // Scale, north arrow and sheet number on the right.
     const right = x0 + w - 5
@@ -189,7 +208,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     pg.text(bx, by + 3.2, '0', { size: 2.4 * t, align: 'center' })
     pg.text(bx + bw, by + 3.2, `${L} m`, { size: 2.4 * t, align: 'center' })
 
-    // North arrow
+    // North arrow (sections and elevations have none)
+    if (!northArrow) return
     const north = view.angle(northInPlan()) * (Math.PI / 180)
     const ax = bx + bw + 22
     const ay = y0 + strip / 2
@@ -427,6 +447,36 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
     return view
   }
 
+  // ---- Shadow diagram ----
+  function shadowSheet(pg: PdfPage, d: ShadowDiagram): View {
+    const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
+    const boundary = survey.boundary.map(tf)
+    const outlines = levels[0] ? outlineOf(levels[0]) : []
+    const cast = d.shadows.flatMap(x => x.shadow?.rings.flat() ?? []).map(tf)
+    const view = makeView([...boundary, ...outlines.flat(), ...cast], rho, area, 100)
+    const args = { pg, toPaper: (p: Vec2) => view.P(tf(p)) }
+    const box: [number, number][] = [
+      [area.x, area.y],
+      [area.x + area.w, area.y],
+      [area.x + area.w, area.y + area.h],
+      [area.x, area.y + area.h],
+    ]
+    pg.save().clip([box])
+    drawShadows(args, d)
+    // The house over its shadows: ground floor solid, upper floors and roofs dashed.
+    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
+    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
+    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
+    pg.dash([3, 1.2])
+    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
+    pg.dash()
+    pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
+    drawShadowLabels(args, d)
+    pg.restore()
+    drawShadowKey(pg, W - margin - 5, H - margin - 5, d)
+    return view
+  }
+
   /** Retaining walls, hatched, each labelled with how much it holds back. */
   function retainingWalls(pg: PdfPage, view: View, walls: Wall[], heights: boolean) {
     for (const w of walls) {
@@ -523,6 +573,8 @@ export function planSetPdf(input: PlanSetInput): Uint8Array {
       }
       for (const o of plan.openings.filter(x => x.wall === w.id)) openingSymbol(pg, view, o, w)
     }
+    // Where the sections cut, on every floor.
+    drawSectionMarks(pg, view.P, sectionsOf(plan), area)
 
     // Wall lengths: outside for external walls, on the left for internal ones.
     for (const w of walls) {

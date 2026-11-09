@@ -37,6 +37,17 @@
 }
 
 
+/* Whether the land can use a CDC at all: pinned, so a clean run isn't read as one. */
+.app-shell .checks-land {
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--warn-line);
+  border-radius: var(--r);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 12px;
+}
+
 .app-shell .checks-summary {
   margin: 0;
   font-weight: 600;
@@ -95,9 +106,18 @@
   background: var(--danger);
 }
 
+.app-shell .check-dot.incomplete {
+  border-style: dotted;
+}
+
 .app-shell .check-dot.pending {
   border-style: dashed;
   border-color: var(--text);
+}
+
+/* For information: no rule to pass or fail. */
+.app-shell .check-dot.info {
+  border-color: var(--accent);
 }
 
 .app-shell .check-status {

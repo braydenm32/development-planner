@@ -3,6 +3,7 @@
 //   #/projects            the projects home
 //   #/projects/archived   …showing the archived projects
 //   #/projects/new        the start screen, for a new project
+//   #/about  #/privacy  #/terms  #/accuracy   the pages about the app (no project needed)
 // Hash routes, because GitHub Pages serves one page.
 
 import { areaById, AREAS, MORE, tabIds, tabOf, type AreaId, type CanvasView } from './menu'
@@ -24,16 +25,27 @@ export interface ProjectsRoute {
   show?: 'archived' | 'new'
 }
 
-export type Route = AppRoute | ProjectsRoute
+/** About, Privacy, Terms and How accurate is this?: pages that need no project, and work from anywhere. */
+export const PAGE_IDS = ['about', 'privacy', 'terms', 'accuracy'] as const
+export type PageId = (typeof PAGE_IDS)[number]
+
+export interface PageRoute {
+  kind: 'page'
+  page: PageId
+}
+
+export type Route = AppRoute | ProjectsRoute | PageRoute
 
 export const PROJECTS: Route = { kind: 'projects' }
 export const ARCHIVED_PROJECTS: Route = { kind: 'projects', show: 'archived' }
 export const NEW_PROJECT: Route = { kind: 'projects', show: 'new' }
+export const pageRoute = (page: PageId): PageRoute => ({ kind: 'page', page })
 
 const VIEWS: CanvasView[] = ['plan', '3d']
 
 /** The hash for a route. */
 export function formatHash(r: Route): string {
+  if (r.kind === 'page') return `#/${r.page}`
   if (r.kind === 'projects') return r.show ? `#/projects/${r.show}` : '#/projects'
   const q = new URLSearchParams()
   q.set('view', r.view)
@@ -47,6 +59,8 @@ export function parseHash(hash: string): Route | null {
   const m = /^#\/([^?]*)(?:\?(.*))?$/.exec(hash)
   if (!m) return null
   const parts = m[1].split('/').filter(Boolean).map(decodeURIComponent)
+  const page = PAGE_IDS.find(p => p === parts[0])
+  if (page && parts.length === 1) return { kind: 'page', page }
   if (parts[0] === 'projects') return parts[1] === 'archived' ? ARCHIVED_PROJECTS : parts[1] === 'new' ? NEW_PROJECT : PROJECTS
   const area = areaById(parts[0] ?? '')
   if (!area) return null

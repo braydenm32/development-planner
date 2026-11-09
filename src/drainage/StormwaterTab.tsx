@@ -4,8 +4,6 @@
 
 import { Num } from '../components/fields'
 import { navigate } from '../nav/router'
-import { useTouchCanvas } from '../phone/device'
-import { useStreetSide } from '../phone/cameraStore'
 import { bearingName } from '../lib/terrain'
 import { levelById } from '../plan/model'
 import { pickTool, useLoaded, type Loaded } from '../shell/useSite'
@@ -35,8 +33,7 @@ const CONFIDENCE_TIP = {
   unverified: 'Not confirmed yet: check before relying on it',
 }
 const STREET_FROM: Record<StreetFrom, string> = {
-  'lot-facts': 'from Lot facts under Design › Checks',
-  picked: 'as picked for Street view under Site › 3D',
+  set: 'as set for the plan (Design › Checks › Lot facts, or Street view in 3D)',
   'low-side': 'taken as the low side until you pick it under Design › Checks › Lot facts',
 }
 
@@ -50,9 +47,7 @@ export function StormwaterTab() {
 
 /** The fall report for the plan as it stands, with the street side the app knows. */
 function useFallReport(d: Loaded): FallReport {
-  const key = useTouchCanvas()?.projectKey ?? null
-  const side = useStreetSide(key)
-  const street = streetEdgeOf(d.plan, d.survey, side, d.terrain.stats.fallBearing)
+  const street = streetEdgeOf(d.plan, d.survey, d.terrain.stats.fallBearing)
   return fallReport(d.plan, d.survey, d.terrain, street)
 }
 

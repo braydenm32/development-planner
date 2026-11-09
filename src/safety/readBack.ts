@@ -28,11 +28,16 @@ export function foundText(survey: Survey): string {
   return andList([...parts, 'the boundary'])
 }
 
-/** The one line after an import: "Found 17 contours, 35 spot levels and the boundary · 600 m² · RL 80.00 to 87.92". */
+/**
+ * The one line after an import, short enough for a toast: "Survey loaded · 600 m² · RL 80.00 to
+ * 87.92", with ", but no boundary" and the warning count when they apply. The counts of what the
+ * layers gave are a tap away (Check the layers) and at the top of Site › More › Survey layers.
+ */
 export function readBackLine(site: Site): string {
   const { survey, terrain } = site
   const warnings = survey.warnings.length ? ` · ${count(survey.warnings.length, 'warning')}` : ''
-  return `Found ${foundText(survey)} · ${siteAreaText(terrain.stats)} · ${rlRangeText(terrain.stats)}${warnings}`
+  const boundary = survey.boundaryIsGuess ? ', but no boundary' : ''
+  return `Survey loaded${boundary} · ${siteAreaText(terrain.stats)} · ${rlRangeText(terrain.stats)}${warnings}`
 }
 
 /** The read-back's link: where the layers are checked (Site › More › Survey layers). */
