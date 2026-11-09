@@ -1808,11 +1808,22 @@ button.ov-verdict:hover {
   justify-content: center;
   min-width: 44px;
   padding: 0 11px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 /* The tabs scroll, as on a desktop: a name that would be cut off hides behind an arrow, and the
-   open tab is scrolled into view (Nav.tsx). */
+   open tab is scrolled into view (Nav.tsx). A phone's bar can be narrower than a long name
+   ("Retaining walls" opened from a link): the open tab then fits between the arrows, shortened
+   if it must, rather than hiding as a cut-off one would (C38). */
+.app-shell.phone .tab.on {
+  display: block;
+  flex: none;
+  max-width: calc(100% - 2 * 20px - 6px);
+  overflow: hidden;
+  padding: 0 3px;
+  line-height: var(--top-h);
+  text-overflow: ellipsis;
+}
 
 .app-shell.phone .top-actions {
   gap: 0;

@@ -5,7 +5,7 @@ import type { Insets } from '../components/canvasFrame'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { floorRL, toSite, type Plan } from '../plan/model'
-import { planBounds } from '../plan/ops'
+import { houseBounds } from '../plan/ops'
 import type { Frame } from './camera'
 import { streetBearingOf } from '../plan/streetSide'
 
@@ -23,8 +23,9 @@ export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, r
   const blockRadius = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2
   const street = streetBearingOf(plan, survey.boundary as Vec2[], terrain.stats.fallBearing)
 
-  // Everything drawn (the house, its decks and driveway), in the site's frame.
-  const b = plan ? planBounds(plan) : null
+  // The house's walls (C18: 3D frames the house, not the lawn and driveway round it), in the
+  // site's frame; everything drawn when there are no walls yet.
+  const b = plan ? houseBounds(plan) : null
   if (!plan || !b) {
     const mid = (terrain.stats.minRL + terrain.stats.maxRL) / 2
     return { target: [bx, (mid - refZ) * exaggeration, -by], radius: blockRadius, blockRadius, street }
@@ -40,7 +41,33 @@ export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, r
   // Eye height on the ground floor, so the house sits in the middle of the screen.
   const y = (floorRL(plan) + 1.5 - refZ) * exaggeration
   const radius = Math.hypot(b.maxX - b.minX, b.maxY - b.minY) / 2
-  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street }
+  // Street view stands on the ground (in the view's units: metres above refZ, stretched).
+  const ground = (x: number, z: number) => {
+    const g = terrain.grid.sample(x, -z)
+    return Number.isFinite(g) ? (g - refZ) * exaggeration : null
+  }
+  const streetEdge = edgeDistance([cx, cy], street, survey.boundary as Vec2[]) ?? undefined
+  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street, ground, exaggeration, streetEdge }
+}
+
+/** How far from `from` the boundary is, heading along a compass bearing; null if it never meets it. */
+export function edgeDistance(from: Vec2, bearing: number, boundary: Vec2[]): number | null {
+  const dx = Math.sin((bearing * Math.PI) / 180)
+  const dy = Math.cos((bearing * Math.PI) / 180)
+  let best: number | null = null
+  for (let i = 0; i < boundary.length; i++) {
+    const [ax, ay] = boundary[i]
+    const [bx, by] = boundary[(i + 1) % boundary.length]
+    const ex = bx - ax
+    const ey = by - ay
+    const den = dx * ey - dy * ex
+    if (Math.abs(den) < 1e-12) continue
+    // from + t·dir = a + u·e
+    const t = ((ax - from[0]) * ey - (ay - from[1]) * ex) / den
+    const u = ((ax - from[0]) * dy - (ay - from[1]) * dx) / den
+    if (t >= 0 && u >= 0 && u <= 1 && (best === null || t < best)) best = t
+  }
+  return best
 }
 
 /** The part of the 3D canvas nothing covers, and how to centre the picture in it. */

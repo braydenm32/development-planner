@@ -1365,6 +1365,16 @@ export const HOMES: Home[] = [
         action: 'camera-street',
         run: 'now',
       },
+      {
+        id: 'show-3d',
+        label: 'Show or hide in 3D',
+        icon: 'layers',
+        keywords: ['3D', 'hide roof', 'hide level', 'levels', 'upstairs', 'trees', 'furniture', 'see inside', 'show'],
+        features: ['show-menu-3d'],
+        action: 'view-3d',
+        run: 'now',
+        hint: 'The Show button on the 3D view’s bar turns the roof, each level, the trees and the furniture on and off.',
+      },
       { id: 'camera-above', label: 'From above', icon: 'cube', keywords: ['3D', 'camera', 'top down', 'bird’s eye', 'north up'], features: [], action: 'camera-above', run: 'now' },
       { id: 'camera-rear', label: 'From the rear', icon: 'cube', keywords: ['3D', 'camera', 'back', 'backyard'], features: [], action: 'camera-rear', run: 'now' },
       {

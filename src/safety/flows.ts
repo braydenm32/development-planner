@@ -157,8 +157,9 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
       await projectActions.saveSurvey(survey)
     } else await projectActions.create(records, name)
   })
-  // A new project is for drawing on, so a phone opens it in Edit rather than View.
-  usePhoneMode.getState().setMode('edit')
+  // A phone opens the new block in View (C38): a calm look at it first, with what's still to
+  // answer in the question list at the foot of the plan, and Edit a tap away.
+  usePhoneMode.getState().setMode('view')
   host.toProject()
   sayFound(survey)
   // The survey doesn't say where the street is: ask, unless the plan that came with it does.

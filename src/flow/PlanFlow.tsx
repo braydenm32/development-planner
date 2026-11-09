@@ -258,7 +258,7 @@ export function usePlanFlow(a: PlanFlowArgs) {
           </button>
         </div>
       )}
-      {drawing && !a.viewOnly && !a.siteActive && !picking && !sideWall && <QuestionTray plan={plan} level={level} survey={survey} terrain={terrain} phone={phone} />}
+      {drawing && !a.siteActive && !picking && !sideWall && <QuestionTray plan={plan} level={level} survey={survey} terrain={terrain} phone={phone} viewOnly={a.viewOnly} />}
     </>
   )
 

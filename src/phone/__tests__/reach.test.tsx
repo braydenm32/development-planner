@@ -152,4 +152,12 @@ describe('the numbers it reaches', () => {
     const m = numbersOf(bare, survey, terrain, null)
     expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No roof yet')
   })
+
+  it('say when no house is drawn yet, rather than a bare dash (a block just imported)', () => {
+    const m = { ...numbersOf(house({ roofs: [] }), survey, terrain, null), floorArea: null }
+    const peek = words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Key numbers" onOpen={() => {}} />))
+    expect(peek).toContain('No house drawn yet')
+    expect(peek).toContain('Floor None drawn yet')
+    expect(peek).not.toMatch(/Floor –/)
+  })
 })

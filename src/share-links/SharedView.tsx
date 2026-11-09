@@ -216,7 +216,7 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
       if (canvas === '3d') useCamera.getState().go('north')
       else changeUp(view.up === 0 ? 'house' : 0)
     } else if (a === 'reset-camera') {
-      if (phone) useCamera.getState().go('street')
+      if (phone) useCamera.getState().go('house')
       else setCameraKey(k => k + 1)
     }
   }
@@ -265,9 +265,10 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
               ))}
             </div>
             {ready && <AddCommentButton phone={phone} toPlan={() => setView('plan')} />}
-            <button className={phone ? 'icon-button shared-pdf' : 'secondary shared-pdf'} onClick={() => void pdf()} disabled={!ready} aria-label={phone ? (canShareFiles() ? 'Send PDF plans' : 'Download PDF plans') : undefined}>
-              <Icon name={phone && canShareFiles() ? 'phoneShare' : 'download'} size={phone ? 20 : 16} />
-              {!phone && 'PDF plans'}
+            {/* On a phone too, a word under the icon (C38): someone opening a link shouldn't have to guess. */}
+            <button className={phone ? 'labelled-icon shared-pdf' : 'secondary shared-pdf'} onClick={() => void pdf()} disabled={!ready} title={canShareFiles() ? 'Send PDF plans' : 'Download PDF plans'}>
+              <Icon name={phone && canShareFiles() ? 'phoneShare' : 'download'} size={phone ? 19 : 16} />
+              {phone ? <span>PDF plans</span> : 'PDF plans'}
             </button>
           </div>
         </header>
@@ -353,7 +354,14 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
                 </Fragment>
               )}
             </CanvasFrame.Provider>
-            {canvas === '3d' && ready && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+            {canvas === '3d' && ready && (
+              <PresetBar
+                phone={phone}
+                presenting={presenting}
+                setPresenting={setPresenting}
+                show={plan ? { view, set: patch => setViewSettings(v => ({ ...v, ...patch })), levels: sortedLevels(plan) } : undefined}
+              />
+            )}
             {inspector && plan && survey && terrain && (
               <aside className="float-card inspector read-only" aria-label="Selection">
                 <div className="sheet-grab" aria-hidden="true" />

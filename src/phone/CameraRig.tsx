@@ -30,7 +30,7 @@ interface Live {
   storageKey: string | null
   /** The Top of view bearing the view started under: a new one starts the camera afresh. */
   upBearing: number
-  /** A phone opens at Street view; a desktop keeps the view's own start, as before. */
+  /** A phone or a desktop; both open framed on the house now (C18). */
   phone: boolean
 }
 
@@ -93,7 +93,7 @@ class Rig {
     this.anim = { from, to: target, start: performance.now(), dur: moveDuration(from, target), preset }
   }
 
-  /** Start where the camera was left in this project, at a preset asked for on the way here, or (on a phone) at Street view. */
+  /** Start where the camera was left in this project, at a preset asked for on the way here, or framed on the house. */
   start() {
     const live = this.live
     if (!live) return
@@ -110,8 +110,7 @@ class Rig {
     } else if (saved) {
       this.apply(saved)
       useCamera.getState().setActive(null)
-    } else if (live.phone) this.go('street', false)
-    else useCamera.getState().setActive(null)
+    } else this.go('house', false)
   }
 
   /**

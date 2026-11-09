@@ -91,7 +91,6 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const phone = usePhone()
   const [palette, setPalette] = useState(false)
   const [menu, setMenu] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null })
-  const [overview, setOverview] = useState(false)
   const [toast, setToast] = useState<{ text: string; n: number } | null>(null)
   const [panelHidden, setPanelHidden] = useState(false)
   const opener = useRef<HTMLElement | null>(null)
@@ -107,9 +106,12 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const presenting = phone && canvasKind === '3d' && presentingAt === where
   const setPresenting = (on: boolean) => setPresentingAt(on ? where : null)
 
-  // Going to another area or tab (the phone's bottom bar stays in reach under it) puts the Overview away.
+  // The Overview belongs to the area and tab it was opened in: going elsewhere (the phone's bottom
+  // bar stays in reach under it) puts it away.
   const placeKey = route.kind === 'app' ? `${route.area}/${route.tab}` : route.kind
-  useEffect(() => setOverview(false), [placeKey])
+  const [overviewAt, setOverviewAt] = useState<string | null>(null)
+  const overview = overviewAt === placeKey
+  const setOverview = (open: boolean) => setOverviewAt(open ? placeKey : null)
 
   useRouteSync()
   useNativeFeel(phone)
@@ -137,7 +139,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
 
   const run = (a: ActionId) => {
     // The 3D camera: presets, north up and (on a phone) reset move it smoothly instead of starting it again.
-    const preset = a === 'reset-camera' ? (phone ? 'street' : null) : a in PRESET_OF ? PRESET_OF[a as keyof typeof PRESET_OF] : null
+    const preset = a === 'reset-camera' ? 'house' : a in PRESET_OF ? PRESET_OF[a as keyof typeof PRESET_OF] : null
     if (preset || (a === 'north-up' && canvasKind === '3d')) {
       if (canvasKind === '3d') useCamera.getState().go(preset ?? 'north')
       else {
@@ -564,7 +566,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
             <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
           </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
-          {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+          {canvasKind === '3d' && loaded && (
+            <PresetBar
+              phone={phone}
+              presenting={presenting}
+              setPresenting={setPresenting}
+              show={{ view: loaded.view, set: patch => loaded.changeView({ ...loaded.view, ...patch }), levels: sortedLevels(loaded.plan) }}
+            />
+          )}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>

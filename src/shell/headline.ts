@@ -57,3 +57,11 @@ export function floorsText(floors: { rl: number }[], ffl: number): string {
 
 /** "Floor level" or "Floor levels", as the plain label with the term after it. */
 export const floorsLabel = (floors: unknown[]) => (floors.length > 1 ? 'Floor levels' : 'Floor level')
+
+/** What Balance does, in words: which way the floor goes and how far. */
+export function balanceWords(ffl: number, balanced: number | null): string {
+  if (balanced === null) return 'Balance'
+  const d = balanced - ffl
+  // In metres, as every other length in the strip and the Overview is.
+  return `Balance: ${d > 0 ? 'raise' : 'lower'} the floor ${Math.abs(d).toFixed(2)} m`
+}

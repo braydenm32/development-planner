@@ -57,6 +57,66 @@
   background: var(--overlay);
 }
 
+/* The 3D view's Show menu (C18): roof, each level, trees, furniture. */
+.app-shell .show-menu {
+  position: relative;
+  flex: none;
+}
+
+.app-shell .show-menu .show-button {
+  display: inline-flex;
+  height: 34px;
+}
+
+.app-shell .show-button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.app-shell .show-off {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.app-shell .show-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--overlay-line);
+  border-radius: calc(var(--r) + 2px);
+  background: var(--panel);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.22);
+}
+
+.app-shell .show-pop .check {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.app-shell.phone .show-pop .check {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.app-shell.phone .show-button .show-off {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  padding: 0 5px;
+}
+
 .ground-pin {
   display: grid;
   justify-items: center;
@@ -503,6 +563,21 @@ body:has(.app-shell.phone) {
 
 .level-chip-text .rl {
   flex: none;
+}
+
+/* A phone stacks the RL under the floor's name, so "Rumpus level" isn't cut to "Rumpus le…" (C38). */
+.phone-level .level-chip-text {
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.phone-level .level-chip-text .rl {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.phone-level .level-chip-text .dot {
+  display: none;
 }
 
 .level-pick {

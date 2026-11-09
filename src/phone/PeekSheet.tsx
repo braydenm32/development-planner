@@ -129,7 +129,13 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
       <div className="peek-line" aria-hidden={!slim}>
         {warn && <i className="peek-dot" title={warnTitle} />}
         <span>
-          Floor <b>{n.floorArea !== null ? m2(n.floorArea) : '–'}</b>
+          {n.floorArea !== null ? (
+            <>
+              Floor <b>{m2(n.floorArea)}</b>
+            </>
+          ) : (
+            'No house drawn yet'
+          )}
         </span>
         {verdict && (
           <span className={`peek-verdict w-${verdict.word}`}>
@@ -160,7 +166,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
       <dl className="peek-numbers">
         <div>
           <dt>Floor</dt>
-          <dd>{n.floorArea !== null ? m2(n.floorArea) : '–'}</dd>
+          <dd className={n.floorArea === null ? 'small' : undefined}>{n.floorArea !== null ? m2(n.floorArea) : 'None drawn yet'}</dd>
         </div>
         <div>
           <dt>{floorsLabel(n.floors)} (FFL)</dt>

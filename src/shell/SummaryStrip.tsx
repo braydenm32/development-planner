@@ -17,7 +17,7 @@ import { tabRoute, type AppRoute } from '../nav/route'
 import { ENGINEER_TEXT } from '../checks/engineer'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
 import { m2, netText } from './format'
-import { floorsText, type ChecksHeadline, type CostHeadline } from './headline'
+import { balanceWords, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
 import type { CheckCounts } from '../checks/rules'
@@ -91,14 +91,6 @@ function Chip({ id, label, shown, children, title, term, route, readOnly }: { id
       {body}
     </button>
   )
-}
-
-/** What Balance does, in words: which way the floor goes and how far. */
-export function balanceWords(ffl: number, balanced: number | null): string {
-  if (balanced === null) return 'Balance'
-  const d = balanced - ffl
-  // In metres, as every other length in the strip and the Overview is.
-  return `Balance: ${d > 0 ? 'raise' : 'lower'} the floor ${Math.abs(d).toFixed(2)} m`
 }
 
 export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, onBalance, onOverview, overviewOpen, readOnly = false, variant, level, emptyText = 'Key numbers show once the survey and plan load.' }: Props) {

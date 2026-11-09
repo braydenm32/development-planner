@@ -18,6 +18,7 @@ import { answerStreet, useStreetPending } from '../start/streetQuestion'
 import { FloorTypeCard, OfferCard } from './FlowCards'
 import { questionsFor, useQuestionContext, waiting, type Question } from './questions'
 import { useFlow } from './store'
+import { usePhoneMode } from '../phone/device'
 
 interface Props {
   plan: Plan
@@ -25,9 +26,11 @@ interface Props {
   survey: Survey
   terrain: Terrain
   phone: boolean
+  /** A phone in View: the to-do still shows, and opening it switches to Edit to answer. */
+  viewOnly?: boolean
 }
 
-export function QuestionTray({ plan, level, survey, terrain, phone }: Props) {
+export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = false }: Props) {
   const ask = useFlow(s => s.ask)
   const offer = useFlow(s => s.offer)
   const dismissed = useFlow(s => s.dismissed)
@@ -56,7 +59,15 @@ export function QuestionTray({ plan, level, survey, terrain, phone }: Props) {
 
   if (!open)
     return (
-      <button type="button" className={`q-pill${fresh ? ' fresh' : ''}`} onClick={() => setOpen(true)} aria-expanded={false}>
+      <button
+        type="button"
+        className={`q-pill${fresh ? ' fresh' : ''}`}
+        onClick={() => {
+          if (viewOnly) usePhoneMode.getState().setMode('edit')
+          setOpen(true)
+        }}
+        aria-expanded={false}
+      >
         <i className="q-dot" aria-hidden="true" />
         {n > 0 ? `${n} question${n > 1 ? 's' : ''} waiting` : 'Next step'}
         <Icon name="chevU" size={14} />

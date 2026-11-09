@@ -20,13 +20,15 @@ import {
   shortestTurn,
   streetBearing,
   toSpherical,
-  VIEW_ELEVATION,
+  EYE_HEIGHT,
+  HOUSE_ELEVATION,
+  HOUSE_TURN,
   type Frame,
   type Pose,
   type Vec3,
 } from '../camera'
 import { withStreetSide } from '../../plan/streetSide'
-import { siteFrame } from '../frame'
+import { edgeDistance, siteFrame } from '../frame'
 import { pinLabel } from '../pin'
 import { house, loadBlock } from './block'
 
@@ -53,15 +55,52 @@ function memory() {
 }
 
 describe('the presets', () => {
-  it('look at the house from the street side, a little above, with the house and some block in view', () => {
+  it('stand on the street side at eye height, looking at the house', () => {
     for (const street of [0, 90, 200, 315]) {
       const p = presetPose('street', { ...frame, street }, FOV, 0.56)
-      expect(p.target).toEqual(frame.target)
       expect(bearingOf(p)).toBeCloseTo(street, 6)
-      expect(elevationOf(p)).toBeCloseTo(VIEW_ELEVATION, 6)
-      const r = Math.max(frame.radius * 1.4, frame.blockRadius * 0.45)
-      expect(Math.hypot(...offset(p))).toBeCloseTo(fitDistance(r, FOV, 0.56), 6)
+      // No ground given: it stands at the floor's level (the target is 1.5 m over it), eyes 1.6 m up.
+      expect(p.position[1]).toBeCloseTo(frame.target[1] - 1.5 + EYE_HEIGHT, 6)
+      expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(fitDistance(frame.radius * 1.2, FOV, 0.56), 6)
+      // Looking level or a touch down, never up past level (the 3D view can't orbit below its target).
+      expect(elevationOf(p)).toBeGreaterThanOrEqual(0)
+      expect(elevationOf(p)).toBeLessThan(3)
     }
+  })
+
+  it('stand on the ground where it is, stretched with the heights', () => {
+    // The street 2 m below the floor, heights doubled: eyes 1.6 m (3.2 stretched) over that ground.
+    const ground = () => frame.target[1] - 5
+    const p = presetPose('street', { ...frame, ground, exaggeration: 2 }, FOV, 0.56)
+    expect(p.position[1]).toBeCloseTo(frame.target[1] - 5 + EYE_HEIGHT * 2, 6)
+    expect(p.target[1]).toBeLessThan(p.position[1])
+    // Off the survey (null), back to the floor's level.
+    const off = presetPose('street', { ...frame, ground: () => null }, FOV, 0.56)
+    expect(off.position[1]).toBeCloseTo(frame.target[1] - 1.5 + EYE_HEIGHT, 6)
+  })
+
+  it('stand back far enough for the whole house, at the street’s level past the block’s edge', () => {
+    // The ground falls 1 m in every metre towards the street (north, -z): read where it's asked.
+    const asked: number[] = []
+    const ground = (_x: number, z: number) => (asked.push(z), z - frame.target[2])
+    const p = presetPose('street', { ...frame, ground, streetEdge: 9 }, FOV, 0.56)
+    expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(fitDistance(frame.radius * 1.2, FOV, 0.56), 6)
+    // Out past the edge, 9 m from the target, the eyes are 1.6 m over the ground at the edge.
+    expect(asked).toEqual([frame.target[2] - 9])
+    expect(p.position[1]).toBeCloseTo(-9 + EYE_HEIGHT, 6)
+    // A street edge further than the camera reads the ground under it.
+    const q = presetPose('street', { ...frame, ground, streetEdge: 500 }, FOV, 0.56)
+    expect(q.position[1]).toBeCloseTo(q.position[2] - frame.target[2] + EYE_HEIGHT, 6)
+  })
+
+  it('open framed on the house, not the block, from a little above and off square', () => {
+    const p = presetPose('house', { ...frame, street: 90 }, FOV, 0.56)
+    expect(p.target).toEqual(frame.target)
+    expect(bearingOf(p)).toBeCloseTo(90 + HOUSE_TURN, 6)
+    expect(elevationOf(p)).toBeCloseTo(HOUSE_ELEVATION, 6)
+    expect(Math.hypot(...offset(p))).toBeCloseTo(fitDistance(frame.radius * 1.25, FOV, 0.56), 6)
+    // Much closer than the rear view, which takes in the block around the house.
+    expect(Math.hypot(...offset(p))).toBeLessThan(Math.hypot(...offset(presetPose('rear', frame, FOV, 0.56))))
   })
 
   it('look from the rear from the other side, a little higher, over the bank', () => {
@@ -131,6 +170,21 @@ describe('the move between presets', () => {
     expect(near).toBeGreaterThanOrEqual(450)
     expect(far).toBeGreaterThan(near)
     expect(far).toBeLessThanOrEqual(900)
+  })
+})
+
+describe('the block’s edge towards the street', () => {
+  it('is how far the boundary is along a bearing, from inside the block', () => {
+    const square: [number, number][] = [
+      [0, 0],
+      [20, 0],
+      [20, 30],
+      [0, 30],
+    ]
+    expect(edgeDistance([10, 10], 0, square)).toBeCloseTo(20, 9)
+    expect(edgeDistance([10, 10], 180, square)).toBeCloseTo(10, 9)
+    expect(edgeDistance([10, 10], 90, square)).toBeCloseTo(10, 9)
+    expect(edgeDistance([10, 10], 45, square)).toBeCloseTo(10 * Math.SQRT2, 9)
   })
 })
 
