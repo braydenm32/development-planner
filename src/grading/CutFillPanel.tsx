@@ -52,7 +52,7 @@ export function CutFillPanel({ plan, survey, terrain, earth }: Props) {
           <BalanceBlock plan={plan} survey={survey} terrain={terrain} earth={earth} />
           {crossed && (
             <p className="notice small">
-              Batters cross {crossed}. Add a suggested retaining wall (below), draw one there with the Retaining wall tool, or move the house.
+              Earth slopes (batters) cross {crossed}. Add a suggested retaining wall (below), draw one there with the Retaining wall tool, or move the house.
             </p>
           )}
           <ImpliedWalls survey={survey} earth={earth} />

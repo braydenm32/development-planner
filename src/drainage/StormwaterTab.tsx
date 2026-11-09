@@ -1,4 +1,4 @@
-// Earthworks › Stormwater: the roof's catchment, the tank the person is planning and what it holds,
+// Approvals › Stormwater: the roof's catchment, the tank the person is planning and what it holds,
 // which way the block falls and where the water would have to go. A concept for the DA's
 // stormwater sketch; the plan draws the path as a dashed line while this tab is open.
 
@@ -33,8 +33,8 @@ const CONFIDENCE_TIP = {
   unverified: 'Not confirmed yet: check before relying on it',
 }
 const STREET_FROM: Record<StreetFrom, string> = {
-  set: 'as set for the plan (Design › Checks › Lot facts, or Street view in 3D)',
-  'low-side': 'taken as the low side until you pick it under Design › Checks › Lot facts',
+  set: 'as set for the plan (Approvals › Checks › Lot facts, or Street view in 3D)',
+  'low-side': 'taken as the low side until you pick it under Approvals › Checks › Lot facts',
 }
 
 const fmt = (n: number, d = 1) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })

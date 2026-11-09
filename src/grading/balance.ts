@@ -92,7 +92,7 @@ export function balanceRows(p: BalancePreview): BalanceRow[] {
   ]
   if (b.tallestWall > 0 || a.tallestWall > 0) rows.push(row('Tallest wall', b.tallestWall > 0 ? m(b.tallestWall) : 'none', a.tallestWall > 0 ? m(a.tallestWall) : 'none', a.tallestWall > b.tallestWall + 0.005))
   if (b.roof !== null && a.roof !== null) rows.push(row('Roof above ground', m(b.roof), m(a.roof), a.roof > b.roof + 0.005))
-  if (b.batters || a.batters) rows.push(row('Batters cross', b.batters ?? 'none', a.batters ?? 'none', countSides(a.batters) > countSides(b.batters)))
+  if (b.batters || a.batters) rows.push(row('Earth slopes (batters) cross', b.batters ?? 'none', a.batters ?? 'none', countSides(a.batters) > countSides(b.batters)))
   if (b.fails !== null && a.fails !== null) rows.push(row('Checks that fail', String(b.fails), String(a.fails), a.fails > b.fails))
   return rows
 }

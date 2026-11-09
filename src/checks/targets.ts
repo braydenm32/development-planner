@@ -1,4 +1,4 @@
-// Where a check's result is on the plan, so Design › Checks can pin it there and point it out:
+// Where a check's result is on the plan, so Approvals › Checks can pin it there and point it out:
 // the boundary a setback is measured to, the tree and its protection zone, the walls over the
 // limit, the house, the cut and fill, the driveway's crossing. And where in the app it's fixed.
 // Everything is in the survey's local (site) frame, as Measures has it.

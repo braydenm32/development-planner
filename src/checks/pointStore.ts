@@ -1,4 +1,4 @@
-// What Design › Checks points out on the plan: a numbered pin for each row to fix or confirm, and
+// What Approvals › Checks points out on the plan: a numbered pin for each row to fix or confirm, and
 // the row under the pointer (or tapped) drawn in full. The panel fills this while it's open and
 // empties it as it closes, so the plan never shows pins for a panel that isn't there.
 

@@ -1,7 +1,7 @@
 // Whose history the top bar's Undo and Redo (and ⌘Z) work on. The plan, the site features and the
 // costs each keep their own. While Costs or Site › Features is open, it's theirs. Elsewhere it's
 // whichever history changed last, so a change made from another screen (marking a tree for
-// removal from Design › Checks writes to the site features) is undone where it was made, not
+// removal from Approvals › Checks writes to the site features) is undone where it was made, not
 // skipped over for the plan's. A file change just made (Replace survey, src/safety/fileUndo.ts)
 // comes before them all, until anything else changes.
 

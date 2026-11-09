@@ -39,7 +39,7 @@ describe('the question', () => {
     hoverStreetEdge(1)
     expect(useStreetAsk.getState()).toMatchObject({ chosen: 2, hover: 1 })
     streetAsked()
-    expect(useStreetAsk.getState()).toEqual({ project: null, chosen: null, hover: null })
+    expect(useStreetAsk.getState()).toEqual({ project: null, chosen: null, hover: null, answering: false })
     askStreetSide('p2')
     expect(useStreetAsk.getState().chosen).toBeNull()
     streetAsked()

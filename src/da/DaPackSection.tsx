@@ -1,4 +1,4 @@
-// Share › Plans › DA pack (PDF): the site details and revision for the title blocks, and the
+// Approvals › DA pack (PDF): the site details and revision for the title blocks, and the
 // download. The pack goes to this device only, since it carries the site's address: no share
 // sheet, no upload. The details are the project's own (./details.ts), never on a share link.
 

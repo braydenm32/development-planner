@@ -136,19 +136,26 @@ describe('floor area and FFL', () => {
     const n = numbersOf(plan, survey, terrain, null)
     expect(n.levels.map(l => l.name)).toEqual(['Ground floor', 'First floor'])
     expect(n.floorArea).toBeCloseTo(2 * 114.39, 6)
-    expect(words(strip(n))).toContain('Floor 228.78 m²')
+    expect(words(strip(n))).toContain('Floor, all levels 228.78 m²')
+    // Each level's floor level, not the lowest alone (C33).
+    expect(n.floors.map(f => f.name)).toEqual(['Ground floor', 'First floor'])
+    expect(words(strip(n))).toContain(`Floor levels (FFL) ${n.floors.map(f => f.rl.toFixed(2)).join(' / ')}`)
+    // Drawing on one level, the strip says that level's floor first.
+    const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} level={n.levels[1].id} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(html)).toContain('Floor, First floor 114.39 m² of 228.78 m²')
   })
 
   it('has no floor area before walls enclose a floor, and says so quietly', () => {
     const n = numbersOf(house({ walls: [], rooms: [] }), survey, terrain, null)
     expect(n.floorArea).toBeNull()
-    expect(words(strip(n))).not.toContain('Floor')
+    expect(words(strip(n))).not.toContain('m²')
+    expect(words(strip(n))).not.toMatch(/Floor(, all levels)? \d/)
   })
 
   it('FFL is the ground floor RL, to 10 mm', () => {
     const n = numbersOf(house(), survey, terrain, null)
     expect(n.ffl).toBe(63.2)
-    expect(words(strip(n))).toContain('FFL RL 63.20')
+    expect(words(strip(n))).toContain('Floor level (FFL) RL 63.20')
     // with the floor lifted half a metre
     expect(numbersOf(house({ placement: { e: 5008, n: 8016, rotation: 15, ffl: 63.705 } }), survey, terrain, null).ffl).toBe(63.705)
   })
@@ -254,8 +261,8 @@ describe('batters crossing the boundary', () => {
     expect(n.batterSides).toEqual(['south'])
     expect(n.batters).toBe('the south boundary')
     const text = words(strip(n))
-    expect(text).toContain('Batters cross the south boundary')
-    expect(strip(n)).toContain('The earthworks run past the south boundary.')
+    expect(text).toContain('Earth slopes (batters) cross the south boundary')
+    expect(strip(n)).toContain('The earthworks run past the south boundary')
   })
 
   // Walking the boundary anticlockwise, the outside of each side is on the right:
@@ -302,7 +309,7 @@ describe('retaining walls', () => {
     expect(n.retaining!.maxHeight).toBe(walls[0].maxHeight)
     expect(n.retaining!.face).toBe(walls[0].faceArea)
     expect(n.retaining!.engineer).toBe(walls[0].maxHeight >= ENGINEER_HEIGHT)
-    expect(words(strip(n))).toContain(`Tallest wall ${walls[0].maxHeight.toFixed(2)} m`)
+    expect(words(strip(n))).toContain(`Retained ${walls[0].maxHeight.toFixed(2)} m`)
     expect(strip(n)).toContain(`Holds back up to ${retainedText(walls[0].maxHeight)}`)
   })
 
@@ -310,9 +317,12 @@ describe('retaining walls', () => {
     levels: [],
     floorArea: null,
     ffl: 63.2,
+    floors: [],
     earth: null,
     retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight >= ENGINEER_HEIGHT },
     roof: null,
+    roofs: [],
+    roofArea: 0,
     batterSides: [],
     batters: null,
     placement: null,
@@ -320,8 +330,8 @@ describe('retaining walls', () => {
 
   it('asks for an engineer from 600 mm, the figure the checks use', () => {
     expect(ENGINEER_HEIGHT).toBe(0.6)
-    expect(words(strip(withWall(1.2)))).toContain('Tallest wall 1.20 m Engineer > 600 mm')
-    expect(words(strip(withWall(0.8)))).toContain('Tallest wall 0.80 m Engineer > 600 mm')
+    expect(words(strip(withWall(1.2)))).toContain('Retained 1.20 m Engineer > 600 mm')
+    expect(words(strip(withWall(0.8)))).toContain('Retained 0.80 m Engineer > 600 mm')
     expect(words(strip(withWall(0.6)))).toContain('Engineer')
     expect(words(strip(withWall(0.5)))).not.toContain('Engineer')
   })
@@ -361,9 +371,12 @@ describe('roof height above the ground', () => {
     expect(n.roof!.top).toBeCloseTo(top, 9)
     expect(n.roof!.area).toBeCloseTo(13.5 * 10.5, 6)
     expect(Math.abs(n.roof!.height - (top - lowest))).toBeLessThan(0.01)
-    expect(words(strip(n))).toContain(`Roof ${n.roof!.height.toFixed(2)} m`)
+    expect(words(strip(n))).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     // "above ground" is in the chip's tip, which says what the number is.
-    expect(strip(n)).toContain('The most the roof rises above the natural ground under it')
+    expect(strip(n)).toContain('The most a roof rises above the natural ground under it')
+    // One roof: the total roof area is its own.
+    expect(n.roofs).toHaveLength(1)
+    expect(n.roofArea).toBeCloseTo(n.roof!.area, 9)
   })
 
   it('has none to show without a roof', () => {
@@ -378,13 +391,14 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   const earth = earthOf(plan, survey, terrain)
   const n = numbersOf(plan, survey, terrain, earth)
 
-  it('turns a chip into a plain label pointing at where the number is', () => {
-    const html = strip(n, { 'floor-area': 'in the panel', ffl: 'on plan' })
-    expect(html).toContain('class="chip ghost" title="Floor is in the panel"')
-    expect(words(html)).toContain('Floor → panel')
-    expect(words(html)).toContain('FFL → plan')
-    expect(words(html)).not.toContain('114.39')
-    expect(words(html)).not.toContain('RL 63.20')
+  it('keeps the number, dimmed, with where else it shows in its tooltip (C33)', () => {
+    const html = strip(n, { 'floor-area': 'in the panel', ffl: 'on the plan' })
+    expect(html).toContain('class="chip echo" title="Ground floor: 114.39 m² Also in the panel."')
+    expect(words(html)).toContain('Floor 114.39 m²')
+    expect(words(html)).toContain('Floor level (FFL) RL 63.20')
+    expect(words(html)).not.toContain('→')
+    // Echoed chips aren't buttons: there's nowhere to go for a number already in view.
+    expect(html).not.toMatch(/<button class="chip[^"]*"[^>]*>.*Floor 114/)
   })
 
   it('says where in a word or two', () => {
@@ -396,7 +410,8 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   it('lets the panel showing cut and fill take over Out of balance', () => {
     const html = strip(n, { 'cut-fill': 'in the panel' })
     expect(words(html)).not.toContain('Out of balance')
-    expect(words(html)).toContain('Cut · fill → panel')
+    expect(words(html)).toContain('Cut · fill 34.0 · 7.3 m³')
+    expect(html).toContain('class="chip echo"')
   })
 
   it('keeps chips as buttons otherwise', () => {
@@ -514,7 +529,7 @@ describe('the panels', () => {
       ),
     )
     const overview = words(renderToStaticMarkup(<OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} />))
-    for (const text of [tab, words(strip(n)), overview]) expect(text).toContain('Batters cross the south boundary')
+    for (const text of [tab, words(strip(n)), overview]) expect(text).toContain('Earth slopes (batters) cross the south boundary')
     expect(tab).not.toMatch(/ and \w+ and /)
   })
 

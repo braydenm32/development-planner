@@ -79,7 +79,7 @@ describe('a row with more than fits', () => {
 })
 
 describe('the summary strip', () => {
-  const n = { levels: [], floorArea: null, ffl: 63.2, earth: null, retaining: null, roof: null, batterSides: [], batters: null, placement: null }
+  const n = { levels: [], floorArea: null, ffl: 63.2, floors: [], earth: null, retaining: null, roof: null, roofs: [], roofArea: 0, batterSides: [], batters: null, placement: null }
   const strip = (shown = {}) => renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} shown={shown} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
   const words = (html: string) =>
     html
@@ -91,7 +91,7 @@ describe('the summary strip', () => {
     const chip = /<button class="chip warn"[^>]*>(.*?)<\/button>/.exec(strip())
     expect(chip).not.toBeNull()
     expect(words(chip![1])).toBe('Site · 2 to check')
-    expect(words(strip({ 'site-checks': 'in the panel' }))).toContain('Site checks')
+    expect(words(strip({ 'site-checks': 'in the panel' }))).toContain('Site · 2 to check')
   })
 
   it('scrolls its chips in a row that has arrows when they overflow', () => {

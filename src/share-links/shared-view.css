@@ -109,6 +109,37 @@
   padding: 0 2px 0 10px;
 }
 
+/* A phone's header buttons: the icon with its word under it, still a 44px target. */
+.app-shell.phone.shared-view .labelled-icon {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  height: 46px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-shell.phone.shared-view .labelled-icon.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.app-shell.phone.shared-view .labelled-icon:disabled {
+  opacity: 0.45;
+}
+
 .app-shell.phone.shared-view .shared-title > b {
   font-size: 16px;
 }

@@ -14,9 +14,10 @@ import { clipToBoundary, linePartsOnBlock, nearBlock, ringDistance } from './sha
  * coloured lines along it. Only what reaches the block is shown, as the ground stops at
  * its boundary. Scene: x = east, y = RL − refZ, z = −north (inside the exaggeration group).
  */
-export function SiteFeatures3D({ boundary, ground, refZ }: { boundary: Vec2[]; ground: Heightfield; refZ: number }) {
+export function SiteFeatures3D({ boundary, ground, refZ, trees = true }: { boundary: Vec2[]; ground: Heightfield; refZ: number; trees?: boolean }) {
   const features = useSiteFeatures()
-  const shown = useMemo(() => features.filter(f => nearBlock(f, boundary)), [features, boundary])
+  // Trees can be hidden from the 3D view's Show menu, to see the house behind them.
+  const shown = useMemo(() => features.filter(f => nearBlock(f, boundary) && (trees || f.type !== 'tree')), [features, boundary, trees])
   return (
     <group>
       {shown.map(f => (

@@ -2,7 +2,7 @@
 // the aerial), fit the survey's boundary to it, nudge it if needed, and read what the NSW planning
 // maps say about the lot. While the lot is being found the aerial fills the canvas, beside the
 // panel; once it's placed the photo and the lot's lines show under the plan, and the land's flags
-// join Design › Checks.
+// join Approvals › Checks.
 
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -324,7 +324,7 @@ function Planning({ place }: { place: MapPlace }) {
               onClick={() =>
                 navigate({
                   kind: 'app',
-                  area: 'design',
+                  area: 'approvals',
                   tab: 'checks',
                   view: 'plan',
                 })

@@ -10,8 +10,8 @@ import { MORE_SECTIONS, TAB_PANELS } from '../../shell/sections'
 import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
-import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, tabRoute, type AppRoute, type Route } from '../route'
-import { buildIndex, search, type SearchItem } from '../search'
+import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, type AppRoute, type Route } from '../route'
+import { buildIndex, featureLabel, search, specOnly, type SearchItem } from '../search'
 
 const places = allPlaces()
 const entries = places.map(p => p.entry)
@@ -245,18 +245,19 @@ describe('the menu', () => {
     for (const e of entries) expect(e.label.trim().length, e.id).toBeGreaterThan(0)
   })
 
-  it('has the five areas, each with its tabs in order and a More', () => {
-    expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'costs', 'share'])
+  it('has the six areas, each with its tabs in order and a More where it has rare things', () => {
+    expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'approvals', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
       ['block', 'features', 'map', '3d', 'sun', MORE],
-      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'sections', 'checks', 'options', 'basix', MORE],
-      ['place', 'cut-fill', 'retaining-walls', 'driveway', 'stormwater', MORE],
+      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'sections', 'options', MORE],
+      ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
+      ['checks', 'basix', 'stormwater', 'da-pack'],
       ['estimate', 'materials', 'quotes', MORE],
       ['plans', 'export', 'send', '3d-print', MORE],
     ])
     for (const a of AREAS) {
       expect(a.tabs.some(t => t.id === a.defaultTab), a.id).toBe(true)
-      expect(a.more.items.length, a.id).toBeGreaterThan(0)
+      if (a.id !== 'approvals') expect(a.more.items.length, a.id).toBeGreaterThan(0)
     }
   })
 
@@ -421,6 +422,15 @@ describe('routes', () => {
     expect(parseHash('#/site/block')).toEqual({ kind: 'app', area: 'site', tab: 'block', view: '3d' })
   })
 
+  it('take old links to Checks, BASIX and Stormwater to Approvals', () => {
+    expect(parseHash('#/design/checks?view=plan&level=L1')).toEqual({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan', level: 'L1' })
+    expect(parseHash('#/design/basix?view=3d')).toEqual({ kind: 'app', area: 'approvals', tab: 'basix', view: '3d' })
+    expect(parseHash('#/earthworks/stormwater?view=plan&sel=r1')).toEqual({ kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan', sel: 'r1' })
+    expect(resumeRoute('#/design/checks?view=plan')).toMatchObject({ area: 'approvals', tab: 'checks' })
+    // A More that the area doesn't have lands on its first tab.
+    expect(parseHash('#/approvals/more')).toEqual({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan' })
+  })
+
   it('land a first visit, or an old saved mode, somewhere sensible', () => {
     expect(defaultRoute()).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
     expect(defaultRoute('plan')).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
@@ -446,13 +456,13 @@ describe('routes', () => {
     expect(carriesSelection(wall, tabRoute(wall, 'design', 'plan'), 'retaining')).toBe(true)
     expect(carriesSelection(wall, tabRoute(wall, 'earthworks', 'cut-fill'), 'retaining')).toBe(true)
     // A roof goes to Design › Roofs from anywhere (Stormwater's links do that), and a room to Rooms & areas.
-    const drain: AppRoute = { kind: 'app', area: 'earthworks', tab: 'stormwater', view: 'plan', sel: 'roof1' }
+    const drain: AppRoute = { kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan', sel: 'roof1' }
     expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'roofs' }, 'roof')).toBe(true)
     expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'rooms' }, 'room')).toBe(true)
     expect(carriesSelection(drain, { ...drain, area: 'design', tab: 'roofs' }, 'room')).toBe(false)
     // Within an area a selection always stays.
     const roofs: AppRoute = { kind: 'app', area: 'design', tab: 'roofs', view: 'plan', sel: 'w1' }
-    expect(carriesSelection(roofs, tabRoute(roofs, 'design', 'checks'), 'wall')).toBe(true)
+    expect(carriesSelection(roofs, tabRoute(roofs, 'design', 'sections'), 'wall')).toBe(true)
   })
 
   it('show the print preview only on Share › 3D print', () => {
@@ -655,12 +665,27 @@ describe('⌘K search', () => {
   const index = buildIndex(features)
 
   it("finds every feature by its name, among the results it shows", () => {
-    const missed = features.filter(f => !search(index, f.name).some(r => r.featureId === f.id)).map(f => f.id)
+    // A row that only records a timing is left out; its name still finds its home.
+    const missed = features.filter(f => !search(index, f.name).some(r => (specOnly(f.name) ? r.entry.features.includes(f.id) : r.featureId === f.id))).map(f => f.id)
     expect(missed).toEqual([])
+  })
+
+  it('ranks tabs and actions before features, and what a word means last (C35)', () => {
+    const easement = search(index, 'easement')
+    expect(easement[0]).toMatchObject({ kind: 'tab', key: 'tab:site/features' })
+    const term = easement.findIndex(r => r.kind === 'term')
+    expect(term).toBeGreaterThan(-1)
+    expect(easement.slice(term).every(r => r.kind === 'term')).toBe(true)
+    expect(easement.findIndex(r => r.kind === 'feature')).toBeGreaterThan(easement.findIndex(r => r.kind === 'tab'))
+    // Feature rows are short labels, and timings aren't rows at all.
+    for (const r of index.filter(i => i.kind === 'feature')) expect(r.label.length, r.key).toBeLessThanOrEqual(61)
+    expect(index.some(i => i.featureId === 'plan-autosave')).toBe(false)
+    expect(featureLabel('Plan saves automatically to its project in the browser (400 ms debounce)')).toBe('Plan saves automatically to its project in the browser')
   })
 
   it('leads every feature to its home', () => {
     for (const f of features) {
+      if (specOnly(f.name)) continue
       const item = index.find(i => i.featureId === f.id)!
       expect(item.entry.features, f.id).toContain(f.id)
     }
@@ -757,7 +782,9 @@ describe('⌘K search', () => {
       expect(search(index, q).slice(0, 8).some(atFeatures), q).toBe(true)
     }
     expect(search(index, 'tree protection zone').some(r => r.featureId === 'site-tree-zones')).toBe(true)
-    expect(search(index, 'line up drawing')[0]).toMatchObject({ featureId: 'site-drawing-line-up' })
+    // Its tab first (C35), then the feature itself.
+    expect(search(index, 'line up drawing')[0]).toMatchObject({ key: 'tab:site/features' })
+    expect(search(index, 'line up drawing').slice(0, 4).some(r => r.featureId === 'site-drawing-line-up')).toBe(true)
     expect(search(index, 'trace').some(r => r.featureId === 'site-trace')).toBe(true)
     expect(search(index, 'pdf').some(r => r.featureId === 'site-drawing-add')).toBe(true)
   })

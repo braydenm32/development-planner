@@ -1,5 +1,6 @@
-// One tip at the top of the plan, said the way drawing works there: keys and clicks on a
-// desktop, taps on a phone. Its button picks the tool it talks about; the link opens that
+// The empty floor's tip at the top of the plan (draw its walls), said the way drawing works
+// there: keys and clicks on a desktop, taps on a phone. The next steps' tips (name the rooms…)
+// wait in the plan's question list instead, off the drawing (src/flow/QuestionTray.tsx). Its button picks the tool it talks about; the link opens that
 // step of the guide; × hides it for good, and Hide tips hides them all.
 
 import { Icon } from '../nav/icons'
@@ -12,7 +13,7 @@ export function PlanHints({ plan, level, phone }: { plan: Plan; level: string; p
   const prefs = useHintPrefs()
   const tool = usePlan(s => s.tool)
   const id = nextHint(plan, level, prefs)
-  if (!id) return null
+  if (id !== 'walls') return null
   const tip = TIPS[id]
   const using = tool === tip.tool
   return (

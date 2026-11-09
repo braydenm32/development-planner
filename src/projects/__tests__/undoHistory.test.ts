@@ -138,7 +138,7 @@ describe('Undo and Redo after a reload', () => {
     const site = () => useSiteStore.getState()
     useSiteStore.setState({ focus: false, data: { ...site().data, features: [{ id: 'tree1', type: 'tree', geom: { kind: 'point', at: [3, 4] }, source: 'trace', label: 'T1', trunk: 0.3 }] } })
     app.st().commit(dropWall)
-    // Marked from Design › Checks: the site features' history, with Site › Features not open.
+    // Marked from Approvals › Checks: the site features' history, with Site › Features not open.
     setTreeRemoval('tree1', true)
     expect(site().data.features[0].remove).toBe(true)
     expect(undoTarget('undo')).toBe(site())

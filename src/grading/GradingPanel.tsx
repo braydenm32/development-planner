@@ -194,7 +194,7 @@ export function ImpliedWalls({ survey, earth }: { survey: Survey; earth: Earth |
     <section className="grade-implied" aria-label="Implied retaining walls">
       <p className="notice small">
         {which} set to Retaining wall, so {walls.length === 1 ? 'one vertical edge is a wall' : `${walls.length} vertical edges are walls`} someone has to build, up to{' '}
-        {tall.toFixed(2)} m high (dashed on the plan).{' '}They count in Tallest wall, the engineer count and Costs as implied walls.
+        {tall.toFixed(2)} m high (dashed on the plan).{' '}They count in Retained, the engineer count and Costs as implied walls.
       </p>
       <ol className="grade-list">
         {walls.map((s, n) => (

@@ -122,7 +122,7 @@ export function daPackFile(p: PdfInput): OutFile {
   const e = p.earth?.result
   const place = useMap.getState().place
   const planning = place?.planning ?? null
-  // The checks as Design › Checks works them out, but always for a DA: the land's flags, then the council's rules.
+  // The checks as Approvals › Checks works them out, but always for a DA: the land's flags, then the council's rules.
   const trees = checkTreesOf(localFeatures(undefined, true), p.survey.boundary)
   const sun = keptSunFacts({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() })
   const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun, dem: !!projectsNow().opened?.survey?.dem })

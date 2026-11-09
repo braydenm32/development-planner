@@ -138,7 +138,7 @@ export async function refreshPlanning(): Promise<void> {
     // Still the same lot (not taken off, or moved to another, while reading).
     if (ctrl.signal.aborted || !now || now.lot.id !== p.lot.id) return
     useMap.setState({ place: { ...now, planning }, reading: false })
-    // Design › Checks' "DA with …" follows the council the maps name, unless one was picked by hand.
+    // Approvals › Checks' "DA with …" follows the council the maps name, unless one was picked by hand.
     councilFromMap(planning)
   } catch (e) {
     if (ctrl.signal.aborted) return

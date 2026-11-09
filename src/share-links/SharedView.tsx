@@ -46,6 +46,7 @@ import { OverviewSheet } from '../shell/OverviewSheet'
 import { INSPECTOR_W } from '../shell/panelWidth'
 import { findSelection } from '../shell/selection'
 import { SummaryStrip } from '../shell/SummaryStrip'
+import { checksHeadline } from '../shell/headline'
 import { useKeyNumbers } from '../shell/useKeyNumbers'
 import { projectTitle } from '../share/project'
 import { useSiteWarnings, useSiteSource } from '../site/sync'
@@ -215,7 +216,7 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
       if (canvas === '3d') useCamera.getState().go('north')
       else changeUp(view.up === 0 ? 'house' : 0)
     } else if (a === 'reset-camera') {
-      if (phone) useCamera.getState().go('street')
+      if (phone) useCamera.getState().go('house')
       else setCameraKey(k => k + 1)
     }
   }
@@ -264,9 +265,10 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
               ))}
             </div>
             {ready && <AddCommentButton phone={phone} toPlan={() => setView('plan')} />}
-            <button className={phone ? 'icon-button shared-pdf' : 'secondary shared-pdf'} onClick={() => void pdf()} disabled={!ready} aria-label={phone ? (canShareFiles() ? 'Send PDF plans' : 'Download PDF plans') : undefined}>
-              <Icon name={phone && canShareFiles() ? 'phoneShare' : 'download'} size={phone ? 20 : 16} />
-              {!phone && 'PDF plans'}
+            {/* On a phone too, a word under the icon (C38): someone opening a link shouldn't have to guess. */}
+            <button className={phone ? 'labelled-icon shared-pdf' : 'secondary shared-pdf'} onClick={() => void pdf()} disabled={!ready} title={canShareFiles() ? 'Send PDF plans' : 'Download PDF plans'}>
+              <Icon name={phone && canShareFiles() ? 'phoneShare' : 'download'} size={phone ? 19 : 16} />
+              {phone ? <span>PDF plans</span> : 'PDF plans'}
             </button>
           </div>
         </header>
@@ -352,7 +354,14 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
                 </Fragment>
               )}
             </CanvasFrame.Provider>
-            {canvas === '3d' && ready && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+            {canvas === '3d' && ready && (
+              <PresetBar
+                phone={phone}
+                presenting={presenting}
+                setPresenting={setPresenting}
+                show={plan ? { view, set: patch => setViewSettings(v => ({ ...v, ...patch })), levels: sortedLevels(plan) } : undefined}
+              />
+            )}
             {inspector && plan && survey && terrain && (
               <aside className="float-card inspector read-only" aria-label="Selection">
                 <div className="sheet-grab" aria-hidden="true" />
@@ -425,6 +434,7 @@ function Numbers({
   const plan = usePlan(s => s.plan)!
   const numbers = useKeyNumbers(plan, survey, terrain, earth)
   const checks = useChecks(plan, survey, terrain, earth)
+  const verdict = useMemo(() => checksHeadline(checks.pathway, checks.results), [checks.pathway, checks.results])
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   // A number already on the canvas steps back in the strip, as in the app (CALM 5).
   const shown: Partial<Record<NumberId, string>> = {}
@@ -434,11 +444,11 @@ function Numbers({
   return (
     <>
       {phone ? (
-        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} readOnly />
+        peek && <PeekSheet numbers={numbers} stats={terrain.stats} title="Key numbers" onOpen={() => setOverview(true)} onHeight={onPeekHeight} checks={siteChecks} verdict={verdict} readOnly />
       ) : (
         <SummaryStrip readOnly route={route} numbers={numbers} checks={{ pathway: checks.pathway, council: checks.council, counts: checks.counts }} shown={shown} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
       )}
-      {overview && <OverviewSheet readOnly numbers={numbers} stats={terrain.stats} onBalance={() => {}} onClose={() => setOverview(false)} />}
+      {overview && <OverviewSheet readOnly numbers={numbers} stats={terrain.stats} verdict={verdict} onBalance={() => {}} onClose={() => setOverview(false)} />}
     </>
   )
 }

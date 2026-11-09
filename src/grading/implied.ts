@@ -1,7 +1,7 @@
 // Implied retaining walls: with the cut or fill slopes set to Retaining wall the earthworks stop in
 // a vertical face at the edge of the levelled ground, and that face is a wall someone has to build,
 // drawn or not. They're traced as the suggestions are (./suggest.ts, the 'implied' rule), shown
-// dashed with their heights, and counted with the drawn walls in Tallest wall, the engineer count
+// dashed with their heights, and counted with the drawn walls in Retained (the strip), the engineer count
 // and Costs, each labelled "implied" (the owner confirmed the counting).
 
 import type { Survey } from '../lib/survey'

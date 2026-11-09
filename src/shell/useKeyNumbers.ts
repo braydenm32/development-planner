@@ -7,9 +7,9 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, tallestRoof, type PlacementInfo } from '../plan/keyNumbers'
+import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { earthworksOf, floorRL, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
@@ -24,6 +24,8 @@ export interface KeyNumbers {
   floorArea: number | null
   /** The ground floor's RL. */
   ffl: number
+  /** Every level's floor RL, lowest first: a split-level house has more than one floor level. */
+  floors: { id: string; name: string; rl: number }[]
   earth: {
     cut: number
     fill: number
@@ -42,7 +44,12 @@ export interface KeyNumbers {
    * `impliedTallest` says the tallest is an implied one.
    */
   retaining: { count: number; length: number; maxHeight: number; face: number; engineer: boolean; implied?: ImpliedTotals | null; impliedTallest?: boolean } | null
-  roof: { roof: Roof; height: number; top: number; area: number } | null
+  /** The roof that rises highest above the ground (the building's height). */
+  roof: RoofNumbers | null
+  /** Every roof that builds, highest first. */
+  roofs: RoofNumbers[]
+  /** All the roofs' areas together (their sloping surface); 0 with none. */
+  roofArea: number
   /** Sides of the block the batters run into. */
   batterSides: string[]
   /** The same, in words: "the north and east boundaries", "all four boundaries"; null when none. */
@@ -50,6 +57,15 @@ export interface KeyNumbers {
   placement: PlacementInfo | null
   /** Winter sun to the living areas and the shadow over the boundary, on 21 June. */
   sun?: SunFacts | null
+}
+
+export interface RoofNumbers {
+  roof: Roof
+  /** The most it rises above the natural ground under it. */
+  height: number
+  /** RL of its highest point. */
+  top: number
+  area: number
 }
 
 export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, earth: Earth | null): KeyNumbers {
@@ -62,13 +78,17 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
   // Balance searches for the level where cut and fill are equal; only redo it when the earthworks change.
   const shift = useMemo(() => (earth && earth.platforms.length > 0 ? balancingShift(earth.prep) : null), [earth])
   const balancedRL = balanceTo(ffl, shift)
-  const roof = useMemo(() => {
-    const t = tallestRoof(plan, survey, terrain)
-    if (!t) return null
-    const g = roofGeometry(t.roof)
-    const base = roofEavesRL(plan, t.roof)
-    return { roof: t.roof, height: t.height, top: base + g.height, area: g.area }
+  const roofs = useMemo(() => {
+    const out: RoofNumbers[] = []
+    for (const r of plan.roofs) {
+      const g = roofGeometry(r)
+      if (g.error) continue
+      const base = roofEavesRL(plan, r)
+      out.push({ roof: r, height: roofAboveGround(plan, r, g, survey, terrain), top: base + g.height, area: g.area })
+    }
+    return out.sort((a, b) => b.height - a.height)
   }, [plan, survey, terrain])
+  const floors = useMemo(() => sortedLevels(plan).map(l => ({ id: l.id, name: l.name, rl: floorRL(plan, l.id) })), [plan])
 
   return useMemo(() => {
     const levels = summary.map(s => ({
@@ -85,6 +105,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       levels,
       floorArea: total > 0 ? total : null,
       ffl,
+      floors,
       earth: hasEarth
         ? {
             cut: r.cut,
@@ -110,11 +131,13 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
               impliedTallest: !!implied && implied.maxHeight > Math.max(0, ...walls.map(w => w.maxHeight)),
             }
           : null,
-      roof,
+      roof: roofs[0] ?? null,
+      roofs,
+      roofArea: roofs.reduce((t, r) => t + r.area, 0),
       batterSides: hasEarth ? boundarySides(r, survey) : [],
       batters: hasEarth ? crossedBoundaries(r, survey) : null,
       placement,
       sun,
     }
-  }, [plan, summary, earth, ffl, balancedRL, walls, implied, roof, survey, placement, sun])
+  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, survey, placement, sun])
 }

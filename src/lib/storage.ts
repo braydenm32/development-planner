@@ -42,6 +42,10 @@ export interface ViewSettings {
   showHouse: boolean
   showRoof: boolean
   showFurniture: boolean
+  /** Levels hidden in 3D (by id), from its Show menu; a level hides with its roofs. */
+  hiddenLevels: string[]
+  /** Trees in 3D, from its Show menu. */
+  showTrees: boolean
   /** Show the finished ground after cut and fill instead of the natural ground. */
   showEarthworks: boolean
   /** The Plan / 3D / Print tab the old layout was left on. Nothing sets it now; a first visit with no address still lands there. */
@@ -65,6 +69,8 @@ export const DEFAULT_VIEW: ViewSettings = {
   showHouse: true,
   showRoof: true,
   showFurniture: true,
+  hiddenLevels: [],
+  showTrees: true,
   showEarthworks: true,
   mode: 'plan',
   up: 'house',

@@ -1,4 +1,4 @@
-// Rows for Design › Checks from the NSW planning maps, once the block is placed: is the land one a
+// Rows for Approvals › Checks from the NSW planning maps, once the block is placed: is the land one a
 // CDC can be used on, and what extra rules come with it. These are flags, not a planning
 // certificate: the council's section 10.7 certificate is the final word, and every row says so.
 

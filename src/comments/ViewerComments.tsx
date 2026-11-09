@@ -18,14 +18,13 @@ export function AddCommentButton({ phone, toPlan }: { phone: boolean; toPlan: ()
   return (
     <button
       type="button"
-      className={`${phone ? 'icon-button' : 'secondary'} cm-add${placing ? ' on' : ''}`}
+      className={`${phone ? 'labelled-icon' : 'secondary'} cm-add${placing ? ' on' : ''}`}
       onClick={go}
       aria-pressed={placing}
-      aria-label={phone ? 'Add a comment' : undefined}
       title="Pin a comment on the plan for the person who shared it"
     >
-      <Icon name="comment" size={phone ? 20 : 16} />
-      {!phone && 'Add a comment'}
+      <Icon name="comment" size={phone ? 19 : 16} />
+      {phone ? <span>Comment</span> : 'Add a comment'}
     </button>
   )
 }

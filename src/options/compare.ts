@@ -101,7 +101,7 @@ export function differs(row: Row, nums: OptionNumbers[]): boolean {
   return nums.some(n => say(n) !== say(nums[0]))
 }
 
-/** "1 to fix · 2 to confirm · 1 fact to add · 2 to remove · 9 OK": Design › Checks' own words. */
+/** "1 to fix · 2 to confirm · 1 fact to add · 2 to remove · 9 OK": Approvals › Checks' own words. */
 export const checksText = (n: OptionNumbers): string => countsWords(n.checks.counts).join(' · ')
 
 /** What the checks were run against: "DA (Wollongong)", or "CDC (Housing Code)". */

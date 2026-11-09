@@ -75,7 +75,7 @@ describe('the sun in the panels', () => {
 
   it('gives the Overview a sun group', () => {
     const sun = sunFacts({ plan, boundary, origin: [0, 0], ground: terrain.grid, date: winterDay() })
-    const n: KeyNumbers = { levels: [], floorArea: null, ffl: 50.3, earth: null, retaining: null, roof: null, batterSides: [], batters: null, placement: null, sun }
+    const n: KeyNumbers = { levels: [], floorArea: null, ffl: 50.3, floors: [], earth: null, retaining: null, roof: null, roofs: [], roofArea: 0, batterSides: [], batters: null, placement: null, sun }
     const text = words(renderToStaticMarkup(<OverviewSheet numbers={n} stats={null} onBalance={() => {}} onClose={() => {}} />))
     expect(text).toContain('Sun on 21 June Open Living, sun on its windows 6 h')
     expect(text).toContain('The house’s shadow stays on your block from 9 am to 3 pm.')

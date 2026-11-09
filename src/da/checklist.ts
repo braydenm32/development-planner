@@ -302,7 +302,7 @@ export interface ChecklistRow {
 }
 
 export interface ChecklistInput {
-  /** The council whose rules are switched on (Design › Checks), if any. */
+  /** The council whose rules are switched on (Approvals › Checks), if any. */
   council: CouncilId | null
   /** What the NSW planning maps say about the placed lot; null when it isn't on the map. */
   planning: PlanningFacts | null

@@ -613,7 +613,20 @@ button.chip:hover .chip-label {
   font-size: 12px;
 }
 
-/* A number already in view: a plain chip that says where it is ("Floor → panel"), not a dimmed one. */
+/* A number the panel or the plan already shows: still there to read, quieter (C33). */
+.chip.echo,
+.chip.echo b,
+.chip.echo em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.chip.echo .dot {
+  opacity: 0.6;
+}
+
+/* Nothing to say yet, or a quiet OK. */
 .chip.ghost {
   color: var(--text);
 }
@@ -1426,6 +1439,69 @@ button.chip:hover .chip-label {
   padding: 12px 26px 24px;
 }
 
+/* On a phone the bottom bar stays clear of the Overview, and a tap on it goes where it says. */
+.app-shell.phone .sheet-backdrop {
+  bottom: var(--bottom-h);
+}
+
+/* The checks' verdict and the estimate, side by side above the groups. */
+.ov-verdicts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px 26px 0;
+}
+
+.ov-verdict {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+button.ov-verdict {
+  cursor: pointer;
+}
+
+button.ov-verdict:hover {
+  border-color: var(--field-line);
+}
+
+.ov-v-label,
+.ov-v-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ov-verdict > b {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-verdict.w-fix {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+
+.ov-verdict.w-fix > b {
+  color: var(--danger);
+}
+
+.ov-verdict.w-confirm > b {
+  color: var(--warn-ink);
+}
+
+.app-shell.phone .ov-verdicts {
+  padding: 10px 18px 0;
+  gap: 8px;
+}
+
 .ov-cols > div {
   display: grid;
   gap: 22px;
@@ -1514,6 +1590,21 @@ button.chip:hover .chip-label {
   color: var(--muted);
 }
 
+/* Close, on a phone's search sheet (no Esc key there). */
+.app-shell.phone .palette-input .palette-close {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .palette-input input:focus-visible {
   outline: none;
 }
@@ -1584,6 +1675,28 @@ button.chip:hover .chip-label {
 .pi-where {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* A feature is one line: its short label, then where it lives (C35). */
+.pi-feature .pi-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pi-feature .pi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.pi-feature .pi-where {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pi-kind {
@@ -1658,6 +1771,7 @@ button.chip:hover .chip-label {
   --top-h: 52px;
   --strip-h: 46px;
   --gap: 10px;
+  --bottom-h: calc(66px + env(safe-area-inset-bottom));
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--top-h) var(--strip-h) minmax(0, 1fr) auto;
   grid-template-areas:
@@ -1694,11 +1808,22 @@ button.chip:hover .chip-label {
   justify-content: center;
   min-width: 44px;
   padding: 0 11px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 /* The tabs scroll, as on a desktop: a name that would be cut off hides behind an arrow, and the
-   open tab is scrolled into view (Nav.tsx). */
+   open tab is scrolled into view (Nav.tsx). A phone's bar can be narrower than a long name
+   ("Retaining walls" opened from a link): the open tab then fits between the arrows, shortened
+   if it must, rather than hiding as a cut-off one would (C38). */
+.app-shell.phone .tab.on {
+  display: block;
+  flex: none;
+  max-width: calc(100% - 2 * 20px - 6px);
+  overflow: hidden;
+  padding: 0 3px;
+  line-height: var(--top-h);
+  text-overflow: ellipsis;
+}
 
 .app-shell.phone .top-actions {
   gap: 0;
@@ -1766,8 +1891,9 @@ button.chip:hover .chip-label {
 .app-shell.phone .bottom-bar {
   grid-area: bottom;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  height: calc(66px + env(safe-area-inset-bottom));
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: var(--bottom-h);
   padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--line);
   background: #ffffff;
@@ -1780,8 +1906,10 @@ button.chip:hover .chip-label {
   color: var(--muted);
 }
 
+/* Six areas across a 390 px phone: Earthworks and Approvals fit at 12 px. */
 .app-shell.phone .bottom-bar .area-link span {
-  font-size: 14px;
+  font-size: 12px;
+  letter-spacing: -0.01em;
 }
 
 .app-shell.phone .bottom-bar .area-link.on {
@@ -2029,10 +2157,11 @@ button.chip:hover .chip-label {
 .app-shell.phone .overview-sheet {
   top: auto;
   right: 0;
-  bottom: 0;
+  /* Above the bottom bar, so the areas stay in reach while it's open. */
+  bottom: var(--bottom-h);
   left: 0;
   width: auto;
-  max-height: 88vh;
+  max-height: calc(100% - var(--bottom-h) - var(--top-h) - 8px);
   border-radius: 18px 18px 0 0;
 }
 

@@ -91,13 +91,13 @@ export const SUGGEST_RULES: SuggestRule[] = [
   },
   {
     id: 'tall',
-    title: 'Batter too tall',
+    title: 'Earth slope (batter) too tall',
     rule: `The batter would be more than ${TALL_BATTER} m high: taller than a batter alone should be.`,
     why: f => `${Kind(f.kind)} batter would be ${mText(f.height ?? 0)} high, more than the ${TALL_BATTER} m a batter alone should be: a ${wallText(f.wall)} wall holds it`,
   },
   {
     id: 'wide',
-    title: 'Batter covers too much ground',
+    title: 'Earth slope (batter) covers too much ground',
     rule: `The batter would be more than ${WIDE_BATTER} m wide: more ground than a wall and its footing take, about six times over.`,
     why: f => `${Kind(f.kind)} batter would be ${mText(f.width ?? 0)} wide, more ground than a wall takes: a ${wallText(f.wall)} wall gives that strip back as level ground`,
   },

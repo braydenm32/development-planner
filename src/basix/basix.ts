@@ -274,7 +274,7 @@ export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[
     {
       id: 'roof-tank',
       item: 'Roof area and rainwater tank',
-      value: `${m2(facts.roofArea)} of roof, ${m2(facts.tankRoofArea)} draining to the tank; tank ${facts.tankLitres > 0 ? `${facts.tankLitres.toLocaleString()} L` : 'not set yet (Earthworks › Stormwater)'}`,
+      value: `${m2(facts.roofArea)} of roof, ${m2(facts.tankRoofArea)} draining to the tank; tank ${facts.tankLitres > 0 ? `${facts.tankLitres.toLocaleString()} L` : 'not set yet (Approvals › Stormwater)'}`,
       why: 'The water target counts rainwater collected from the roof and what the tank supplies (toilets, laundry, garden).',
       fromPlan: true,
     },

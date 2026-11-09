@@ -2,7 +2,7 @@
 // garage. The kerb's level where the drive meets the road (typed, from the survey's level at the
 // boundary, or read from the state's elevation data when the block is on the map) and the
 // footpath's width; the long section from the garage to the gutter with each grade; and the
-// crossing checks, the same rows Design › Checks lists (src/checks/crossing.ts).
+// crossing checks, the same rows Approvals › Checks lists (src/checks/crossing.ts).
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { checkSettingsOf, activeCouncil } from '../checks/councils'
@@ -133,8 +133,8 @@ export function DrivewayCrossing(props: Props) {
       </ul>
       <p className="muted small">
         These are in{' '}
-        <button className="link" onClick={() => navigate({ kind: 'app', area: 'design', tab: 'checks', view: 'plan' })}>
-          Design › Checks
+        <button className="link" onClick={() => navigate({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan' })}>
+          Approvals › Checks
         </button>{' '}
         too, with the rest of the rules.
       </p>

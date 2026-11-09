@@ -1,4 +1,4 @@
-// The stormwater concept on the plan canvas, while Earthworks › Stormwater is open: a dashed path
+// The stormwater concept on the plan canvas, while Approvals › Stormwater is open: a dashed path
 // from the house to where the water would go, dots at the likely downpipe spots, and an arrow for
 // which way the ground falls. Everything here is a concept; the labels say so.
 
@@ -27,7 +27,7 @@ const ARROW_M = 5
 
 export function DrainageLayer(props: Props) {
   const route = useRouter(s => s.route)
-  const on = route.kind === 'app' && route.area === 'earthworks' && route.tab === 'stormwater'
+  const on = route.kind === 'app' && route.area === 'approvals' && route.tab === 'stormwater'
   return on ? <Layer {...props} /> : null
 }
 

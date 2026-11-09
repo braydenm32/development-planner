@@ -14,7 +14,7 @@ import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
 import { ExportTab } from '../export/ExportTab'
 import { RetainingWallsTab } from './tabs/RetainingWallsTab'
-import { PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
+import { DaPackTab, PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
 import { SectionsTab } from '../sections/SectionsTab'
@@ -33,14 +33,15 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
   'design/sections': SectionsTab,
-  'design/checks': ChecksTab,
-  'design/basix': BasixTab,
   'design/options': OptionsTab,
   'earthworks/place': PlaceTab,
   'earthworks/cut-fill': CutFillTab,
   'earthworks/retaining-walls': RetainingWallsTab,
   'earthworks/driveway': DrivewayTab,
-  'earthworks/stormwater': StormwaterTab,
+  'approvals/checks': ChecksTab,
+  'approvals/basix': BasixTab,
+  'approvals/stormwater': StormwaterTab,
+  'approvals/da-pack': DaPackTab,
   'costs/estimate': EstimateTab,
   'costs/materials': MaterialsTab,
   'costs/quotes': QuotesTab,

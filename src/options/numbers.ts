@@ -36,13 +36,13 @@ export interface OptionNumbers {
   levels: number
   storeys: number
   /**
-   * The counts Design › Checks shows, and what they were checked against: the pathway, and the
+   * The counts Approvals › Checks shows, and what they were checked against: the pathway, and the
    * council on a DA. With the titles of the checks to fix and to confirm, each option's own list.
    */
   checks: { counts: CheckCounts; pathway: Pathway; council: string | null; fix: string[]; confirm: string[] }
 }
 
-/** What Design › Checks knows besides the plan: the planning maps' facts, and whether the ground is the state's elevation data. */
+/** What Approvals › Checks knows besides the plan: the planning maps' facts, and whether the ground is the state's elevation data. */
 export interface CheckContext {
   planning?: PlanningFacts | null
   dem?: boolean

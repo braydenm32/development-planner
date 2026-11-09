@@ -15,7 +15,7 @@ import { useFlow } from '../flow/store'
 import { COSTS_ASIDE_W, COSTS_W, INSPECTOR_W, PANEL_W, WIDE_TABS, WIDE_W } from './panelWidth'
 import { CostsStrip } from '../costs/CostsTabs'
 import { useCosts } from '../costs/store'
-import { useWideForAside } from '../costs/useEstimate'
+import { useEstimate, useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
 import { shortcutText, typingIn } from '../nav/keys'
@@ -46,6 +46,8 @@ import { useChecks } from '../checks/useChecks'
 import { SummaryStrip } from './SummaryStrip'
 import { floorDrawn } from './drawn'
 import { useKeyNumbers } from './useKeyNumbers'
+import { checksHeadline, costHeadline } from './headline'
+import { setQuestionFacts } from '../flow/questions'
 import { useRouteSync } from './useRouteSync'
 import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
@@ -89,7 +91,6 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const phone = usePhone()
   const [palette, setPalette] = useState(false)
   const [menu, setMenu] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null })
-  const [overview, setOverview] = useState(false)
   const [toast, setToast] = useState<{ text: string; n: number } | null>(null)
   const [panelHidden, setPanelHidden] = useState(false)
   const opener = useRef<HTMLElement | null>(null)
@@ -104,6 +105,13 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const [presentingAt, setPresentingAt] = useState<string | null>(null)
   const presenting = phone && canvasKind === '3d' && presentingAt === where
   const setPresenting = (on: boolean) => setPresentingAt(on ? where : null)
+
+  // The Overview belongs to the area and tab it was opened in: going elsewhere (the phone's bottom
+  // bar stays in reach under it) puts it away.
+  const placeKey = route.kind === 'app' ? `${route.area}/${route.tab}` : route.kind
+  const [overviewAt, setOverviewAt] = useState<string | null>(null)
+  const overview = overviewAt === placeKey
+  const setOverview = (open: boolean) => setOverviewAt(open ? placeKey : null)
 
   useRouteSync()
   useNativeFeel(phone)
@@ -131,7 +139,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
 
   const run = (a: ActionId) => {
     // The 3D camera: presets, north up and (on a phone) reset move it smoothly instead of starting it again.
-    const preset = a === 'reset-camera' ? (phone ? 'street' : null) : a in PRESET_OF ? PRESET_OF[a as keyof typeof PRESET_OF] : null
+    const preset = a === 'reset-camera' ? 'house' : a in PRESET_OF ? PRESET_OF[a as keyof typeof PRESET_OF] : null
     if (preset || (a === 'north-up' && canvasKind === '3d')) {
       if (canvasKind === '3d') useCamera.getState().go(preset ?? 'north')
       else {
@@ -558,7 +566,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
             <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
           </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
-          {canvasKind === '3d' && loaded && <PresetBar phone={phone} presenting={presenting} setPresenting={setPresenting} />}
+          {canvasKind === '3d' && loaded && (
+            <PresetBar
+              phone={phone}
+              presenting={presenting}
+              setPresenting={setPresenting}
+              show={{ view: loaded.view, set: patch => loaded.changeView({ ...loaded.view, ...patch }), levels: sortedLevels(loaded.plan) }}
+            />
+          )}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>
@@ -645,18 +660,25 @@ function NumbersHost({
   const level = usePlan(s => s.activeLevel)
   const selection = usePlan(s => s.selection)
   const drawn = floorDrawn(d.plan)
+  // The two answers people open the app for: the checks' verdict and the estimate (C02).
+  const verdict = useMemo(() => checksHeadline(checks.pathway, checks.results), [checks.pathway, checks.results])
+  // The plan's question list asks for the facts the checks can't work out (src/flow/questions.ts).
+  const facts = drawn ? checks.counts.unknown : 0
+  useEffect(() => setQuestionFacts(facts), [facts])
+  const estimate = useEstimate(d)
+  const cost = useMemo(() => costHeadline(estimate), [estimate])
   const shown: Partial<Record<NumberId, string>> = {}
   if (showPanel) for (const id of tabShows ?? []) shown[id] = 'in the panel'
   // The level chip on the plan shows the ground floor's RL while you draw on it.
   // (Site's plan has no level chip: it's the block, before the house.)
-  if (!shown.ffl && canvasKind === 'plan' && route.area !== 'site' && sortedLevels(d.plan)[0]?.id === level) shown.ffl = 'on plan'
-  if (canvasKind === 'plan' && selection?.type === 'roof' && numbers.roof?.roof.id === selection.id) shown['roof-height'] = 'selected'
+  if (!shown.ffl && canvasKind === 'plan' && route.area !== 'site' && sortedLevels(d.plan)[0]?.id === level) shown.ffl = 'on the plan, by the level'
+  if (canvasKind === 'plan' && selection?.type === 'roof' && numbers.roof?.roof.id === selection.id) shown['roof-height'] = 'in the roof’s card'
   // Costs has a line of its own: the estimate, per m² and quotes, on a phone too.
   if (route.area === 'costs')
     return (
       <>
         <CostsStrip d={d} route={route} shown={shown} onOverview={() => setOverview(!overview)} overviewOpen={overview} />
-        {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
+        {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} verdict={drawn ? verdict : undefined} cost={cost} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
       </>
     )
   return (
@@ -671,6 +693,8 @@ function NumbersHost({
             onOpen={() => setOverview(true)}
             onHeight={onPeekHeight}
             checks={siteChecks}
+            verdict={drawn ? verdict : undefined}
+            cost={drawn ? cost : undefined}
           />
         )
       ) : (
@@ -680,13 +704,17 @@ function NumbersHost({
           numbers={drawn ? numbers : null}
           emptyText="Key numbers show here once a floor is drawn."
           checks={drawn ? { pathway: checks.pathway, council: checks.council, counts: checks.counts } : undefined}
+          verdict={drawn ? verdict : undefined}
+          cost={drawn ? cost : undefined}
+          variant={route.area === 'share' ? 'share' : undefined}
+          level={level}
           shown={shown}
           onBalance={() => run('balance')}
           onOverview={() => setOverview(!overview)}
           overviewOpen={overview}
         />
       )}
-      {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
+      {overview && <OverviewSheet numbers={numbers} stats={d.terrain.stats} verdict={drawn ? verdict : undefined} cost={drawn ? cost : undefined} onBalance={() => run('balance')} onClose={() => setOverview(false)} />}
     </>
   )
 }

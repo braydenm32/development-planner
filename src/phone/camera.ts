@@ -1,5 +1,5 @@
-// The 3D view's camera presets as plain maths: Street view, From above (north up), Rear,
-// and turning north up, plus the smooth move between them and remembering the camera for
+// The 3D view's camera presets as plain maths: Street view (at eye height), From above (north
+// up), Rear, the opening view framed on the house, and turning north up, plus the smooth move between them and remembering the camera for
 // each project. Scene units are metres: x = east, y = up, z = south (as SiteView draws).
 
 import { ease } from './gestures'
@@ -7,7 +7,8 @@ import { ease } from './gestures'
 export type Vec3 = [number, number, number]
 type Vec2 = [number, number]
 
-export type Preset = 'street' | 'above' | 'rear'
+/** `house` is where the 3D view opens: framed on the house, not the block. It has no button. */
+export type Preset = 'street' | 'above' | 'rear' | 'house'
 export type CameraCommand = Preset | 'north'
 
 export interface Pose {
@@ -24,18 +25,27 @@ export interface Frame {
   blockRadius: number
   /** Compass bearing (degrees) from the house towards the street. */
   street: number
+  /** The ground's height at a point, in the view's units (stretched like the terrain); null off the survey. */
+  ground?: (x: number, z: number) => number | null
+  /** How much the view stretches heights, so eye height is stretched the same. */
+  exaggeration?: number
+  /** How far the block's boundary is from the target towards the street, in metres: Street view's ground level is read there at the furthest. */
+  streetEdge?: number
 }
 
-export const PRESETS: { id: Preset; label: string; long: string }[] = [
+export const PRESETS: { id: Exclude<Preset, 'house'>; label: string; long: string }[] = [
   { id: 'street', label: 'Street view', long: 'Street view' },
   { id: 'above', label: 'From above', long: 'From above, north up' },
   { id: 'rear', label: 'Rear', long: 'From the rear' },
 ]
 
-/** How high Street view looks down from, above the horizon. */
-export const VIEW_ELEVATION = 24
 /** The rear is most often the high side, so it looks down from higher, over the bank. */
 export const REAR_ELEVATION = 34
+/** Street view stands a person on the ground (C18): eyes this many metres above it. */
+export const EYE_HEIGHT = 1.6
+/** The opening view: a little higher than Street view, turned off square so two sides of the house show. */
+export const HOUSE_ELEVATION = 28
+export const HOUSE_TURN = 35
 
 const RAD = Math.PI / 180
 
@@ -59,16 +69,47 @@ export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: num
     const d = fitDistance(f.blockRadius * 1.02, fovDeg, aspect)
     return { position: [t[0], t[1] + d, t[2] + d * 1e-3], target: [...t] }
   }
-  const bearing = preset === 'street' ? f.street : f.street + 180
+  if (preset === 'street') return streetPose(f, fovDeg, aspect)
+  if (preset === 'house') {
+    // The house filling the view, with a little of the ground round it: the block is a tap away (From above).
+    const d = fitDistance(f.radius * 1.25, fovDeg, aspect)
+    const dir = towards(f.street + HOUSE_TURN)
+    const e = HOUSE_ELEVATION * RAD
+    return { position: [t[0] + dir[0] * d * Math.cos(e), t[1] + d * Math.sin(e), t[2] + dir[2] * d * Math.cos(e)], target: [...t] }
+  }
+  const bearing = f.street + 180
   // The house, with enough of the block around it to read the slope.
   const r = Math.max(f.radius * 1.4, f.blockRadius * 0.45)
   const d = fitDistance(r, fovDeg, aspect)
   const dir = towards(bearing)
-  const e = (preset === 'street' ? VIEW_ELEVATION : REAR_ELEVATION) * RAD
+  const e = REAR_ELEVATION * RAD
   return {
     position: [t[0] + dir[0] * d * Math.cos(e), t[1] + d * Math.sin(e), t[2] + dir[2] * d * Math.cos(e)],
     target: [...t],
   }
+}
+
+/**
+ * Street view: standing on the ground on the street side, eyes at EYE_HEIGHT, looking at the
+ * house as someone walking past would. Without the ground (no survey under it), it stands at the
+ * floor's level. It never looks up past level: the 3D view can't orbit below its target.
+ */
+function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
+  const t = f.target
+  const exag = f.exaggeration ?? 1
+  // Back far enough to take the whole house in, as from across the road. Standing out past the
+  // block's edge, the eyes are at the height of the ground at that edge (the street's level):
+  // the survey's ground stops there.
+  const d = fitDistance(f.radius * 1.2, fovDeg, aspect)
+  const dir = towards(f.street)
+  const x = t[0] + dir[0] * d
+  const z = t[2] + dir[2] * d
+  const at = f.streetEdge !== undefined ? Math.min(d, f.streetEdge) : d
+  const g = f.ground?.(t[0] + dir[0] * at, t[2] + dir[2] * at)
+  // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
+  const ground = g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
+  const eye = ground + EYE_HEIGHT * exag
+  return { position: [x, eye, z], target: [t[0], Math.min(t[1], eye - d * 0.02), t[2]] }
 }
 
 /** Spherical parts of an offset from the target: distance, angle from straight up, and azimuth (0 = looking north). */

@@ -2,7 +2,7 @@
 // development application. A cover with the checklist of what a DA for a new house usually needs,
 // then the drawings the plan set makes (src/share/plans.ts) in DA order, the cut and fill plan and
 // the stormwater concept, and the table of planning controls: every control checked, grouped as
-// Design › Checks groups them, with whether it complies, ready to copy into the SEE. Each sheet
+// Approvals › Checks groups them, with whether it complies, ready to copy into the SEE. Each sheet
 // carries the pack's title block (./titleBlock.ts). It's a concept pack, never ready to lodge.
 //
 // The pack is a file the owner downloads; it may carry the site's address from the map placement,
@@ -28,7 +28,7 @@ export interface DaPackInput extends PlanSetInput {
   preparedBy?: string | null
   /** What the NSW planning maps say about the lot, for the hazard rows; null when not read. */
   planning: PlanningFacts | null
-  /** The council whose rules are on (Design › Checks), for its checklist and the DA checks. */
+  /** The council whose rules are on (Approvals › Checks), for its checklist and the DA checks. */
   council: Council | null
   /** The checks for a DA: the land's flags, then the council's rules (none without a council). */
   checks: CheckResult[]
@@ -190,7 +190,7 @@ function checkCells(r: CheckResult): Cell[] {
 export type ControlLine = { kind: 'group'; title: string } | { kind: 'control'; r: CheckResult } | { kind: 'undrawn'; titles: string[] }
 
 /**
- * The table of planning controls: every control, grouped and ordered as Design › Checks lists them,
+ * The table of planning controls: every control, grouped and ordered as Approvals › Checks lists them,
  * so the compliant ones a planner copies into the SEE (height, setbacks, coverage) are there too.
  * The controls waiting for a part of the design fold into one line per group.
  */
@@ -327,7 +327,7 @@ function coverSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, rows: Checkl
     const council = input.council
     const whose = council
       ? `Checklist for ${council.lga}: its DA lodgement checklist and the NSW application requirements.`
-      : 'No council is switched on under Design › Checks, so this is the NSW application requirements and what the councils in the app commonly ask for.'
+      : 'No council is switched on under Approvals › Checks, so this is the NSW application requirements and what the councils in the app commonly ask for.'
     pg.text(x, y, whose, { size: 2.6, color: GREY })
     y -= 4
     const hazards = input.planning
@@ -386,13 +386,13 @@ function checksSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, listed: Con
   let y = area.y + area.h - 2
   if (page === 0) {
     pg.text(x, y - 7, 'Planning controls', { size: 6, font: 'bold' })
-    const against = input.council ? `Checked against ${input.council.rules} for a development application.` : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Design › Checks.'
+    const against = input.council ? `Checked against ${input.council.rules} for a development application.` : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Approvals › Checks.'
     pg.text(x, y - 13, against, { size: 2.8 })
     const tally = countChecks(input.checks)
-    // Design › Checks' words, zeros too, so "0 to fix" reads as checked rather than left out.
+    // Approvals › Checks' words, zeros too, so "0 to fix" reads as checked rather than left out.
     const counts = countsWords(tally, true).join(' · ')
     pg.text(x, y - 18.5, counts, { size: 2.8, font: 'bold', color: tally.fail ? RED : INK })
-    pg.text(x, y - 23, 'Every control the app checks, grouped as in Design › Checks, with whether the design complies: for the table in the Statement of Environmental Effects.', { size: 2.5, color: GREY })
+    pg.text(x, y - 23, 'Every control the app checks, grouped as in Approvals › Checks, with whether the design complies: for the table in the Statement of Environmental Effects.', { size: 2.5, color: GREY })
     y -= CHECKS_HEAD
   } else y -= 4
   let end = y

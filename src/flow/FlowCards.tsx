@@ -1,23 +1,19 @@
-// The two small cards on the plan: how a new floor is built (asked once per level), and a
-// retaining wall where a slab room cuts deep or fills high. Never the browser's confirm().
+// What two of the plan's questions ask, opened from the question list (./QuestionTray.tsx): how a
+// floor is built, and a retaining wall where a slab room cuts deep or fills high. They used to
+// pop up over the plan by themselves; now they open only when you choose to answer (C19).
+// Never the browser's confirm().
 
 import { useMemo, useState } from 'react'
 import { FLOOR_TYPES, FRAMED_FLOOR, floorTypeChoices, isLowestLevel } from '../plan/floorTypes'
 import { levelById } from '../plan/model'
 import { HOUSE_WALL_NOTE, OFFER_PLACEMENT, offeredHeight, offeredWall, type OfferPlacement } from '../plan/retainOffer'
 import { usePlan } from '../plan/store'
-import { acceptOffer, answerFloorType, dismissOffer, putOffFloorType, quietOffer, setOfferGap, setOfferPlacement, showMoreFloorTypes, useFlow, type OfferState } from './store'
+import { acceptOffer, answerFloorType, dismissOffer, putOffFloorType, quietOffer, setOfferGap, setOfferPlacement, useFlow, type OfferState } from './store'
 
-export function FlowCards() {
-  const ask = useFlow(s => s.ask)
-  const offer = useFlow(s => s.offer)
-  if (ask) return <FloorTypeCard level={ask.space.level} more={ask.more} />
-  if (offer) return <OfferCard o={offer} />
-  return null
-}
-
-function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
+/** How a level's floor is built: the common types, more on request, or decide later. */
+export function FloorTypeCard({ level, onDone }: { level: string; onDone?: () => void }) {
   const name = usePlan(s => (s.plan ? levelById(s.plan, level)?.name : undefined)) ?? 'this floor'
+  const [more, setMore] = useState(false)
   const hidden = FLOOR_TYPES.length - floorTypeChoices(false).length
   // A split level near the ground can also be framed over it, as levels above are.
   const split = usePlan(s => !!s.plan && !isLowestLevel(s.plan, level))
@@ -29,13 +25,21 @@ function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
       </header>
       <div className="flow-choices">
         {floorTypeChoices(more).map(t => (
-          <button key={t.id} type="button" className="flow-choice" onClick={() => answerFloorType(t.id)}>
+          <button
+            key={t.id}
+            type="button"
+            className="flow-choice"
+            onClick={() => {
+              answerFloorType(t.id, level)
+              onDone?.()
+            }}
+          >
             <b>{t.label}</b>
             <span>{t.earthworks}</span>
           </button>
         ))}
         {split && (
-          <button type="button" className="flow-choice" onClick={() => answerFloorType(FRAMED_FLOOR.id)}>
+          <button type="button" className="flow-choice" onClick={() => (answerFloorType(FRAMED_FLOOR.id, level), onDone?.())}>
             <b>{FRAMED_FLOOR.label}</b>
             <span>{FRAMED_FLOOR.earthworks}</span>
           </button>
@@ -43,11 +47,18 @@ function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
       </div>
       <footer>
         {!more && hidden > 0 && (
-          <button type="button" className="flow-link" onClick={showMoreFloorTypes}>
+          <button type="button" className="flow-link" onClick={() => setMore(true)}>
             More floor types
           </button>
         )}
-        <button type="button" className="flow-quiet" onClick={putOffFloorType}>
+        <button
+          type="button"
+          className="flow-quiet"
+          onClick={() => {
+            putOffFloorType(level)
+            onDone?.()
+          }}
+        >
           Decide later
         </button>
       </footer>
@@ -55,7 +66,8 @@ function FloorTypeCard({ level, more }: { level: string; more: boolean }) {
   )
 }
 
-function OfferCard({ o }: { o: OfferState }) {
+/** The retaining wall offer: where it goes, and add it, not now, or don't ask for this room. */
+export function OfferCard({ o }: { o: OfferState }) {
   const plan = usePlan(s => s.plan)
   const ground = useFlow(s => s.ground)
   const [gapText, setGapText] = useState<string | null>(null)

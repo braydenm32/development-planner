@@ -1,4 +1,4 @@
-// Design › Checks' layout and what it points at, on the made-up sample block with the made-up garage
+// Approvals › Checks' layout and what it points at, on the made-up sample block with the made-up garage
 // floor: the three words, the topic groups (worst first, passes folded), the verdict card, the pins'
 // numbers and places on the plan, where each row is fixed, why CDC and DA differ, and the spacing
 // between retaining walls the Housing Code asks for.

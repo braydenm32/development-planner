@@ -43,6 +43,13 @@ export const pageRoute = (page: PageId): PageRoute => ({ kind: 'page', page })
 
 const VIEWS: CanvasView[] = ['plan', '3d']
 
+/** Tabs that have moved, by their old `area/tab`, to where they are now (old links, saved places). */
+export const MOVED: Record<string, [AreaId, string]> = {
+  'design/checks': ['approvals', 'checks'],
+  'design/basix': ['approvals', 'basix'],
+  'earthworks/stormwater': ['approvals', 'stormwater'],
+}
+
 /** The hash for a route. */
 export function formatHash(r: Route): string {
   if (r.kind === 'page') return `#/${r.page}`
@@ -62,6 +69,9 @@ export function parseHash(hash: string): Route | null {
   const page = PAGE_IDS.find(p => p === parts[0])
   if (page && parts.length === 1) return { kind: 'page', page }
   if (parts[0] === 'projects') return parts[1] === 'archived' ? ARCHIVED_PROJECTS : parts[1] === 'new' ? NEW_PROJECT : PROJECTS
+  // Tabs that moved keep their old links working: Checks, BASIX and Stormwater went to Approvals.
+  const moved = MOVED[`${parts[0]}/${parts[1]}`]
+  if (moved) parts.splice(0, 2, ...moved)
   const area = areaById(parts[0] ?? '')
   if (!area) return null
   const tab = parts[1] && tabIds(area).includes(parts[1]) ? parts[1] : area.defaultTab

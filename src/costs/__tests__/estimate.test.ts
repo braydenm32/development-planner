@@ -117,7 +117,7 @@ describe('the estimate, built by a builder', () => {
     expect(line(e, 'da-fee')).toMatchObject({ group: 'gov', computed: false, rate: null, quote: null })
     expect(line(e, 'da-fee').amount).toBeCloseTo(daFee(WORKS * (1 + MARGIN)), 6)
     expect(line(e, 'lsl').amount).toBeCloseTo(longServiceLevy(WORKS * (1 + MARGIN)), 6)
-    expect(line(e, 'contribution')).toMatchObject({ amount: 0, from: 'Switch on your council in Design › Checks, or ask the council and add it' })
+    expect(line(e, 'contribution')).toMatchObject({ amount: 0, from: 'Switch on your council in Approvals › Checks, or ask the council and add it' })
     const subtotal = WORKS + R('fees') + GOV(WORKS * (1 + MARGIN))
     expect(e.subtotal).toBeCloseTo(subtotal, 6)
     expect(line(e, 'margin')).toMatchObject({ amount: WORKS * MARGIN, computed: true, group: 'summary', from: '20% of the building work' })

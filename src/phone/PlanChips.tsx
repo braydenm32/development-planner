@@ -1,31 +1,13 @@
 // The plan's corner pieces: the level chip on one short line that opens the list of floors (a
 // phone), and the ground key folded into a "Key" chip (everywhere).
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Icon } from '../nav/icons'
 import { sortedLevels, type Plan } from '../plan/model'
 import { levelFloorText } from '../plan/floorTypes'
 import { levelFloorRL } from '../plan/groundOverlay'
 import { usePlan } from '../plan/store'
-
-/** Close a small popover on a tap outside it, or on Escape. */
-function useDismiss(open: boolean, close: () => void) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) close()
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
-    document.addEventListener('pointerdown', onDown, true)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onDown, true)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open, close])
-  return ref
-}
+import { useDismiss } from './useDismiss'
 
 /** "Ground floor · RL 12.34", and a tap opens the other floors. */
 export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string; rl: number }) {
@@ -45,7 +27,9 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
       >
         <span className="level-chip-text">
           <b>{name}</b>
-          <span className="rl">&nbsp;· RL {rl.toFixed(2)}</span>
+          <span className="rl">
+            <span className="dot">&nbsp;· </span>RL {rl.toFixed(2)}
+          </span>
         </span>
         {many && <Icon name={open ? 'chevU' : 'chevD'} size={15} />}
       </button>

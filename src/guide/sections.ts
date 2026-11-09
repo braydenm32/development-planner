@@ -87,7 +87,7 @@ export const SECTIONS: Section[] = [
     title: 'Checks',
     picture: 'checks',
     steps: [
-      'Design › Checks tests the design against the planning rules as you draw: the NSW Housing Code for a CDC, or your council’s rules for a DA.',
+      'Approvals › Checks tests the design against the planning rules as you draw: the NSW Housing Code for a CDC, or your council’s rules for a DA.',
       'A rule that needs a fact the survey doesn’t hold, like the street side, says so and asks for it.',
       'It’s a guide, not legal advice. Confirm with your council or a certifier before relying on it.',
     ],

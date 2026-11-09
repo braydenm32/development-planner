@@ -1,4 +1,5 @@
-// Every key number in one place, grouped Site, House, Earthworks and Roof. Each number is
+// Every key number in one place: the checks' verdict and the estimate at the top, then Site,
+// House (every level's floor), Earthworks and the roofs (each one). Each number is
 // the one its home panel shows, from the same helper and in the same format (CALM 8).
 
 import { useEffect, useRef, type ReactNode } from 'react'
@@ -12,8 +13,10 @@ import { ENGINEER_TEXT } from '../checks/engineer'
 import { sideLabel } from '../plan/keyNumbers'
 import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
+import { shortMoney } from '../costs/format'
 import { m2, netText } from './format'
-import type { KeyNumbers } from './useKeyNumbers'
+import { balanceWords, type ChecksHeadline, type CostHeadline } from './headline'
+import type { KeyNumbers, RoofNumbers } from './useKeyNumbers'
 import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
 
@@ -26,6 +29,10 @@ interface Props {
   onClose: () => void
   /** A shared view (src/share-links): every number, with nothing to open or change. */
   readOnly?: boolean
+  /** The DA or CDC checks' verdict, in Approvals › Checks' words. */
+  verdict?: ChecksHeadline
+  /** The estimate's total; left out where there's no estimate. */
+  cost?: CostHeadline
 }
 
 function Group({ icon, title, to, action, children }: { icon: IconName; title: string; to?: AppRoute; action?: ReactNode; children: ReactNode }) {
@@ -46,7 +53,7 @@ function Group({ icon, title, to, action, children }: { icon: IconName; title: s
   )
 }
 
-export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false }: Props) {
+export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false, verdict, cost }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
   // Focus the sheet so Escape and Tab work in it, and give focus back when it closes.
   useEffect(() => {
@@ -80,6 +87,28 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
             <Icon name="x" size={18} />
           </button>
         </header>
+        {(verdict || cost) && (
+          <div className="ov-verdicts">
+            {verdict && (
+              <Verdict
+                className={`w-${verdict.word}`}
+                label={verdict.name === 'CDC' ? 'Complying development (CDC) checks' : 'Development application (DA) checks'}
+                term={verdict.term}
+                value={verdict.head}
+                note={verdict.rest}
+                to={readOnly ? undefined : () => navigate({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan' })}
+              />
+            )}
+            {cost && (
+              <Verdict
+                label="Estimate"
+                value={cost.ready ? shortMoney(cost.total) : 'No total yet'}
+                note={cost.ready ? `likely ${shortMoney(cost.low)} to ${shortMoney(cost.high)}${cost.missing.length ? ` · incomplete: no ${cost.missing.join(', no ')}` : ''}` : 'Draw the house’s outside walls to start it.'}
+                to={readOnly ? undefined : () => navigate({ kind: 'app', area: 'costs', tab: 'estimate', view: 'plan' })}
+              />
+            )}
+          </div>
+        )}
         <div className="ov-cols">
           <div>
             <Group icon="site" title="Site" to={at('site', 'block', '3d')}>
@@ -93,7 +122,11 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                   ))}
                   {n.levels.length > 1 && n.floorArea !== null && <FragmentRow label="Floor area, all levels" value={m2(n.floorArea)} strong />}
                   {n.levels.some(l => l.rooms > 0) && <FragmentRow label="Rooms total" value={m2(n.levels.reduce((t, l) => t + l.roomsTotal, 0))} />}
-                  <FragmentRow label="Floor level (FFL)" value={`RL ${n.ffl.toFixed(2)}`} />
+                  {n.floors.length > 1 ? (
+                    n.floors.map(f => <FragmentRow key={f.id} label={`Floor level (FFL), ${f.name}`} value={`RL ${f.rl.toFixed(2)}`} />)
+                  ) : (
+                    <FragmentRow label="Floor level (FFL)" value={`RL ${n.ffl.toFixed(2)}`} />
+                  )}
                   {n.placement && <FragmentRow label="Ground under the house" value={`RL ${n.placement.minRL.toFixed(2)} to ${n.placement.maxRL.toFixed(2)}`} />}
                 </dl>
                 {n.placement && (
@@ -109,7 +142,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                 {n.batters && (
                   <div className="ov-problem">
                     <span className="chip warn">
-                      <Icon name="warn" size={14} /> Batters cross {n.batters}
+                      <Icon name="warn" size={14} /> Earth slopes (batters) cross {n.batters}
                     </span>
                     {!readOnly && (
                       <button className="primary" onClick={() => navigate(at('earthworks', 'retaining-walls')!)}>
@@ -139,8 +172,8 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                           <Icon name="warn" size={14} /> Out of balance · {netText(n.earth.net)}
                         </span>
                         {!readOnly && (
-                          <button className="primary" onClick={onBalance}>
-                            Balance
+                          <button className="primary" onClick={onBalance} title="Moves the floor to where cut and fill are about equal, so less earth is trucked away or brought in">
+                            {balanceWords(n.ffl, n.earth.balancedRL)}
                           </button>
                         )}
                       </div>
@@ -170,7 +203,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
             {n && (
               <Group
                 icon="roof"
-                title="Roof"
+                title={n.roofs.length > 1 ? 'Roofs' : 'Roof'}
                 to={at('design', 'roofs')}
                 action={
                   n.roof && !readOnly ? (
@@ -184,14 +217,15 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                 }
               >
                 {n.roof ? (
-                  <dl className="stats">
-                    <FragmentRow
-                      label={n.roof.roof.type === 'flat' ? 'Flat · area' : `${ROOF_NAMES[n.roof.roof.type]} · pitch · area`}
-                      value={n.roof.roof.type === 'flat' ? `${n.roof.area.toFixed(1)} m²` : `${n.roof.roof.pitch.toFixed(1)}° · ${n.roof.area.toFixed(1)} m²`}
-                    />
-                    <FragmentRow label="Top of roof" value={`RL ${n.roof.top.toFixed(2)}`} />
-                    <FragmentRow label="Height above ground" value={`${n.roof.height.toFixed(2)} m`} strong />
-                  </dl>
+                  <>
+                    <dl className="stats">
+                      <FragmentRow label="Building height (highest roof above the ground)" value={`${n.roof.height.toFixed(2)} m`} strong />
+                      {n.roofs.length > 1 && <FragmentRow label={`Roof area, all ${n.roofs.length} roofs`} value={`${n.roofArea.toFixed(1)} m²`} strong />}
+                    </dl>
+                    {n.roofs.map((r, i) => (
+                      <RoofRows key={r.roof.id} r={r} n={n.roofs.length > 1 ? i + 1 : 0} />
+                    ))}
+                  </>
                 ) : (
                   <p className="muted small">No roof yet.</p>
                 )}
@@ -205,6 +239,44 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+/** The checks' verdict or the estimate, big, at the top: what people open the Overview to find. */
+function Verdict({ label, value, note, term, className = '', to }: { label: string; value: string; note?: string; term?: string; className?: string; to?: () => void }) {
+  const body = (
+    <>
+      <span className="ov-v-label" data-term={term}>
+        {label}
+      </span>
+      <b>{value}</b>
+      {note && <span className="ov-v-note">{note}</span>}
+    </>
+  )
+  return to ? (
+    <button className={`ov-verdict ${className}`} onClick={to}>
+      {body}
+    </button>
+  ) : (
+    <div className={`ov-verdict ${className}`}>{body}</div>
+  )
+}
+
+/** One roof: its shape, pitch and area, its top and its height above the ground. */
+function RoofRows({ r, n }: { r: RoofNumbers; n: number }) {
+  const shape = ROOF_NAMES[r.roof.type]
+  return (
+    <>
+      {n > 0 && <h4>Roof {n}</h4>}
+      <dl className="stats">
+        <FragmentRow
+          label={r.roof.type === 'flat' ? 'Flat · area' : `${shape} · pitch · area`}
+          value={r.roof.type === 'flat' ? `${r.area.toFixed(1)} m²` : `${r.roof.pitch.toFixed(1)}° · ${r.area.toFixed(1)} m²`}
+        />
+        <FragmentRow label="Top of roof" value={`RL ${r.top.toFixed(2)}`} />
+        {n > 0 && <FragmentRow label="Above the ground" value={`${r.height.toFixed(2)} m`} />}
+      </dl>
     </>
   )
 }

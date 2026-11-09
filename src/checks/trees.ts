@@ -1,5 +1,5 @@
 // Tree protection zones (AS 4970-2009, which Wollongong DCP E17 cites) and how much of each
-// one the design takes. This is the one place that's worked out: Design › Checks reads it, and
+// one the design takes. This is the one place that's worked out: Approvals › Checks reads it, and
 // so do Site › Features' "To check" warnings (src/site/warnings.ts), so the two always show the
 // same share. The share counts the house, hard areas, retaining walls and any change to the
 // ground together, each overlap counted once.

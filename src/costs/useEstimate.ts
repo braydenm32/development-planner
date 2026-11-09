@@ -18,7 +18,7 @@ export function useQuantities(d: Loaded): DesignQuantities {
   return useMemo(() => designQuantities(d.plan, earth, walls, implied), [d.plan, earth, walls, implied])
 }
 
-/** The council and pathway the council and government fees go by (Design › Checks). */
+/** The council and pathway the council and government fees go by (Approvals › Checks). */
 export function useFeeContext(d: Loaded): FeeContext {
   const checks = d.plan.checks
   return useMemo(() => feeContextOf({ checks }), [checks])

@@ -1,4 +1,4 @@
-// Design › BASIX: a checklist that gets the person ready for the official BASIX tool. It reads what
+// Approvals › BASIX: a checklist that gets the person ready for the official BASIX tool. It reads what
 // it can off the plan (orientation, glazing, floor and roof areas, the tank) and asks for the rest
 // (insulation, hot water, heating, cooling, lighting, pool). No score, no stars, no certificate.
 
@@ -84,8 +84,8 @@ function Basix({ d }: { d: Loaded }) {
       </ul>
       <p className="muted small">
         Windows count where they sit on an outside wall; name a room living, kitchen or dining and its orientation shows. Roof and tank come from{' '}
-        <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'stormwater', view: 'plan' })}>
-          Earthworks › Stormwater
+        <button className="link" onClick={() => navigate({ kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan' })}>
+          Approvals › Stormwater
         </button>
         .
       </p>

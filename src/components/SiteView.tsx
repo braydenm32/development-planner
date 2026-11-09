@@ -116,6 +116,13 @@ const FILL = new THREE.Color().setRGB(...FILL_RGB, THREE.SRGBColorSpace)
 function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFill, onPin }: Props & { refZ: number; onPin?: (p: Pin) => void }) {
   const { grid, stats } = terrain
   const exag = view.exaggeration
+  // The levels the Show menu leaves on (null: all of them), kept stable so the house isn't rebuilt each frame.
+  const hidden = view.hiddenLevels.join(',')
+  const levelsShown = useMemo(() => {
+    if (!plan || !hidden) return null
+    const off = new Set(hidden.split(','))
+    return new Set(plan.levels.filter(l => !off.has(l.id)).map(l => l.id))
+  }, [plan, hidden])
 
   const { surface, sides } = useMemo(() => {
     const p = solid.positions
@@ -258,9 +265,9 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
           </>
         )}
         <BoundaryLine survey={survey} ground={ground} refZ={refZ} />
-        <SiteFeatures3D boundary={survey.boundary} ground={ground} refZ={refZ} />
+        <SiteFeatures3D boundary={survey.boundary} ground={ground} refZ={refZ} trees={view.showTrees} />
         {plan && view.showHouse && (
-          <House3D plan={plan} origin={survey.origin} refZ={refZ} showLevels={null} showRoof={view.showRoof} showFurniture={view.showFurniture} ground={ground} />
+          <House3D plan={plan} origin={survey.origin} refZ={refZ} showLevels={levelsShown} showRoof={view.showRoof} showFurniture={view.showFurniture} ground={ground} />
         )}
       </group>
       {/* Outside the stretched group, so the numbers keep their shape; they place themselves at the stretched height. */}
