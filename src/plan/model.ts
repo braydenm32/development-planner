@@ -107,6 +107,16 @@ export interface Retain {
   /** How far the level ground runs out from each face before it batters back (m). */
   highBench?: number
   lowBench?: number
+  /**
+   * The answer to "How high is the earth behind it?" (m), kept as typed so the panel shows it back
+   * and can say when the finished ground gives a different height. Missing until it's asked.
+   */
+  askedHeight?: number
+  /**
+   * Just drawn with the Retaining wall tool and not yet kept or answered: it goes again if it's
+   * left that way (another selection, tool or tab, or the project opened again).
+   */
+  draft?: boolean
 }
 
 /** Level ground beside a retaining wall when its width isn't set (m). */

@@ -10,7 +10,7 @@ import { SuggestionsNote } from '../../grading/GradingPanel'
 import { RetainingTotals, RetainingToolOptions } from '../../components/PlanSections'
 import { retainedText, useRetainingWalls } from '../../components/planNumbers'
 import { RetainingWallPanel } from '../../components/RetainingWallPanel'
-import { ENGINEER_HEIGHT } from '../../plan/keyNumbers'
+import { ENGINEER_TEXT, needsEngineer } from '../../checks/engineer'
 import { isRetaining } from '../../plan/model'
 import { usePlan } from '../../plan/store'
 import { pickTool, selectOnPlan, useLoaded, type Loaded } from '../useSite'
@@ -48,7 +48,7 @@ function Walls({ d }: { d: Loaded }) {
         <Draw />
       </>
     )
-  const tall = walls.filter(w => w.maxHeight > ENGINEER_HEIGHT).length
+  const tall = walls.filter(w => needsEngineer(w.maxHeight)).length
   return (
     <>
       <RetainingTotals walls={walls} />
@@ -56,7 +56,7 @@ function Walls({ d }: { d: Loaded }) {
       <SuggestionsNote plan={d.plan} survey={d.survey} earth={d.earth} />
       {tall > 0 && (
         <p className="notice small">
-          {tall === 1 ? 'One wall holds' : `${tall} walls hold`} back more than {ENGINEER_HEIGHT.toFixed(1)} m: an engineer needs to design {tall === 1 ? 'it' : 'them'}.
+          {tall === 1 ? 'One wall holds' : `${tall} walls hold`} back over {ENGINEER_TEXT}: {tall === 1 ? 'it needs' : 'they need'} a professional engineer’s certificate.
         </p>
       )}
       <ul className="pick-list">
@@ -66,7 +66,7 @@ function Walls({ d }: { d: Loaded }) {
               <span>
                 Wall {i + 1} <span className="muted">· {r.length.toFixed(1)} m</span>
               </span>
-              <span className={r.maxHeight > ENGINEER_HEIGHT ? 'warn-text' : 'muted'} title={`Holds back up to ${retainedText(r.maxHeight)}`}>
+              <span className={needsEngineer(r.maxHeight) ? 'warn-text' : 'muted'} title={`Holds back up to ${retainedText(r.maxHeight)}`}>
                 {r.maxHeight.toFixed(2)} m
               </span>
             </button>

@@ -214,7 +214,7 @@ export function useGradeBrush(a: GradeBrushArgs) {
             return [
               ...suggestions.map((s, n) => <path key={`l${n}`} className="grade-suggest-line" d={`M${s.path.map(p => scr(p).map(v => v.toFixed(1)).join(' ')).join('L')}`} />),
               ...suggestions.map((s, n) => (
-                <Suggested key={s.key} n={n + 1} s={s} at={at[n]} readOnly={viewOnly} onAdd={() => addSuggestion(s, o)} onDismiss={() => dismissWall(s, o)} />
+                <Suggested key={s.key} n={n + 1} s={s} at={at[n]} readOnly={viewOnly} onAdd={() => addSuggestion(s, survey, terrain.grid)} onDismiss={() => dismissWall(s, o)} />
               )),
             ]
           })()}

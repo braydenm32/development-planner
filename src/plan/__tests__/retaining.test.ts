@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { evaluateEarthworks, prepareEarthworks } from '../../lib/earthworks'
+import type { Vec2 } from '../../lib/geom'
 import { parseDxf } from '../../lib/dxf'
 import { analyzeLayers, buildSurvey, guessRoles } from '../../lib/survey'
 import { buildTerrain } from '../../lib/terrain'
@@ -9,20 +10,41 @@ import { earthworksOf, FLOOR_STRUCTURE, houseWalls, toSite, type Plan, type Wall
 import { addLevelAbove } from '../ops'
 import { benchRing, earthworksBarriers, earthworksPlatforms, housePadRL, retainingBenches } from '../platforms'
 import {
+  ENGINEER_HEIGHT,
   exposedHeight,
+  heightNote,
   highestOn,
   highSideBearing,
   houseGap,
+  insideHouse,
   levelsForHeight,
+  lowestOn,
+  needsEngineer,
   retainDefaults,
   RETAINING_FREEBOARD,
   retainingProfile,
+  retainingProfiles,
   retainingSection,
   retainingSolid,
   sideBearing,
+  sideChange,
+  type RetainingProfile,
 } from '../retaining'
-import { cancelNewRetaining, keepNewRetaining, newRetainingWall, placeRetainingWall, useRetaining } from '../retainingSession'
+import {
+  cancelNewRetaining,
+  keepNewRetaining,
+  leaveNewRetaining,
+  newRetainingWall,
+  placeRetainingWall,
+  setEarthSide,
+  SIDE_PICK_CLEAR,
+  sideOfWall,
+  useRetaining,
+  waitingForSide,
+} from '../retainingSession'
+import { sideLabel } from '../../components/retainingWords'
 import { usePlan } from '../store'
+import { earthFrom, earthInputs } from '../useEarthworks'
 import { garageFloor } from './fixtures'
 
 // A retaining wall 0.9 m north of the open area slab, across the back of the block.
@@ -164,15 +186,23 @@ describe('retaining walls told what to hold', () => {
     ])
   })
 
-  it('a height sets the levels: above the low side when it has one, otherwise cut below the high ground', () => {
+  it('a height sets the earth side only: above the open side’s level when it has one, otherwise above the open ground', () => {
     const { plan, survey, terrain } = setup(false)
     const prof = retainingProfile(backWall, plan, survey.origin, terrain.grid)
     const pad = housePadRL(plan)
-    expect(levelsForHeight({ high: 'left', lowLevel: 'pad' }, plan, prof, 1.2)).toEqual({ high: 'left', lowLevel: 'pad', highLevel: Math.round((pad + 1.2) * 1000) / 1000 })
-    expect(levelsForHeight({ high: 'left', lowLevel: 82 }, plan, prof, 1.5)).toMatchObject({ highLevel: 83.5 })
-    const cut = levelsForHeight({ high: 'left' }, plan, prof, 1.5)
-    expect(cut.lowLevel).toBeCloseTo(highestOn(prof, 'left') - 1.5, 3)
-    expect(levelsForHeight({ high: 'left', highLevel: 87 }, plan, prof, 1.5).lowLevel).toBe(85.5)
+    expect(levelsForHeight({ high: 'left', lowLevel: 'pad' }, plan, prof, 1.2)).toEqual({
+      high: 'left',
+      lowLevel: 'pad',
+      highLevel: Math.round((pad + 1.2) * 1000) / 1000,
+      askedHeight: 1.2,
+    })
+    expect(levelsForHeight({ high: 'left', lowLevel: 82 }, plan, prof, 1.5)).toMatchObject({ highLevel: 83.5, lowLevel: 82 })
+    const open = levelsForHeight({ high: 'left' }, plan, prof, 1.5)
+    expect(open.lowLevel).toBeUndefined()
+    expect(open.highLevel).toBeCloseTo(lowestOn(prof, 'right') + 1.5, 3)
+    // An earth side already given a level moves; the open side is never cut or filled by the answer.
+    expect(levelsForHeight({ high: 'left', highLevel: 87 }, plan, prof, 1.5).lowLevel).toBeUndefined()
+    expect(highestOn(prof, 'left')).toBeGreaterThan(lowestOn(prof, 'right'))
   })
 
   it('cuts the house side to the pad: the wall then holds back the natural ground less the pad', () => {
@@ -257,5 +287,254 @@ describe('retaining walls told what to hold', () => {
     const w: Wall = { ...backWall, retain: { high: 'left', lowLevel: 'pad', lowBench: 3.8, highLevel: 86.2, top: 86.4 } }
     const back = parsePlanFile(JSON.stringify({ ...garageFloor(), walls: [...garageFloor().walls, w] }))
     expect(back.walls.find(x => x.id === 'rw')?.retain).toEqual(w.retain)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The one height question, and what a new wall starts with. The made-up house sits on a plane that
+// rises north and east, so its south side is filled up to the pad and its north side cut down to it.
+
+type Base = ReturnType<typeof setup>
+
+/** The finished ground for a plan, as the app works it out. */
+const finishedFor = (plan: Plan, base: Base) => earthFrom(base.terrain.grid, base.survey.boundary, earthInputs(plan, base.survey))
+
+/** The plan with one retaining wall in it (in place of one with its id), and that wall measured on the finished ground. */
+function measured(base: Base, w: Wall) {
+  const plan: Plan = { ...base.plan, walls: [...base.plan.walls.filter(x => x.id !== w.id), w] }
+  const earth = finishedFor(plan, base)
+  return { plan, earth, prof: retainingProfile(w, plan, base.survey.origin, earth.result.grid) }
+}
+
+// South of the house's south wall, 2 m clear of it and running well past it, drawn west to east: the
+// house (on its filled pad) is on its left.
+const southWall: Wall = { id: 'rs', level: 'level_ground', a: [2.5, -2.1], b: [13, -2.1], thickness: 0.2, kind: 'retaining' }
+// North of the house on bare ground, along the contours (level along its length), drawn so uphill is on its left.
+const contourWall: Wall = { id: 'rn', level: 'level_ground', a: [0, 22], b: [10, 17], thickness: 0.2, kind: 'retaining' }
+
+/** The same block with nothing on it but natural ground. */
+const bare = (base: Base): Base => ({ ...base, plan: { ...base.plan, walls: [], rooms: [], areas: [], openings: [] } })
+
+describe('the height question', () => {
+  it('beside the filled house pad, holds the pad up and keeps the open side natural', () => {
+    const base = setup(false)
+    const r = retainDefaults(southWall, base.plan, base.survey.origin, base.terrain.grid)
+    expect(r).toMatchObject({ high: 'left', highLevel: 'pad' })
+    expect(r.lowLevel).toBeUndefined()
+    expect(r.highBench).toBeCloseTo(2.0, 2)
+    const before = measured(base, { ...southWall, retain: r })
+    // Holding up the pad: level with it behind the wall, natural ground in front.
+    const mid = before.prof.samples[Math.floor(before.prof.samples.length / 2)]
+    expect(mid.left).toBeCloseTo(housePadRL(base.plan), 2)
+    expect(before.prof.maxHeight).toBeGreaterThan(1.5)
+
+    // Asking for 1.5 m changes the earth side only: nothing in front is dug out.
+    const asked = levelsForHeight(r, before.plan, before.prof, 1.5)
+    expect(asked.lowLevel).toBeUndefined()
+    expect(asked.askedHeight).toBe(1.5)
+    const after = measured(base, { ...southWall, retain: asked })
+    expect(Math.abs(after.prof.maxHeight - 1.5)).toBeLessThan(0.1)
+    expect(Math.abs(after.earth.result.cut - before.earth.result.cut)).toBeLessThan(1)
+    const front = toSite([7.7, -3.5], base.plan.placement, base.survey.origin)
+    expect(after.earth.result.grid.sample(front[0], front[1])).toBeCloseTo(base.terrain.grid.sample(front[0], front[1]), 3)
+
+    // Asking for the pad's own height keeps following the floor.
+    expect(levelsForHeight(r, before.plan, before.prof, before.prof.maxHeight).highLevel).toBe('pad')
+  })
+
+  it('a smaller answer gives a smaller wall, every time', () => {
+    const base = setup(false)
+    let w: Wall = { ...southWall, retain: retainDefaults(southWall, base.plan, base.survey.origin, base.terrain.grid) }
+    const asked = [2.0, 1.0, 1.5, 1.2]
+    const heights: number[] = []
+    for (const h of asked) {
+      const now = measured(base, w)
+      w = { ...w, retain: levelsForHeight(w.retain!, now.plan, now.prof, h) }
+      heights.push(measured(base, w).prof.maxHeight)
+    }
+    expect(heights[1]).toBeLessThan(heights[0])
+    expect(heights[2]).toBeGreaterThan(heights[1])
+    expect(heights[3]).toBeLessThan(heights[2])
+    // Within a little of each answer: near the house its pad's batters have a say, and the panel says so.
+    heights.forEach((h, i) => expect(Math.abs(h - asked[i])).toBeLessThan(0.2))
+  })
+
+  it('asked for more than the ground beside the house allows, says the most it allows', () => {
+    const base = setup(false)
+    const r = retainDefaults(southWall, base.plan, base.survey.origin, base.terrain.grid)
+    const now = measured(base, { ...southWall, retain: r })
+    const asked = levelsForHeight(r, now.plan, now.prof, 3)
+    const after = measured(base, { ...southWall, retain: asked })
+    // Next to the house the ground can't stand much above its pad: the pad's batters set it.
+    expect(after.prof.maxHeight).toBeLessThan(2.95)
+    expect(asked.askedHeight).toBe(3)
+    expect(heightNote(asked, after.prof, after.plan)).toMatch(new RegExp(`^Most the ground allows here is ${after.prof.maxHeight.toFixed(2)} m: `))
+  })
+
+  it('says so when the ground gives another height, and why', () => {
+    const plan = garageFloor()
+    const w: Wall = { ...southWall, retain: { high: 'left', highLevel: 84.5, askedHeight: 2.5 } }
+    const pad = housePadRL(plan)
+    // The house pad (lower than the level asked for) meets the wall all along its earth side.
+    const capped: RetainingProfile = {
+      wall: w,
+      length: 4,
+      samples: [0, 1, 2, 3, 4].map(s => ({ s, left: pad, right: pad - 1.7 })),
+      maxHeight: 1.7,
+      faceArea: 6.8,
+      top: [pad + 0.1, pad + 0.1],
+      high: 'left',
+    }
+    expect(heightNote(w.retain, capped, plan)).toBe('Most the ground allows here is 1.70 m: the house pad meets the wall there.')
+    expect(heightNote({ ...w.retain!, askedHeight: 1.7 }, capped, plan)).toBeNull()
+    expect(heightNote({ high: 'left' }, capped, plan)).toBeNull()
+  })
+
+  it('a wall along the downhill house wall holds up the house pad, not nothing', () => {
+    const base = setup(false)
+    // On the south house wall's own line.
+    const along: Wall = { id: 'ra', level: 'level_ground', a: [5.45, 0.15], b: [9.95, 0.15], thickness: 0.2, kind: 'retaining' }
+    expect(houseGap(along, base.plan, 'left')).toBe(0)
+    expect(houseGap(along, base.plan, 'right')).toBeNull()
+    const r = retainDefaults(along, base.plan, base.survey.origin, base.terrain.grid)
+    expect(r).toMatchObject({ high: 'left', highLevel: 'pad' })
+    const { prof } = measured(base, { ...along, retain: r })
+    const nat = retainingProfile(along, base.plan, base.survey.origin, base.terrain.grid)
+    // The pad less the natural ground in front, give or take the pad's batter round the wall's ends.
+    expect(prof.maxHeight).toBeGreaterThan(0.8)
+    expect(prof.maxHeight).toBeLessThan(housePadRL(base.plan) - lowestOn(nat, 'right') + 0.05)
+    expect(insideHouse(along, base.plan)).toBe(false)
+  })
+
+  it('a wall inside the house holds nothing and is not counted', () => {
+    const base = setup(false)
+    const inGarage: Wall = { id: 'ri', level: 'level_ground', a: [2, 6], b: [6, 6], thickness: 0.2, kind: 'retaining', retain: { high: 'left' } }
+    expect(insideHouse(inGarage, base.plan)).toBe(true)
+    const plan: Plan = { ...base.plan, walls: [...base.plan.walls, inGarage, { ...southWall, retain: { high: 'left', highLevel: 'pad' } }] }
+    const earth = finishedFor(plan, base)
+    expect(retainingProfiles(plan, base.survey.origin, earth.result.grid).map(p => p.wall.id)).toEqual(['rs'])
+  })
+})
+
+describe('the earth side', () => {
+  it('ignores a click on the wall line itself: the second click of a double-click', () => {
+    const w = { a: [0, 0] as Vec2, b: [10, 0] as Vec2 }
+    expect(sideOfWall(w, [10, 0.2], SIDE_PICK_CLEAR)).toBeNull()
+    expect(sideOfWall(w, [5, -0.2], SIDE_PICK_CLEAR)).toBeNull()
+    expect(sideOfWall(w, [5, 0.5], SIDE_PICK_CLEAR)).toBe('left')
+    expect(sideOfWall(w, [5, -0.5], SIDE_PICK_CLEAR)).toBe('right')
+  })
+
+  it('picking the lower side fills it, so the earth does end up on that side', () => {
+    const base = bare(setup(false))
+    const w = contourWall
+    const start = { ...w, retain: retainDefaults(w, base.plan, base.survey.origin, base.terrain.grid) }
+    expect(start.retain).toEqual({ high: 'left' })
+    usePlan.getState().load({ ...base.plan, walls: [...base.plan.walls, start] })
+    setEarthSide('rn', 'right', base.survey.origin, base.terrain.grid, 0.8)
+    const flipped = usePlan.getState().plan!.walls.find(x => x.id === 'rn')!
+    expect(flipped.retain?.high).toBe('right')
+    expect(flipped.retain?.lowLevel).toBeUndefined()
+    expect(flipped.retain?.askedHeight).toBeUndefined()
+    const { prof, earth, plan } = measured(base, flipped)
+    // The earth side (right, downhill) now stands above the open side, clear of the wall's ends.
+    for (const x of prof.samples.filter(x => x.s > 2 && x.s < prof.length - 2)) expect(x.right).toBeGreaterThan(x.left)
+    expect(prof.maxHeight).toBeCloseTo(0.8, 1)
+    // And the section draws the earth where its label says: higher, and filled.
+    const sec = retainingSection(flipped, plan, base.survey.origin, base.terrain.grid, earth.result.grid)
+    const earthSide = sec.xs.findIndex(x => x > 1)
+    const openSide = sec.xs.findIndex(x => x > -1.25 && x < -1)
+    expect(sec.finished[earthSide]).toBeGreaterThan(sec.finished[openSide])
+    expect(sec.finished[earthSide]).toBeGreaterThan(sec.natural[earthSide])
+    expect(sideChange(prof, retainingProfile({ ...w }, plan, base.survey.origin, base.terrain.grid), 'right').net).toBeGreaterThan(0)
+  })
+
+  it('keeps a typed height when the side changes', () => {
+    const base = bare(setup(false))
+    const w: Wall = { ...contourWall, retain: { high: 'left', highLevel: 87.5, askedHeight: 1.2 } }
+    usePlan.getState().load({ ...base.plan, walls: [...base.plan.walls, w] })
+    setEarthSide('rn', 'right', base.survey.origin, base.terrain.grid, 0.4)
+    const flipped = usePlan.getState().plan!.walls.find(x => x.id === 'rn')!
+    expect(flipped.retain?.askedHeight).toBe(1.2)
+    expect(measured(base, flipped).prof.maxHeight).toBeCloseTo(1.2, 1)
+  })
+})
+
+describe('a wall just drawn', () => {
+  const draw = (base: Base) => {
+    const w = newRetainingWall(base.plan, 'level_ground', contourWall.a, contourWall.b, 0.2, base.survey.origin, base.terrain.grid)
+    placeRetainingWall(w, { pickSide: true })
+    return w
+  }
+  const walls = () => usePlan.getState().plan!.walls.filter(w => w.kind === 'retaining')
+
+  it('waits for its earth side: the tool starts no other wall meanwhile', () => {
+    const base = setup(false)
+    usePlan.getState().load(base.plan)
+    const w = draw(base)
+    expect(waitingForSide()).toBe(true)
+    expect(useRetaining.getState().sidePick).toBe(w.id)
+    // The double-click's second click, on the wall's end, is no answer.
+    expect(sideOfWall(w, w.b, SIDE_PICK_CLEAR)).toBeNull()
+    expect(walls()).toHaveLength(1)
+  })
+
+  it('goes again when it is left unanswered, and Undo brings it back asking', () => {
+    const base = setup(false)
+    usePlan.getState().load(base.plan)
+    const w = draw(base)
+    expect(walls()[0].retain?.draft).toBe(true)
+    // Leaving it (for another tab, here) with no answer takes it off.
+    leaveNewRetaining()
+    expect(walls()).toHaveLength(0)
+    expect(useRetaining.getState().newWall).toBeNull()
+    usePlan.getState().undo()
+    expect(walls().map(x => x.id)).toEqual([w.id])
+    expect(useRetaining.getState().newWall).toBe(w.id)
+    expect(usePlan.getState().selection).toEqual({ type: 'wall', id: w.id })
+    // Selecting something else leaves it too.
+    usePlan.getState().select({ type: 'room', id: 'r1' })
+    expect(walls()).toHaveLength(0)
+  })
+
+  it('stays once it is kept or answered', () => {
+    const base = setup(false)
+    usePlan.getState().load(base.plan)
+    const kept = draw(base)
+    keepNewRetaining()
+    expect(walls().map(x => x.id)).toEqual([kept.id])
+    expect(walls()[0].retain?.draft).toBeUndefined()
+
+    const answered = draw(base)
+    usePlan.getState().commit(p => ({ ...p, walls: p.walls.map(x => (x.id === answered.id ? { ...x, retain: { high: 'left' as const, askedHeight: 1 } } : x)) }))
+    usePlan.getState().setTool('select')
+    expect(walls().map(x => x.id)).toEqual([kept.id, answered.id])
+  })
+
+  it('a draft saved and opened again is gone', () => {
+    const base = setup(false)
+    const draft: Wall = { ...southWall, retain: { high: 'left', highLevel: 'pad', draft: true } }
+    usePlan.getState().load({ ...base.plan, walls: [...base.plan.walls, draft] })
+    expect(walls()).toHaveLength(0)
+  })
+})
+
+describe('the engineer figure', () => {
+  it('is the 600 mm the checks use, from that height up', () => {
+    expect(ENGINEER_HEIGHT).toBe(0.6)
+    expect(needsEngineer(0.8)).toBe(true)
+    expect(needsEngineer(0.6)).toBe(true)
+    expect(needsEngineer(0.59)).toBe(false)
+  })
+})
+
+describe('a side label under the section', () => {
+  it('reads the finished ground: a filled side says filled, and a side the pad cuts is never kept natural', () => {
+    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0.2, fill: 1.12, net: 0.6, by: null })).toEqual({ head: 'Uphill · RL 80.45', change: 'mostly fill (up to 1.12 m)' })
+    expect(sideLabel({ slope: 'Uphill', level: 'RL 80.45', cut: 0, fill: 1.12, net: 0.6, by: null }).change).toBe('filled up to 1.12 m')
+    const padCut = sideLabel({ slope: 'Downhill', level: null, cut: 3.2, fill: 0, net: -2, by: 'house pad' })
+    expect(padCut.change).toBe('cut up to 3.20 m by the house pad')
+    expect(padCut.change).not.toContain('kept natural')
+    expect(sideLabel({ slope: 'Downhill', level: null, cut: 0.01, fill: 0, net: 0, by: null }).change).toBe('kept natural')
   })
 })

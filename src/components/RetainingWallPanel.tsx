@@ -1,16 +1,19 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { DEFAULT_BENCH, earthworksOf, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
+import { DEFAULT_BENCH, earthworksOf, levelById, sortedLevels, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
 import { deleteSelection, moveWall, setWallLength, updateWall } from '../plan/ops'
 import { housePadRL, MIN_BENCH, sideRL } from '../plan/platforms'
 import { gapShift, HOUSE_WALL_NOTE } from '../plan/retainOffer'
+import { ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
 import {
-  ENGINEER_HEIGHT,
   engineerNote,
   exposedHeight,
+  heightNote,
   highestOn,
   houseGap,
+  insideHouse,
+  INSIDE_HOUSE_NOTE,
   levelsForHeight,
   lowestOn,
   otherSide,
@@ -18,6 +21,7 @@ import {
   retainingSection,
   RETAINING_FREEBOARD,
   sideBearing,
+  sideChange,
   type RetainingSection,
   type Side,
 } from '../plan/retaining'
@@ -25,7 +29,7 @@ import { cancelNewRetaining, keepNewRetaining, setEarthSide, startSidePick, stop
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { Num, Select } from './fields'
-import { holdsBackSentence, SIDE_WORDS } from './retainingWords'
+import { holdsBackSentence, SIDE_WORDS, sideLabel as sideWords } from './retainingWords'
 import { WallsHere } from './WallsHere'
 import './retaining.css'
 
@@ -42,7 +46,7 @@ const m2 = (v: number) => `${v.toFixed(2)} m`
 
 /**
  * A retaining wall's panel. The simple flow first: the earth side (a click on the plan, or the
- * uphill and downhill buttons), how high the earth behind it is, a live section, then Place wall.
+ * uphill and downhill buttons), how high the earth behind it is, a live section, then Keep wall.
  * Exact levels either side, the levelled benches and the wall's size and kind wait under one
  * disclosure. Asks about a wall just drawn, and edits one selected.
  */
@@ -56,13 +60,21 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
   const nat = useMemo(() => retainingProfile({ ...w, retain: undefined }, plan, survey.origin, terrain.grid), [w, plan, survey, terrain])
   const section = useMemo(() => retainingSection(w, plan, survey.origin, terrain.grid, finished), [w, plan, survey, terrain, finished])
   const gaps = useMemo(() => ({ left: houseGap(w, plan, 'left'), right: houseGap(w, plan, 'right') }), [w, plan])
+  const inside = useMemo(() => insideHouse(w, plan), [w, plan])
 
   // Walls from older plans have no levels: show the side the ground says, and write nothing until asked.
   const r: Retain = w.retain ?? { high: prof.high ?? 'left' }
   const low = otherSide(r.high)
-  const pad = housePadRL(plan)
+  // The pad of the wall's own level: beside an upper split level, that level's.
+  const pad = housePadRL(plan, w.level)
+  const split = plan.levels.length > 1 && sortedLevels(plan)[0]?.id !== w.level
+  const padName = split ? `${levelById(plan, w.level)?.name ?? 'this level'} pad` : 'house pad'
+  const levelRL = (lv: SideLevel) => sideRL(plan, lv, w.level)
   const ew = earthworksOf(plan)
-  const set = (next: Retain) => st.commit(p => updateWall(p, w.id, { retain: tidyRetain(next) }))
+  // Any answer in the panel makes a wall just drawn a real one: it stays if it's left.
+  const set = (next: Retain) => st.commit(p => updateWall(p, w.id, { retain: tidyRetain({ ...next, draft: undefined }) }))
+  // Setting a level or the top by hand overrides the height question's answer.
+  const setExact = (next: Retain) => set({ ...next, askedHeight: undefined })
 
   // Uphill and downhill by the natural ground, named by compass.
   const uphill: Side | null = nat.high
@@ -73,12 +85,13 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
 
   const chooseSide = (s: Side) => {
     stopSidePick()
-    setEarthSide(w.id, s, survey.origin, terrain.grid)
+    // Picking the lower side fills it: by the height asked, or the one showing now.
+    setEarthSide(w.id, s, survey.origin, terrain.grid, prof.maxHeight)
   }
 
   const levelOf = (s: Side): SideLevel | undefined => (s === r.high ? r.highLevel : r.lowLevel)
   const benchOf = (s: Side): number | undefined => (s === r.high ? r.highBench : r.lowBench)
-  const setLevel = (s: Side, v: SideLevel | undefined) => set(s === r.high ? { ...r, highLevel: v } : { ...r, lowLevel: v })
+  const setLevel = (s: Side, v: SideLevel | undefined) => setExact(s === r.high ? { ...r, highLevel: v } : { ...r, lowLevel: v })
   const setBench = (s: Side, v: number) => set(s === r.high ? { ...r, highBench: v } : { ...r, lowBench: v })
   /** How a side's ground is finished at the wall, against the natural ground there. */
   const depth = (s: Side): string => {
@@ -90,7 +103,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
       if (down > 0.03 || up > 0.03) return "Natural, with batters round the wall's ends"
       return 'Natural ground'
     }
-    const level = sideRL(plan, lv)
+    const level = levelRL(lv)
     const cut = highestOn(nat, s) - level
     const fill = level - lowestOn(nat, s)
     if (cut > 0.005 && fill > 0.005) return `Cut up to ${m2(cut)}, filled up to ${m2(fill)}`
@@ -102,7 +115,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
 
   const height = prof.maxHeight
   const exposed = exposedHeight(prof)
-  const tall = height > ENGINEER_HEIGHT
+  const tall = needsEngineer(height)
   const highGround = highestOn(prof, r.high)
   const len = wallLength(w)
 
@@ -120,24 +133,40 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
     })
   }
 
-  const sideLabel = (s: Side): string => {
+  /** A side's label under the section: read from the finished ground against the natural, so it says what was really done there. */
+  const sideLabel = (s: Side) => {
     const lv = levelOf(s)
-    if (lv === 'pad') return s === r.high ? `${slopeWord(s)}, to the house pad` : 'Cut to the house pad'
-    if (lv === undefined) return `${slopeWord(s)}, kept natural`
-    const level = sideRL(plan, lv)
-    const c = highestOn(nat, s) - level
-    return `${slopeWord(s)}, ${c > 0.005 ? 'cut' : 'filled'} to ${rl(level)}`
+    const ch = sideChange(prof, nat, s)
+    // With no level of its own, what changed it: the house pad when the ground there is at the pad.
+    let most = 0
+    prof.samples.forEach((x, i) => {
+      if (Math.abs(x[s] - nat.samples[i][s]) > Math.abs(prof.samples[most][s] - nat.samples[most][s])) most = i
+    })
+    const byPad = Math.abs(prof.samples[most][s] - pad) < 0.02
+    return sideWords({
+      slope: slopeWord(s),
+      level: lv === undefined ? null : lv === 'pad' ? `${padName}, ${rl(pad)}` : rl(lv),
+      ...ch,
+      by: byPad ? padName : null,
+    })
   }
 
   const levelsSummary = [
-    r.lowLevel === undefined ? 'Open side kept natural' : r.lowLevel === 'pad' ? `Open side cut to the house pad, ${rl(pad)}` : `Open side finished at ${rl(r.lowLevel)}`,
-    r.highLevel === undefined ? 'earth side kept natural' : `earth side finished at ${rl(sideRL(plan, r.highLevel))}`,
+    r.lowLevel === undefined ? 'Open side kept natural' : r.lowLevel === 'pad' ? `Open side cut to the ${padName}, ${rl(pad)}` : `Open side finished at ${rl(r.lowLevel)}`,
+    r.highLevel === undefined ? 'earth side kept natural' : `earth side finished at ${rl(levelRL(r.highLevel))}`,
   ].join(', ')
+  // What the height box shows: the answer as typed, and why the ground gives another height when it does.
+  const asked = r.askedHeight
+  const note = heightNote(w.retain, prof, plan)
+  // The earth side still ends up lower than the open side: nothing has raised it yet.
+  const lean = prof.samples.reduce((t, x) => t + x[r.high] - x[low], 0) / prof.samples.length
+  const wrongWay = lean < -0.02
+  const filledTo = uphill && r.high !== uphill && !wrongWay && r.highLevel !== undefined ? levelRL(r.highLevel) : null
 
   const benchField = (s: Side) => {
     const lv = levelOf(s)
     if (lv === undefined) return null
-    const cuts = sideRL(plan, lv) < highestOn(nat, s)
+    const cuts = levelRL(lv) < highestOn(nat, s)
     return (
       <span className="rw-bench">
         Level for
@@ -162,6 +191,8 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         <p>{picking ? 'Click the plan on the side the earth is on.' : isNew ? 'Say how high the earth behind it is, then place it.' : `Earth on its ${compass(r.high)} side.`}</p>
       </header>
       {!isNew && <WallsHere wall={w} plan={plan} />}
+
+      {inside && <p className="rw-note rw-warn-text rw-inside">{INSIDE_HOUSE_NOTE}</p>}
 
       <div className="rw-group rw-side">
         <div className="rw-side-head">
@@ -188,19 +219,30 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
             </button>
           ))}
         </div>
-        {uphill && r.high !== uphill && <p className="rw-note rw-warn-text">The earth is on the downhill side, so that side must end up higher.</p>}
+        {wrongWay && <p className="rw-note rw-warn-text">The earth side is still lower than the open side. Say how high the earth behind it is, and that side is filled up.</p>}
+        {filledTo !== null && <p className="rw-note">The downhill side is filled up to {rl(filledTo)} behind the wall.</p>}
       </div>
 
-      <div className="rw-group">
-        <Row label={SIDE_WORDS.question}>
-          <NumberBox label={SIDE_WORDS.question} value={height} decimals={2} suffix="m" min={0.05} max={10} onCommit={h => h !== undefined && set(levelsForHeight(r, plan, prof, h))} />
-        </Row>
-        {houseSide && gapNow !== null && (
-          <Row label="Gap to the house" hint={gapNow < 0.05 ? HOUSE_WALL_NOTE : 'Levelled to the house pad, as a bench between them.'}>
-            <NumberBox label="Gap between the wall and the house" value={gapNow} decimals={2} suffix="m" min={0} max={8} onCommit={g => g !== undefined && setGap(g)} />
+      {!inside && (
+        <div className="rw-group">
+          <Row label={SIDE_WORDS.question} hint={note ?? undefined} warn={!!note}>
+            <NumberBox
+              label={SIDE_WORDS.question}
+              value={asked ?? height}
+              decimals={2}
+              suffix="m"
+              min={0.05}
+              max={10}
+              onCommit={h => h !== undefined && set(levelsForHeight(r, plan, prof, h))}
+            />
           </Row>
-        )}
-      </div>
+          {houseSide && gapNow !== null && (
+            <Row label="Gap to the house" hint={gapNow < 0.05 ? HOUSE_WALL_NOTE : 'Levelled to the house pad, as a bench between them.'}>
+            <NumberBox label="Gap between the wall and the house" value={gapNow} decimals={2} suffix="m" min={0} max={8} onCommit={g => g !== undefined && setGap(g)} />
+            </Row>
+          )}
+        </div>
+      )}
 
       <SectionDrawing section={section} highLabel={sideLabel(r.high)} lowLabel={sideLabel(low)} tags={details} />
 
@@ -212,7 +254,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
               <path d="M12 4.2 21 19.5H3z" />
               <path d="M12 10v4.2M12 16.8v.3" />
             </svg>
-            Engineer needed over {ENGINEER_HEIGHT.toFixed(1)} m
+            Engineer needed over {ENGINEER_TEXT}
           </span>
         )}
       </div>
@@ -232,7 +274,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
           }
           warn={r.top !== undefined && r.top < highGround - 0.005}
         >
-          <LevelBox label="Top of wall RL" value={r.top} placeholder="follows ground" onCommit={v => set({ ...r, top: v })} />
+          <LevelBox label="Top of wall RL" value={r.top} placeholder="follows ground" onCommit={v => setExact({ ...r, top: v })} />
         </Row>
         <Row
           n={2}
@@ -244,7 +286,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
                 <>
                   {' · '}
                   <button type="button" className="rw-link" onClick={() => setLevel(r.high, 'pad')}>
-                    to the house pad
+                    to the {padName}
                   </button>
                 </>
               )}
@@ -254,7 +296,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         >
           <LevelBox
             label="Ground behind the wall, finished RL"
-            value={r.highLevel === undefined ? undefined : sideRL(plan, r.highLevel)}
+            value={r.highLevel === undefined ? undefined : levelRL(r.highLevel)}
             placeholder="keep natural"
             onCommit={v => setLevel(r.high, v)}
           />
@@ -269,7 +311,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
                 <>
                   {' · '}
                   <button type="button" className="rw-link" onClick={() => setLevel(low, 'pad')}>
-                    cut to the house pad ({rl(pad)})
+                    cut to the {padName} ({rl(pad)})
                   </button>
                 </>
               )}
@@ -279,7 +321,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         >
           <LevelBox
             label="Ground in front of the wall, finished RL"
-            value={r.lowLevel === undefined ? undefined : sideRL(plan, r.lowLevel)}
+            value={r.lowLevel === undefined ? undefined : levelRL(r.lowLevel)}
             placeholder="keep natural"
             onCommit={v => setLevel(low, v)}
           />
@@ -306,7 +348,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         {isNew ? (
           <>
             <button type="button" className="rw-btn rw-pri" onClick={keepNewRetaining}>
-              Place wall
+              Keep wall
             </button>
             <button type="button" className="rw-btn" onClick={cancelNewRetaining}>
               Cancel
@@ -335,6 +377,9 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
+
+/** A side's two-line label under the section. */
+type SideText = { head: string; change: string }
 const batterText = (b: number) => (b > 0 ? `a 1 in ${b} batter` : 'a vertical edge')
 
 function Row({ n, label, hint, warn, children }: { n?: number; label: string; hint?: ReactNode; warn?: boolean; children: ReactNode }) {
@@ -431,10 +476,10 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
  * The earth side is on the left, the open side on the right. With `tags`, numbers 1 to 3 match the
  * exact level fields.
  */
-function SectionDrawing({ section: c, highLabel, lowLabel, tags }: { section: RetainingSection; highLabel: string; lowLabel: string; tags: boolean }) {
+function SectionDrawing({ section: c, highLabel, lowLabel, tags }: { section: RetainingSection; highLabel: SideText; lowLabel: SideText; tags: boolean }) {
   const W = 400
-  const H = 176
-  const base = H - 22
+  const H = 188
+  const base = H - 34
   const top = 26
   const reach = c.xs[c.xs.length - 1]
   const sx = (W / 2 - 2) / reach
@@ -483,7 +528,11 @@ function SectionDrawing({ section: c, highLabel, lowLabel, tags }: { section: Re
   const ay = Math.min(Math.max(Y(c.top) + 18, top + 8), base - 12)
   return (
     <figure className="rw-section">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Section through the wall at its tallest point. Earth side, on the left: ${highLabel}. Open side, on the right: ${lowLabel}.`}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Section through the wall at its tallest point. Earth side, on the left: ${highLabel.head}, ${highLabel.change}. Open side, on the right: ${lowLabel.head}, ${lowLabel.change}.`}
+      >
         {parts.map((idx, k) => (
           <g key={k}>
             <path className="rw-sec-earth" d={earth(idx)} />
@@ -515,11 +564,17 @@ function SectionDrawing({ section: c, highLabel, lowLabel, tags }: { section: Re
             {tag(t3.x, t3.y - 11, 3)}
           </>
         )}
-        <text className="rw-sec-label" x={6} y={H - 7}>
-          {highLabel}
+        <text className="rw-sec-label" x={6} y={H - 20}>
+          {highLabel.head}
         </text>
-        <text className="rw-sec-label" x={W - 6} y={H - 7} textAnchor="end">
-          {lowLabel}
+        <text className="rw-sec-label" x={6} y={H - 6}>
+          {highLabel.change}
+        </text>
+        <text className="rw-sec-label" x={W - 6} y={H - 20} textAnchor="end">
+          {lowLabel.head}
+        </text>
+        <text className="rw-sec-label" x={W - 6} y={H - 6} textAnchor="end">
+          {lowLabel.change}
         </text>
       </svg>
     </figure>
