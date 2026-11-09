@@ -354,7 +354,7 @@ export const AREAS: Area[] = [
         icon: 'check',
         subtitle: 'The design against the planning rules, as you draw.',
         shows: ['checks'],
-        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch'],
+        keywords: ['compliance', 'CDC', 'DA', 'Housing Code', 'LEP', 'DCP', 'setback', 'height limit', 'floor space ratio', 'landscaped', 'site coverage', 'council', 'rules', 'tree protection', 'TPZ', 'battle-axe', 'Wollongong', 'council switch', 'lga', 'local government area', 'NSW only', 'Shellharbour', 'Kiama', 'Blue Mountains', 'Central Coast', 'Lake Macquarie', 'my council'],
         features: ['compliance-checks', 'checks-pathway', 'council-switches', 'checks-sources', 'lot-facts', 'tree-protection-checks', 'mark-tree-removal'],
       },
     ],

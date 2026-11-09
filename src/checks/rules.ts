@@ -1,11 +1,15 @@
 // The rules, one list per approval pathway. Every number and clause comes from the research
-// in docs/research (compliance-and-swept-path-sources.md and councils/wollongong.md), with
-// the same marks for how sure it is. Nothing here is legal advice.
+// in docs/research (compliance-and-swept-path-sources.md and the councils folder), with the
+// same marks for how sure it is. The Housing Code is state-wide and lives here; each council's
+// LEP and DCP numbers are a data table in ./councils that the DA checks below read. Nothing here
+// is legal advice.
 
 import type { Vec2 } from '../lib/geom'
 import type { Edge, Measures } from './measure'
-import { E17_REMOVAL_DISTANCE, encroachment, MINOR_ENCROACHMENT } from './trees'
-import { activeCouncil } from './councils'
+import { encroachment, MINOR_ENCROACHMENT } from './trees'
+import { activeCouncil, COUNCIL_TABLES } from './councils'
+import { CONTROLS, type AreaBand, type ControlKey, type Council, type CoverageRule, type LandscapedRule, type RuleSource } from './councils/types'
+import { WOLLONGONG } from './councils/wollongong'
 import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
@@ -20,8 +24,8 @@ const HC_TABLE = (clause: string): Source => ({ clause: `Housing Code ${clause} 
 
 /** Housing Code cl 3.33(1): a CDC covers removing a tree under this height (m) within 3 m of a building over 25 m². */
 export const CDC_REMOVABLE_HEIGHT = 8
-const LEP = (clause: string, confidence: Source['confidence'] = 'read'): Source => ({ clause: `Wollongong LEP 2009 ${clause}`, confidence, asAt: 'version of 2 Oct 2026' })
-const DCP = (clause: string, confidence: Source['confidence'] = 'read', asAt = 'chapter B1, in force 14 Dec 2016'): Source => ({ clause: `Wollongong DCP ${clause}`, confidence, asAt })
+/** A council rule's source as a finding shows it: the instrument's cite and the clause, how sure, and the version read. */
+const cite = (c: Council, r: RuleSource, after = ''): Source => ({ clause: `${c.instruments[r.in].cite} ${r.clause}${after}`, confidence: r.sure, asAt: r.version ?? c.instruments[r.in].version })
 
 // ---------------------------------------------------------------------------
 // Tables
@@ -75,15 +79,26 @@ export function hcRoadSetback(area: number): number {
   return 10
 }
 
-/** Wollongong DCP B1 4.4.2(2): maximum site coverage by site area. */
-export const dcpCoverage = (area: number) => (area < 450 ? 0.55 : area < 900 ? 0.5 : 0.4)
-
-/** Wollongong DCP B1 4.5.2(2): minimum landscaped area (m²) by site area. */
-export function dcpLandscaped(area: number): number {
-  if (area < 600) return 0.2 * area
-  if (area <= 900) return 120 + 0.3 * (area - 600)
-  return 210 + 0.4 * (area - 900)
+/** The band of a council's table an area falls in. */
+export function bandOf<T>(bands: AreaBand<T>[], area: number): T {
+  const b = bands.find(b => (b.below !== undefined ? area < b.below : b.upTo !== undefined ? area <= b.upTo : true))
+  return (b ?? bands[bands.length - 1]).value
 }
+
+/** A council's maximum site coverage, as a share, for a site area. */
+export const coverageShare = (r: CoverageRule, area: number) => bandOf(r.bands, area)
+
+/** A council's minimum landscaped area (m²) for a site area. */
+export function landscapedNeed(r: LandscapedRule, area: number): number {
+  const { base, share, over } = bandOf(r.bands, area)
+  return base + share * (area - over)
+}
+
+/** Wollongong DCP B1 4.4.2(2): maximum site coverage by site area (from Wollongong's table). */
+export const dcpCoverage = (area: number) => coverageShare(WOLLONGONG.coverage!, area)
+
+/** Wollongong DCP B1 4.5.2(2): minimum landscaped area (m²) by site area (from Wollongong's table). */
+export const dcpLandscaped = (area: number) => landscapedNeed(WOLLONGONG.landscaped!, area)
 
 /** Narrowest width of a lot outline: the smallest of its widths measured square to each edge. */
 export function minWidth(ring: Vec2[]): number {
@@ -159,19 +174,22 @@ function cdcRemoval(height: number | undefined, toHouse: number | null): string 
   return `The CDC doesn’t cover removing it: ${why.join(' and ')} (cl 3.33(1)). It needs council’s approval, and council says permits aren’t for development, so in practice a DA (E17 8.3, 11.4).`
 }
 
-function treeChecks(ms: Measures, pathway: Pathway): CheckResult[] {
+/** A council's note with {name} filled in from `vars`. */
+const fill = (note: string, vars: Record<string, string>) => note.replace(/\{(\w+)\}/g, (all, k: string) => vars[k] ?? all)
+
+/** The trees, on the CDC route, or on the DA route by the rules in council `c`'s table. */
+function treeChecks(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] {
+  // On the DA route the council's table says how trees are treated; without it there's nothing to check them against.
+  const da = pathway === 'da' && c?.trees ? { c, rule: c.trees } : null
+  if (pathway === 'da' && !da) return []
   return ms.trees.map(t => {
     const e = encroachment(t, ms)
     const id = `tree:${t.id}`
     const title = `${t.neighbour ? 'Neighbour’s tree' : 'Tree'}${t.label ? ` ${t.label}` : ''}`
     if (t.remove && !t.neighbour) {
-      const near = e.toHouse !== null && e.toHouse <= E17_REMOVAL_DISTANCE
-      const note =
-        pathway === 'da'
-          ? near
-            ? `Its base is ${m(e.toHouse!)} from the house, within ${E17_REMOVAL_DISTANCE} m, so once the DA is approved it may be removed without another application, if council’s tree officer agrees (E17 13.3). Replacement planting applies (E17 s9).`
-            : `It’s more than ${E17_REMOVAL_DISTANCE} m from the house, so the DA has to make the case for removing it, with an arborist report (E17 13.1).`
-          : cdcRemoval(t.height, e.toHouse)
+      const r = da?.rule.removal
+      const near = r !== undefined && e.toHouse !== null && e.toHouse <= r.within
+      const note = r ? fill(near ? r.near : r.far, { toHouse: e.toHouse === null ? '' : m(e.toHouse), within: `${r.within}` }) : cdcRemoval(t.height, e.toHouse)
       return {
         id,
         title,
@@ -180,12 +198,13 @@ function treeChecks(ms: Measures, pathway: Pathway): CheckResult[] {
         status: 'pending',
         value: 'Marked for removal (pending DA or CDC)',
         note,
-        source: pathway === 'da' ? DCP('E17 13.3', 'read', 'chapter E17, in force 1 Jul 2023') : HC('cl 3.33(1)'),
+        source: da ? cite(da.c, da.rule.removal.source) : HC('cl 3.33(1)'),
       }
     }
-    const zoneStatus: CheckStatus = e.share === 0 ? 'pass' : e.inSrz || e.share > MINOR_ENCROACHMENT ? 'fail' : 'warn'
+    const minor = da ? da.rule.zone.minor : MINOR_ENCROACHMENT
+    const zoneStatus: CheckStatus = e.share === 0 ? 'pass' : e.inSrz || e.share > minor ? 'fail' : 'warn'
     const zone = `${m(e.tpz)} protection zone`
-    if (pathway === 'cdc') {
+    if (!da) {
       // The Housing Code's own rule is 3 m from the trunk; AS 4970's zone isn't a Housing Code standard, so it only warns.
       const close = e.toHouse !== null && e.toHouse < CDC_TREE_SETBACK
       const status: CheckStatus = close ? 'fail' : zoneStatus === 'pass' ? 'pass' : 'warn'
@@ -213,7 +232,7 @@ function treeChecks(ms: Measures, pathway: Pathway): CheckResult[] {
       removable: !t.neighbour,
       status,
       value: e.share === 0 ? `Clear of its ${zone}` : `${pct(e.share)} of its ${zone}${e.inSrz ? ', and into its root zone' : ''}`,
-      limit: `Up to ${pct(MINOR_ENCROACHMENT)}, and none in the ${m(e.srz)} root zone`,
+      limit: `Up to ${pct(minor)}, and none in the ${m(e.srz)} root zone`,
       note:
         status === 'pass'
           ? undefined
@@ -222,7 +241,7 @@ function treeChecks(ms: Measures, pathway: Pathway): CheckResult[] {
             : t.neighbour
               ? 'More than a minor encroachment needs root investigation by an AQF level 5 arborist or a design change. It’s the neighbour’s tree, so removing it is theirs to apply for, not yours.'
               : 'More than a minor encroachment needs root investigation by an AQF level 5 arborist, a design change, or the tree marked for removal.',
-      source: { clause: 'Wollongong DCP E17 13.2, 13.4; AS 4970-2009', confidence: 'secondary', asAt: 'E17 in force 1 Jul 2023; AS 4970 numbers from council manuals' },
+      source: cite(da.c, da.rule.zone.source),
     }
   })
 }
@@ -405,170 +424,215 @@ function housingCode(ms: Measures): CheckResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Wollongong LEP and DCP (DA)
+// A council's LEP and DCP (DA), from its data table in ./councils
 
-function wollongong(ms: Measures): CheckResult[] {
+/** A small number as the limits write it: 6, 5.5, 0.9. */
+const num = (v: number) => `${v}`
+/** A height as the limits write it: 600 mm, 1 m. */
+const len = (v: number) => (v < 1 ? `${Math.round(v * 1000)} mm` : `${v} m`)
+const WORDS = ['no', 'one', 'two', 'three', 'four', 'five']
+const word = (n: number) => WORDS[n] ?? `${n}`
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * The DA checks for council `c`: each control its table holds, in the order the panel lists them.
+ * A control the table leaves out (its source couldn't be read) isn't checked; notChecked lists it.
+ */
+export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   const out: CheckResult[] = []
   const s = ms.settings
   const H = ms.height
   const lot = ms.lotArea
   const title = s.titleArea && s.titleArea > lot + 0.5 ? s.titleArea : null
 
-  const lepH = s.lepHeight ?? 9
-  out.push({
-    id: 'da-height',
-    title: 'Building height',
-    status: !ms.hasHouse ? 'pass' : atMost(H, lepH),
-    value: ms.hasHouse ? `${m(H)} above existing ground` : undefined,
-    limit: `${m(lepH)}${s.lepHeight === undefined ? ' (B1’s figure for R2; look up this lot’s map value)' : ' (Height of Buildings Map)'}`,
-    note: 'Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.',
-    source: s.lepHeight === undefined ? DCP('B1 4.1 (LEP map value not looked up)', 'secondary') : LEP('cl 4.3(2)'),
-  })
-
-  out.push({
-    id: 'da-storeys',
-    title: 'Storeys',
-    status: ms.storeys > 2 ? 'fail' : s.battleAxe && ms.storeys > 1 ? 'warn' : 'pass',
-    value: storeysText(ms),
-    limit: s.battleAxe ? 'One storey on a battle-axe lot unless the objectives are met; two at most' : 'Two',
-    note: s.battleAxe && ms.storeys > 1 ? 'A second storey needs a case against B1 4.1.2’s objectives in the DA. The CDC route has no battle-axe storey limit.' : undefined,
-    source: DCP(s.battleAxe ? 'B1 4.1, 4.1.2(1)' : 'B1 4.1'),
-  })
-
-  const r = rear(ms)
-  if (ms.storeys > 1) {
+  if (c.height) {
+    // Until the lot's map value is entered, the DCP's own figure if it has one.
+    const fallback = s.lepHeight === undefined ? c.height.fallback : undefined
+    const lepH = s.lepHeight ?? fallback?.max
     out.push({
-      id: 'da-rear-upper',
-      title: 'Upper floor out of the rear 8 m',
-      status: !r ? 'unknown' : r.upperClearance === null ? 'pass' : atLeast(r.upperClearance, 8),
-      value: r && r.upperClearance !== null ? `${m(r.upperClearance)} to the ${r.label.toLowerCase()}` : undefined,
-      limit: 'Single storey only within 8 m of the rear boundary',
-      note: r ? undefined : NEED_FRONT,
-      source: DCP('B1 4.1.2(4)'),
+      id: 'da-height',
+      title: 'Building height',
+      status: lepH === undefined ? 'unknown' : !ms.hasHouse ? 'pass' : atMost(H, lepH),
+      value: ms.hasHouse ? `${m(H)} above existing ground` : undefined,
+      limit: lepH === undefined ? 'The Height of Buildings Map value for this lot' : `${m(lepH)}${fallback ? ` (${fallback.says}; look up this lot’s map value)` : ' (Height of Buildings Map)'}`,
+      note: `${lepH === undefined ? 'Enter the map value under Lot facts once it’s looked up. ' : ''}Measured straight down to the natural ground at the roof’s corners and ridges and the tops of the walls.`,
+      source: fallback ? cite(c, fallback.source, ' (LEP map value not looked up)') : cite(c, c.height.source),
     })
   }
 
-  const fsrArea = title ?? lot
-  const ratio = ms.grossArea / fsrArea
-  out.push({
-    id: 'da-fsr',
-    title: 'Floor space ratio',
-    status: s.lepFsr === undefined ? 'unknown' : atMost(ratio, s.lepFsr),
-    value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)}`,
-    limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
-    note:
-      (s.lepFsr === undefined ? 'Enter the map value under Lot facts once it’s looked up. ' : '') +
-      (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).'),
-    source: LEP('cl 4.4(2), 4.5(3)'),
-  })
+  if (c.storeys) {
+    const r = c.storeys
+    const ba = s.battleAxe ? r.battleAxe : undefined
+    out.push({
+      id: 'da-storeys',
+      title: 'Storeys',
+      status: ms.storeys > r.max ? 'fail' : ba && ms.storeys > ba.max ? 'warn' : 'pass',
+      value: storeysText(ms),
+      limit: ba ? `${cap(word(ba.max))} storey${ba.max === 1 ? '' : 's'} on a battle-axe lot unless the objectives are met; ${word(r.max)} at most` : cap(word(r.max)),
+      note: ba && ms.storeys > ba.max ? ba.note : undefined,
+      source: cite(c, ba ? ba.source : r.source),
+    })
+  }
+
+  const r = rear(ms)
+  if (ms.storeys > 1 && c.rearUpper) {
+    out.push({
+      id: 'da-rear-upper',
+      title: `Upper floor out of the rear ${num(c.rearUpper.min)} m`,
+      status: !r ? 'unknown' : r.upperClearance === null ? 'pass' : atLeast(r.upperClearance, c.rearUpper.min),
+      value: r && r.upperClearance !== null ? `${m(r.upperClearance)} to the ${r.label.toLowerCase()}` : undefined,
+      limit: `Single storey only within ${num(c.rearUpper.min)} m of the rear boundary`,
+      note: r ? undefined : NEED_FRONT,
+      source: cite(c, c.rearUpper.source),
+    })
+  }
+
+  if (c.fsr) {
+    const fsrArea = title ?? lot
+    const ratio = ms.grossArea / fsrArea
+    out.push({
+      id: 'da-fsr',
+      title: 'Floor space ratio',
+      status: s.lepFsr === undefined ? 'unknown' : atMost(ratio, s.lepFsr),
+      value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)}`,
+      limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
+      note:
+        (s.lepFsr === undefined ? 'Enter the map value under Lot facts once it’s looked up. ' : '') +
+        (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).'),
+      source: cite(c, c.fsr.source),
+    })
+  }
 
   const f = front(ms)
-  out.push({
-    id: 'da-front',
-    title: 'Front setback',
-    status: s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, 6),
-    value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
-    limit: '6 m to the front facade (infill); garages 5.5 m',
-    note: s.battleAxe
-      ? 'B1 measures this from the primary street frontage, and a battle-axe lot reaches the street only by its handle. B1 has no battle-axe front setback of its own, so ask council which boundary it treats as the front.'
-      : f
-        ? undefined
-        : NEED_FRONT,
-    source: DCP('B1 4.2.2(1)'),
-  })
+  if (c.front) {
+    const fr = c.front
+    out.push({
+      id: 'da-front',
+      title: 'Front setback',
+      status: s.battleAxe || !f ? 'unknown' : f.clearance === null ? 'pass' : atLeast(f.clearance, fr.min),
+      value: f && f.clearance !== null ? `${m(f.clearance)} to the ${f.label.toLowerCase()}` : undefined,
+      limit: `${num(fr.min)} m ${fr.to}${fr.garage !== undefined ? `; garages ${num(fr.garage)} m` : ''}`,
+      note: s.battleAxe ? fr.battleAxeNote : f ? undefined : NEED_FRONT,
+      source: cite(c, fr.source),
+    })
+  }
 
-  const others = ms.edges.filter(e => e.role !== 'front')
-  const need = H > 7 ? 3 : 0.9
-  const c = closest(others)
-  const sideMin = minClear(others)
-  out.push({
-    id: 'da-side-rear',
-    title: 'Side and rear setbacks',
-    status: sideMin === null ? 'pass' : atLeast(sideMin, need),
-    value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${c?.label.toLowerCase()}`,
-    limit: '0.9 m to walls; 3 m where walls are over 7 m high',
-    note: f ? (H > 7 ? 'The house rises over 7 m, so this uses 3 m throughout; lower walls may need less.' : undefined) : 'Until the front is picked under Lot facts, every side is held to this.',
-    source: DCP('B1 4.3.2(1), (2)'),
-  })
+  if (c.sideRear) {
+    const sr = c.sideRear
+    const others = ms.edges.filter(e => e.role !== 'front')
+    const tall = sr.tall !== undefined && H > sr.tall.over
+    const need = tall ? sr.tall!.min : sr.min
+    const closestSide = closest(others)
+    const sideMin = minClear(others)
+    out.push({
+      id: 'da-side-rear',
+      title: 'Side and rear setbacks',
+      status: sideMin === null ? 'pass' : atLeast(sideMin, need),
+      value: sideMin === null ? 'No house yet' : `${m(sideMin)} to the ${closestSide?.label.toLowerCase()}`,
+      limit: `${num(sr.min)} m to walls${sr.tall ? `; ${num(sr.tall.min)} m where walls are over ${num(sr.tall.over)} m high` : ''}`,
+      note: f
+        ? tall
+          ? `The house rises over ${num(sr.tall!.over)} m, so this uses ${num(sr.tall!.min)} m throughout; lower walls may need less.`
+          : undefined
+        : 'Until the front is picked under Lot facts, every side is held to this.',
+      source: cite(c, sr.source),
+    })
+  }
 
-  const cover = (a: number) => dcpCoverage(a) * a
-  out.push({
-    id: 'da-coverage',
-    title: 'Site coverage',
-    status: ms.footprint <= cover(lot) + 1e-6 ? 'pass' : title && ms.footprint <= cover(title) + 1e-6 ? 'warn' : 'fail',
-    value: `${m2(ms.footprint)} (${pct(ms.footprint / lot)})`,
-    limit: `${m2(cover(lot))} on ${m2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
-    note: title ? 'Whether B1 counts the access handle in the site area wasn’t checked, so both are shown.' : undefined,
-    source: DCP('B1 4.4.2(2)'),
-  })
+  if (c.coverage) {
+    const cv = c.coverage
+    const cover = (a: number) => coverageShare(cv, a) * a
+    out.push({
+      id: 'da-coverage',
+      title: 'Site coverage',
+      status: ms.footprint <= cover(lot) + 1e-6 ? 'pass' : title && ms.footprint <= cover(title) + 1e-6 ? 'warn' : 'fail',
+      value: `${m2(ms.footprint)} (${pct(ms.footprint / lot)})`,
+      limit: `${m2(cover(lot))} on ${m2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
+      note: title ? cv.handleNote : undefined,
+      source: cite(c, cv.source),
+    })
+  }
 
-  const land = lot - ms.hardArea
-  const landNeed = dcpLandscaped(lot)
-  const landTitle = title ? title - ms.hardArea : null
-  const landNeedTitle = title ? dcpLandscaped(title) : null
-  out.push({
-    id: 'da-landscaped',
-    title: 'Landscaped area',
-    status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
-    value: `About ${m2(land)}`,
-    limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}; half behind the building line`,
-    note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.',
-    source: DCP('B1 4.5.2(2)'),
-  })
+  if (c.landscaped) {
+    const ls = c.landscaped
+    const land = lot - ms.hardArea
+    const landNeed = landscapedNeed(ls, lot)
+    const landTitle = title ? title - ms.hardArea : null
+    const landNeedTitle = title ? landscapedNeed(ls, title) : null
+    const behind = ls.behindBuildingLine === undefined ? '' : `; ${ls.behindBuildingLine === 0.5 ? 'half' : pct(ls.behindBuildingLine)} behind the building line`
+    out.push({
+      id: 'da-landscaped',
+      title: 'Landscaped area',
+      status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
+      value: `About ${m2(land)}`,
+      limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
+      note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.',
+      source: cite(c, ls.source),
+    })
+  }
 
   const e = ms.earth
-  out.push({
-    id: 'da-batters',
-    title: 'Batter slopes',
-    status: !e ? 'pass' : e.cutBatter + 1e-6 >= 4 && e.fillBatter + 1e-6 >= 4 ? 'pass' : 'fail',
-    value: e ? `Cut 1 in ${e.cutBatter}, fill 1 in ${e.fillBatter}` : 'No cut and fill',
-    limit: 'No steeper than 1 in 4',
-    note: e && (e.cutBatter < 4 || e.fillBatter < 4) ? 'Set the batters to 1 in 4 under Earthworks › Cut & fill. The volumes grow.' : undefined,
-    source: DCP('E19 4.3', 'read', 'chapter E19, in force 12 Jan 2018'),
-  })
+  if (c.batters) {
+    const run = c.batters.run
+    out.push({
+      id: 'da-batters',
+      title: 'Batter slopes',
+      status: !e ? 'pass' : e.cutBatter + 1e-6 >= run && e.fillBatter + 1e-6 >= run ? 'pass' : 'fail',
+      value: e ? `Cut 1 in ${e.cutBatter}, fill 1 in ${e.fillBatter}` : 'No cut and fill',
+      limit: `No steeper than 1 in ${num(run)}`,
+      note: e && (e.cutBatter < run || e.fillBatter < run) ? `Set the batters to 1 in ${num(run)} under Earthworks › Cut & fill. The volumes grow.` : undefined,
+      source: cite(c, c.batters.source),
+    })
+  }
 
-  const deep = e ? Math.max(e.maxCut, e.maxFill) : 0
-  const steep = ms.slopePct >= 15
-  out.push({
-    id: 'da-geotech',
-    title: 'Geotechnical report',
-    status: deep > 1 || steep ? 'warn' : 'pass',
-    value: `Deepest cut or fill ${m(deep)}; block slope ${ms.slopePct.toFixed(1)}%`,
-    limit: 'Needed for earthworks over 1 m high or on land of 15% or more',
-    note:
-      (deep > 1 || steep ? 'Not a fail: E19 says the DA will generally need a geotechnical report. ' : '') +
-      'Separately, E12 asks for one wherever council’s records or an inspection suggest the land may be unstable; it has no slope number of its own, so ask council what its property records say.',
-    source: DCP('E19 4.1 cl 5; E12 4.1', 'read', 'E19 in force 12 Jan 2018; E12 19 Jul 2021'),
-  })
+  if (c.geotech) {
+    const g = c.geotech
+    const deep = e ? Math.max(e.maxCut, e.maxFill) : 0
+    const steep = ms.slopePct >= g.slope
+    const hit = deep > g.depth || steep
+    out.push({
+      id: 'da-geotech',
+      title: 'Geotechnical report',
+      status: hit ? 'warn' : 'pass',
+      value: `Deepest cut or fill ${m(deep)}; block slope ${ms.slopePct.toFixed(1)}%`,
+      limit: `Needed for earthworks over ${num(g.depth)} m high or on land of ${num(g.slope)}% or more`,
+      note: `${hit ? `Not a fail: ${g.why}. ` : ''}${g.also ?? ''}` || undefined,
+      source: cite(c, g.source),
+    })
+  }
 
-  const disturbed = e ? e.disturbed : ms.footprint
-  out.push({
-    id: 'da-erosion',
-    title: 'Erosion and sediment control',
-    status: 'pass',
-    value: `About ${m2(disturbed)} of ground disturbed`,
-    limit: disturbed < 1000 ? 'A basic erosion and sediment control plan (under 1,000 m²)' : disturbed <= 2500 ? 'An erosion and sediment control plan (1,000 to 2,500 m²)' : 'A soil and water management plan (over 2,500 m²)',
-    note: 'What the DA has to include; a fuller plan is needed within 50 m of a watercourse or next to sensitive land. The disturbed area counts the cut and fill and the house’s footprint.',
-    source: DCP('E22 3(1)', 'read', 'chapter E22, in force 12 Jan 2018'),
-  })
+  if (c.erosion) {
+    const disturbed = e ? e.disturbed : ms.footprint
+    out.push({
+      id: 'da-erosion',
+      title: 'Erosion and sediment control',
+      status: 'pass',
+      value: `About ${m2(disturbed)} of ground disturbed`,
+      limit: bandOf(c.erosion.bands, disturbed),
+      note: [c.erosion.note, 'The disturbed area counts the cut and fill and the house’s footprint.'].filter(Boolean).join(' '),
+      source: cite(c, c.erosion.source),
+    })
+  }
 
-  const bad = ms.walls.filter(w => w.height > (w.toBoundary <= 0.9 ? 0.6 : 1) + 1e-6)
-  const eng = ms.walls.filter(w => w.height > 1)
-  out.push({
-    id: 'da-retaining',
-    title: 'Retaining walls',
-    status: bad.length ? 'fail' : 'pass',
-    value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
-    limit: '600 mm within 900 mm of a side or rear boundary, 1 m elsewhere; over 1 m terraced and engineered',
-    note: bad.length ? `${bad.length} wall${bad.length > 1 ? 's are' : ' is'} over the limit${eng.length ? '; walls over 1 m need an engineer and justification' : ''}.` : undefined,
-    source: DCP('B1 4.17.3'),
-  })
+  if (c.retaining) {
+    const rw = c.retaining
+    const bad = ms.walls.filter(w => w.height > (w.toBoundary <= rw.near ? rw.nearMax : rw.max) + 1e-6)
+    const eng = rw.tall ? ms.walls.filter(w => w.height > rw.tall!.over) : []
+    out.push({
+      id: 'da-retaining',
+      title: 'Retaining walls',
+      status: bad.length ? 'fail' : 'pass',
+      value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
+      limit: `${len(rw.nearMax)} within ${len(rw.near)} of a side or rear boundary, ${len(rw.max)} elsewhere${rw.tall ? `; over ${len(rw.tall.over)} ${rw.tall.limit}` : ''}`,
+      note: bad.length
+        ? `${bad.length} wall${bad.length > 1 ? 's are' : ' is'} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`
+        : undefined,
+      source: cite(c, rw.source),
+    })
+  }
 
-  return [...out, ...treeChecks(ms, 'da')]
+  return [...out, ...treeChecks(ms, 'da', c)]
 }
-
-/** Each council's own rules (its LEP and DCP), for the DA pathway. */
-const COUNCIL_RULES: Record<CouncilId, (ms: Measures) => CheckResult[]> = { wollongong }
 
 /**
  * Every check for a pathway, in the order the panel lists them. The DA checks are the council's own
@@ -576,7 +640,7 @@ const COUNCIL_RULES: Record<CouncilId, (ms: Measures) => CheckResult[]> = { woll
  */
 export function runChecks(ms: Measures, pathway: Pathway, council: CouncilId | null = activeCouncil(ms.settings)?.id ?? null): CheckResult[] {
   if (pathway === 'cdc') return housingCode(ms)
-  return council ? COUNCIL_RULES[council](ms) : []
+  return council ? councilChecks(ms, COUNCIL_TABLES[council]) : []
 }
 
 export interface CheckCounts {
@@ -593,8 +657,8 @@ export function countChecks(rs: CheckResult[]): CheckCounts {
   return c
 }
 
-/** What the checks don't cover yet, by pathway (DA: Wollongong's): shown under the list so a clean run isn't read as approval. */
-export const NOT_CHECKED: Record<Pathway, string[]> = {
+/** What the Housing Code checks don't cover yet: shown under the list so a clean run isn't read as approval. */
+export const NOT_CHECKED: { cdc: string[] } = {
   cdc: [
     'Whether the land can use a CDC at all (zone, heritage, flood, bushfire and other exclusions)',
     'Private open space (24 m², 3 × 3 m, 1 in 50)',
@@ -604,14 +668,16 @@ export const NOT_CHECKED: Record<Pathway, string[]> = {
     'Building over a registered easement (not allowed, cl 3.2(1)(d)); landslide risk land is excluded (cl 3.2(1)(h))',
     'A battle-axe lot’s parking must let cars leave forwards (cl 3.16(3))',
   ],
-  da: [
-    'Zone and the LEP map values (height, floor space ratio, overlays)',
-    'Private open space (24 m², 4 m wide, 1 in 50)',
-    'Sun to the neighbours on 21 June',
-    'Garage doors, parking and driveway width',
-    'Fences, pools and storage',
-    'Easements',
-    'Bush fire prone land: check council’s map (E16, in force 19 Aug 2024); if it applies, the DA needs a bush fire assessment',
-    'B1 asks battle-axe handles to be at least 6 m wide as a driveway reserve (B1 5.6, written for multi-dwelling sites)',
-  ],
+}
+
+/** The controls a council's table leaves out because the research couldn't read them from its own text. */
+export const missingControls = (c: Council): ControlKey[] => (Object.keys(CONTROLS) as ControlKey[]).filter(k => c[k] === undefined)
+
+/**
+ * What the checks don't cover yet: the Housing Code's list on the CDC route; on the DA route, the
+ * controls the council's table leaves out, then the council's own list.
+ */
+export function notChecked(pathway: Pathway, council: Council | null): string[] {
+  if (pathway === 'cdc' || !council) return NOT_CHECKED.cdc
+  return [...missingControls(council).map(k => `${CONTROLS[k]}: ${council.name}’s own rule isn’t in the app yet`), ...council.notChecked]
 }
