@@ -10,6 +10,7 @@ export function findSelection(plan: Plan, id: string): { sel: Selection; level: 
     ['roof', plan.roofs],
     ['stair', plan.stairs],
     ['furniture', plan.furniture],
+    ['sketch', plan.sketch ?? []],
   ] as const
   for (const [type, items] of lists) {
     const item = (items as readonly { id: string; level: string }[]).find(x => x.id === id)

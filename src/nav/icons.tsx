@@ -75,6 +75,8 @@ const ICONS = {
   mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4 6.5 8 6 8-6"/>',
   link: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.3 1.3"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.3-1.3"/>',
   ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/>',
+  // A dashed construction line and an arc, with a compass point: the sketch layer.
+  sketch: '<path d="M3.5 19.5 20.5 6" stroke-dasharray="2.6 2"/><path d="M5 8.5a9 9 0 0 1 11.5 11"/><circle cx="5" cy="19" r="1.6"/>',
   note: '<path d="M4.5 4.5h15v11h-6l-3.5 4v-4h-5.5z"/><path d="M8 9h8M8 12h5"/>',
   map: '<path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',

@@ -891,6 +891,7 @@ export const AREAS: Area[] = [
           'pdf-paper',
           'pdf-pages',
           'furniture-pdf',
+          'sketch-pdf',
           'finished-contours-pdf',
           'site-features-pdf',
           'share-from-phone',
@@ -1006,8 +1007,9 @@ const TOOL_FEATURES: Partial<Record<Tool, string[]>> = {
   roof: ['tool-roof', 'new-roof-mode'],
   stair: ['tool-stair', 'new-stair-width'],
   furniture: ['tool-furniture'],
-  measure: ['tool-measure'],
+  measure: ['tool-measure', 'measure-keep', 'measure-chain'],
   note: ['tool-note', 'note-edit-delete'],
+  sketch: ['tool-sketch', 'sketch-turn-into', 'sketch-snap', 'sketch-layer-key', 'sketch-clear', 'sketch-shared-hidden'],
 }
 
 const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
@@ -1025,6 +1027,7 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   furniture: ['bed', 'sofa', 'table'],
   measure: ['measure', 'ruler', 'distance', 'slope', 'height', 'fall', 'how far', 'length'],
   note: ['note', 'label', 'text', 'comment', 'annotate'],
+  sketch: ['sketch', 'construction line', 'guide', 'guide line', 'arc', 'curve', 'circle', 'setout', 'kept measurement', 'dimension', 'clear sketch'],
 }
 
 export const HOMES: Home[] = [

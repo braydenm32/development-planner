@@ -7,6 +7,7 @@ import { allOnLevel, clipCount, copySelection, deleteSelections, pasteClip, sele
 import { deleteLevel } from './ops'
 import { sortedLevels, type Plan } from './model'
 import { usePlan } from './store'
+import { useSketch } from '../sketch/store'
 
 /** An arrow key moves 10 mm; with Shift, 100 mm. */
 export const NUDGE = 0.01
@@ -15,7 +16,7 @@ export const NUDGE_BIG = 0.1
 export const PASTE_OFFSET = 0.3
 
 /** An Undo toast that goes away on its own once something else changes the plan, so its Undo never undoes another thing. */
-function undoToastFor(text: string, restore?: () => void) {
+export function undoToastFor(text: string, restore?: () => void) {
   const after = usePlan.getState().plan
   let unsub = () => {}
   const id = showToast({
@@ -135,7 +136,7 @@ export function duplicateSelected(): boolean {
 export function selectAllOnLevel(): boolean {
   const st = usePlan.getState()
   if (!st.plan) return false
-  st.selectMany(allOnLevel(st.plan, st.activeLevel))
+  st.selectMany(allOnLevel(st.plan, st.activeLevel, { sketch: useSketch.getState().shown }))
   return true
 }
 

@@ -2,6 +2,12 @@ import type { Vec2 } from '../lib/geom'
 import { closestOnSegment } from './geometry'
 import type { Wall } from './model'
 
+/** Lines and points that aren't walls but snap like them: the sketch layer (src/sketch/geometry.ts sketchGuides). */
+export interface Guides {
+  points: Vec2[]
+  segs: [Vec2, Vec2][]
+}
+
 export type SnapKind = 'end' | 'wall' | 'angle' | 'align' | 'grid' | 'free'
 
 export interface SnapResult {
@@ -21,6 +27,8 @@ export interface SnapContext {
   tol: number
   /** Turn snapping off (Shift held). */
   free?: boolean
+  /** The sketch layer: its points snap as wall ends do, and its lines as walls do. */
+  guides?: Guides
 }
 
 const round = (v: number, step: number) => Math.round(v / step) * step
@@ -28,7 +36,9 @@ const round = (v: number, step: number) => Math.round(v / step) * step
 export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
   if (ctx.free) return { p: [round(raw[0], 0.001), round(raw[1], 0.001)], kind: 'free', guides: [] }
 
-  const points: Vec2[] = [...ctx.walls.flatMap(w => [w.a, w.b]), ...(ctx.points ?? [])]
+  const points: Vec2[] = [...ctx.walls.flatMap(w => [w.a, w.b]), ...(ctx.points ?? []), ...(ctx.guides?.points ?? [])]
+  // Walls and sketch lines alike, for "stop on a line" and "onto a line".
+  const lines: [Vec2, Vec2][] = [...ctx.walls.map(w => [w.a, w.b] as [Vec2, Vec2]), ...(ctx.guides?.segs ?? [])]
 
   // 1. Existing points
   let best: Vec2 | null = null
@@ -57,8 +67,8 @@ export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
         const along = dx * dir[0] + dy * dir[1]
         let p: Vec2 = [a[0] + dir[0] * along, a[1] + dir[1] * along]
         // Stop on a wall the line crosses near the cursor.
-        for (const w of ctx.walls) {
-          const hit = rayHitsSegment(a, dir, w.a, w.b)
+        for (const [wa, wb] of lines) {
+          const hit = rayHitsSegment(a, dir, wa, wb)
           if (hit !== null && Math.abs(hit - along) < ctx.tol && hit > 1e-6) {
             return { p: [a[0] + dir[0] * hit, a[1] + dir[1] * hit], kind: 'wall', guides: [] }
           }
@@ -88,11 +98,11 @@ export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
     }
   }
 
-  // 3. Onto a wall's centreline
+  // 3. Onto a wall's centreline, or a sketch line
   let wallBest: Vec2 | null = null
   let wallD = ctx.tol
-  for (const w of ctx.walls) {
-    const c = closestOnSegment(raw, w.a, w.b)
+  for (const [wa, wb] of lines) {
+    const c = closestOnSegment(raw, wa, wb)
     if (c.dist < wallD) {
       wallD = c.dist
       wallBest = c.point

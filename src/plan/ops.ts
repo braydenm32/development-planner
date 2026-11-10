@@ -205,6 +205,8 @@ export function deleteSelection(plan: Plan, sel: Selection): Plan {
       return { ...plan, stairs: plan.stairs.filter(s => s.id !== sel.id) }
     case 'furniture':
       return { ...plan, furniture: plan.furniture.filter(f => f.id !== sel.id) }
+    case 'sketch':
+      return { ...plan, sketch: (plan.sketch ?? []).filter(s => s.id !== sel.id) }
   }
 }
 
@@ -274,6 +276,8 @@ export function deleteLevel(plan: Plan, id: string): Plan {
     stairs: plan.stairs.filter(s => s.level !== id),
     furniture: plan.furniture.filter(f => f.level !== id),
     notes: (plan.notes ?? []).filter(n => n.level !== id),
+    // The sketch shows on every level, so it isn't lost with one: it moves to a level that stays.
+    ...(plan.sketch ? { sketch: plan.sketch.map(s => (s.level === id ? { ...s, level: sortedLevels(plan).find(l => l.id !== id)!.id } : s)) } : {}),
   })
 }
 

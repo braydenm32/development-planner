@@ -7,6 +7,7 @@ import { garageFloor } from '../../plan/__tests__/fixtures'
 import { newFurniture } from '../../plan/furniture'
 import { sortedLevels, type Plan } from '../../plan/model'
 import { addFurniture, addLevelAbove, addRoof } from '../../plan/ops'
+import { addSketch, newSketch } from '../../sketch/ops'
 import { levelOutlines } from '../../plan/roof'
 import { textWidth } from '../pdfWriter'
 import { planSetPdf, type PlanSetInput } from '../plans'
@@ -107,6 +108,21 @@ describe('PDF plans', () => {
     expect(pdf).toContain('(Retaining walls) Tj')
     // The floor plan names it too, without a height.
     expect(pdf).toContain('(RW 11000) Tj')
+  })
+
+  it('draws the sketch layer on the floor plans only when it is ticked', () => {
+    const ground = sortedLevels(plan)[0].id
+    let sketched = addSketch(plan, newSketch(ground, 'circle', [[5, 5], [7, 5]]))
+    sketched = addSketch(sketched, newSketch(ground, 'measure', [[0, -2], [4.321, -2]]))
+    const slate = '0.35 0.46 0.66 RG'
+    const on = text(planSetPdf({ ...input, plan: sketched, sketch: true }))
+    const off = text(planSetPdf({ ...input, plan: sketched }))
+    expect(on).toContain(slate)
+    expect(on).toContain('(4321) Tj')
+    expect(off).not.toContain(slate)
+    expect(off).not.toContain('(4321) Tj')
+    // Nothing else on the sheets changes with it.
+    expect(off).toBe(text(planSetPdf(input)))
   })
 
   it('draws furniture on the floor plans in thin lines, unless turned off', () => {

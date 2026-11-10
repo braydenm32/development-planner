@@ -11,6 +11,8 @@ export interface ToolDef {
   more?: boolean
   /** Its name under the icon on the rail, when `label` is too long to fit. */
   short?: string
+  /** Only on a computer: a phone shows what it drew, but has no way to draw it. */
+  desk?: boolean
 }
 
 /** Every plan tool, in order. The tool rail renders from this list. */
@@ -31,7 +33,9 @@ export const TOOLS: ToolDef[] = [
   // Measure and Note use the keys L (length) and E (edit a label); every other plan key is taken.
   { id: 'measure', label: 'Measure', key: 'L', icon: 'ruler' },
   { id: 'note', label: 'Note', key: 'E', icon: 'note' },
+  // K for sKetch: construction lines that change nothing, to draw over and snap to.
+  { id: 'sketch', label: 'Sketch', key: 'K', icon: 'sketch', desk: true },
 ]
 
 /** Tools whose options show next to the rail. */
-export const TOOLS_WITH_OPTIONS: Tool[] = ['wall', 'retaining', 'door', 'window', 'opening', 'garage', 'area', 'roof', 'stair', 'furniture']
+export const TOOLS_WITH_OPTIONS: Tool[] = ['wall', 'retaining', 'door', 'window', 'opening', 'garage', 'area', 'roof', 'stair', 'furniture', 'sketch']

@@ -64,6 +64,7 @@ import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
 import { RoofLineFields } from './RoofLineFields'
+import { SketchOptions, SketchSelection } from '../sketch/SketchPanel'
 import './roofs-stairs.css'
 import { roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 
@@ -97,6 +98,7 @@ export function ToolOptions({ tool: shown }: { tool?: Tool }) {
   if (tool === 'roof') return <RoofOptions />
   if (tool === 'stair') return <StairOptions />
   if (tool === 'furniture') return <FurniturePicker />
+  if (tool === 'sketch') return <SketchOptions />
   return null
 }
 
@@ -327,6 +329,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       Delete
     </button>
   )
+
+  if (selection.type === 'sketch') {
+    const item = plan.sketch?.find(x => x.id === selection.id)
+    return item ? <SketchSelection item={item} plan={plan} survey={survey} terrain={terrain} /> : null
+  }
 
   if (selection.type === 'wall') {
     const w = plan.walls.find(x => x.id === selection.id)

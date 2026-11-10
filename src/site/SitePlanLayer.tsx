@@ -28,6 +28,8 @@ export interface SitePlanArgs {
   k: number
   /** Bring these house-frame points into view. */
   fitTo: (pts: Vec2[]) => void
+  /** The plan's sketch layer: a house-frame point snapped to it within `tol` metres, or null. */
+  snapHouse?: (p: Vec2, tol: number) => Vec2 | null
 }
 
 const fmtMm = (m: number) => Math.round(m * 1000).toString()
@@ -38,7 +40,7 @@ let pickedAt = 0
 /** Where a drawing's picture pixel lands in drawing units (y up). */
 const pictureToDrawing = (o: Overlay): Affine => [1 / o.pxPerUnit, 0, 0, -1 / o.pxPerUnit, 0, o.height]
 
-export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePlanArgs) {
+export function useSitePlan({ survey, placement, S, toHouse, k, fitTo, snapHouse }: SitePlanArgs) {
   const tool = useSiteStore(s => s.tool)
   const data = useSiteStore(s => s.data)
   const images = useSiteStore(s => s.images)
@@ -155,6 +157,9 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo }: SitePla
   const snapAny = (raw: Vec2, free: boolean) => {
     const a = snapLocal(raw, free, [...surveyPoints, ...pts])
     if (a.snapped) return a
+    // The sketch layer, drawn in the house's frame: its points, then onto its lines.
+    const onSketch = free ? null : snapHouse?.(fromSite(raw, placement, origin), SNAP_PX / k)
+    if (onSketch) return { p: houseToLocal(onSketch), snapped: true }
     // An easement runs along the boundary: its corners snap onto the line itself, from a little further off.
     if (!free && tool?.kind === 'trace' && tool.type === 'easement') {
       const on = snapToEdges(raw, survey.boundary, (SNAP_PX * 1.5) / k)

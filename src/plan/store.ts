@@ -19,7 +19,7 @@ import {
   type WallKind,
 } from './model'
 
-export type Tool = 'select' | 'wall' | 'retaining' | 'door' | 'window' | 'opening' | 'garage' | 'room' | 'area' | 'roof' | 'stair' | 'furniture' | 'move' | 'measure' | 'note'
+export type Tool = 'select' | 'wall' | 'retaining' | 'door' | 'window' | 'opening' | 'garage' | 'room' | 'area' | 'roof' | 'stair' | 'furniture' | 'move' | 'measure' | 'note' | 'sketch'
 
 /** Tools that put an opening in a wall, each of its own kind. */
 export const OPENING_TOOLS = ['door', 'window', 'opening', 'garage'] as const
@@ -33,6 +33,8 @@ export type Selection =
   | { type: 'roof'; id: string }
   | { type: 'stair'; id: string }
   | { type: 'furniture'; id: string }
+  /** A sketch line or a kept measurement (src/sketch): it shows on every level. */
+  | { type: 'sketch'; id: string }
 
 export interface OpeningDefaults {
   width: number
@@ -121,9 +123,12 @@ const HISTORY = 200
 const NUDGE_RUN_MS = 900
 let nudgeRun: { key: string; base: Plan; result: Plan; at: number } | null = null
 
-/** Undo and redo keep what is selected when it's still there (on this level), and drop the rest. */
+/** Undo and redo keep what is selected when it's still there (on this level, or the sketch, which is on every level), and drop the rest. */
 function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Selection[]; activeLevel: string }) {
-  const all = (st.selection ? [st.selection, ...st.extra] : []).filter(s => findSelection(plan, s.id)?.level === st.activeLevel)
+  const all = (st.selection ? [st.selection, ...st.extra] : []).filter(s => {
+    const f = findSelection(plan, s.id)
+    return !!f && (f.level === st.activeLevel || f.sel.type === 'sketch')
+  })
   return { selection: all[0] ?? null, extra: all.slice(1) }
 }
 

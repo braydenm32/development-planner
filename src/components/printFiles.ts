@@ -63,6 +63,8 @@ export interface PdfInput {
   up: 'house' | number
   paper: Paper
   pdfFurniture: boolean
+  /** Draw the sketch layer on the floor plans (off unless true). */
+  pdfSketch?: boolean
   /** Pages left out of the plan set (not the DA pack), by key. */
   leaveOut?: readonly string[]
 }
@@ -95,6 +97,7 @@ function planSetInput(p: PdfInput): PlanSetInput {
     up: p.up,
     paper: p.paper,
     furniture: p.pdfFurniture,
+    sketch: p.pdfSketch === true,
     leaveOut: p.leaveOut,
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),

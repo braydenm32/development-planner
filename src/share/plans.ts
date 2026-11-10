@@ -44,6 +44,8 @@ import { PdfDocument, textWidth, wrapText, type PdfPage, type RGB } from './pdfW
 import { sectionsOf } from '../sections/lines'
 import { drawingSheets, drawSectionMarks } from '../sections/sheets'
 import { roofEavesRL } from '../plan/roofline'
+import { sketchPolyline } from '../sketch/geometry'
+import { sketchOf } from '../sketch/ops'
 
 export type Paper = 'A3' | 'A4'
 
@@ -64,6 +66,8 @@ export interface PlanSetInput {
   paper: Paper
   /** Draw the furniture on the floor plans (on unless false). */
   furniture?: boolean
+  /** Draw the sketch layer (sketch lines and kept measurements) on every floor plan; off unless true. */
+  sketch?: boolean
   title: string
   date: string
   /** Site features to draw on the site plan (survey local frame), and the warnings about them. */
@@ -99,6 +103,8 @@ const STORM: RGB = [0.12, 0.44, 0.7]
 const CUT_TINT: RGB = [0.96, 0.82, 0.66]
 const FILL_TINT: RGB = [0.74, 0.85, 0.95]
 const FURNITURE: RGB = [0.42, 0.45, 0.5]
+/** The sketch layer, as on the screen: a calm slate blue. */
+const SKETCH: RGB = [0.35, 0.46, 0.66]
 const AREA_LABEL: Record<AreaKind, string> = { slab: 'Concrete slab', driveway: 'Driveway', deck: 'Deck', garden: 'Garden' }
 
 const mm = (m: number) => Math.round(m * 1000).toString()
@@ -800,6 +806,9 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
 
     for (const f of furniture) furnitureOnPlan(pg, view, f)
 
+    // The sketch layer, only when it's ticked: thin dashed lines, and kept measurements with their lengths.
+    if (input.sketch) sketchOnPlan(pg, view)
+
     retainingWalls(pg, view, levelRetaining, false)
 
     // Walls, with openings left open.
@@ -873,6 +882,25 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       color: GREY,
     })
     return view
+  }
+
+  /** Sketch lines thin and dashed, and kept measurements as dimension lines with ticks and lengths. */
+  function sketchOnPlan(pg: PdfPage, view: View) {
+    // A sketch line can run far past the house: kept inside the drawing, clear of the title strip.
+    pg.save().clip([[[area.x, area.y], [area.x + area.w, area.y], [area.x + area.w, area.y + area.h], [area.x, area.y + area.h]]])
+    for (const s of sketchOf(plan)) {
+      if (s.kind === 'measure') {
+        pg.lineWidth(0.15).stroke(GREY).dash([]).polyline(s.pts.map(view.P))
+        for (const p of s.pts) {
+          const q = view.P(p)
+          pg.line([q[0] - 0.8, q[1] - 0.8], [q[0] + 0.8, q[1] + 0.8])
+        }
+        s.pts.slice(1).forEach((p, i) => along(pg, view, s.pts[i], p, mm(Math.hypot(p[0] - s.pts[i][0], p[1] - s.pts[i][1])), 1.6, 2.2, GREY))
+        continue
+      }
+      pg.lineWidth(0.13).stroke(SKETCH).dash([1.5, 1]).polyline(sketchPolyline(s, 0.02).map(view.P))
+    }
+    pg.dash([]).restore()
   }
 
   /** A piece of furniture in thin lines, white so it hides what is under it, with its note (REF, DW). */
