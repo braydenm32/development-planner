@@ -56,7 +56,7 @@ export function SketchKey({ on, onChange }: { on: boolean; onChange: (on: boolea
   return (
     <label className="check sketch-key">
       <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-      <svg className="swatch" width="20" height="8" aria-hidden="true">
+      <svg className="sketch-key-swatch" width="20" height="8" aria-hidden="true">
         <path className="sketch-line" d="M1 4H19" />
       </svg>
       Sketch &amp; measurements

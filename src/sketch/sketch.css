@@ -82,7 +82,7 @@
 }
 
 /* The Key's switch, with a dashed swatch like the lines it shows. */
-.sketch-key .swatch {
+.sketch-key-swatch {
   flex: none;
   margin-right: 2px;
 }
