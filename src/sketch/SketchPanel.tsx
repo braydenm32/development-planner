@@ -1,18 +1,19 @@
 // The sketch layer's cards: the Sketch tool's options beside the rail, the card of a selected sketch
 // line or kept measurement (with "Turn into" for a line), and the Key's switch for the layer.
 
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { Select } from '../components/fields'
-import { AREA_KINDS, WALL_PRESETS, levelById, type Plan, type SketchItem } from '../plan/model'
+import { AREA_KINDS, SKETCH_COLOURS, SKETCH_NAME_MAX, WALL_PRESETS, levelById, type Plan, type SketchColour, type SketchItem } from '../plan/model'
 import { copySelected, deleteSelected } from '../plan/editActions'
 import { usePlan } from '../plan/store'
-import { clearSketchWithReview, makeArea, makeRetainingWall, makeWalls } from './actions'
+import { clearSketchWithReview, colourSketch, makeArea, makeRetainingWall, makeWalls } from './actions'
 import { sketchCentre, sketchClosed, sketchLength, sketchToOutline, sketchToSegments } from './geometry'
-import { sketchOf } from './ops'
+import { colourOf, sketchLegend, SKETCH_PAINT } from './colours'
+import { setSketchName, sketchOf } from './ops'
 import { useSketch, type SketchMode } from './store'
-import { SKETCH_NAMES } from './useSketchLayer'
+import { paintStyle, SKETCH_NAMES } from './useSketchLayer'
 import '../components/finishing.css'
 import './sketch.css'
 
@@ -25,9 +26,72 @@ const MODES: { id: SketchMode; label: string; help: string }[] = [
 
 const mm = (m: number) => `${Math.round(m * 1000)} mm`
 
+/** A colour's name for its swatch: "Red", or "Red: Old fence" once named. */
+const colourTitle = (plan: Plan | null, c: SketchColour) => {
+  const n = plan?.sketchNames?.[c]
+  return n ? `${SKETCH_PAINT[c].label}: ${n}` : SKETCH_PAINT[c].label
+}
+
+/** A row of colour swatches; `value` null when the lines chosen are in different colours. */
+export function SketchColours({ value, onChange, label }: { value: SketchColour | null; onChange: (c: SketchColour) => void; label: string }) {
+  const plan = usePlan(s => s.plan)
+  return (
+    <div className="sketch-colours" role="radiogroup" aria-label={label}>
+      {SKETCH_COLOURS.map(c => (
+        <button key={c} type="button" role="radio" aria-checked={value === c} className="sketch-colour" style={paintStyle(c)} title={colourTitle(plan, c)} aria-label={colourTitle(plan, c)} onClick={() => onChange(c)} />
+      ))}
+    </div>
+  )
+}
+
+/** One colour's name, saved when the field is left or Enter is pressed (one undo step, not one per letter). */
+function NameField({ colour, saved }: { colour: SketchColour; saved: string }) {
+  const [text, setText] = useState<string | null>(null)
+  const save = () => {
+    if (text !== null) usePlan.getState().commit(p => setSketchName(p, colour, text))
+    setText(null)
+  }
+  return (
+    <label className="sketch-name" style={paintStyle(colour)}>
+      <i aria-hidden="true" />
+      <input
+        type="text"
+        value={text ?? saved}
+        maxLength={SKETCH_NAME_MAX}
+        placeholder={`${SKETCH_PAINT[colour].label}: what it marks`}
+        aria-label={`What ${SKETCH_PAINT[colour].label.toLowerCase()} lines mark`}
+        onChange={e => setText(e.target.value)}
+        onBlur={save}
+        onKeyDown={e => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          if (e.key === 'Escape') setText(null)
+        }}
+      />
+    </label>
+  )
+}
+
+/** Naming what each colour stands for, shown in the Key and on the PDF plans. */
+function ColourNames() {
+  const names = usePlan(s => s.plan?.sketchNames)
+  const named = SKETCH_COLOURS.some(c => names?.[c])
+  return (
+    <details className="sketch-names-box" open={named || undefined}>
+      <summary className="small">Name the colours</summary>
+      <p className="muted small">Say what each colour marks, such as an old fence or a tree's reach. The names show in the Key and on the PDF plans.</p>
+      <div className="sketch-names">
+        {SKETCH_COLOURS.map(c => (
+          <NameField key={c} colour={c} saved={names?.[c] ?? ''} />
+        ))}
+      </div>
+    </details>
+  )
+}
+
 /** The Sketch tool's card: what a click draws, and the layer as a whole. */
 export function SketchOptions() {
   const mode = useSketch(s => s.mode)
+  const colour = useSketch(s => s.colour)
   const count = usePlan(s => (s.plan ? sketchOf(s.plan).length : 0))
   return (
     <div className="tool-options sketch-options">
@@ -41,6 +105,11 @@ export function SketchOptions() {
         </div>
         <p className="muted small">{MODES.find(m => m.id === mode)?.help}</p>
       </div>
+      <div className="sketch-colour-pick">
+        <span className="small">Colour</span>
+        <SketchColours value={colour} onChange={c => useSketch.getState().setColour(c)} label="Colour of new sketch lines" />
+      </div>
+      <ColourNames />
       <p className="muted small">Sketch lines change nothing: no rooms, costs or checks. Walls, areas and every other tool snap to their ends, middles, crossings and centres. Select one to turn it into walls, a retaining wall or an area.</p>
       <div className="row">
         <button className="secondary small" disabled={!count} onClick={() => void clearSketchWithReview()}>
@@ -52,15 +121,30 @@ export function SketchOptions() {
 }
 
 /** The Key's switch for the sketch layer: off hides the sketch lines and kept measurements, and nothing snaps to them. */
-export function SketchKey({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
+export function SketchKey({ on, onChange, plan }: { on: boolean; onChange: (on: boolean) => void; plan: Plan }) {
+  const legend = sketchLegend(plan)
   return (
-    <label className="check sketch-key">
-      <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-      <svg className="sketch-key-swatch" width="20" height="8" aria-hidden="true">
-        <path className="sketch-line" d="M1 4H19" />
-      </svg>
-      Sketch &amp; measurements
-    </label>
+    <>
+      <label className="check sketch-key">
+        <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
+        <svg className="sketch-key-swatch" width="20" height="8" aria-hidden="true">
+          <path className="sketch-line" d="M1 4H19" />
+        </svg>
+        Sketch &amp; measurements
+      </label>
+      {on && legend.length > 0 && (
+        <ul className="sketch-legend" aria-label="What the sketch colours mark">
+          {legend.map(l => (
+            <li key={l.colour} style={paintStyle(l.colour)} title={l.text}>
+              <svg width="20" height="8" aria-hidden="true">
+                <path className="sketch-line" d="M1 4H19" />
+              </svg>
+              <span>{l.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   )
 }
 
@@ -112,6 +196,12 @@ export function SketchSelection({ item, plan, survey, terrain }: { item: SketchI
           </>
         )}
       </dl>
+      {item.kind !== 'measure' && (
+        <div className="sketch-colour-pick">
+          <span className="small">Colour</span>
+          <SketchColours value={colourOf(item)} onChange={c => colourSketch([item.id], c)} label="Colour of this sketch line" />
+        </div>
+      )}
       <p className="muted small">{item.kind === 'measure' ? 'A measurement kept on the plan. It changes nothing; drag its ends to measure again.' : 'A sketch line changes nothing. Drag its points to reshape it; everything snaps to it.'}</p>
       {item.kind !== 'measure' && (
         <div className="sketch-turn">

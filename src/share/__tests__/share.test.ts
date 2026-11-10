@@ -7,7 +7,7 @@ import { garageFloor } from '../../plan/__tests__/fixtures'
 import { newFurniture } from '../../plan/furniture'
 import { sortedLevels, type Plan } from '../../plan/model'
 import { addFurniture, addLevelAbove, addRoof } from '../../plan/ops'
-import { addSketch, newSketch } from '../../sketch/ops'
+import { addSketch, newSketch, setSketchName } from '../../sketch/ops'
 import { levelOutlines } from '../../plan/roof'
 import { textWidth } from '../pdfWriter'
 import { planSetPdf, type PlanSetInput } from '../plans'
@@ -114,7 +114,7 @@ describe('PDF plans', () => {
     const ground = sortedLevels(plan)[0].id
     let sketched = addSketch(plan, newSketch(ground, 'circle', [[5, 5], [7, 5]]))
     sketched = addSketch(sketched, newSketch(ground, 'measure', [[0, -2], [4.321, -2]]))
-    const slate = '0.35 0.46 0.66 RG'
+    const slate = '0.18 0.44 0.86 RG'
     const on = text(planSetPdf({ ...input, plan: sketched, sketch: true }))
     const off = text(planSetPdf({ ...input, plan: sketched }))
     expect(on).toContain(slate)
@@ -123,6 +123,17 @@ describe('PDF plans', () => {
     expect(off).not.toContain('(4321) Tj')
     // Nothing else on the sheets changes with it.
     expect(off).toBe(text(planSetPdf(input)))
+  })
+
+  it('draws each sketch line in its colour, with what the named colours mark', () => {
+    const ground = sortedLevels(plan)[0].id
+    let sketched = addSketch(plan, newSketch(ground, 'line', [[0, 0], [6, 0]], 'red'))
+    sketched = addSketch(sketched, newSketch(ground, 'line', [[0, 2], [6, 2]], 'green'))
+    sketched = setSketchName(sketched, 'red', 'Old fence')
+    const pdf = text(planSetPdf({ ...input, plan: sketched, sketch: true }))
+    expect(pdf).toContain('0.85 0.21 0.21 RG')
+    expect(pdf).toContain('0.14 0.6 0.29 RG')
+    expect(pdf).toContain('(Old fence) Tj')
   })
 
   it('draws furniture on the floor plans in thin lines, unless turned off', () => {

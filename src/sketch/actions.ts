@@ -6,13 +6,14 @@ import type { Survey } from '../lib/survey'
 import type { Heightfield } from '../lib/terrain'
 import { floorToFirstWalls } from '../components/placeActions'
 import { wallsPlaced } from '../flow/store'
-import type { AreaKind, SketchItem } from '../plan/model'
+import type { AreaKind, SketchColour, SketchItem } from '../plan/model'
 import { undoToastFor } from '../plan/editActions'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining } from '../plan/retainingSession'
 import { usePlan } from '../plan/store'
 import { askReview, showToast } from '../safety/store'
 import { sketchToSegments } from './geometry'
-import { clearSketch, sketchCount, sketchOf, sketchToArea, sketchToWalls } from './ops'
+import { clearSketch, setSketchColour, sketchCount, sketchOf, sketchToArea, sketchToWalls } from './ops'
+import { useSketch } from './store'
 
 /** Walls along the sketch item on the level being shown, in the Wall tool's type; they're selected. */
 export function makeWalls(item: SketchItem, survey: Pick<Survey, 'origin'>, natural: Heightfield): number {
@@ -92,4 +93,11 @@ export async function clearSketchWithReview(): Promise<boolean> {
   if (st.selection?.type === 'sketch' || st.extra.some(s => s.type === 'sketch')) st.select(null)
   undoToastFor(`Sketch layer cleared (${what.toLowerCase()}).`)
   return true
+}
+
+/** Colour every sketch line among `ids`, as one undo step. */
+export function colourSketch(ids: string[], c: SketchColour) {
+  usePlan.getState().commit(p => setSketchColour(p, ids, c))
+  // The next line drawn takes it too, so a run of fence lines stays one colour.
+  useSketch.getState().setColour(c)
 }

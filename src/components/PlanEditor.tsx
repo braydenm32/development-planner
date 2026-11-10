@@ -2514,7 +2514,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             {contours?.any && <ContoursKey on={finishedOn} onChange={changeFinished} interval={contours.minor} />}
             {setbacksSwitch && <SetbacksKey on={setbacksSwitch.on} onChange={setbacksSwitch.onChange} />}
             {comments.key}
-            {(!!plan.sketch?.length || tool === 'sketch') && <SketchKey on={sketchShown} onChange={setSketchShown} />}
+            {(!!plan.sketch?.length || tool === 'sketch') && <SketchKey on={sketchShown} onChange={setSketchShown} plan={plan} />}
             <ShadowsKey />
           </GroundKey>
         </KeyChip>
