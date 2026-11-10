@@ -43,6 +43,12 @@ export interface Plan {
   sections?: SectionLine[]
   /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
   location?: SiteLocation
+  /**
+   * The sketch layer: construction lines, arcs, circles and curves, and the measurements kept on
+   * the plan (src/sketch). They change nothing else; drawing snaps to them. Missing in plans saved
+   * before them, which have none.
+   */
+  sketch?: SketchItem[]
   /** Ground painted with the Cut and Fill brushes (src/grading). Missing in plans without any. */
   grading?: Grading
   /**
@@ -63,6 +69,23 @@ export interface SectionLine {
   label: string
   a: Vec2
   b: Vec2
+}
+
+/**
+ * line: a chain of straight lines through `pts` (2 or more; closed when the last is on the first).
+ * arc: through three points, start, a point on the arc, and end.
+ * circle: its centre and a point on it.
+ * curve: a smooth curve through `pts` (2 or more).
+ * measure: a kept measurement, a dimension line through `pts` (2 or more, one per click).
+ */
+export type SketchKind = 'line' | 'arc' | 'circle' | 'curve' | 'measure'
+
+/** One thing on the sketch layer, on the level it was drawn on (it shows on every level). */
+export interface SketchItem {
+  id: string
+  level: string
+  kind: SketchKind
+  pts: Vec2[]
 }
 
 export interface Level {
@@ -415,6 +438,7 @@ export function normalizePlan(p: Plan): Plan {
     // Kept only when there are some, so older plans load exactly as they were saved.
     ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
+    ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem) } : {}),
   }))
 }
 
@@ -430,6 +454,22 @@ const isPoint = (v: unknown): v is Vec2 => Array.isArray(v) && v.length === 2 &&
 export const isSectionLine = (s: unknown): s is SectionLine => {
   const x = s as SectionLine | null
   return !!x && typeof x.id === 'string' && typeof x.label === 'string' && isPoint(x.a) && isPoint(x.b)
+}
+
+/** How many points each kind of sketch item has: an exact count, or at least `min`. */
+const SKETCH_POINTS: Record<SketchKind, { min: number; exact?: boolean }> = {
+  line: { min: 2 },
+  arc: { min: 3, exact: true },
+  circle: { min: 2, exact: true },
+  curve: { min: 2 },
+  measure: { min: 2 },
+}
+
+/** A sketch item that can be drawn: an id, a level, a known kind and the right number of points. */
+export const isSketchItem = (s: unknown): s is SketchItem => {
+  const x = s as SketchItem | null
+  const want = x && typeof x.kind === 'string' && Object.hasOwn(SKETCH_POINTS, x.kind) ? SKETCH_POINTS[x.kind] : undefined
+  return !!x && !!want && typeof x.id === 'string' && typeof x.level === 'string' && Array.isArray(x.pts) && x.pts.every(isPoint) && (want.exact ? x.pts.length === want.min : x.pts.length >= want.min)
 }
 
 export function earthworksOf(plan: Plan): Earthworks {

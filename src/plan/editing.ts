@@ -3,7 +3,7 @@
 
 import type { Vec2 } from '../lib/geom'
 import { furnitureName } from './furniture'
-import { newId, OPENING_NAMES, wallDir, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type Stair, type Wall } from './model'
+import { newId, OPENING_NAMES, wallDir, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type SketchItem, type Stair, type Wall } from './model'
 import { deleteSelection } from './ops'
 import type { Selection } from './store'
 
@@ -33,6 +33,7 @@ export function translateSelection(plan: Plan, sels: Selection[], delta: Vec2): 
   const roofs = idsOf(sels, 'roof')
   const stairs = idsOf(sels, 'stair')
   const furniture = idsOf(sels, 'furniture')
+  const sketch = idsOf(sels, 'sketch')
   const wallById = new Map(plan.walls.map(w => [w.id, w]))
   return {
     ...plan,
@@ -51,6 +52,7 @@ export function translateSelection(plan: Plan, sels: Selection[], delta: Vec2): 
     roofs: roofs.size ? plan.roofs.map(r => (roofs.has(r.id) ? { ...r, pts: r.pts.map(shift) } : r)) : plan.roofs,
     stairs: stairs.size ? plan.stairs.map(s => (stairs.has(s.id) ? { ...s, at: shift(s.at) } : s)) : plan.stairs,
     furniture: furniture.size ? plan.furniture.map(f => (furniture.has(f.id) ? { ...f, at: shift(f.at) } : f)) : plan.furniture,
+    ...(sketch.size && plan.sketch ? { sketch: plan.sketch.map(s => (sketch.has(s.id) ? { ...s, pts: s.pts.map(shift) } : s)) } : {}),
   }
 }
 
@@ -84,6 +86,8 @@ export function selectionName(plan: Plan, sels: Selection[]): string {
       const f = plan.furniture.find(x => x.id === s.id)
       return f ? furnitureName(f) : 'Furniture'
     }
+    case 'sketch':
+      return plan.sketch?.find(x => x.id === s.id)?.kind === 'measure' ? 'Measurement' : 'Sketch line'
   }
 }
 
@@ -97,6 +101,7 @@ export function selectionCounts(sels: Selection[]): string {
     roof: ['roof', 'roofs'],
     stair: ['stair', 'stairs'],
     furniture: ['piece of furniture', 'pieces of furniture'],
+    sketch: ['sketch line or measurement', 'sketch lines and measurements'],
   }
   return (Object.keys(names) as Selection['type'][])
     .map(t => ({ t, n: sels.filter(s => s.type === t).length }))
@@ -105,8 +110,11 @@ export function selectionCounts(sels: Selection[]): string {
     .join(', ')
 }
 
-/** Everything drawn on a level that can be picked. */
-export function allOnLevel(plan: Plan, level: string): Selection[] {
+/**
+ * Everything drawn on a level that can be picked, and the sketch layer, which shows on every level
+ * (left out with `sketch: false`, while it's hidden).
+ */
+export function allOnLevel(plan: Plan, level: string, { sketch = true }: { sketch?: boolean } = {}): Selection[] {
   const walls = plan.walls.filter(w => w.level === level)
   const ids = new Set(walls.map(w => w.id))
   return [
@@ -117,6 +125,7 @@ export function allOnLevel(plan: Plan, level: string): Selection[] {
     ...plan.roofs.filter(r => r.level === level).map(r => ({ type: 'roof' as const, id: r.id })),
     ...plan.stairs.filter(s => s.level === level).map(s => ({ type: 'stair' as const, id: s.id })),
     ...plan.furniture.filter(f => f.level === level).map(f => ({ type: 'furniture' as const, id: f.id })),
+    ...(sketch ? (plan.sketch ?? []).map(s => ({ type: 'sketch' as const, id: s.id })) : []),
   ]
 }
 
@@ -137,9 +146,9 @@ export function itemsInBox(plan: Plan, level: string, p: Vec2, q: Vec2): Selecti
  * Everything on a level whose points all satisfy `inside`: a wall's two ends, a door or window's
  * centre, a room's label, an area's or roof's corners, a stair or piece of furniture's middle.
  */
-export function itemsWhere(plan: Plan, level: string, inside: (v: Vec2) => boolean): Selection[] {
+export function itemsWhere(plan: Plan, level: string, inside: (v: Vec2) => boolean, opts: { sketch?: boolean } = {}): Selection[] {
   const walls = new Map(plan.walls.filter(w => w.level === level).map(w => [w.id, w]))
-  return allOnLevel(plan, level).filter(s => {
+  return allOnLevel(plan, level, opts).filter(s => {
     switch (s.type) {
       case 'wall': {
         const w = walls.get(s.id)!
@@ -159,6 +168,8 @@ export function itemsWhere(plan: Plan, level: string, inside: (v: Vec2) => boole
         return inside(plan.stairs.find(x => x.id === s.id)!.at)
       case 'furniture':
         return inside(plan.furniture.find(x => x.id === s.id)!.at)
+      case 'sketch':
+        return plan.sketch!.find(x => x.id === s.id)!.pts.every(inside)
     }
   })
 }
@@ -172,10 +183,11 @@ export interface Clip {
   roofs: Roof[]
   stairs: Stair[]
   furniture: Furniture[]
+  sketch: SketchItem[]
 }
 
 /** How many things a clip holds (doors and windows count with their walls). */
-export const clipCount = (c: Clip) => c.walls.length + c.rooms.length + c.areas.length + c.roofs.length + c.stairs.length + c.furniture.length
+export const clipCount = (c: Clip) => c.walls.length + c.rooms.length + c.areas.length + c.roofs.length + c.stairs.length + c.furniture.length + c.sketch.length
 
 /** What the selection holds that can be copied: walls with their doors and windows, rooms, areas, roofs, stairs and furniture. Null when none. */
 export function copySelection(plan: Plan, sels: Selection[]): Clip | null {
@@ -193,6 +205,7 @@ export function copySelection(plan: Plan, sels: Selection[]): Clip | null {
     roofs: pick(plan.roofs, 'roof'),
     stairs: pick(plan.stairs, 'stair'),
     furniture: pick(plan.furniture, 'furniture'),
+    sketch: pick(plan.sketch ?? [], 'sketch'),
   }
   return clipCount(clip) ? structuredClone(clip) : null
 }
@@ -208,6 +221,7 @@ export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2): 
   const roofs = clip.roofs.map(r => ({ ...r, id: newId('roof'), level, pts: r.pts.map(shift) }))
   const stairs = clip.stairs.map(s => ({ ...s, id: newId('stair'), level, at: shift(s.at) }))
   const furniture = clip.furniture.map(f => ({ ...f, id: newId('furniture'), level, at: shift(f.at) }))
+  const sketch = (clip.sketch ?? []).map(s => ({ ...s, id: newId('sketch'), level, pts: s.pts.map(shift) }))
   return {
     plan: {
       ...plan,
@@ -218,6 +232,7 @@ export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2): 
       roofs: [...plan.roofs, ...roofs],
       stairs: [...plan.stairs, ...stairs],
       furniture: [...plan.furniture, ...furniture],
+      ...(sketch.length ? { sketch: [...(plan.sketch ?? []), ...sketch] } : {}),
     },
     added: [
       ...walls.map(x => ({ type: 'wall' as const, id: x.id })),
@@ -226,6 +241,7 @@ export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2): 
       ...roofs.map(x => ({ type: 'roof' as const, id: x.id })),
       ...stairs.map(x => ({ type: 'stair' as const, id: x.id })),
       ...furniture.map(x => ({ type: 'furniture' as const, id: x.id })),
+      ...sketch.map(x => ({ type: 'sketch' as const, id: x.id })),
     ],
   }
 }

@@ -249,6 +249,16 @@ export function PdfFurnitureToggle({ on, onChange }: { on: boolean; onChange: (o
 }
 
 
+/** The sketch layer on the PDF floor plans: off unless ticked, since it's a drawing aid, not part of the design. */
+export function PdfSketchToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="check">
+      <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
+      Show sketch lines (and kept measurements) on the floor plans
+    </label>
+  )
+}
+
 /** What the plan set holds, behind "What's in it". */
 export function PlansContents() {
   return (

@@ -2,7 +2,7 @@
 // and Approvals › DA pack (src/da), which Plans points to.
 
 import { DaPackSection } from '../../da/DaPackSection'
-import { PaperSelect, PdfFurnitureToggle, PdfPlans, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
+import { PaperSelect, PdfFurnitureToggle, PdfPlans, PdfSketchToggle, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
 import { usePhone } from '../../phone/device'
 import { tabRoute } from '../../nav/route'
 import { navigate, useRouter } from '../../nav/router'
@@ -17,8 +17,13 @@ export function PlansTab() {
   const phone = usePhone()
   if (!d) return <Waiting />
   const { printPrefs, changePrintPrefs } = d
-  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture, leaveOut: printPrefs.leaveOut }
-  const furniture = <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
+  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture, pdfSketch: printPrefs.pdfSketch, leaveOut: printPrefs.leaveOut }
+  const furniture = (
+    <>
+      <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
+      {!!d.plan.sketch?.length && <PdfSketchToggle on={!!printPrefs.pdfSketch} onChange={pdfSketch => changePrintPrefs({ pdfSketch })} />}
+    </>
+  )
   // On a phone the plans and the project file go first, to the share sheet, then the 3D print.
   if (phone)
     return (

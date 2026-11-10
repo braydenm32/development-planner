@@ -123,11 +123,13 @@ export function tabRoute(from: Route, area: AreaId, tab: string): AppRoute {
 }
 
 /** What can be selected on the plan, with a retaining wall told apart from the house's walls. */
-export type SelectionKind = 'wall' | 'retaining' | 'opening' | 'room' | 'area' | 'roof' | 'stair' | 'furniture'
+export type SelectionKind = 'wall' | 'retaining' | 'opening' | 'room' | 'area' | 'roof' | 'stair' | 'furniture' | 'sketch'
 
 /** The tabs (other than Design › Plan, which edits everything) whose panels work on each kind. */
 const EDITED_IN: Partial<Record<SelectionKind, string[]>> = {
   retaining: ['earthworks/*'],
+  // The sketch is drawn and turned into walls in Design and Earthworks alike.
+  sketch: ['design/*', 'earthworks/*'],
   room: ['design/rooms'],
   area: ['design/rooms'],
   roof: ['design/roofs'],

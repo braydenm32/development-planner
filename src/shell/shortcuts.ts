@@ -24,6 +24,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['U'], what: 'Furniture' },
       { keys: ['L'], what: 'Measure: distance and height between two points' },
       { keys: ['E'], what: 'Note: a text label on the plan' },
+      { keys: ['K'], what: 'Sketch: construction lines, arcs, circles and curves to snap to' },
       { keys: ['X'], what: 'Section line: two clicks across the plan (Design › Sections)' },
       { keys: ['B'], what: 'Grading brush: paint ground to cut or fill to a level (Earthworks › Cut & fill); [ and ] change its size' },
       { keys: ['M'], what: 'Move the house on the block' },

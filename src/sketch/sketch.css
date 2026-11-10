@@ -1,0 +1,94 @@
+/* The sketch layer on the plan (src/sketch/useSketchLayer.tsx): thin dashed construction lines in a
+   calm slate blue, under the walls, and kept measurements as dimension lines over them. */
+
+:root {
+  --sketch: #5876a8;
+  --sketch-strong: #2f4f86;
+  --measure-kept: #4d5560;
+}
+
+.sketch-line {
+  fill: none;
+  stroke: var(--sketch);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.sketch-line.selected {
+  stroke: var(--sketch-strong);
+  stroke-width: 2;
+}
+
+.sketch-line.drawing {
+  stroke-width: 1.4;
+}
+
+.sketch-radius {
+  fill: none;
+  stroke: var(--sketch);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+
+.sketch-start {
+  fill: #fff;
+  stroke: var(--sketch-strong);
+  stroke-width: 1.5;
+}
+
+.sketch-centre {
+  fill: none;
+  stroke: var(--sketch-strong);
+  stroke-width: 1.4;
+  pointer-events: none;
+}
+
+.sketch-handle {
+  stroke: var(--sketch-strong);
+}
+
+.kept-measure {
+  pointer-events: none;
+}
+
+.kept-measure-line,
+.kept-measure-ticks {
+  fill: none;
+  stroke: var(--measure-kept);
+  stroke-width: 1;
+}
+
+.kept-measure-ticks {
+  stroke-width: 1.4;
+}
+
+.kept-measure.selected .kept-measure-line,
+.kept-measure.selected .kept-measure-ticks {
+  stroke: var(--sketch-strong);
+  stroke-width: 2;
+}
+
+.kept-measure-total {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--measure-kept);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* The Key's switch, with a dashed swatch like the lines it shows. */
+.sketch-key-swatch {
+  flex: none;
+  margin-right: 2px;
+}
+
+/* The Measure card's setting. */
+.measure-keep {
+  color: var(--muted);
+  font-size: 12px;
+}

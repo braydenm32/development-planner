@@ -23,7 +23,9 @@ export function useRouteSync() {
     const st = usePlan.getState()
     const plan = st.plan!
     const found = route.sel ? findSelection(plan, route.sel) : null
-    const level = found?.level ?? (route.level && plan.levels.some(l => l.id === route.level) ? route.level : st.activeLevel)
+    const routeLevel = route.level && plan.levels.some(l => l.id === route.level) ? route.level : st.activeLevel
+    // The sketch shows on every level, so it's picked on the level the address names.
+    const level = found && found.sel.type !== 'sketch' ? found.level : routeLevel
     if (level !== st.activeLevel) st.setActiveLevel(level)
     if ((usePlan.getState().selection?.id ?? null) !== (found?.sel.id ?? null)) st.select(found?.sel ?? null)
     applied.current = true

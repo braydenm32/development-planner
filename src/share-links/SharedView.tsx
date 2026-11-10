@@ -306,6 +306,7 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
                   viewKey={null}
                   showSetbacks={view.planSetbacks}
                   setbacksSwitch={{ on: view.planSetbacks, onChange: planSetbacks => setViewSettings(v => ({ ...v, planSetbacks })) }}
+                  shared
                 />
               ) : (
                 <Fragment key="3d">

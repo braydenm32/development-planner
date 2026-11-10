@@ -1261,6 +1261,11 @@ button.danger {
   cursor: pointer;
 }
 
+/* An open key sits over the questions pill beside it (src/flow/flow.css), so its last rows stay readable. */
+.plan-actions:has(.key-chip.open) {
+  z-index: 8;
+}
+
 .ground-key li.small {
   font-size: 11px;
 }
