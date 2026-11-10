@@ -64,7 +64,9 @@ import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
 import { RoofLineFields } from './RoofLineFields'
-import { SketchOptions, SketchSelection } from '../sketch/SketchPanel'
+import { SketchColours, SketchOptions, SketchSelection } from '../sketch/SketchPanel'
+import { colourSketch } from '../sketch/actions'
+import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
 import { roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 
@@ -293,10 +295,20 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
   // Several items: a short summary and what can be done with them together.
   if (extra.length > 0) {
     const all = [selection, ...extra]
+    // Sketch lines among them can be coloured together (kept measurements stay grey).
+    const ids = new Set(all.filter(x => x.type === 'sketch').map(x => x.id))
+    const lines = (plan.sketch ?? []).filter(x => ids.has(x.id) && x.kind !== 'measure')
+    const shared = lines.length && lines.every(x => colourOf(x) === colourOf(lines[0])) ? colourOf(lines[0]) : null
     return (
       <section className="selection multi">
         <h2>{all.length} items selected</h2>
         <p className="muted small">{selectionCounts(all)}</p>
+        {lines.length > 0 && (
+          <div className="sketch-colour-pick">
+            <span className="small">{lines.length === 1 ? 'Sketch line colour' : `Colour of the ${lines.length} sketch lines`}</span>
+            <SketchColours value={shared} onChange={c => colourSketch(lines.map(x => x.id), c)} label="Colour of the selected sketch lines" />
+          </div>
+        )}
         <p className="muted small">Drag one to move them together, or use the arrow keys (Shift for bigger steps). Esc clears the selection.</p>
         <div className="row">
           <button className="secondary" onClick={() => copySelected()}>

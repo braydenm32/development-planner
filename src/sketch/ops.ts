@@ -4,7 +4,7 @@
 
 import type { Vec2 } from '../lib/geom'
 import { addArea, addWall } from '../plan/ops'
-import { newId, type AreaKind, type Plan, type SketchItem, type SketchKind, type WallKind } from '../plan/model'
+import { newId, sketchNamesOf, SKETCH_NAME_MAX, type AreaKind, type Plan, type SketchColour, type SketchItem, type SketchKind, type WallKind } from '../plan/model'
 import { sketchToOutline, sketchToSegments } from './geometry'
 
 export const sketchOf = (plan: Plan): SketchItem[] => plan.sketch ?? []
@@ -16,8 +16,31 @@ export const keptMeasures = (plan: Plan): SketchItem[] => sketchOf(plan).filter(
 
 const copyPts = (pts: Vec2[]): Vec2[] => pts.map(p => [p[0], p[1]] as Vec2)
 
-export function newSketch(level: string, kind: SketchKind, pts: Vec2[]): SketchItem {
-  return { id: newId('sketch'), level, kind, pts: copyPts(pts) }
+/** A new sketch item; a sketch line takes `colour` (blue is left unsaid), a measurement never does. */
+export function newSketch(level: string, kind: SketchKind, pts: Vec2[], colour?: SketchColour): SketchItem {
+  return { id: newId('sketch'), level, kind, pts: copyPts(pts), ...(colour && colour !== 'blue' && kind !== 'measure' ? { colour } : {}) }
+}
+
+/** Colour the sketch lines among `ids` (kept measurements stay grey). */
+export function setSketchColour(plan: Plan, ids: Iterable<string>, colour: SketchColour): Plan {
+  const set = new Set(ids)
+  const touches = sketchOf(plan).some(s => set.has(s.id) && s.kind !== 'measure' && (s.colour ?? 'blue') !== colour)
+  if (!touches) return plan
+  return {
+    ...plan,
+    sketch: sketchOf(plan).map(s => {
+      if (!set.has(s.id) || s.kind === 'measure') return s
+      const { colour: _, ...rest } = s
+      return colour === 'blue' ? rest : { ...rest, colour }
+    }),
+  }
+}
+
+/** Name what a colour stands for ("Old fence"); an empty name takes the name away. */
+export function setSketchName(plan: Plan, colour: SketchColour, name: string): Plan {
+  const names = sketchNamesOf({ ...plan.sketchNames, [colour]: name.slice(0, SKETCH_NAME_MAX) })
+  if ((plan.sketchNames?.[colour] ?? '') === (names?.[colour] ?? '')) return plan
+  return { ...plan, sketchNames: names }
 }
 
 export function addSketch(plan: Plan, item: SketchItem): Plan {

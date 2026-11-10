@@ -49,6 +49,11 @@ export interface Plan {
    * before them, which have none.
    */
   sketch?: SketchItem[]
+  /**
+   * What each sketch colour stands for, as the person named it ("Old fence"): shown in the Key and
+   * on the PDF plans. Missing, or missing a colour, when it hasn't been named.
+   */
+  sketchNames?: Partial<Record<SketchColour, string>>
   /** Ground painted with the Cut and Fill brushes (src/grading). Missing in plans without any. */
   grading?: Grading
   /**
@@ -80,12 +85,19 @@ export interface SectionLine {
  */
 export type SketchKind = 'line' | 'arc' | 'circle' | 'curve' | 'measure'
 
+/** The colours a sketch line can be, to tell kinds of feature apart (src/sketch/colours). */
+export const SKETCH_COLOURS = ['blue', 'red', 'green', 'purple', 'amber'] as const
+export type SketchColour = (typeof SKETCH_COLOURS)[number]
+export const isSketchColour = (c: unknown): c is SketchColour => typeof c === 'string' && (SKETCH_COLOURS as readonly string[]).includes(c)
+
 /** One thing on the sketch layer, on the level it was drawn on (it shows on every level). */
 export interface SketchItem {
   id: string
   level: string
   kind: SketchKind
   pts: Vec2[]
+  /** A sketch line's colour; missing is blue. Kept measurements have none (they're grey). */
+  colour?: SketchColour
 }
 
 export interface Level {
@@ -438,7 +450,8 @@ export function normalizePlan(p: Plan): Plan {
     // Kept only when there are some, so older plans load exactly as they were saved.
     ...(Array.isArray(p.sections) ? { sections: p.sections.filter(isSectionLine) } : {}),
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
-    ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem) } : {}),
+    ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
+    ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
   }))
 }
 
@@ -470,6 +483,27 @@ export const isSketchItem = (s: unknown): s is SketchItem => {
   const x = s as SketchItem | null
   const want = x && typeof x.kind === 'string' && Object.hasOwn(SKETCH_POINTS, x.kind) ? SKETCH_POINTS[x.kind] : undefined
   return !!x && !!want && typeof x.id === 'string' && typeof x.level === 'string' && Array.isArray(x.pts) && x.pts.every(isPoint) && (want.exact ? x.pts.length === want.min : x.pts.length >= want.min)
+}
+
+/** A sketch item with its colour kept only when it's one there is (and never on a measurement). */
+function sketchColourField(s: SketchItem): SketchItem {
+  if (s.colour === undefined || (isSketchColour(s.colour) && s.kind !== 'measure')) return s
+  const { colour: _, ...rest } = s
+  return rest
+}
+
+/** Longest name a sketch colour can have. */
+export const SKETCH_NAME_MAX = 40
+
+/** The names given to sketch colours, keeping only real colours with a name; undefined when there are none. */
+export function sketchNamesOf(v: unknown): Partial<Record<SketchColour, string>> | undefined {
+  if (!v || typeof v !== 'object') return undefined
+  const out: Partial<Record<SketchColour, string>> = {}
+  for (const c of SKETCH_COLOURS) {
+    const n = (v as Record<string, unknown>)[c]
+    if (typeof n === 'string' && n.trim()) out[c] = n.trim().slice(0, SKETCH_NAME_MAX)
+  }
+  return Object.keys(out).length ? out : undefined
 }
 
 export function earthworksOf(plan: Plan): Earthworks {

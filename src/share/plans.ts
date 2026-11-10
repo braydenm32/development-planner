@@ -46,6 +46,7 @@ import { drawingSheets, drawSectionMarks } from '../sections/sheets'
 import { roofEavesRL } from '../plan/roofline'
 import { sketchPolyline } from '../sketch/geometry'
 import { sketchOf } from '../sketch/ops'
+import { colourOf, sketchLegend, SKETCH_PAINT } from '../sketch/colours'
 
 export type Paper = 'A3' | 'A4'
 
@@ -103,8 +104,6 @@ const STORM: RGB = [0.12, 0.44, 0.7]
 const CUT_TINT: RGB = [0.96, 0.82, 0.66]
 const FILL_TINT: RGB = [0.74, 0.85, 0.95]
 const FURNITURE: RGB = [0.42, 0.45, 0.5]
-/** The sketch layer, as on the screen: a calm slate blue. */
-const SKETCH: RGB = [0.35, 0.46, 0.66]
 const AREA_LABEL: Record<AreaKind, string> = { slab: 'Concrete slab', driveway: 'Driveway', deck: 'Deck', garden: 'Garden' }
 
 const mm = (m: number) => Math.round(m * 1000).toString()
@@ -898,8 +897,15 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
         s.pts.slice(1).forEach((p, i) => along(pg, view, s.pts[i], p, mm(Math.hypot(p[0] - s.pts[i][0], p[1] - s.pts[i][1])), 1.6, 2.2, GREY))
         continue
       }
-      pg.lineWidth(0.13).stroke(SKETCH).dash([1.5, 1]).polyline(sketchPolyline(s, 0.02).map(view.P))
+      // In its own colour, as on the screen.
+      pg.lineWidth(0.18).stroke(SKETCH_PAINT[colourOf(s)].rgb).dash([1.5, 1]).polyline(sketchPolyline(s, 0.02).map(view.P))
     }
+    // What each colour marks, under the level note, when the colours are named (or more than one is used).
+    sketchLegend(plan).forEach((l, i) => {
+      const y = area.y + area.h - 6.5 - i * 3.6
+      pg.lineWidth(0.3).stroke(SKETCH_PAINT[l.colour].rgb).dash([1.5, 1]).line([area.x + 2, y + 0.8], [area.x + 8, y + 0.8])
+      pg.dash([]).text(area.x + 10, y, l.text, { size: 2.5, color: GREY })
+    })
     pg.dash([]).restore()
   }
 

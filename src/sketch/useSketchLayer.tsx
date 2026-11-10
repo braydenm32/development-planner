@@ -3,13 +3,14 @@
 // picking and dragging either. PlanEditor hands this the pointer, clicks and keys and renders what
 // it returns. Nothing here changes anything but the plan's `sketch` list.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { Vec2 } from '../lib/geom'
-import type { Plan, SketchItem } from '../plan/model'
+import type { Plan, SketchColour, SketchItem } from '../plan/model'
 import type { SnapResult } from '../plan/snap'
 import { usePlan, type Tool } from '../plan/store'
 import { DRAW_SAGITTA, distanceToSketch, sketchCentre, sketchGuides, sketchPolyline, NO_GUIDES, type SnapGuides } from './geometry'
 import { addSketch, moveSketch, moveSketchPoint, newSketch, sketchOf } from './ops'
+import { colourOf, SKETCH_PAINT } from './colours'
 import { useSketch, type SketchMode } from './store'
 import './sketch.css'
 
@@ -53,6 +54,9 @@ export const SKETCH_NAMES: Record<SketchItem['kind'], string> = { line: 'Sketch 
 
 const fmtMm = (m: number) => Math.round(m * 1000).toString()
 const dist = (a: Vec2, b: Vec2) => Math.hypot(b[0] - a[0], b[1] - a[1])
+/** The CSS colours a sketch line is drawn in (sketch.css reads them). */
+export const paintStyle = (c: SketchColour) => ({ '--sk': SKETCH_PAINT[c].hex, '--sk-strong': SKETCH_PAINT[c].strong }) as CSSProperties
+
 /** A click this close to the last point (m) is the second click of a double-click, not a new point. */
 const SAME_POINT = 0.005
 
@@ -88,6 +92,7 @@ type SketchDrag = { id: string; index: number; both: boolean } | { id: string; f
 export function useSketchLayer(a: SketchArgs) {
   const { plan, level, tool, shown, S, k, snapAt, cursor, viewOnly, tag, dim } = a
   const mode = useSketch(s => s.mode)
+  const colour = useSketch(s => s.colour)
   const selection = usePlan(s => s.selection)
   const extra = usePlan(s => s.extra)
   const active = !viewOnly && tool === 'sketch'
@@ -119,7 +124,7 @@ export function useSketchLayer(a: SketchArgs) {
     const closes = drawn.length > 2 && dist(drawn[0], p) < 1e-3
     const at: Vec2 = closes ? [drawn[0][0], drawn[0][1]] : p
     if (!growing) {
-      const item = newSketch(level, mode === 'curve' ? 'curve' : 'line', [drawn[0], at])
+      const item = newSketch(level, mode === 'curve' ? 'curve' : 'line', [drawn[0], at], colour)
       st.commit(pl => addSketch(pl, item))
       update({ pts: [], id: item.id, typed: '' })
     } else {
@@ -136,7 +141,7 @@ export function useSketchLayer(a: SketchArgs) {
     if (mode === 'circle') {
       if (!draft.pts.length) return update({ pts: [p], typed: '' })
       if (dist(draft.pts[0], p) < 0.01) return
-      st.commit(pl => addSketch(pl, newSketch(level, 'circle', [draft.pts[0], p])))
+      st.commit(pl => addSketch(pl, newSketch(level, 'circle', [draft.pts[0], p], colour)))
       return finish()
     }
     // An arc: its start, its end, then a point on it for the bulge.
@@ -145,7 +150,7 @@ export function useSketchLayer(a: SketchArgs) {
       return update({ pts: [...draft.pts, p], typed: '' })
     }
     const [s, e] = draft.pts
-    st.commit(pl => addSketch(pl, newSketch(level, 'arc', [s, p, e])))
+    st.commit(pl => addSketch(pl, newSketch(level, 'arc', [s, p, e], colour)))
     finish()
   }
 
@@ -289,7 +294,7 @@ export function useSketchLayer(a: SketchArgs) {
   const under: ReactNode = shown ? (
     <g className="sketch-layer">
       {lines.map(s => (
-        <path key={s.id} className={`sketch-line${isSel(s.id) ? ' selected' : ''}`} d={path(sketchPolyline(s, sagitta))} />
+        <path key={s.id} className={`sketch-line${isSel(s.id) ? ' selected' : ''}`} style={paintStyle(colourOf(s))} d={path(sketchPolyline(s, sagitta))} />
       ))}
     </g>
   ) : null
@@ -329,7 +334,7 @@ export function useSketchLayer(a: SketchArgs) {
       if (!on || dist(centre, on) < 0.01) return null
       const r = dist(centre, on)
       return (
-        <g className="sketch-draft">
+        <g className="sketch-draft" style={paintStyle(colour)}>
           <path className="sketch-line drawing" d={path(sketchPolyline({ kind: 'circle', pts: [centre, on] }, sagitta))} />
           <path className="sketch-radius" d={path([centre, on])} />
           {tag(on, [draft.typed ? `R ${draft.typed}▌ mm` : `R ${fmtMm(r)} mm`, `⌀ ${fmtMm(2 * r)} mm`])}
@@ -340,7 +345,7 @@ export function useSketchLayer(a: SketchArgs) {
       if (!draft.pts.length) return null
       if (draft.pts.length === 1) {
         return (
-          <g className="sketch-draft">
+          <g className="sketch-draft" style={paintStyle(colour)}>
             <path className="sketch-line drawing" d={path([draft.pts[0], c])} />
             {tag(c, [`${fmtMm(dist(draft.pts[0], c))} mm across`, 'Click where the arc ends'])}
           </g>
@@ -350,7 +355,7 @@ export function useSketchLayer(a: SketchArgs) {
       const arc = { kind: 'arc' as const, pts: [s, c, e] }
       const centre = sketchCentre(arc)
       return (
-        <g className="sketch-draft">
+        <g className="sketch-draft" style={paintStyle(colour)}>
           <path className="sketch-line drawing" d={path(sketchPolyline(arc, sagitta))} />
           {tag(c, [centre ? `R ${fmtMm(centre.r)} mm` : 'Straight', 'Click for the bulge'])}
         </g>
@@ -364,7 +369,7 @@ export function useSketchLayer(a: SketchArgs) {
     const len = dist(last, to)
     const angle = ((Math.atan2(to[1] - last[1], to[0] - last[0]) * 180) / Math.PI + 360) % 360
     return (
-      <g className="sketch-draft">
+      <g className="sketch-draft" style={paintStyle(colour)}>
         <path className="sketch-line drawing" d={path(run)} />
         {draft.pts.length > 0 && !growing && <circle className="sketch-start" cx={S(last)[0]} cy={S(last)[1]} r={3} />}
         {tag(to, [draft.typed ? `${draft.typed}▌ mm` : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`])}
@@ -376,14 +381,14 @@ export function useSketchLayer(a: SketchArgs) {
     const c = sketchCentre(it)
     if (!c) return null
     const [x, y] = S(c.c)
-    return <path key={`${it.id}-c`} className="sketch-centre" d={`M${x - 4} ${y}H${x + 4}M${x} ${y - 4}V${y + 4}`} />
+    return <path key={`${it.id}-c`} className="sketch-centre" style={paintStyle(colourOf(it))} d={`M${x - 4} ${y}H${x + 4}M${x} ${y - 4}V${y + 4}`} />
   }
 
   const over: ReactNode = (
     <g className="sketch-over">
       {shown && measures.map(measureMark)}
       {shown && lines.filter(s => isSel(s.id) && (s.kind === 'arc' || s.kind === 'circle')).map(centreMark)}
-      {single && handlesShow && single.pts.map((p, i) => <circle key={i} className="handle sketch-handle" cx={S(p)[0]} cy={S(p)[1]} r={5} />)}
+      {single && handlesShow && single.pts.map((p, i) => <circle key={i} className="handle sketch-handle" style={single.kind === 'measure' ? undefined : paintStyle(colourOf(single))} cx={S(p)[0]} cy={S(p)[1]} r={5} />)}
       {preview}
     </g>
   )
