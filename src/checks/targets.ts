@@ -6,7 +6,7 @@
 import type { Vec2 } from '../lib/geom'
 import type { Target } from '../costs/estimate'
 import type { AreaId } from '../nav/menu'
-import type { Edge, Measures } from './measure'
+import type { EarthSpot, Edge, Measures } from './measure'
 import { isDriveCheck } from './crossing'
 import { topicOf } from './topics'
 import { srzRadius, tpzRadius } from './trees'
@@ -44,6 +44,33 @@ function closestEdge(es: Edge[]): Edge | null {
 function edgeTarget(e: Edge | null | undefined): CheckTarget | null {
   if (!e) return null
   return { at: e.near ? mid(e.near[0], e.near[1]) : mid(e.a, e.b), lines: [[e.a, e.b]], gaps: e.near ? [e.near] : [], circles: [], plan: null }
+}
+
+/** What to point out for a spot on the changed ground: the slab, driveway or retaining wall that makes it, or the cut or fill. */
+function spotPlan(spot: EarthSpot): Target {
+  const src = spot.source
+  if (src?.areaId) return { kind: 'areas', ids: [src.areaId] }
+  if (src?.wallId) return { kind: 'retaining', ids: [src.wallId] }
+  return { kind: spot.dz >= 0 ? 'fill' : 'cut' }
+}
+
+/** The worst spot an earthworks check measures, if it knows one. */
+function earthSpotOf(r: CheckResult, ms: Measures): { spot: EarthSpot; edge?: Edge; boundary?: Vec2 } | null {
+  const e = ms.earth
+  if (!e) return null
+  if (r.id === 'hc-works-boundary' && e.closestAt) return { spot: e.closestAt, edge: ms.edges[e.closestAt.edge], boundary: e.closestAt.boundary }
+  if (r.id === 'hc-fill' && e.fillOutsideAt) return { spot: e.fillOutsideAt }
+  if (r.id === 'hc-cut') {
+    const worst = [
+      { c: e.cutNear, at: e.cutNearAt, limit: 1 },
+      { c: e.cutMid, at: e.cutMidAt, limit: 2 },
+      { c: e.cutFar, at: e.cutFarAt, limit: 3 },
+    ]
+      .filter(b => b.at)
+      .sort((p, q) => q.c / q.limit - p.c / p.limit)[0]
+    return worst?.at ? { spot: worst.at } : null
+  }
+  return null
 }
 
 const SETBACK_EDGES: Record<string, (ms: Measures) => Edge[]> = {
@@ -92,8 +119,15 @@ export function targetOf(r: CheckResult, ms: Measures): CheckTarget | null {
   }
   if (r.status === 'incomplete' || r.status === 'info') return null
   switch (topicOf(r.id)) {
-    case 'earth':
+    case 'earth': {
+      // Pinned where the check's worst spot is, with the boundary it's measured to.
+      const hit = r.status === 'pass' ? null : earthSpotOf(r, ms)
+      if (hit) {
+        const { spot, edge, boundary } = hit
+        return { at: spot.at, lines: edge ? [[edge.a, edge.b]] : [], gaps: boundary ? [[spot.at, boundary]] : [], circles: [], plan: spotPlan(spot) }
+      }
       return atHouse({ kind: r.id === 'hc-fill' ? 'fill' : 'cut' })
+    }
     case 'size':
     case 'sun':
       return atHouse({ kind: 'ground' })
@@ -115,7 +149,8 @@ const go = (area: AreaId, tab: string, where: string): FixLink => ({ area, tab, 
 export function fixOf(r: CheckResult): FixLink | null {
   if (r.id === 'hc-height' || r.id === 'da-height') return go('design', 'roofs', 'Design › Roofs')
   if (r.id === 'hc-landscaped' || r.id === 'da-landscaped' || r.id === 'da-coverage') return go('design', 'rooms', 'Design › Rooms & areas')
-  if (r.walls || r.id.endsWith('-retaining')) return go('earthworks', 'retaining-walls', 'Earthworks › Retaining walls')
+  if (r.fixAt === 'driveway') return go('earthworks', 'driveway', 'Earthworks › Driveway')
+  if (r.walls || r.fixAt === 'retaining-walls' || r.id.endsWith('-retaining')) return go('earthworks', 'retaining-walls', 'Earthworks › Retaining walls')
   switch (topicOf(r.id)) {
     case 'land':
       return go('site', 'map', 'Site › Map')

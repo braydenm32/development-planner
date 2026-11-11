@@ -261,7 +261,7 @@ describe('Housing Code (CDC)', () => {
     const front = run(near({ frontEdge: 0 }), [], true)
     expect(front.ms.earth!.sideRearOnly).toBe(true)
     expect(byId(front.cdc, 'hc-works-boundary').status).toBe('pass')
-    expect(byId(front.cdc, 'hc-works-boundary').value).toMatch(/side or rear/)
+    expect(byId(front.cdc, 'hc-works-boundary').value).toMatch(/from the (west|east) side boundary/)
     // No street side yet, or a battle-axe lot: every boundary counts, and the note says why.
     const unset = byId(run(near({}), [], true).cdc, 'hc-works-boundary')
     expect(unset.status).toBe('fail')

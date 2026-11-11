@@ -3,6 +3,7 @@
 // suggested walls and how it all works folded away underneath. On a phone the peek shows the numbers.
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { sourceWords, worksNearBoundary } from '../checks/earthSources'
 import { useCheckTrees } from '../checks/siteTrees'
 import { checksFor } from '../checks/useChecks'
 import { Select } from '../components/fields'
@@ -43,6 +44,8 @@ export function CutFillPanel({ plan, survey, terrain, earth }: Props) {
   const r = earth?.result
   const has = !!r && !!earth && earth.platforms.length > 0
   const crossed = has ? crossedBoundaries(r, survey) : null
+  // What runs into the boundary: one line for each part of the design, so it's clear what to change.
+  const culprits = useMemo(() => (crossed && earth ? worksNearBoundary(plan, earth.prep, earth.result, survey.boundary, earth.prep.natural.cell * 1.5) : []), [crossed, plan, earth, survey.boundary])
   return (
     <>
       {has ? (
@@ -51,9 +54,19 @@ export function CutFillPanel({ plan, survey, terrain, earth }: Props) {
           <DemFlag what="these volumes" />
           <BalanceBlock plan={plan} survey={survey} terrain={terrain} earth={earth} />
           {crossed && (
-            <p className="notice small">
-              Earth slopes (batters) cross {crossed}. Add a suggested retaining wall (below), draw one there with the Retaining wall tool, or move the house.
-            </p>
+            <div className="notice small">
+              <p>Earth slopes (batters) cross {crossed}. Add a suggested retaining wall (below), draw one there with the Retaining wall tool, or move the house.</p>
+              {culprits.length > 0 && (
+                <>
+                  <p>What reaches the boundary:</p>
+                  <ul className="cf-culprits">
+                    {culprits.map(c => (
+                      <li key={c.source.id}>{sourceWords(c.source).replace(/^the /, 'The ')}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           )}
           <ImpliedWalls survey={survey} earth={earth} />
         </>

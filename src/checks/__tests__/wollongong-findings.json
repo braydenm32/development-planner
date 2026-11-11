@@ -337,7 +337,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -769,7 +769,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -1201,7 +1201,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -1634,7 +1634,7 @@
     "status": "pass",
     "value": "0.92 m at most",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -1645,7 +1645,7 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "pass",
-    "value": "Closest 1.92 m from a side or rear boundary",
+    "value": "Closest 1.92 m from the west side boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -2066,7 +2066,7 @@
     "status": "pass",
     "value": "0.92 m at most",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -2077,8 +2077,9 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from a side or rear boundary",
+    "value": "Closest 0.00 m from the west side boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "note": "There the ground is cut 0.78 m by the cut batter of the Ground floor's slab pad. Within 1 m of a boundary: the Ground floor's slab pad (0.00 m from the west side boundary); the slab “Patio” (0.13 m from the east side boundary).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -2512,7 +2513,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -2957,7 +2958,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -3397,7 +3398,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -3829,7 +3830,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -4273,7 +4274,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -4732,7 +4733,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -5171,7 +5172,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -5615,7 +5616,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6054,7 +6055,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6478,7 +6479,7 @@
     "status": "fail",
     "value": "2.29 m within 1 m of the boundary, 2.02 m at 1 to 1.5 m, 1.72 m beyond",
     "limit": "1 m, 2 m and 3 m",
-    "note": "Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).",
+    "note": "There the ground is cut 2.29 m by the level ground beside a retaining wall. Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6491,7 +6492,7 @@
     "status": "pass",
     "value": "0.92 m at most",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6502,13 +6503,15 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from a side or rear boundary",
+    "value": "Closest 0.00 m from the west side boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "note": "There the ground is cut 2.18 m by the level ground beside a retaining wall.",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
      "asAt": "NSW legislation, as at 29 Aug 2025"
-    }
+    },
+    "fixAt": "retaining-walls"
    },
    {
     "id": "hc-retaining",
@@ -7012,7 +7015,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -7588,7 +7591,7 @@
     "status": "pass",
     "value": "0.92 m at most",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -7599,8 +7602,9 @@
     "id": "hc-works-boundary",
     "title": "Earthworks clear of the boundary",
     "status": "fail",
-    "value": "Closest 0.00 m from a side or rear boundary",
+    "value": "Closest 0.00 m from the west side boundary",
     "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "note": "There the ground is cut 0.78 m by the cut batter of the Ground floor's slab pad. Within 1 m of a boundary: the Ground floor's slab pad (0.00 m from the west side boundary); the slab “Patio” (0.13 m from the east side boundary).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -8091,7 +8095,7 @@
     "status": "incomplete",
     "value": "Draw the outside walls as a closed outline to check this.",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -8523,7 +8527,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -8954,7 +8958,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -9381,7 +9385,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -9825,7 +9829,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -10283,7 +10287,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -10715,7 +10719,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -11161,7 +11165,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -11607,7 +11611,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -12040,7 +12044,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -12472,7 +12476,7 @@
     "status": "pass",
     "value": "No cut and fill",
     "limit": "1 m above existing ground",
-    "note": "No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
+    "note": "No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",

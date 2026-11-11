@@ -51,6 +51,8 @@ export interface CheckResult {
   removable?: boolean
   /** The retaining walls this row is about (the ones over the limit, say), so Checks can point them out on the plan. */
   walls?: string[]
+  /** Where it's fixed when that isn't its topic's usual place: an earthworks row whose worst spot is a driveway's, or a retaining wall's level ground. */
+  fixAt?: 'driveway' | 'retaining-walls'
 }
 
 /** Facts about the block the survey doesn't hold, kept with the plan. */

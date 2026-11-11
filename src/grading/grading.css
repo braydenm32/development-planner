@@ -426,3 +426,13 @@
 .check-group .drive-from-slab {
   margin: 0 0 8px 14px;
 }
+
+/* What runs into the boundary, under the batters warning. */
+.notice .cf-culprits {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.notice p + p {
+  margin-top: 4px;
+}

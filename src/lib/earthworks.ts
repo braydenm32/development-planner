@@ -451,10 +451,19 @@ export function setsGroundAt(prep: PreparedEarthworks, id: string, p: Vec2): boo
 }
 
 /**
- * Finished level at node k with every platform (except fixed ones) raised by `shift`, and
- * without the ramps if `noRamps`.
+ * What set the finished ground at a node: the platform (by its index in prep.platforms) and whether
+ * the node is on its level ground or one of its batters. Null where the ground is left natural.
  */
-function designAt(prep: PreparedEarthworks, k: number, shift: number, noRamps = false): number {
+export interface GroundSource {
+  platform: number
+  how: 'level' | 'cut' | 'fill'
+}
+
+/**
+ * Finished level at node k with every platform (except fixed ones) raised by `shift`, and
+ * without the ramps if `noRamps`. With `why`, also what set it there (see GroundSource).
+ */
+function designAt(prep: PreparedEarthworks, k: number, shift: number, noRamps = false, why?: { source: GroundSource | null }): number {
   // Worked out just past the boundary too, so the site's edge follows the finished
   // ground; only nodes on the site count towards the volumes.
   const g = prep.natural.z[k]
@@ -466,14 +475,42 @@ function designAt(prep: PreparedEarthworks, k: number, shift: number, noRamps = 
   // the batters of the pad and benches stop at its edge.
   let firmest = Infinity
   if (prep.anySoft) for (const p of prep.platforms) if (p.dist[k] === 0 && !(noRamps && p.isRamp)) firmest = Math.min(firmest, p.rank)
-  for (const p of prep.platforms) {
+  let cutBy = -1
+  let fillBy = -1
+  for (let n = 0; n < prep.platforms.length; n++) {
+    const p = prep.platforms[n]
     const d = p.dist[k]
     if (d === Infinity || p.rank > firmest || (firmest === SOFTEST && p.rank < SOFTEST) || (noRamps && p.isRamp)) continue
     const level = p.levels && p.follow ? p.levels[k] + shift * p.follow[k] : p.fixed ? p.level : p.level + shift
-    if (p.cut) cut = Math.min(cut, d === 0 ? level : level + d / cutBatter)
-    if (p.fill) fill = Math.max(fill, d === 0 ? level : level - d / fillBatter)
+    if (p.cut) {
+      const c = d === 0 ? level : level + d / cutBatter
+      if (c < cut) {
+        cut = c
+        cutBy = n
+      }
+    }
+    if (p.fill) {
+      const f = d === 0 ? level : level - d / fillBatter
+      if (f > fill) {
+        fill = f
+        fillBy = n
+      }
+    }
   }
-  return Math.min(Math.max(g, fill), cut)
+  const z = Math.min(Math.max(g, fill), cut)
+  if (why) {
+    // The lowest cut wins over everything; otherwise the highest fill, where it's above the ground.
+    const by = cut < Math.max(g, fill) ? cutBy : fill > g ? fillBy : -1
+    why.source = by < 0 ? null : { platform: by, how: prep.platforms[by].dist[k] === 0 ? 'level' : by === cutBy && cut < Math.max(g, fill) ? 'cut' : 'fill' }
+  }
+  return z
+}
+
+/** What set the finished ground at node k (no balancing shift): a platform's level ground or batter, or null for natural ground. */
+export function groundSourceAt(prep: PreparedEarthworks, k: number, shift = 0): GroundSource | null {
+  const why: { source: GroundSource | null } = { source: null }
+  designAt(prep, k, shift, false, why)
+  return why.source
 }
 
 function volumes(prep: PreparedEarthworks, shift: number): { cut: number; fill: number } {
