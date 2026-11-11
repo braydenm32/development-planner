@@ -5,7 +5,8 @@
 // is legal advice.
 
 import type { Vec2 } from '../lib/geom'
-import type { Edge, Measures } from './measure'
+import type { EarthNumbers, EarthSpot, Edge, Measures } from './measure'
+import { sourceWords } from './earthSources'
 import { needsEngineer } from './engineer'
 import { encroachment, isMajor, MINOR_ENCROACHMENT, treeTitles } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
@@ -486,7 +487,7 @@ function housingCode(ms: Measures): CheckResult[] {
     status: !e ? 'pass' : e.cutNear <= 1 + 1e-6 && e.cutMid <= 2 + 1e-6 && e.cutFar <= 3 + 1e-6 ? 'pass' : 'fail',
     value: e ? `${m(e.cutNear)} within 1 m of the boundary, ${m(e.cutMid)} at 1 to 1.5 m, ${m(e.cutFar)} beyond` : 'No cut and fill',
     limit: '1 m, 2 m and 3 m',
-    note: 'Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).',
+    note: [e ? worstCutWords(e) : '', 'Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).'].filter(Boolean).join(' '),
     source: HC('cl 3.30'),
   })
   out.push({
@@ -495,17 +496,23 @@ function housingCode(ms: Measures): CheckResult[] {
     status: !e ? 'pass' : atMost(e.fillOutside, 1),
     value: e ? `${m(e.fillOutside)} at most` : 'No cut and fill',
     limit: '1 m above existing ground',
-    note: 'No limit under the house itself. Fill over 150 mm can cover at most half the landscaped area (not checked yet).',
+    note: [e?.fillOutsideAt && e.fillOutside > 1 + 1e-6 ? spotWords(e.fillOutsideAt) : '', 'No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).'].filter(Boolean).join(' '),
     source: HC('cl 3.30'),
+    ...fixAtSpot(e && e.fillOutside > 1 + 1e-6 ? e.fillOutsideAt : null),
   })
   out.push({
     id: 'hc-works-boundary',
     title: 'Earthworks clear of the boundary',
     status: !e || e.closestWorks === null ? 'pass' : e.closestWorks > 1 ? 'pass' : 'fail',
-    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${e.sideRearOnly ? 'a side or rear boundary' : 'the boundary'}` : 'No cut and fill',
+    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${worksEdgeName(ms, e)}` : 'No cut and fill',
     limit: 'Toe or top of each embankment more than 1 m from side and rear boundaries',
-    note: e && !e.sideRearOnly ? (s.battleAxe ? 'On a battle-axe lot every boundary is measured.' : 'Measured to every boundary, the front included, until you pick the street side under Lot facts.') : undefined,
+    note: [
+      e?.closestAt && e.closestWorks !== null && e.closestWorks <= 1 ? spotWords(e.closestAt) : '',
+      e && e.nearBoundary.length > 1 ? `Within 1 m of a boundary: ${e.nearBoundary.map(x => `${x.source.name} (${m(x.d)} from ${edgeWords(ms, x.edge)})`).join('; ')}.` : '',
+      e && !e.sideRearOnly ? (s.battleAxe ? 'On a battle-axe lot every boundary is measured.' : 'Measured to every boundary, the front included, until you pick the street side under Lot facts.') : '',
+    ].filter(Boolean).join(' ') || undefined,
     source: HC('cl 3.30'),
+    ...fixAtSpot(e?.closestWorks !== null && (e?.closestWorks ?? Infinity) <= 1 ? e?.closestAt : null),
   })
   const tall = ms.walls.filter(w => needsEngineer(w.height))
   out.push({
@@ -521,6 +528,41 @@ function housingCode(ms: Measures): CheckResult[] {
   if (ms.walls.length > 1) out.push(wallSpacing(ms))
 
   return [lotCheck(ms), ...out, ...livingSun(ms, 'cdc'), ...treeChecks(ms, 'cdc')]
+}
+
+/** A boundary edge in words: "the rear boundary", "the west side boundary". */
+function edgeWords(ms: Measures, i: number): string {
+  const edge = ms.edges[i]
+  return edge ? `the ${edge.role === 'rear' ? 'rear' : edge.role === 'front' ? 'front' : edge.label.toLowerCase()} boundary` : 'the boundary'
+}
+
+/** The boundary the closest earthworks are measured to. */
+function worksEdgeName(ms: Measures, e: EarthNumbers): string {
+  if (e.closestAt) return edgeWords(ms, e.closestAt.edge)
+  return e.sideRearOnly ? 'a side or rear boundary' : 'the boundary'
+}
+
+/** What changes the ground at a spot, as a sentence: "There the ground is filled 0.42 m by the fill batter of the Garage floor's slab pad." */
+export function spotWords(spot: EarthSpot): string {
+  const amount = `${spot.dz >= 0 ? 'filled' : 'cut'} ${m(Math.abs(spot.dz))}`
+  return spot.source ? `There the ground is ${amount} by ${sourceWords(spot.source)}.` : `There the ground is ${amount}.`
+}
+
+/** Where a failing earthworks row is fixed, when its worst spot is a driveway's or a retaining wall's level ground. */
+function fixAtSpot(spot: EarthSpot | null | undefined): Pick<CheckResult, 'fixAt'> {
+  const k = spot?.source?.kind
+  return k === 'driveway' ? { fixAt: 'driveway' } : k === 'bench' ? { fixAt: 'retaining-walls' } : {}
+}
+
+/** The cut that breaks its band's limit (or comes nearest to it), in words. */
+function worstCutWords(e: EarthNumbers): string {
+  const bands = [
+    { c: e.cutNear, at: e.cutNearAt, limit: 1 },
+    { c: e.cutMid, at: e.cutMidAt, limit: 2 },
+    { c: e.cutFar, at: e.cutFarAt, limit: 3 },
+  ].filter(b => b.at && b.c > b.limit + 1e-6)
+  const worst = bands.sort((p, q) => q.c / q.limit - p.c / p.limit)[0]
+  return worst?.at ? spotWords(worst.at) : ''
 }
 
 // ---------------------------------------------------------------------------
