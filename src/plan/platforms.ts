@@ -2,13 +2,14 @@ import type { Barrier, Platform } from '../lib/earthworks'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { WallStrip } from '../lib/terrainMesh'
 import { levelBuildsAs, onNaturalGround } from './floorTypes'
-import { buildingOutline, faceAround, offsetPolygon, planarFaces } from './geometry'
+import { buildingOutline, faceAround, offsetPolygon, planarFaces, wallPolygons } from './geometry'
 import {
   areaKind,
   DEFAULT_BENCH,
   earthworksOf,
   FLOOR_STRUCTURE,
   floorRL,
+  houseWalls,
   isRetaining,
   levelById,
   SLAB_THICKNESS,
@@ -150,6 +151,30 @@ function padStops(plan: Plan, level: string, outlines: Vec2[][]): Vec2[][] {
   return out
 }
 
+/**
+ * Outlines of a level's house walls that don't close into a room with the others (a wall on its
+ * own, or the open side of a U), in the house frame. Such a wall has no floor round it, so it
+ * stands on a strip footing of its own: earthworksPlatforms levels the ground under it, and the
+ * 3D view draws the footing, instead of leaving the wall standing in the slope.
+ */
+export function openWallOutlines(plan: Plan, levelId: string, outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === levelId))).outlines): Vec2[][] {
+  const walls = houseWalls(plan.walls.filter(w => w.level === levelId))
+  const polys = wallPolygons(walls)
+  const inside = (p: Vec2) => outlines.some(r => pointInPolygon(p[0], p[1], r))
+  const out: Vec2[][] = []
+  for (const w of walls) {
+    const poly = polys.get(w.id)
+    if (!poly) continue
+    let open = false
+    for (let i = 1; i < 8 && !open; i++) {
+      const f = i / 8
+      open = !inside([w.a[0] + (w.b[0] - w.a[0]) * f, w.a[1] + (w.b[1] - w.a[1]) * f])
+    }
+    if (open) out.push(poly)
+  }
+  return out
+}
+
 /** Narrowest level ground beside a retaining wall (m): enough to measure the wall's height on it. */
 export const MIN_BENCH = 0.5
 
@@ -171,9 +196,11 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     const floor = floorRL(plan, lv.id)
     const outlines = buildingOutline(planarFaces(plan.walls.filter(w => w.level === lv.id))).outlines
     const piers = pierOutlines(plan, lv.id)
-    if (outlines.length) {
+    // Walls that don't close into a room stand on their own footings, levelled with the floor.
+    const open = openWallOutlines(plan, lv.id, outlines)
+    if (outlines.length || open.length) {
       const stops = padStops(plan, lv.id, outlines)
-      out.push({ id: padId(plan, lv.id), include: outlines.map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
+      out.push({ id: padId(plan, lv.id), include: [...outlines, ...open].map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
     }
     if (piers.length) {
       out.push({ id: piersId(plan, lv.id), include: piers.map(site), exclude: below.map(site), level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })

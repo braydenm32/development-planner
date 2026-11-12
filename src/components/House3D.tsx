@@ -21,8 +21,9 @@ import {
 } from '../plan/model'
 import { furnitureSolids } from '../plan/furniture'
 import { garagePanelFootprint } from '../plan/garageDoor'
-import { pierOutlines } from '../plan/platforms'
-import { retainingProfile, retainingSolid } from '../plan/retaining'
+import { levelBuildsAs } from '../plan/floorTypes'
+import { openWallOutlines, pierOutlines } from '../plan/platforms'
+import { houseCaps, retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
@@ -145,6 +146,14 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         if (g) slabs.push(g)
       }
 
+      // A wall that doesn't close into a room has no floor under it: it stands on its own footing.
+      if (levelBuildsAs(plan, level.id) !== 'framed') {
+        for (const ring of openWallOutlines(plan, level.id)) {
+          const g = prism(ring.map(site), floorY - FLOOR_STRUCTURE, floorY)
+          if (g) slabs.push(g)
+        }
+      }
+
       // Piers under the parts of each floor built on the ground that aren't a slab.
       for (const ring of pierOutlines(plan, level.id)) for (const p of postGrid(ring, 1.8)) post(p, floorY - FLOOR_STRUCTURE, 0.2)
 
@@ -214,7 +223,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       const poly = rPolys.get(w.id)
       if (!poly) continue
       const prof = retainingProfile(w, plan, origin, ground)
-      const solid = retainingSolid(poly, prof, Math.min(...prof.samples.map(x => Math.min(x.left, x.right))) - 0.3)
+      const solid = retainingSolid(poly, prof, Math.min(...prof.samples.map(x => Math.min(x.left, x.right))) - 0.3, houseCaps(prof, plan))
       const pos = new Float32Array(solid.tris.length * 3)
       solid.tris.forEach((v, i) => {
         const s = site(solid.pts[v])
