@@ -14,6 +14,7 @@ import { impliedTotals, impliedWalls } from '../../grading/implied'
 import { RetainingTotals, RetainingToolOptions } from '../../components/PlanSections'
 import { retainedText, useRetainingWalls } from '../../components/planNumbers'
 import { RetainingWallPanel } from '../../components/RetainingWallPanel'
+import { RetainEdges } from '../../components/RetainEdges'
 import { ENGINEER_TEXT, needsEngineer } from '../../checks/engineer'
 import { usePhone } from '../../phone/device'
 import { isRetaining, levelById } from '../../plan/model'
@@ -56,6 +57,7 @@ function Walls({ d }: { d: Loaded }) {
         <p className="muted">No retaining walls yet. Draw one where the batters run too far: it asks once which side it holds back and how high, and carries on round corners.</p>
         <ImpliedWalls survey={d.survey} earth={d.earth} />
         <SuggestionsNote plan={d.plan} survey={d.survey} earth={d.earth} />
+        <RetainEdges plan={d.plan} what="house" />
         <Draw />
       </>
     )
@@ -106,6 +108,7 @@ function Walls({ d }: { d: Loaded }) {
       </ul>
       <p className="muted small">Tallest first. Pick a wall to set which side it holds back and how high{phone ? '; the plan zooms to it' : ''}.</p>
       <ImpliedWalls survey={d.survey} earth={d.earth} />
+      <RetainEdges plan={d.plan} what="house" />
       <Draw />
     </>
   )

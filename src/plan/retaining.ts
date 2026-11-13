@@ -174,9 +174,11 @@ export function houseCaps(p: RetainingProfile, plan: Plan): (number | null)[] {
   // Just past the wall's face: the house's outside face is there when the wall is against it.
   const reach = w.thickness / 2 + HOUSE_TOUCH
   const inHouse = (q: Vec2) => rings.some(r => pointInPolygon(q[0], q[1], r))
+  // Round a corner the house is off at an angle, so the distance to its outline counts too.
+  const nearHouse = (q: Vec2) => rings.some(r => r.some((v, k) => segDist(q, v, r[(k + 1) % r.length]) <= reach))
   return p.samples.map(x => {
     const c: Vec2 = [w.a[0] + d[0] * x.s, w.a[1] + d[1] * x.s]
-    const against = inHouse([c[0] + n[0] * reach, c[1] + n[1] * reach]) || inHouse([c[0] - n[0] * reach, c[1] - n[1] * reach]) || inHouse(c)
+    const against = inHouse([c[0] + n[0] * reach, c[1] + n[1] * reach]) || inHouse([c[0] - n[0] * reach, c[1] - n[1] * reach]) || inHouse(c) || nearHouse(c)
     return against ? floor : null
   })
 }
