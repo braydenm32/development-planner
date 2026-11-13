@@ -122,8 +122,9 @@ export interface RetainingSolid {
 /**
  * The wall as a solid whose top follows the ground it holds back (or stands at its own top RL), from `bottom` up.
  * `poly` is the wall's outline from wallPolygons: start right, end right, end left, start left.
+ * `caps` holds, for each sample, an RL the top stops at (see houseCaps), or null.
  */
-export function retainingSolid(poly: Vec2[], p: RetainingProfile, bottom: number): RetainingSolid {
+export function retainingSolid(poly: Vec2[], p: RetainingProfile, bottom: number, caps: (number | null)[] = []): RetainingSolid {
   const [ar, br, bl, al] = poly
   const lerp = (a: Vec2, b: Vec2, f: number): Vec2 => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]
   const n = p.samples.length - 1
@@ -131,7 +132,7 @@ export function retainingSolid(poly: Vec2[], p: RetainingProfile, bottom: number
   const z: number[] = []
   // Four corners per sample: right bottom, right top, left bottom, left top.
   p.samples.forEach((x, i) => {
-    const top = Math.max(topAt(p.wall, x), bottom + 0.01)
+    const top = Math.max(Math.min(topAt(p.wall, x), caps[i] ?? Infinity), bottom + 0.01)
     const r = lerp(ar, br, i / n)
     const l = lerp(al, bl, i / n)
     pts.push(r, r, l, l)
@@ -153,6 +154,37 @@ export function retainingSolid(poly: Vec2[], p: RetainingProfile, bottom: number
   tris.push(RB(n), LB(n), LT(n), RB(n), LT(n), RT(n)) // end
   return { pts, z, tris }
 }
+
+/**
+ * Where a retaining wall runs hard against the house, the house wall holds back the ground above
+ * its floor, so the retaining wall only stands up to the floor: an edge beam under the house wall,
+ * not a ledge outside it that rises and falls with the bank. For each sample of `p`, the floor RL
+ * it stops at there, or null where the house isn't against it.
+ */
+export function houseCaps(p: RetainingProfile, plan: Plan): (number | null)[] {
+  const w = p.wall
+  const own = w.level !== undefined && levelById(plan, w.level) ? w.level : undefined
+  const ownRings = own !== undefined ? houseRings(plan, own) : []
+  const rings = ownRings.length ? ownRings : houseRings(plan)
+  if (!rings.length) return p.samples.map(() => null)
+  const floorLevel = ownRings.length ? own : sortedLevels(plan)[0]?.id
+  const floor = floorRL(plan, floorLevel)
+  const d = wallDir(w)
+  const n: Vec2 = [-d[1], d[0]]
+  // Just past the wall's face: the house's outside face is there when the wall is against it.
+  const reach = w.thickness / 2 + HOUSE_TOUCH
+  const inHouse = (q: Vec2) => rings.some(r => pointInPolygon(q[0], q[1], r))
+  // Round a corner the house is off at an angle, so the distance to its outline counts too.
+  const nearHouse = (q: Vec2) => rings.some(r => r.some((v, k) => segDist(q, v, r[(k + 1) % r.length]) <= reach))
+  return p.samples.map(x => {
+    const c: Vec2 = [w.a[0] + d[0] * x.s, w.a[1] + d[1] * x.s]
+    const against = inHouse([c[0] + n[0] * reach, c[1] + n[1] * reach]) || inHouse([c[0] - n[0] * reach, c[1] - n[1] * reach]) || inHouse(c) || nearHouse(c)
+    return against ? floor : null
+  })
+}
+
+/** How close the house's outside face has to be to a retaining wall's face for the house to be against it (m). */
+const HOUSE_TOUCH = 0.15
 
 /**
  * Every retaining wall in the plan, measured against the finished ground: the ones the totals, the

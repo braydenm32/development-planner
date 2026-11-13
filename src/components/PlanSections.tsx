@@ -2,6 +2,7 @@
 // fill, and the plan file. Design, Earthworks and their More render them (src/shell/tabs), and
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
+import { RetainEdges } from './RetainEdges'
 import { useMemo, useRef } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
@@ -586,6 +587,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         />
       )}
       {kind === 'slab' && <p className="muted small">The ground under a slab is levelled as part of the cut and fill.</p>}
+      {kind === 'slab' && <RetainEdges plan={plan} what="slab" areaId={a.id} />}
       {kind === 'driveway' && (
         <p className="muted small">
           Its levels, grade and street crossing are in{' '}

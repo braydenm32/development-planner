@@ -24,7 +24,7 @@ import {
 } from '../plan/model'
 import { planBounds } from '../plan/ops'
 import { pierOutlines } from '../plan/platforms'
-import { retainingProfile, retainingSolid } from '../plan/retaining'
+import { houseCaps, retainingProfile, retainingSolid } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry } from '../plan/roof'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
@@ -580,7 +580,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       const poly = rPolys.get(w.id)
       if (!poly) continue
       const prof = retainingProfile(w, plan, survey.origin, ground)
-      const solid = retainingSolid(poly, prof, Math.min(...prof.samples.map(x => Math.min(x.left, x.right))) - 0.2)
+      const solid = retainingSolid(poly, prof, Math.min(...prof.samples.map(x => Math.min(x.left, x.right))) - 0.2, houseCaps(prof, plan))
       const vert = new Float32Array(solid.pts.length * 3)
       solid.pts.forEach((p, i) => vert.set([...site([p])[0], solid.z[i]], i * 3))
       const m = new Mesh({ numProp: 3, vertProperties: vert, triVerts: new Uint32Array(solid.tris) })
