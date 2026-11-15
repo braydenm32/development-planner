@@ -15,6 +15,7 @@ import {
   heightNote,
   highestOn,
   highSideBearing,
+  houseCaps,
   houseGap,
   insideHouse,
   levelsForHeight,
@@ -536,5 +537,30 @@ describe('a side label under the section', () => {
     expect(padCut.change).toBe('cut 3.20 m by the house pad')
     expect(padCut.change).not.toContain('kept natural')
     expect(sideLabel({ slope: 'Downhill', level: null, cut: 0.01, fill: 0, net: 0, by: null }).change).toBe('kept natural')
+  })
+})
+
+describe('a retaining wall against the house', () => {
+  it('stops at the floor where the house wall holds the ground', () => {
+    const doc = parseDxf(planeSurvey())
+    const terrain = buildTerrain(buildSurvey(doc, guessRoles(analyzeLayers(doc))))
+    const base = garageFloor()
+    const plan: Plan = { ...base, placement: { e: 1006, n: 1006, rotation: 0, ffl: 84 } }
+    // Along the outside of the east wall (centreline x 9.95, 0.3 thick), and on past its end.
+    const kerb: Wall = { id: 'k', level: 'level_ground', a: [10.2, 0], b: [10.2, 20], thickness: 0.2, kind: 'retaining' }
+    const prof = retainingProfile(kerb, { ...plan, walls: [...plan.walls, kerb] }, [1000, 1000], terrain.grid)
+    const caps = houseCaps(prof, { ...plan, walls: [...plan.walls, kerb] })
+    const at = (s: number) => caps[prof.samples.findIndex(x => x.s >= s)]
+    expect(at(5)).toBeCloseTo(84, 9)
+    expect(at(18)).toBeNull()
+    const poly = wallPolygons([kerb]).get('k')!
+    const solid = retainingSolid(poly, prof, 70, caps)
+    const tops = solid.z.filter((_, i) => i % 2 === 1)
+    caps.forEach((c, i) => {
+      if (c !== null) expect(tops[i * 2]).toBeLessThanOrEqual(84 + 1e-9)
+    })
+    // a wall clear of the house isn't capped
+    const clear = retainingProfile(backWall, { ...plan, walls: [...plan.walls, backWall] }, [1000, 1000], terrain.grid)
+    expect(houseCaps(clear, plan).every(c => c === null)).toBe(true)
   })
 })

@@ -11,6 +11,7 @@ import { DriveFromSlab } from '../../components/DriveFromSlab'
 import { DrivewayCrossing } from '../../components/DrivewayCrossing'
 import { DrivewayLevels } from '../../components/DrivewayLevels'
 import { CutFillPanel } from '../../grading/CutFillPanel'
+import { RetainEdges } from '../../components/RetainEdges'
 import { usePlacementInfo } from '../../components/planNumbers'
 import { areaKind } from '../../plan/model'
 import { usePlan } from '../../plan/store'
@@ -56,6 +57,7 @@ function CutFill({ d }: { d: Loaded }) {
   return (
     <>
       <CutFillPanel plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} />
+      <RetainEdges plan={d.plan} what="house" />
       <Caveat />
     </>
   )

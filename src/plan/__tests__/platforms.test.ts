@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pointInPolygon, signedArea } from '../../lib/geom'
 import { FLOOR_STRUCTURE, normalizePlan, SLAB_THICKNESS, type Plan, type Wall } from '../model'
 import { addArea, addRoof, updateRoom } from '../ops'
-import { earthworksPlatforms, housePadRL, pierOutlines, retainingBenches, sideRL } from '../platforms'
+import { earthworksPlatforms, housePadRL, openWallOutlines, pierOutlines, retainingBenches, sideRL } from '../platforms'
 import { parsePlanFile } from '../store'
 import { garageFloor } from './fixtures'
 
@@ -70,5 +70,35 @@ describe('a wall beside an upper split level', () => {
     expect(sideRL(two, 'pad', 'gone')).toBeCloseTo(84 - FLOOR_STRUCTURE, 9)
     const bench = retainingBenches({ ...two, walls: [...two.walls, w] }, [0, 0]).find(p => p.id?.endsWith(':right'))!
     expect(bench.level).toBeCloseTo(84 + 1.5 - FLOOR_STRUCTURE, 9)
+  })
+})
+
+describe('walls that do not close into a room', () => {
+  const L = 'level_ground'
+  const w = (id: string, a: [number, number], b: [number, number]): Wall => ({ id, level: L, a, b, thickness: 0.27, kind: 'external' })
+  const u = (): Plan => ({ ...garageFloor(), walls: [w('a', [0, 0], [6, 0]), w('b', [6, 0], [6, 6]), w('c', [6, 6], [0, 6])], rooms: [], areas: [] })
+
+  it('stand on a footing levelled with the floor', () => {
+    const plan = u()
+    const open = openWallOutlines(plan, L)
+    expect(open).toHaveLength(3)
+    const ps = earthworksPlatforms(plan, origin)
+    expect(ps).toHaveLength(1)
+    expect(ps[0].include).toHaveLength(3)
+    expect(ps[0].level).toBeCloseTo(84 - FLOOR_STRUCTURE, 9)
+    // under the middle of each wall, not inside the U
+    expect(open.some(r => pointInPolygon(6, 3, r))).toBe(true)
+    expect(open.some(r => pointInPolygon(3, 3, r))).toBe(false)
+  })
+
+  it('leave closed rooms as they were', () => {
+    const plan = u()
+    const closed: Plan = { ...plan, walls: [...plan.walls, w('d', [0, 6], [0, 0])] }
+    expect(openWallOutlines(closed, L)).toHaveLength(0)
+    expect(earthworksPlatforms(closed, origin)[0].include).toHaveLength(1)
+    // a wall sticking out past the room is open
+    const spur: Plan = { ...closed, walls: [...closed.walls, w('e', [6, 3], [9, 3])] }
+    expect(openWallOutlines(spur, L)).toHaveLength(1)
+    expect(openWallOutlines(garageFloor(), L)).toHaveLength(0)
   })
 })
