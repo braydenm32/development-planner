@@ -121,6 +121,14 @@ describe('print files', () => {
     expect(new TextDecoder().decode(files.get('README.txt'))).toContain(CAVEAT_LINE)
   })
 
+  it('says the scale and the units in the README, as STL files carry neither', () => {
+    const files = unzip(toStlZip([box('Roof', [0, 0, 0], [1, 1, 1])], 100))
+    const readme = new TextDecoder().decode(files.get('README.txt'))
+    expect(readme).toContain('Scale 1:100.')
+    expect(readme).toContain('millimetres')
+    expect(readme).toContain(CAVEAT_LINE)
+  })
+
   it('names STL files safely and uniquely', () => {
     expect(fileSafe('Roof over First floor')).toBe('roof-over-first-floor')
     expect(fileSafe("Sam's house")).toBe('sams-house')

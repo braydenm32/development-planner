@@ -2,6 +2,7 @@
 // (window area by the way each wall faces, which way the living areas look, floor area, roof and
 // tank). It calculates no BASIX score and no star rating: that is the tool's job.
 
+import { fileSafe } from '../print/export'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, type Face } from '../plan/geometry'
 import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Wall } from '../plan/model'
@@ -299,6 +300,9 @@ export function readyCount(rows: ChecklistRow[], a: BasixAnswers): { done: numbe
 }
 
 const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
+
+/** The CSV's file name: the same lower-case project name every other download starts with. */
+export const basixFileName = (title: string): string => `${fileSafe(title)}-basix-checklist.csv`
 
 /** The checklist as a CSV: item, what the plan or you say, what BASIX asks for, ready. */
 export function basixCsv(plan: Plan, title: string, date: string): string {

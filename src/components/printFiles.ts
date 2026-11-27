@@ -52,7 +52,7 @@ export function save3mf({ plan, settings, print }: DownloadProps): boolean {
 /** Save the print parts as a ZIP of STLs; false if they aren't ready. */
 export function saveStls({ plan, settings, print }: DownloadProps): boolean {
   if (!printReady(print) || !print.model) return false
-  saveFile(`${printBase(plan, settings)}-stl.zip`, toStlZip(print.model.parts), 'application/zip')
+  saveFile(`${printBase(plan, settings)}-stl.zip`, toStlZip(print.model.parts, settings.scale), 'application/zip')
   return true
 }
 

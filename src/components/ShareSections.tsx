@@ -203,7 +203,7 @@ export function PrintDownloads(p: DownloadProps) {
     <div className="print-foot">
       <Download3mfButton {...p} />
       <DownloadStlsButton {...p} />
-      <p className="muted">3MF opens in most slicers with every part named and laid out; the STLs come as a ZIP, one file per part.</p>
+      <p className="muted">3MF opens in most slicers with every part named and set out side by side; the STLs come as a ZIP, one file per part.</p>
     </div>
   )
 }
@@ -228,8 +228,8 @@ export function PrintInstructions() {
   return (
     <>
       <p className="muted small">
-        3MF opens in most slicers (Bambu Studio, PrusaSlicer, Cura) with every part named, coloured and laid out on the bed. The STL
-        download is a ZIP with one file per part.
+        3MF opens in most slicers (Bambu Studio, PrusaSlicer, Cura) with every part named, coloured and set out side by side: use your
+        slicer’s Arrange to fit them to your bed. The STL download is a ZIP with one file per part, and a note of the scale.
       </p>
       <p className="muted small">
         Print each part the way up it sits, flat side down; nothing needs supports. The lowest floor drops into a shallow pocket in the
