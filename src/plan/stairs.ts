@@ -91,8 +91,11 @@ export function stairLayout(s: Stair): StairLayout {
   return { risers: n, riser: r, treads: n - 1 - (landing ? 1 : 0), landing, steps, outline, treadLines, walk }
 }
 
-/** Millimetres to 0.1 mm, without a trailing ".0": 187.5, 190. */
-const mm1 = (m: number) => String(Math.round(m * 10000) / 10)
+/**
+ * Millimetres to 0.1 mm, without a trailing ".0": 187.5, 190. Every place that writes a riser
+ * (the stair's card, its limits, a section's label) uses this, so they read the same.
+ */
+export const mm1 = (m: number) => String(Math.round(m * 10000) / 10)
 
 /**
  * What the stair panel shows: risers as "16 × 187.5 mm" (to 0.1 mm, so they add up to the rise

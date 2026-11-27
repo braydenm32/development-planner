@@ -19,6 +19,7 @@ import { floorRL, houseWalls, levelById, sortedLevels, type Plan, type Wall } fr
 import { levelFloorAnswer } from '../plan/floorTypes'
 import { growRing, levelOutlines } from '../plan/roof'
 import { ceilingRL, coveredRoofs, levelsSharingCeiling, roofEavesRL, roofLineKey } from '../plan/roofline'
+import { stairLandingIssues } from '../plan/stairLanding'
 import { stairMeetsNoFloor } from '../plan/stairs'
 import { storeyWarnings } from '../plan/storeys'
 import type { Selection, Tool } from '../plan/store'
@@ -273,6 +274,18 @@ function levelsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       tone: 'todo',
       go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
     })
+  }
+  // Where each stair lands: outside the floor it joins, through a wall, too long a flight (the stair's card says the same).
+  for (const s of plan.stairs) {
+    const l = levelById(plan, s.level)
+    for (const issue of stairLandingIssues(plan, s))
+      items.push({
+        id: `stair-${issue.id}:${s.id}`,
+        text: `Check where the stair on ${l?.name ?? 'a level'} lands`,
+        detail: issue.text,
+        tone: 'todo',
+        go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
+      })
   }
   const area = i.numbers.floorArea
   const headline = started && area ? `${plural(levels.length, 'level')} · ${m2(area)}` : levels.length > 1 ? `${plural(levels.length, 'level')} · nothing drawn` : 'Nothing drawn yet'

@@ -25,7 +25,7 @@ import { pierOutlines } from '../plan/platforms'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry, type RoofMesh } from '../plan/roof'
-import { stairLayout } from '../plan/stairs'
+import { mm1, stairLayout } from '../plan/stairs'
 import { compassWord, intersectSpans, postStations, spansInside, stations, subtractSpans, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
 
@@ -390,7 +390,7 @@ export function sectionStairs(plan: Plan, a: Vec2, b: Vec2): SectionStair[] {
     const cutBoxes: Box[] = []
     for (const step of L.steps) for (const [s0, s1] of spansInside(a, b, [step.pts])) cutBoxes.push({ s0, s1, z0: bottom, z1: bottom + step.top })
     if (cutBoxes.length) {
-      out.push({ id: st.id, cut: true, outlines: stepOutlines(cutBoxes, bottom), label: `${L.risers} risers × ${Math.round(L.riser * 1000)} mm` })
+      out.push({ id: st.id, cut: true, outlines: stepOutlines(cutBoxes, bottom), label: `${L.risers} risers × ${mm1(L.riser)} mm` })
       continue
     }
     if (!L.outline.every(p => depth(p) > 1e-6)) continue

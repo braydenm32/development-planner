@@ -1525,7 +1525,7 @@ export const HOMES: Home[] = [
         label: 'Selected stair',
         icon: 'stair',
         keywords: ['risers', 'going', 'treads', 'rotate', 'ncc', 'joins', 'goes up to'],
-        features: ['stair-shape', 'stair-turn', 'stair-width', 'stair-going', 'stair-bottom-rl', 'stair-top-rl', 'stair-direction', 'stair-stats', 'stair-rotate-90', 'stair-start-on-ground', 'stair-joins', 'stair-ncc-limits'],
+        features: ['stair-shape', 'stair-turn', 'stair-width', 'stair-going', 'stair-bottom-rl', 'stair-top-rl', 'stair-direction', 'stair-stats', 'stair-rotate-90', 'stair-start-on-ground', 'stair-joins', 'stair-ncc-limits', 'stair-landing-checks'],
       },
       { id: 'inspect-area', at: 'design/plan', hint: 'Click an area on the plan: its settings open on the right.', label: 'Selected area', icon: 'area', keywords: ['slab', 'deck', 'driveway', 'top level'], features: ['area-name', 'area-type', 'area-top-level'] },
       { id: 'inspect-furniture', at: 'design/plan', hint: 'Click a piece of furniture on the plan: its settings open on the right.', label: 'Selected furniture', icon: 'furniture', keywords: ['size', 'turn', 'rename'], features: ['furniture-settings'] },

@@ -119,7 +119,8 @@ describe('Levels & rooms', () => {
     expect(items.find(i => i.id === 'close:level_top')).toMatchObject({ text: 'Close the outside walls on Top level', go: { level: 'level_top' } })
     const bare = { ...plan, walls: plan.walls.filter(w => w.level !== 'level_top'), rooms: plan.rooms.filter(r => r.level !== 'level_top') }
     expect(step(stepsOf(input(bare)), 'levels').items.find(i => i.id === 'walls:level_top')).toMatchObject({ text: 'Draw the walls on Top level', go: { tool: 'wall' } })
-    expect(ids(step(stepsOf(input(plan)), 'levels'))).toEqual(['openings:level_low', 'openings:level_mid', 'openings:level_top'])
+    // The made-up stair climbs to the wall between the wings, which has no opening: where it lands is listed too.
+    expect(ids(step(stepsOf(input(plan)), 'levels'))).toEqual(['openings:level_low', 'openings:level_mid', 'openings:level_top', 'stair-wall-top:stair_up'])
   })
 
   it('lists storey heights that clash and a roof left under a storey', () => {

@@ -40,7 +40,8 @@ import {
   updateWall,
 } from '../plan/ops'
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
-import { stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
+import { mm1, stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
+import { stairLandingIssues } from '../plan/stairLanding'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
 import { placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
@@ -539,7 +540,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <ul className="stair-rules" aria-label="NCC stair limits">
           {rules.map(r => (
             <li key={r.id} className={r.ok ? 'ok' : 'bad'}>
-              {r.ok ? '✓' : '✗'} {r.label} {Math.round(r.value * 1000)} mm <span>({Math.round(r.range[0] * 1000)}–{Math.round(r.range[1] * 1000)})</span>
+              {r.ok ? '✓' : '✗'} {r.label} {mm1(r.value)} mm <span>({Math.round(r.range[0] * 1000)}–{Math.round(r.range[1] * 1000)})</span>
             </li>
           ))}
         </ul>
@@ -564,12 +565,17 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         {stairMeetsNoFloor(plan, s) && (
           <p className="notice small">Its top (RL {top.toFixed(2)}) meets no floor. Pick the level it goes up to, or add a level above.</p>
         )}
+        {stairLandingIssues(plan, s).map(issue => (
+          <p key={issue.id} className="notice small" role="note">
+            {issue.text}
+          </p>
+        ))}
         <Num label="Direction" unit="°" value={s.angle} onCommit={angle => set({ angle: ((angle % 360) + 360) % 360 })} />
         <dl className="stats">
           <FragmentRow label="Treads" value={counts.treads} />
           {length !== null && <FragmentRow label="Length" value={`${length.toFixed(2)} m`} />}
         </dl>
-        <p className="muted small">The limits are the NCC’s for a house stair: risers 115–190 mm, going 240–355 mm, and 2 risers + going 550–700 mm, the range people find comfortable.</p>
+        <p className="muted small">The limits are the NCC’s for a house stair: risers 115–190 mm, going 240–355 mm, 2 risers + going 550–700 mm (the range people find comfortable), and no more than 18 risers in a flight.</p>
         <div className="row">
           <button className="secondary" onClick={() => set({ angle: (s.angle + 90) % 360 })}>
             Rotate 90°

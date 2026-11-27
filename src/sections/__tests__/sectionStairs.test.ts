@@ -68,7 +68,7 @@ describe('stairs in sections', () => {
     const p = house()
     const [st] = sectionStairs(p, [-1, 4], [11, 4])
     expect(st.cut).toBe(true)
-    expect(st.label).toBe('16 risers × 188 mm')
+    expect(st.label).toBe('16 risers × 187.5 mm')
     const pts = st.outlines.flat()
     const bottom = floorRL(p, L0)
     expect(Math.min(...pts.map(q => q[1]))).toBeCloseTo(bottom, 9)
@@ -108,7 +108,7 @@ describe('stairs in sections', () => {
     }
     paintDrawing(painter, d, 0, 0, 60)
     expect(shapes).toContain('stair-cut')
-    expect(texts).toContain('16 risers × 188 mm')
+    expect(texts).toContain('16 risers × 187.5 mm')
   })
 
   it('puts a roof at its own eaves RL', () => {
