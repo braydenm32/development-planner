@@ -14,7 +14,8 @@ import { useRouter } from '../../nav/router'
 import { PROJECTS } from '../../nav/route'
 import { projectFileText } from '../../share/project'
 import { m2 } from '../../shell/format'
-import { SKETCH_DATUM } from '../../start/sketch'
+import { SKETCH_DATUM, sketchSurvey } from '../../start/sketch'
+import { streetSideOf } from '../../plan/streetSide'
 import { fitOnBlock, groundAtHouse, placeOnSketch } from '../align'
 import { detectFile, readSite } from '../files'
 import { deleteWithUndo, duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
@@ -101,6 +102,23 @@ describe('starting without a survey', () => {
     expect(plan().placement).toMatchObject({ e: 1007.5, n: 1015, rotation: 0 })
     const r = await records()
     expect((r!.survey as SavedProject).sketch).toEqual(SKETCH)
+  })
+
+  it('a new street side re-lays the sketch through the review, and the plan’s street side follows (LD-15)', async () => {
+    await startSketch({ ...SKETCH, fall: -3, street: 'W' })
+    const done = replaceSurvey(sketchSurvey({ ...SKETCH, fall: -3, street: 'N' }))
+    const r = await review()
+    // One sketch to another: what changes about the block, with no talk of survey files or layers.
+    expect(r.title).toBe('Change the sketch block?')
+    expect(r.changes[0]).toBe('The sketch block: 15 × 30 m, 3 m down to the back, street to the west becomes 15 × 30 m, 3 m down to the back, street to the north.')
+    expect(r.changes.join(' ')).not.toMatch(/layers/)
+    r.answer(r.choices?.[0]?.id ?? 'centre')
+    await done
+    const opened = projectsNow().opened!
+    expect(opened.survey?.sketch?.street).toBe('N')
+    // The checks' front edge is the block's north side, as the sketch now says.
+    const site = readSite(opened.survey!)
+    expect(streetSideOf(plan(), site.survey.boundary)).toBe('N')
   })
 
   it('puts a plan opened without a survey on a sketch block that fits it', async () => {
