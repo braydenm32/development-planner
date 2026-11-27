@@ -146,7 +146,7 @@ export async function openRead(f: OpenedFile, opts: OpenOptions = {}): Promise<v
 }
 
 /** Start a project from a survey (and maybe a plan), or give the open project with no survey its first. Nothing is replaced. */
-async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into'], name?: string | null) {
+async function startWith(survey: SavedProject, withPlan: Plan | null, into: OpenOptions['into'], name?: string | null, named?: string | null) {
   const opened = projectsNow().opened
   const records = { survey, ...(withPlan ? { plan: withPlan } : {}), prefs: { view: { mode: 'plan' as const } } }
   await busy(async () => {
@@ -155,7 +155,9 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
       if (withPlan) usePlan.getState().load(withPlan)
       await projectActions.savePrefs({ view: { ...opened.prefs.view, mode: 'plan' } })
       await projectActions.saveSurvey(survey)
-    } else await projectActions.create(records, name)
+      // A name typed on the start screen is the project's, though it existed before the block did.
+      if (named?.trim()) await projectActions.rename(opened.id, named)
+    } else await projectActions.create(records, named?.trim() || name)
   })
   // A phone opens the new block in View (C38): a calm look at it first, with what's still to
   // answer in the question list at the foot of the plan, and Edit a tap away.
@@ -169,13 +171,16 @@ async function startWith(survey: SavedProject, withPlan: Plan | null, into: Open
 // ---------------------------------------------------------------------------
 // Sketch without a survey.
 
-/** A new project (or the open one, with no survey yet) on a sketch block, opened on Design › Plan. */
-export async function startSketch(block: SketchBlock, into: OpenOptions['into'] = 'new'): Promise<void> {
+/**
+ * A new project (or the open one, with no survey yet) on a sketch block, opened on Design › Plan.
+ * `name` is what the person called it on the start screen; without one it is My house / New house.
+ */
+export async function startSketch(block: SketchBlock, into: OpenOptions['into'] = 'new', name?: string | null): Promise<void> {
   const survey = sketchSurvey(block)
   const site = readSite(survey)
   // The street side picked here is the plan's: the checks and Street view in 3D both use it.
   const start = withStreetSide(emptyPlan(defaultPlacement(site.survey, site.terrain)), site.survey.boundary, block.street)
-  await startWith(survey, start, into)
+  await startWith(survey, start, into, null, name)
 }
 
 /** A plan opened with no survey: it goes on a sketch block sized to fit it. */

@@ -15,7 +15,7 @@ import { projectSiteFromRecords } from '../site/store'
 import { costsFromRecords } from '../costs/persist'
 import { mapFromRecords } from '../map/store'
 import { edited } from './format'
-import { describeContents } from './ops'
+import { describeContents, NAME_MAX } from './ops'
 import { useProjects } from './session'
 import type { ProjectMeta, ProjectThumbnail } from './types'
 // IBM Plex Sans, self-hosted: the same files the app's frame loads, so there is one copy.
@@ -238,7 +238,7 @@ export function ProjectsHome(props: Props) {
   // With nothing to show, the empty state carries the one next step instead.
   const actions = (
     <div className="ph-top-actions" hidden={p.ready && !archived && active.length === 0}>
-      <button className="ph-btn" onClick={() => void openExample()} title="A new project with a finished made-up house in it, to look round and change">
+      <button className="ph-btn" onClick={() => void openExample()} title="A project with a finished made-up house in it, to look round and change. The one you already have opens again.">
         <Icon name="cube" size={16} />
         <span className="ph-long">Open an example</span>
         <span className="ph-short">Example</span>
@@ -523,6 +523,7 @@ function RenameField({ name, onDone }: { name: string; onDone: (name: string | n
       ref={ref}
       className="ph-rename"
       aria-label="Project name"
+      maxLength={NAME_MAX}
       value={value}
       onChange={e => setValue(e.target.value)}
       onBlur={() => finish(value)}

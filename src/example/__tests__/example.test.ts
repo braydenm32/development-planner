@@ -21,7 +21,7 @@ import { undoToast, useSafety } from '../../safety/store'
 import { parseProjectFile } from '../../share/project'
 import { EXAMPLE_NAME } from '../examplePlan'
 import { exampleProjectText } from '../exampleProject'
-import { openExample } from '../open'
+import { exampleHere, openExample } from '../open'
 import { sampleSurveyDxf } from '../sampleSurvey'
 
 const opened = parseProjectFile(exampleProjectText())
@@ -107,29 +107,55 @@ describe('Open an example', () => {
     vi.stubGlobal('history', { state: null, pushState: () => {}, replaceState: () => {} })
   })
 
-  it('makes a new project each time, beside the others, and Undo tucks it away again', async () => {
+  // HO-36: every click used to add another copy ("Example: split-level house 2", 3, …).
+  it('makes a new project the first time, then opens the one already here; Undo tucks a new one away again', async () => {
     const mine = await projectActions.create({ survey: opened.survey, plan: { ...plan, name: 'My house', walls: [] } })
     const before = await projectActions.read(mine.id)
     const current = () => projectsNow().list.find(m => m.id === projectsNow().currentId)!
+    const active = () => projectsNow().list.filter(m => !m.archived).length
+    const count = active()
     await openExample()
     const first = current()
     expect(first.id).not.toBe(mine.id)
     expect(first.name).toBe(EXAMPLE_NAME)
+    expect(active()).toBe(count + 1)
+    expect(useSafety.getState().toast!.text).toMatch(/made-up house on a made-up block/)
+
+    // Again, from another project: the same example opens, as it was left, and nothing is added.
+    await projectActions.open(mine.id)
     await openExample()
+    expect(current().id).toBe(first.id)
+    expect(active()).toBe(count + 1)
+    const again = useSafety.getState().toast!
+    expect(again.text).toBe('Opened the example you already have, as you left it.')
+    expect(again.link?.label).toBe('Start a fresh copy')
+    // Its Undo goes back to the project that was open, and leaves the example where it is.
+    await undoToast(again.id)
+    expect(current().id).toBe(mine.id)
+    expect(projectsNow().list.find(m => m.id === first.id)?.archived).toBe(false)
+
+    // A fresh copy is still there for the asking.
+    await openExample({ fresh: true })
     const second = current()
     expect(second.id).not.toBe(first.id)
     expect(second.name).not.toBe(EXAMPLE_NAME)
     // Nothing that was there is touched.
     await projectActions.flush()
     expect(await projectActions.read(mine.id)).toEqual(before)
-    expect(projectsNow().list.filter(m => !m.archived)).toHaveLength(3)
+    expect(active()).toBe(count + 2)
 
-    // Undo puts the second example away and goes back to the first.
+    // Undo puts the second example away and goes back to the project open before it.
     const t = useSafety.getState().toast!
     expect(t.text).toMatch(/made-up house on a made-up block/)
     await undoToast(t.id)
     await projectActions.flush()
     expect(projectsNow().list.find(m => m.id === second.id)?.archived).toBe(true)
-    expect(projectsNow().currentId).toBe(first.id)
+    expect(projectsNow().currentId).toBe(mine.id)
+  })
+
+  it('counts as the example only a project still carrying its name', () => {
+    const meta = (id: string, name: string, updated: number, archived = false) => ({ id, name, updated, created: 0, revision: 1, archived, surveyFileName: null, thumbnail: null, numbers: { siteArea: null, floorArea: null, ffl: null } })
+    expect(exampleHere([meta('a', 'Our house', 5), meta('b', `${EXAMPLE_NAME} 2`, 3), meta('c', EXAMPLE_NAME, 2), meta('d', EXAMPLE_NAME, 9, true)])?.id).toBe('b')
+    expect(exampleHere([meta('a', `${EXAMPLE_NAME} (ours)`, 5), meta('d', EXAMPLE_NAME, 9, true)])).toBeNull()
   })
 })

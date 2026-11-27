@@ -31,6 +31,9 @@ export function nameFromLot(lot: { label: string; address?: string }): string | 
   return lot.address?.split(',')[0].trim() || lot.label.trim() || null
 }
 
+/** The longest name the name boxes take: enough for an address, short enough to fit a card and a title block. */
+export const NAME_MAX = 80
+
 /** `name`, or `name 2`, `name 3`… if another project already has it. */
 export async function freeName(store: Pick<ProjectStore, 'list'>, name: string, except?: string): Promise<string> {
   const base = name.trim() || 'My house'

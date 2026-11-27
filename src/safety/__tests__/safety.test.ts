@@ -117,6 +117,19 @@ describe('starting without a survey', () => {
     expect(opened.survey!.sketch).toMatchObject({ width: 22, depth: 29 })
     expect(useSafety.getState().toast?.text).toMatch(/on a sketch block 22 × 29 m/)
   })
+
+  // HO-36: a sketch has no file to take a name from, so every one was "My house" or "New house".
+  it('names the project as typed on the start screen, and falls back to New house', async () => {
+    const current = () => projectsNow().list.find(m => m.id === projectsNow().currentId)!
+    await startSketch(SKETCH, 'new', '  Beach shack  ')
+    expect(current().name).toBe('Beach shack')
+    // The plan carries the same name (title blocks, file names).
+    expect(plan().name).toBe('Beach shack')
+    await startSketch(SKETCH, 'new', 'Beach shack')
+    expect(current().name).toBe('Beach shack 2')
+    await startSketch(SKETCH, 'new', '   ')
+    expect(current().name).toMatch(/^New house/)
+  })
 })
 
 describe('adding the survey to a sketch later', () => {

@@ -1084,7 +1084,7 @@ export const HOMES: Home[] = [
     features: [],
     items: [
       { id: 'all-projects', label: 'All projects…', icon: 'list', keywords: ['projects', 'open', 'switch project', 'home'], features: ['projects-home'], action: 'projects', run: 'now' },
-      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey'], features: ['project-new'], action: 'new-project', run: 'now' },
+      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey', 'name a project', 'project name'], features: ['project-new', 'project-name-start'], action: 'new-project', run: 'now' },
       {
         // Always a new project, beside the others (src/example).
         id: 'open-example',
