@@ -1029,7 +1029,7 @@ button.chip:hover .chip-label {
    card: it wraps instead. With under 400 px of plan across (a small window with a panel and the
    card open) the compass steps down under it, so the chip has the row (final check 4). */
 .app-shell:not(.phone) .shell-main.canvas-plan .level-chip.level-menu {
-  max-width: calc(var(--row-room) - 16px - clamp(0px, (var(--row-room) - 400px) * 999, 64px));
+  max-width: min(420px, calc(var(--row-room) - 8px - clamp(0px, (var(--row-room) - 400px) * 999, 52px)));
 }
 
 /* Narrow, its button's words wrap whole (Drawing on / Living level · FFL…) and the ghosts' note goes. */
