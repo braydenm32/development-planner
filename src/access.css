@@ -38,7 +38,8 @@
   .key-pop,
   .term-tip,
   .palette,
-  .level-menu-pop,
+  .show-pop,
+  .cue-menu,
   [data-tip]::after {
     border: 1px solid CanvasText !important;
   }
