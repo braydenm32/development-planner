@@ -29,6 +29,9 @@ import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { OpeningDetail3D } from './OpeningDetail3D'
+import { Floors3D } from '../finishes/Floors3D'
+import { useHouseMaterials } from '../finishes/materials'
+import { insideTest, metreUVs, splitInsideFaces } from '../finishes/surfaces'
 
 interface Props {
   plan: Plan
@@ -258,15 +261,16 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       return m
     }
     return {
-      ext: merge(ext),
-      int: merge(int),
+      // Finishes (src/finishes): UVs in metres, and the outside walls' room-facing faces apart.
+      ext: splitInsideFaces(metreUVs(merge(ext)), insideTest(plan, origin, refZ)),
+      int: metreUVs(merge(int)),
       slabs: merge(slabs),
       glass: merge(glass),
       garageDoors: merge(garageDoors),
       concrete: merge(concrete),
       timber: merge(timber),
       posts: merge(posts),
-      roofs: merge(roofs),
+      roofs: metreUVs(merge(roofs)),
       stairs: merge(stairs),
       retaining: merge(retaining),
       furniture: merge(furniture),
@@ -281,6 +285,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
     },
     [geoms],
   )
+  const finish = useHouseMaterials(plan.finishes)
 
   return (
     <group>
@@ -325,14 +330,10 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         </mesh>
       )}
       {geoms.ext && (
-        <mesh name="outside walls" geometry={geoms.ext} castShadow receiveShadow>
-          <meshStandardMaterial color="#f1ede6" roughness={0.85} />
-        </mesh>
+        <mesh name="outside walls" geometry={geoms.ext} material={finish.outsideWalls} castShadow receiveShadow />
       )}
       {geoms.int && (
-        <mesh name="inside walls" geometry={geoms.int} castShadow receiveShadow>
-          <meshStandardMaterial color="#ddd5c8" roughness={0.9} />
-        </mesh>
+        <mesh name="inside walls" geometry={geoms.int} material={finish.insideWalls} castShadow receiveShadow />
       )}
       {geoms.furniture && (
         <mesh name="furniture" geometry={geoms.furniture} castShadow receiveShadow>
@@ -351,10 +352,9 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       )}
       <OpeningDetail3D plan={plan} origin={origin} refZ={refZ} showLevels={showLevels} />
       {geoms.roofs && (
-        <mesh name="roof" geometry={geoms.roofs} castShadow receiveShadow>
-          <meshStandardMaterial color="#5d646d" roughness={0.7} metalness={0.15} />
-        </mesh>
+        <mesh name="roof" geometry={geoms.roofs} material={finish.roof} castShadow receiveShadow />
       )}
+      <Floors3D plan={plan} origin={origin} refZ={refZ} showLevels={showLevels} />
     </group>
   )
 }

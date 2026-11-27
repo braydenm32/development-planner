@@ -30,7 +30,6 @@ export const MORE_WORDS: Record<string, string[]> = {
   'kbd-fields': ['metric', 'mm', 'metres or millimetres'],
   // Walk-through is here now (CB-20, HO-31, PH-35).
   'cmd-walk-through': ['walk', 'vr', 'virtual tour', 'fly through', 'look inside', 'inside the house'],
-  materials: ['colour', 'colours', 'finishes', 'cladding colour'],
   'camera-street': ['walk around', 'look around', 'eye level'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
   'cmd-model': ['gltf', 'glb', 'obj', 'sketchup', 'skp', 'blender', 'render', 'rendering', 'model export', 'export model', '3d file', 'fbx', 'dae', 'collada', 'twinmotion', 'lumion', 'enscape', 'architect model'],
@@ -67,6 +66,10 @@ export const LEADS: Record<string, string> = {
   balcony: 'command:tool-area',
   curved: 'command:tool-sketch',
   rectangle: 'command:rect-room',
+  // How the house looks in 3D (CB-21); a price for a material is Costs › Materials.
+  colour: 'tab:design/finishes',
+  color: 'tab:design/finishes',
+  texture: 'tab:design/finishes',
 }
 
 export interface NotHere {
@@ -82,8 +85,7 @@ export interface NotHere {
 /** What other planners do that this one doesn't: search says so, instead of "Nothing matches". */
 export const NOT_HERE: NotHere[] = [
   { id: 'imperial', words: ['feet', 'foot', 'inches', 'inch', 'imperial', 'ft', 'yards'], label: 'Feet and inches', says: 'Not in this planner: it works in metres and millimetres only.' },
-  { id: 'render', words: ['render', 'rendering', 'photorealistic', 'realistic', 'texture', 'textures', 'wallpaper', 'paint'], label: 'Rendered pictures and textures', says: 'Not in this planner: the 3D view shows shape, levels and shadows in plain colours.' },
-  { id: 'mirror', words: ['mirror', 'flip', 'reflect'], label: 'Mirror or flip the plan', says: 'Not in this planner: turn the house under Earthworks › Place, or turn furniture with Q.' },
+  { id: 'render', words: ['rendering', 'photorealistic', 'realistic', 'photo-real', 'wallpaper'], label: 'Photo-real pictures', says: 'Not in this planner: no photo-real pictures. Design › Finishes sets the cladding, roof, colours and floors in the 3D view.' },
   { id: 'skylight', words: ['skylight', 'roof window', 'dormer'], label: 'Skylights and dormers', says: 'Not in this planner: roofs are hip, gable or skillion, with no openings in them.' },
   { id: 'beam', words: ['beam', 'beams', 'column', 'columns', 'post', 'structure', 'structural', 'truss', 'rafters'], label: 'Beams, posts and framing', says: 'Not in this planner: it draws walls, floors and roofs, and leaves the structure to your engineer.' },
   { id: 'electrical', words: ['electrical', 'power point', 'powerpoint', 'lighting plan', 'plumbing', 'wiring'], label: 'Electrical and plumbing plans', says: 'Not in this planner: it stops at walls, rooms, roofs and the ground.' },

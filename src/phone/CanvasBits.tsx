@@ -2,7 +2,7 @@
 // and the 3D view's presets with a way to show it full screen, and its Show menu (C18): the
 // roof, each level, trees and furniture, to see inside or past them.
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import type { ViewSettings } from '../lib/storage'
 import { Icon } from '../nav/icons'
 import { PRESETS } from './camera'
@@ -34,6 +34,8 @@ interface PresetProps {
   setPresenting: (on: boolean) => void
   /** What the Show menu turns on and off; left out, there is no menu. */
   show?: ShowProps
+  /** More buttons after Show (the Finishes button), hidden while presenting. */
+  extra?: ReactNode
 }
 
 export interface ShowProps {
@@ -92,7 +94,7 @@ export function ShowMenu({ view, set, levels, phone }: ShowProps & { phone: bool
 }
 
 /** Street view, From above and Rear; the camera swings to each. */
-export function PresetBar({ phone, presenting, setPresenting, show }: PresetProps) {
+export function PresetBar({ phone, presenting, setPresenting, show, extra }: PresetProps) {
   const active = useCamera(s => s.active)
   const go = useCamera(s => s.go)
   return (
@@ -116,6 +118,7 @@ export function PresetBar({ phone, presenting, setPresenting, show }: PresetProp
         ))}
       </div>
       {show && !presenting && <ShowMenu {...show} phone={phone} />}
+      {!presenting && extra}
     </div>
   )
 }

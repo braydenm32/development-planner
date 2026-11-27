@@ -486,6 +486,14 @@ export const AREAS: Area[] = [
         features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room', 'furniture-outdoor-fixtures'],
       },
       {
+        id: 'finishes',
+        label: 'Finishes',
+        icon: 'swatch',
+        subtitle: 'How the house looks in 3D: cladding, roof, colours and floors.',
+        keywords: ['finish', 'finishes', 'material', 'materials', 'texture', 'colour', 'color', 'paint', 'cladding', 'brick', 'render', 'rendered', 'weatherboard', 'roof colour', 'metal roof', 'roof sheeting', 'roof tiles', 'wall colour', 'inside colour', 'floor finish', 'timber floor', 'tiles', 'carpet', 'concrete floor', 'look', 'appearance'],
+        features: ['finishes-walls', 'finishes-roof', 'finishes-inside', 'finishes-floors', 'finishes-3d-button'],
+      },
+      {
         id: 'sections',
         label: 'Sections',
         icon: 'section',

@@ -19,6 +19,7 @@ import { DaPackTab, PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
 import { SectionsTab } from '../sections/SectionsTab'
+import { FinishesTab } from '../finishes/FinishesPanel'
 import { SiteSunTab } from '../sun/SunTab'
 import { MapTab } from '../map/MapTab'
 import { StarterHousesSection } from '../starters/StarterCards'
@@ -35,6 +36,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/walls': WallsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
+  'design/finishes': FinishesTab,
   'design/sections': SectionsTab,
   'design/options': OptionsTab,
   'earthworks/place': PlaceTab,

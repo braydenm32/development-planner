@@ -215,5 +215,7 @@ export function examplePlan(frontEdge: number): Plan {
     placement: { e: SAMPLE_E0 + 3.2, n: SAMPLE_N0 + 6, rotation: 0, ffl: EXAMPLE_FFL },
     earthworks: { margin: 0.5, cutBatter: 2, fillBatter: 2, subfloor: 0.4 },
     checks: exampleChecks(frontEdge),
+    // A look for the 3D view (src/finishes); it changes no number.
+    finishes: { walls: 'brick', roof: 'metal', roofColour: '#3b3e42', floors: { living: 'timber', bedrooms: 'carpet', wet: 'tile', garage: 'concrete' } },
   }
 }

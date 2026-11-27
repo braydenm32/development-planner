@@ -1,6 +1,7 @@
 import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
 import type { DaSettings } from '../da/model'
+import { normalizeFinishes, type Finishes } from '../finishes/model'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
@@ -45,6 +46,8 @@ export interface Plan {
   sections?: SectionLine[]
   /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
   location?: SiteLocation
+  /** How the house looks in 3D: cladding, roof, colours, floors (src/finishes). Missing is plain, as before. */
+  finishes?: Finishes
   /**
    * The sketch layer: construction lines, arcs, circles and curves, and the measurements kept on
    * the plan (src/sketch). They change nothing else; drawing snaps to them. Missing in plans saved
@@ -511,6 +514,7 @@ export function normalizePlan(p: Plan): Plan {
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
     ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
     ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
+    ...(p.finishes !== undefined ? { finishes: normalizeFinishes(p.finishes) } : {}),
   })))
 }
 

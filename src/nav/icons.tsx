@@ -84,6 +84,7 @@ const ICONS = {
   // Someone walking: Walk through in 3D.
   walk: '<circle cx="13.5" cy="4.8" r="1.8"/><path d="m10 21 2.2-5.6 2.6 2.4V21"/><path d="m12.2 15.4 1.2-6.6-3.6 1.6-1.6 3.4"/><path d="m13.4 8.8 1.8 3 3 1.2"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',
+  swatch: '<rect x="3.5" y="3.5" width="7" height="17" rx="1.5"/><path d="m10.5 7.5 4-3.2 4.6 5.6-8.6 7"/><path d="M10.5 20.5H20v-7h-5"/><circle cx="7" cy="16.5" r="1" fill="currentColor" stroke="none"/>',
 }
 
 export type IconName = keyof typeof ICONS
