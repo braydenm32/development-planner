@@ -174,6 +174,10 @@ export function nameSiteStep(a: SiteData, b: SiteData): StepName {
   if (f.removed.length && !f.added.length) return { what: f.removed.length === 1 ? `delete ${noun(f.removed)}` : `delete ${f.removed.length} site features`, ...FEATURES }
   if (o.added.length) return { what: 'add drawing', ...FEATURES }
   if (o.removed.length) return { what: 'remove drawing', ...FEATURES }
+  // Views from photos live in Site › 3D (src/photoview).
+  const ph = diff(a.photos, b.photos)
+  if (ph.added.length || ph.removed.length || ph.changed.length)
+    return { what: ph.added.length ? 'add photo' : ph.removed.length ? 'remove photo' : 'change view from a photo', area: 'site', tab: '3d' }
   if (f.changed.length) {
     const [x, y] = f.changed[0]
     const what = !!x.remove !== !!y.remove ? (y.remove ? `mark ${noun([y])} for removal` : `keep ${noun([y])}`) : differ(x.geom, y.geom) ? `move ${noun([y])}` : `change ${noun([y])}`

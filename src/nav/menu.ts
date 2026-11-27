@@ -51,6 +51,7 @@ export type ActionId =
   | 'dock-panels'
   | 'reset-camera'
   | 'walk-through'
+  | 'photo-view'
   | 'camera-street'
   | 'camera-above'
   | 'camera-rear'
@@ -281,6 +282,13 @@ export const AREAS: Area[] = [
           'terrain-elevation-colours',
           'survey-markers-3d',
           'walk-through-3d',
+          'photo-view-3d',
+          'photo-view-line-up',
+          'photo-view-point-pairs',
+          'photo-view-show-over',
+          'photo-view-sun',
+          'photo-view-picture',
+          'photo-view-in-file',
         ],
       },
       {
@@ -1425,6 +1433,16 @@ export const HOMES: Home[] = [
       { id: 'cmd-3mf', label: 'Download 3MF for printing', icon: 'download', keywords: ['3D print', 'model'], features: [], action: 'download-3mf', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-stl', label: 'Download STL files for printing', icon: 'download', keywords: ['stl', 'zip', 'slicer', '3D print'], features: [], action: 'download-stls', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-walk-through', label: 'Walk through the house in 3D', icon: 'walk', keywords: ['walk-through', 'walkthrough', 'eye height', 'inside', 'first person', 'virtual visit', 'stand in a room', 'tour'], features: [], action: 'walk-through', run: 'now', at: 'site/3d' },
+      {
+        id: 'cmd-photo-view',
+        label: 'View from a photo taken on the block',
+        icon: 'photo',
+        keywords: ['photo', 'view', 'photomontage', 'photo montage', 'outlook', 'what will it look like', 'from the street', 'from the neighbour', 'camera match', 'line up a photo'],
+        features: [],
+        action: 'photo-view',
+        run: 'now',
+        at: 'site/3d',
+      },
       { id: 'cmd-reset-camera', label: 'Reset the 3D camera', icon: 'rotate', keywords: ['view', 'orbit', 'home'], features: [], action: 'reset-camera', run: 'now', at: 'site/3d' },
     ],
   },

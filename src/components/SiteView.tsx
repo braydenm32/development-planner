@@ -28,6 +28,9 @@ import type { Vec2 } from '../lib/geom'
 import { WalkRig } from '../walk/WalkRig'
 import { WalkPanel } from '../walk/WalkPanel'
 import { useWalk } from '../walk/walkStore'
+import { PhotoLayer } from '../photoview/PhotoLayer'
+import { PhotoRig } from '../photoview/PhotoRig'
+import { usePhotoView } from '../photoview/store'
 
 export interface HoverInfo {
   e: number
@@ -84,6 +87,7 @@ export function SiteView(props: Props) {
     {/* Arrows turn and tilt, + and − zoom; the view is a named picture that Tab stops on (src/a11y). */}
     <SceneKeys />
     <WalkPanel />
+    <PhotoLayer survey={props.survey} plan={props.plan} exag={props.view.exaggeration} />
     <Canvas
       {...sceneProps(sceneSummary(props.plan, terrain.stats))}
       camera={{ position: camPos, fov: 40, near: 0.1, far: span * 50 }}
@@ -107,6 +111,7 @@ export function SiteView(props: Props) {
       {touch && frame && <CameraRig frame={frame} storageKey={touch.projectKey} phone={touch.phone} upBearing={props.upBearing} hasPlan={!!props.plan} />}
       <Site {...props} refZ={refZ} onPin={touch ? setPin : undefined} />
       {pin && <GroundPin pin={pin} />}
+      <PhotoRig {...props} refZ={refZ} />
       {props.plan && (
         <WalkRig plan={props.plan} origin={props.survey.origin} refZ={refZ} exag={props.view.exaggeration} ground={props.ground} boundary={props.survey.boundary as Vec2[]} street={street} />
       )}
@@ -123,7 +128,7 @@ function Compass({ compassRef }: { compassRef: RefObject<HTMLDivElement | null> 
     if (!controls || !compassRef.current) return
     // Azimuth 0 means the camera looks towards -z (north); the needle turns to match (the N stays upright: App.css).
     // Walking through turns the camera without the orbit (src/walk): read it off the camera then.
-    const az = useWalk.getState().active ? Math.atan2(-camera.getWorldDirection(look).x, -look.z) : controls.getAzimuthalAngle()
+    const az = useWalk.getState().active || usePhotoView.getState().active ? Math.atan2(-camera.getWorldDirection(look).x, -look.z) : controls.getAzimuthalAngle()
     compassRef.current.style.setProperty('--az', `${(-az * 180) / Math.PI}deg`)
   })
   return null

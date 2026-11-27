@@ -31,6 +31,8 @@ export const MORE_WORDS: Record<string, string[]> = {
   // Walk-through is here now (CB-20, HO-31, PH-35).
   'cmd-walk-through': ['walk', 'vr', 'virtual tour', 'fly through', 'look inside', 'inside the house'],
   'camera-street': ['walk around', 'look around', 'eye level'],
+  // View from a photo (src/photoview): the words a homeowner or a planner would use.
+  'cmd-photo-view': ['view from the street', 'view from next door', 'neighbours view', 'from the neighbours', 'streetscape', 'montage', 'superimpose', 'overlay a photo', 'my photo', 'window view', 'deck view', 'view from the deck'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
   'cmd-model': ['gltf', 'glb', 'obj', 'sketchup', 'skp', 'blender', 'render', 'rendering', 'model export', 'export model', '3d file', 'fbx', 'dae', 'collada', 'twinmotion', 'lumion', 'enscape', 'architect model'],
   'cmd-model-obj': ['obj', 'wavefront', 'mtl', 'sweet home 3d', 'model export'],

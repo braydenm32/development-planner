@@ -25,6 +25,8 @@ Each area has its tabs across the top and a **More** tab for its rarer settings;
 
 **Walk through** in the 3D view's bar (or on a room's card and right-click menu) puts you inside the house at eye height: drag to look round, walk with the arrow keys or W A S D (Q and E turn; on a touch screen, the arrow pad), or click the floor to walk there. Walls stop you and doorways let you through; **Go up** and **Go down** change level, and Esc puts the camera back where it was.
 
+**From a photo** in the 3D view's bar (or Site › 3D, or search for "photomontage" or "outlook") draws the new house over a photo you took on or near the block. Add the photo (or take one on a phone), press where you stood on the small plan and drag the way you faced; the camera stands there at eye height, or above a level's floor to see what a future window or deck looks out on. Line it up by dragging, with typed values and fine steps, or by clicking a point in the photo and the same point on the model. **Picture** then saves the photo with the house on it. The lens angle and the time come from the photo's details; its location is used only as a rough first guess when the block is placed on the map, and the photo is saved again without it. Photos stay with the project like drawings: in the project file only when ticked, never in a share link.
+
 ## Starting a project
 
 The start screen offers two ways in, plus a third for a block with no survey yet:

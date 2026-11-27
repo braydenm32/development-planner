@@ -28,6 +28,7 @@ import { setWallMode } from '../plan/wallMode'
 import { undoTarget } from './undoTarget'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 import { walkThrough } from '../walk/start'
+import { openPhotoView } from '../photoview/store'
 
 export interface ActionContext {
   shell: ShellData
@@ -136,6 +137,9 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'walk-through':
       walkThrough()
+      return true
+    case 'photo-view':
+      openPhotoView()
       return true
     // A picture of whichever canvas is showing.
     case 'save-picture':

@@ -11,6 +11,7 @@ import { useProjects } from '../../projects/session'
 import { guessCount, layersKey, useLayersSeen } from '../../site/layersSeen'
 import { SketchNotice } from '../../start/SketchNotice'
 import { DemNotice } from '../../map/DemNotes'
+import { PhotoViewsSection } from '../../photoview/PhotoLayer'
 import { useShell } from '../context'
 import './site-tabs.css'
 
@@ -81,6 +82,7 @@ export function Site3dTab() {
       {/* One home for each switch and button: the 3D view's own Show menu and Reset camera. */}
       <p className="muted small">The roof, each level, trees and furniture are under Show, at the top of the 3D view. Reset camera is at its bottom right.</p>
       {survey && terrain && <StreetSideLink survey={survey} terrain={terrain} />}
+      <PhotoViewsSection />
     </>
   )
 }
