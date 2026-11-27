@@ -33,6 +33,10 @@ export interface Frame {
   streetEdge?: number
   /** How far the house's front is from the target towards the street, in metres: Street view never stands inside it. */
   houseEdge?: number
+  /** How wide the house is as seen from the street, in metres: Street view stands back until it fits. */
+  width?: number
+  /** The top of the house (roof or walls), in the view's units like the target: Street view stands back until it shows. */
+  top?: number
 }
 
 export const PRESETS: { id: Exclude<Preset, 'house'>; label: string; long: string }[] = [
@@ -49,6 +53,10 @@ export const EYE_HEIGHT = 1.6
 export const STREET_INSET = 1.2
 /** Street view never stands closer to the front of the house than this (m), so there's a house to see, not a wall: a house nearer the boundary is seen from out on the footpath. */
 export const STREET_ROOM = 6
+/** Street view leaves this much room round the house's front: 1.15 is the house and 15% more. */
+export const STREET_MARGIN = 1.15
+/** The furthest Street view steps out past the block's boundary to fit the house in (m): about across the road, where the footpath's ground still reads. */
+export const STREET_REACH = 15
 /** The opening view: a little higher than Street view, turned off square so two sides of the house show. */
 export const HOUSE_ELEVATION = 28
 export const HOUSE_TURN = 35
@@ -99,23 +107,41 @@ export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: num
  * Street view: standing on the ground on the street side, just inside the block's boundary, eyes
  * at EYE_HEIGHT, looking at the house as someone on the footpath would. It used to stand back far
  * enough to take the whole house in, which was often out past the block, where the survey's ground
- * stops and the view looked at the block's cut side. Without the boundary (no house to stand in
+ * stops and the view looked at the block's cut side. It steps back from there only as far as it
+ * takes to fit the whole front of the house in the view (HO-19, PH-22). Without the boundary (no house to stand in
  * front of yet), it stands back to take it all in. Without the ground (no survey under it), it
  * stands at the floor's level. It never looks up past level: the 3D view can't orbit below its target.
  */
 function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
   const t = f.target
   const exag = f.exaggeration ?? 1
+  const dir = towards(f.street)
+  const groundAt = (d: number) => {
+    const g = f.ground?.(t[0] + dir[0] * d, t[2] + dir[2] * d)
+    // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
+    return g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
+  }
   // Where the house comes closer to the boundary than that leaves room for (or over it), it stands
   // far enough in front of the house to see it, on the footpath.
-  const d = f.streetEdge !== undefined ? Math.max(f.streetEdge - STREET_INSET, (f.houseEdge ?? 0) + STREET_ROOM) : fitDistance(f.radius * 1.2, fovDeg, aspect)
-  const dir = towards(f.street)
+  const front = f.houseEdge ?? 0
+  const inside = f.streetEdge !== undefined ? Math.max(f.streetEdge - STREET_INSET, front + STREET_ROOM) : fitDistance(f.radius * 1.2, fovDeg, aspect)
+  let d = inside
+  if (f.streetEdge !== undefined) {
+    // Then back until the whole front fits the view, sides and top, with a margin: a two-storey
+    // house 9 m behind its boundary was one blank wall, and a door and a strip of wall on a phone
+    // held upright. Looking level the lens is the wide one and the eye line sits low (levelLens).
+    const v = Math.tan((Math.max(fovDeg, LEVEL_FOV) / 2) * RAD)
+    const h = v * Math.max(aspect, 0.1)
+    const forWidth = f.width !== undefined ? ((f.width / 2) * STREET_MARGIN) / h : 0
+    const forTop = (at: number) => (f.top !== undefined ? (((f.top - (groundAt(at) + EYE_HEIGHT * exag)) / exag) * STREET_MARGIN) / (2 * v * (0.5 + RISE_SHARE)) : 0)
+    // The ground where it stands sets how tall the house looks: settle on it in two goes.
+    for (let i = 0; i < 2; i++) d = Math.max(inside, front + Math.max(STREET_ROOM, forWidth, forTop(d)))
+    // No further than across the road: past that the survey's ground is long gone.
+    d = Math.min(d, Math.max(inside, f.streetEdge + STREET_REACH))
+  }
   const x = t[0] + dir[0] * d
   const z = t[2] + dir[2] * d
-  const g = f.ground?.(x, z)
-  // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
-  const ground = g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
-  const eye = ground + EYE_HEIGHT * exag
+  const eye = groundAt(d) + EYE_HEIGHT * exag
   return { position: [x, eye, z], target: [t[0], Math.min(t[1], eye - d * 0.02), t[2]] }
 }
 
