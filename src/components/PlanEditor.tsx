@@ -2097,6 +2097,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           return
         }
       }
+      // Before the first point a typed length has nothing to run from: the tool keeps the digits (0
+      // isn't Fit while it's out) and says to click first. Rectangle room keeps its own (RectRoom.tsx).
+      if (!drawnFrom && /^[0-9.]$/.test(e.key) && (tool === 'wall' || tool === 'retaining' || tool === 'area' || (tool === 'roof' && roofMode === 'outline'))) {
+        e.preventDefault()
+        st.notify(tool === 'area' || tool === 'roof' ? 'Click the first corner, then type each side’s length.' : 'Click where the wall starts, then type its length.')
+        return
+      }
       if (e.key === 'Escape') {
         if (chain.length) finishChain()
         else if (areaPts.length) setAreaPts([])
