@@ -337,15 +337,15 @@
 }
 
 .app-shell:not(.phone) .shell-main .scalebar {
-  bottom: calc(62px + var(--section-strip-h, 0px));
+  bottom: calc(62px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 .app-shell:not(.phone) .plan-editor .flow-card {
-  bottom: calc(64px + var(--section-strip-h, 0px));
+  bottom: calc(64px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 body:has(.toast, .sf-toast) .app-shell:not(.phone) .plan-editor .flow-card {
-  bottom: calc(170px + var(--section-strip-h, 0px));
+  bottom: calc(170px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 .app-shell:not(.phone) .toast {

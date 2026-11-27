@@ -68,6 +68,14 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asked])
 
+  // Picking up a drawing tool folds the list (its own "Add a roof" button does, and so does a key):
+  // open, it sits beside the tool's card over the house and would take the clicks meant for the plan (HO-15).
+  useEffect(() => {
+    if (tool === 'select') return
+    setAnswering(null)
+    setOpen(false)
+  }, [tool])
+
   if (!qs.length) return null
   const n = waiting(qs)
   // Something you did just asked; say so once the tool is down, so drawing isn't interrupted.
@@ -115,7 +123,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
       ) : (
         <ul className="q-list">
           {qs.map(q => (
-            <Row key={q.id} q={q} phone={phone} answer={() => setAnswering(q.id)} />
+            <Row key={q.id} q={q} phone={phone} answer={() => setAnswering(q.id)} fold={close} />
           ))}
         </ul>
       )}
@@ -123,14 +131,22 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   )
 }
 
-function Row({ q, phone, answer }: { q: Question; phone: boolean; answer: () => void }) {
+function Row({ q, phone, answer, fold }: { q: Question; phone: boolean; answer: () => void; fold: () => void }) {
   const tip = q.hint ? TIPS[q.hint] : null
   const detail = tip ? (phone ? tip.phone : tip.desk) : q.detail
   let action
   if (tip)
     action = (
       <>
-        <button type="button" className="q-go" onClick={() => usePlan.getState().setTool(tip.tool)}>
+        <button
+          type="button"
+          className="q-go"
+          onClick={() => {
+            // The next click belongs to the plan: the list folds as its tool starts.
+            usePlan.getState().setTool(tip.tool)
+            fold()
+          }}
+        >
           {tip.button}
         </button>
         <button type="button" className="q-hide" aria-label={`Hide the tip: ${tip.title}`} title="Hide this tip" onClick={() => hideHint(q.hint!)}>

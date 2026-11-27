@@ -4,7 +4,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
-import { TOOLS } from '../components/tools'
+import { DESIGN_RAIL, EARTHWORKS_RAIL, TOOLS, type ToolDef } from '../components/tools'
+import { BRUSH_KEY, beginBrush, stopBrush, useBrush } from '../grading/store'
 import { ZoomButtons } from '../components/ZoomButtons'
 import { Icon, type IconName } from '../nav/icons'
 import type { ActionId, CanvasView } from '../nav/menu'
@@ -16,20 +17,84 @@ import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
 import type { Loaded } from './useSite'
 
-const RAIL = TOOLS.filter(t => !t.more)
+/** A button on the rail: a plan tool, or (in Earthworks) the driveway and the grading brush. */
+interface RailButton {
+  id: string
+  label: string
+  short?: string
+  key: string
+  icon?: string
+  tip: string
+  group: string
+  on: boolean
+  pick: () => void
+}
 
-export function ToolRail() {
+/** Measure and Note put themselves down when their button is pressed again. */
+const TOGGLES: Tool[] = ['measure', 'note']
+
+function toolButton(t: ToolDef, tool: Tool): RailButton {
+  const on = tool === t.id
+  return { ...t, on, pick: () => usePlan.getState().setTool(on && TOGGLES.includes(t.id) ? 'select' : t.id) }
+}
+
+/**
+ * The rail's buttons for an area. Design has every drawing tool, a group at a time. Earthworks has
+ * the ground's own: Move house, Retaining wall, Driveway (the Area tool, set to a driveway), the
+ * grading brush and Measure (LF-30, HO-32).
+ */
+function railButtons(earthworks: boolean, tool: Tool, brushOn: boolean, areaKind: string): RailButton[] {
+  if (!earthworks) return DESIGN_RAIL.map(t => toolButton(t, tool))
+  const def = (id: Tool) => TOOLS.find(t => t.id === id)!
+  return EARTHWORKS_RAIL.map((id): RailButton => {
+    if (id === 'driveway')
+      return {
+        id,
+        label: 'Driveway',
+        key: def('area').key,
+        icon: 'drive',
+        tip: 'draw a driveway to see its grade and whether a car gets in',
+        group: 'ground',
+        on: tool === 'area' && areaKind === 'driveway' && !brushOn,
+        pick: () => {
+          stopBrush()
+          usePlan.getState().setAreaDefault('driveway')
+          usePlan.getState().setTool('area')
+        },
+      }
+    if (id === 'brush')
+      return {
+        id,
+        label: 'Grading brush',
+        short: 'Brush',
+        key: BRUSH_KEY,
+        icon: 'shovel',
+        tip: 'paint the ground down (cut) or up (fill) to a level',
+        group: 'ground',
+        on: brushOn,
+        pick: () => (brushOn ? stopBrush() : beginBrush()),
+      }
+    const b = toolButton(def(id), brushOn ? 'select' : tool)
+    // Select puts the brush down too; the rest of the ground's tools sit in one group, with Measure after.
+    return { ...b, group: id === 'select' || id === 'measure' ? b.group : 'ground', on: id === 'select' ? b.on && !brushOn : b.on, pick: () => (stopBrush(), b.pick()) }
+  })
+}
+
+export function ToolRail({ earthworks = false }: { earthworks?: boolean }) {
   const tool = usePlan(s => s.tool)
-  const st = usePlan.getState()
+  const areaKind = usePlan(s => s.areaDefault)
+  const brushOn = useBrush(s => s.on)
   // A phone shows the sketch, but draws it only on a computer.
   const phone = !!useTouchCanvas()?.phone
+  const buttons = railButtons(earthworks, tool, brushOn, areaKind).filter(b => !(phone && (b as Partial<ToolDef>).desk))
   return (
-    <div className="tool-rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical">
-      {(phone ? RAIL.filter(t => !t.desk) : RAIL).map((t, i) => (
-        <span key={t.id} className={i === 1 ? 'tool-gap' : undefined}>
-          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(tool === t.id && (t.id === 'measure' || t.id === 'note') ? 'select' : t.id)} data-tip={`${t.label} ${t.key}`} aria-label={`${t.label} tool (${t.key})`}>
-            <Icon name={(t.icon ?? 'select') as IconName} size={17} />
-            <span className="tool-name">{t.short ?? t.label}</span>
+    <div className={`tool-rail${earthworks ? '' : ' full'}`} role="toolbar" aria-label={earthworks ? 'Ground tools' : 'Plan tools'} aria-orientation="vertical">
+      {buttons.map((b, i) => (
+        // A line between one group of tools and the next.
+        <span key={b.id} className={i > 0 && buttons[i - 1].group !== b.group ? 'tool-gap' : undefined}>
+          <button className={b.on ? 'on' : ''} aria-pressed={b.on} onClick={b.pick} data-tip={`${b.label}: ${b.tip} (${b.key})`} aria-label={`${b.label} tool (${b.key})`} aria-description={b.tip}>
+            <Icon name={(b.icon ?? 'select') as IconName} size={17} />
+            <span className="tool-name">{b.short ?? b.label}</span>
           </button>
         </span>
       ))}
@@ -131,7 +196,8 @@ interface ControlsProps {
 /** A view button: its name shows beside the icon on a desktop and is the icon's label on a phone. */
 function Ctl({ icon, label, onClick, pressed }: { icon: IconName; label: string; onClick: () => void; pressed?: boolean }) {
   return (
-    <button onClick={onClick} aria-pressed={pressed} aria-label={label}>
+    // The title names the button where a small window shows its icon alone (shell.css).
+    <button onClick={onClick} aria-pressed={pressed} aria-label={label} title={label}>
       <Icon name={icon} size={16} />
       <span>{label}</span>
     </button>
@@ -157,13 +223,19 @@ function useControlsWidth() {
     const el = ref.current
     const host = el?.parentElement
     if (!el || !host) return
-    const set = () => host.style.setProperty(CONTROLS_W, `${Math.ceil(el.getBoundingClientRect().width)}px`)
+    const set = () => {
+      const w = `${Math.ceil(el.getBoundingClientRect().width)}px`
+      host.style.setProperty(CONTROLS_W, w)
+      // The same width under a name of its own, for the hint's line above the bar on a small window (shell.css).
+      host.style.setProperty('--view-bar-w', w)
+    }
     set()
     const ro = new ResizeObserver(set)
     ro.observe(el)
     return () => {
       ro.disconnect()
       host.style.removeProperty(CONTROLS_W)
+      host.style.removeProperty('--view-bar-w')
     }
   }, [])
   return ref
