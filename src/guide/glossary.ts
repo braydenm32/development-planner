@@ -42,13 +42,22 @@ export const TERMS: Term[] = [
   { id: 'easement', short: 'Easement', says: 'A strip of the block that someone else has a right to use, often for drains or sewer pipes. Building over one usually isn’t allowed.', match: /\beasements?\b/i },
   { id: 'basix', short: 'BASIX', says: 'The NSW sustainability index. Every new house needs a BASIX certificate setting what it must achieve for water, energy and comfort.', match: /\bBASIX\b/ },
   { id: 'contour', short: 'Contour', says: 'A line joining ground at the same level. Close together means steep; far apart means gentle.', match: /\bcontours?\b/i },
-  { id: 'fall', short: 'Fall', says: 'How much the ground drops across a distance. A block that falls 3 m front to back is 3 m lower at the back.', match: /\bfall\b|\bcross-fall\b/i },
+  { id: 'fall', short: 'Fall', says: 'How much the ground drops across a distance. A block that falls 3 m front to back is 3 m lower at the back.', match: /\bfall\b/i },
+  // The driveway's words: each check says it plainly first, with the engineer's word after it.
+  { id: 'grade', short: 'Grade', says: 'How steep something is along its length. 1 in 10 (10%) rises or falls 1 m for every 10 m along. About 1 in 4 (25%) is as steep as a car can drive.', match: /\bgrades?\b/i },
+  { id: 'cross-fall', short: 'Cross-fall', says: 'How much a driveway or path tilts from one side to the other, across the way you travel. More than about 1 in 16 is too much to drive or park on comfortably.', match: /\bcross-fall\b/i },
+  { id: 'crossing', short: 'Footpath crossing', says: 'Where a driveway crosses the footpath and the kerb to reach the road, also called a crossover. The council sets its shape and levels, and builds or approves it.', match: /\bcrossing\b|\bcrossover\b/i },
+  { id: 'layback', short: 'Layback', says: 'The kerb ramp: the sloped piece of kerb at a driveway that a car’s wheels roll up, in place of the upright kerb. It rises about 150 to 200 mm from the gutter.', match: /\blayback\b|\bkerb ramp\b/i },
+  { id: 'summit', short: 'Summit', says: 'A hump: where a driveway’s slope changes over a crest, as it does leaving a level garage floor to head downhill. A sharp one can catch the middle of a car’s underside.', match: /\bsummit\b|\bhump\b/i },
+  { id: 'sag', short: 'Sag', says: 'A dip: where a driveway’s slope changes through a hollow, as it does where a steep drive meets a flatter footpath. A sharp one can catch a car’s front or rear bumper.', match: /\bsag\b|\bdip\b/i },
+  { id: 'transition', short: 'Transition', says: 'A short stretch of driveway, about 2 m long, at a slope in between the ones either side of a hump or a dip, so a car’s underside and bumpers clear it.', match: /\btransitions?\b/i },
+  { id: 'design-car', short: 'B85 and B99 cars', says: 'The two standard cars the Australian parking standard (AS/NZS 2890.1) checks a driveway with. The B85 is an ordinary car, sized to cover 85 in 100 cars on the road, used for turning in. The B99 is a large one, sized to cover nearly all of them, used for whether the underside scrapes.', match: /\bB85\b|\bB99\b/ },
   { id: 'slab', short: 'Slab on ground', says: 'A concrete floor poured on a level pad of ground. On a slope, the pad is made by cutting and filling.', match: /\bslab\b/i },
   { id: 'piers', short: 'Piers', says: 'Posts or footings that hold a framed floor up off the ground, so the ground under it can stay as it is.', match: /\bpiers\b/i },
 ]
 
 /** Words a field label explains by itself; everyday words (cut, fill, slab) only where asked. */
-export const LABEL_TERMS = ['ffl', 'rl', 'ahd', 'cdc', 'da', 'lep', 'dcp', 'fsr', 'gfa', 'batter', 'setback', 'building-line', 'battle-axe', 'landscaped', 'private-open-space', 'tpz', 'easement', 'basix']
+export const LABEL_TERMS = ['ffl', 'rl', 'ahd', 'cdc', 'da', 'lep', 'dcp', 'fsr', 'gfa', 'batter', 'setback', 'building-line', 'battle-axe', 'landscaped', 'private-open-space', 'tpz', 'easement', 'basix', 'crossing', 'layback', 'cross-fall']
 
 const BY_ID = new Map(TERMS.map(t => [t.id, t]))
 

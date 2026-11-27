@@ -97,6 +97,7 @@ import { CostsPlanLayer } from '../costs/PlanHighlight'
 import { ChecksPlanLayer } from '../checks/ChecksPlanLayer'
 import { useCommentsPlan } from '../comments/PlanComments'
 import { DrainageLayer } from '../drainage/DrainageLayer'
+import { DrivewayArrows } from './DrivewayArrows'
 import { costsUndoKey } from '../costs/store'
 import './editing.css'
 
@@ -2454,6 +2455,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <ChecksPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <DrainageLayer plan={plan} survey={survey} terrain={terrain} S={S} k={k} />
+        <DrivewayArrows plan={plan} survey={survey} S={S} />
 
         {/* Drawing in progress */}
         {chain.length > 1 && <path className="chain" d={path(chain, false)} />}

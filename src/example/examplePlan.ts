@@ -23,8 +23,8 @@ const BEDROOMS = 'level_bedrooms'
 
 /** How far the bedroom level sits above the living level (m): six risers of about 167 mm. */
 export const SPLIT = 1
-/** RL of the living level's floor: where its cut and fill about balance. */
-export const EXAMPLE_FFL = 45.36
+/** RL of the living level's floor: where its cut and fill about balance, the driveway's included. */
+export const EXAMPLE_FFL = 45.34
 
 const EXT = 0.27 // brick veneer
 const INT = 0.11 // stud
@@ -53,10 +53,10 @@ const Y_FRONT = 0
 const Y_BEDS = 2
 const Y_BACK = 12.8
 /**
- * RL of the bedroom level's pad: under its floor framing (less 10 mm), where the cut and fill
- * of the whole house balance with the living level's floor at EXAMPLE_FFL.
+ * RL of the bedroom level's pad: under its floor framing (less 20 mm), where the cut and fill
+ * of the whole house and its driveway balance with the living level's floor at EXAMPLE_FFL.
  */
-const BEDROOM_PAD = 46.05
+const BEDROOM_PAD = 46.02
 /** The step's retaining wall: its centreline, just outside the living level's west wall. */
 const STEP_X = X_SPLIT - EXT / 2 - 0.1
 
@@ -146,7 +146,9 @@ const rooms: Room[] = [
 ]
 
 const areas: Area[] = [
-  // From the street to the garage door. It follows the ground, so it changes no levels.
+  // From the garage door out to the street: wider than it is long, as a double garage's drive is.
+  // Left alone, it meets the garage at the slab and the ground at its street end, and the cut and
+  // fill grades it between them.
   { id: 'a_drive', level: LIVING, name: 'Driveway', kind: 'driveway', top: 0, pts: [[10.2, -5.35], [15.5, -5.2], [15.5, -EXT / 2], [10.2, -EXT / 2]] },
   { id: 'a_deck', level: LIVING, name: 'Deck', kind: 'deck', top: 0, pts: [[9, Y_BACK + EXT / 2], [15, Y_BACK + EXT / 2], [15, 16], [9, 16]] },
   { id: 'a_lawn', level: LIVING, name: 'Back lawn', kind: 'garden', top: 0, pts: [[-1, 15], [8.6, 15], [8.6, 21], [-1, 21]] },

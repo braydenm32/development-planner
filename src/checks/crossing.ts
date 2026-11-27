@@ -1,11 +1,13 @@
 // The driveway crossing checks: can a car get from the street to the garage? The grades along
-// the drive, the footpath crossing's fall, the changes of grade where the drive meets the
-// footpath and the garage, whether a car's underside scrapes, and whether a car can turn in.
+// the drive, how much it tilts across, the footpath crossing's fall, the changes of grade where
+// the drive meets the footpath and the garage, whether a car's underside scrapes, and whether a
+// car can turn in. Each row says it plainly first (a hump, a dip, the kerb ramp, a large car) with
+// the engineer's word after it (summit, sag, layback, the B99 car); src/guide/glossary.ts has them.
 // The council's numbers come first (its DCP and crossing drawings, in ./councils), and
 // AS/NZS 2890.1:2004 fills in the rest, with the same marks for how sure the research is
 // (docs/research/compliance-and-swept-path-sources.md). The geometry is src/plan/crossing.ts.
 
-import { gradeText } from '../lib/drape'
+import { gradeText, MAX_CROSS_FALL } from '../lib/drape'
 import {
   driveProfile,
   gradeBreaks,
@@ -26,7 +28,7 @@ import {
   type TurningCar,
 } from '../plan/crossing'
 import type { Council, RuleSource } from './councils/types'
-import type { CheckResult, CheckStatus, Source } from './types'
+import { NEED_FRONT, type CheckResult, type CheckStatus, type Source } from './types'
 
 // ---------------------------------------------------------------------------
 // AS/NZS 2890.1 and the design cars, as the research has them
@@ -221,38 +223,47 @@ export function whereText(p: DriveProfile | null, x: number, boundary = p?.bound
   const near = 0.6
   if (p && x >= p.gutter - near) return 'at the gutter'
   const top = p?.points.find(q => q.mark === 'layback')
-  if (top && Math.abs(x - top.x) < near) return 'at the top of the layback'
+  if (top && Math.abs(x - top.x) < near) return 'at the top of the kerb ramp'
   if (Math.abs(x - boundary) < near) return 'at the boundary'
   if (x > boundary) return 'on the footpath'
   if (x < near) return 'at the garage'
   return `${metres(boundary - x)} in from the boundary`
 }
 
-const PART: Record<Scrape['part'], string> = { front: 'the front bumper', rear: 'the rear bumper', middle: 'underneath, between the wheels' }
+const PART: Record<Scrape['part'], string> = { front: 'under the front bumper', rear: 'under the rear bumper', middle: 'between the wheels' }
+/** A change of grade in plain words first: a hump (the engineer's summit) or a dip (a sag). */
+const KIND: Record<GradeBreak['kind'], string> = { summit: 'hump (summit)', sag: 'dip (sag)' }
 
 const BREAK_AT = (b: GradeBreak, p: DriveProfile | null) =>
   b.mark === 'garage' || b.x < 0.05 ? 'at the garage' : b.mark === 'boundary' ? 'at the boundary' : p ? whereText(p, b.x) : `${metres(b.x)} from the garage`
-const BREAK_TEXT = (b: GradeBreak, p: DriveProfile | null) => `a ${pctText(b.change)} ${b.kind} ${BREAK_AT(b, p)}`
+const BREAK_TEXT = (b: GradeBreak, p: DriveProfile | null) => `${/^(8|11|18)/.test(pctText(b.change)) ? 'an' : 'a'} ${pctText(b.change)} ${KIND[b.kind]} ${BREAK_AT(b, p)}`
 
 // ---------------------------------------------------------------------------
 // The checks
 
-export const DRIVE_CHECKS = ['drive-grade', 'drive-footpath', 'drive-transitions', 'drive-scrape', 'drive-turn'] as const
+export const DRIVE_CHECKS = ['drive-grade', 'drive-crossfall', 'drive-footpath', 'drive-transitions', 'drive-scrape', 'drive-turn'] as const
 const TITLES: Record<(typeof DRIVE_CHECKS)[number], string> = {
   'drive-grade': 'Driveway grade',
+  'drive-crossfall': 'Tilt across the drive (cross-fall)',
   'drive-footpath': 'Footpath crossing',
   'drive-transitions': 'Changes of grade',
-  'drive-scrape': 'Scraping (B99 car)',
-  'drive-turn': 'Turning in (B85 car)',
+  'drive-scrape': 'Scraping underneath',
+  'drive-turn': 'Turning in from the street',
 }
 
 /** Said when the drive's garage end follows the ground: the step up or down to the floor is the one thing not drawn. */
 const FLOOR_NOTE = 'Its garage end follows the ground, so the step to the garage floor isn’t checked: give it the garage’s slab level under Levels.'
 
+/**
+ * Across a drive: 1 in 16 is the most the standard allows across a space where cars park (other
+ * than along it), the figure commonly restated for a driveway's cross-fall. Not read; the council's
+ * driveway drawing decides.
+ */
+const CROSS_SOURCE = AS('cl 2.4.6 (1 in 16 across where cars park)', 'unverified', 'not read: as commonly restated for a driveway’s cross-fall')
 const SCRAPE_SOURCE = AS('Appendix C (ground clearance template)', 'unverified', '120 mm clearance read (foreword); the car’s size and angles not read')
 const TURN_SOURCE = AS('cl 2.6.1 and the B85 car (turning circle)', 'secondary', 'from the 2024 draft’s Appendix A and Table 2.6')
 
-/** Why the crossing can't be checked, as a row: the battle-axe handle, the drive not reaching the street, or no kerb level. */
+/** Why the crossing can't be checked, as a row: the battle-axe handle, no street side picked, the drive not reaching the street, or no kerb level. */
 function cantCheck(line: DriveLine, kerb: Kerb | null): Pick<CheckResult, 'status' | 'value' | 'note'> | null {
   if (line.why === 'battle-axe')
     return {
@@ -260,6 +271,8 @@ function cantCheck(line: DriveLine, kerb: Kerb | null): Pick<CheckResult, 'statu
       value: 'The crossing is at the end of the access handle',
       note: 'On a battle-axe lot the drive meets the street at the end of the handle, which the survey leaves out. Check it against the council’s crossing drawing.',
     }
+  // The same wait as the setbacks': Checks asks which side in the first row that needs it.
+  if (line.why === 'no-street-side') return { status: 'unknown', value: 'Pick the street side', note: NEED_FRONT }
   if (line.why === 'not-to-street')
     return { status: 'incomplete', value: 'Draw the drive out to the street boundary to check this.', note: 'Its centreline doesn’t reach the street side of the block.' }
   if (!kerb)
@@ -281,7 +294,6 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
   const title = (k: (typeof DRIVE_CHECKS)[number]) => `${TITLES[k]}${suffix}`
   const out: CheckResult[] = []
   const blocked = cantCheck(line, kerb)
-  const guessed = line.guessed ? ' The street side isn’t set, so it’s taken as the side the drive runs to: set it under Lot facts.' : ''
   const kerbNote = kerb ? ` ${kerbText(kerb, shape)}` : ''
 
   // Grade along the drive, on the property.
@@ -300,19 +312,40 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
       id: id('drive-grade'),
       title: title('drive-grade'),
       status,
-      value: `Steepest ${gradeText(g)}${where}${entry}`,
+      value: `${status === 'fail' ? 'Too steep for a car:' : 'Steepest'} ${gradeText(g)}${where}${entry}`,
       limit: `Up to ${gradeText(max)}; steeper than 1 in 5 (20%) needs a non-slip finish`,
       note:
         [
-          status === 'fail' ? 'Too steep to drive: lower the garage, raise the street end or lengthen the drive.' : null,
+          status === 'fail' ? 'Lower the garage, raise the street end or lengthen the drive.' : null,
           status === 'warn' && g > max ? `The council says “generally”, so a steeper drive needs a case.` : null,
           status === 'warn' && g <= max ? 'Steeper than 1 in 5: give it a broom or exposed finish so tyres grip in the wet.' : null,
           'Down the drive’s centreline on the finished ground, garage end to the boundary.',
           line.floor === null ? FLOOR_NOTE : null,
         ]
           .filter(Boolean)
-          .join(' ') + guessed,
+          .join(' '),
       source: std.maxGrade.source,
+    })
+  }
+
+  // The tilt across the drive: on the drive as built to its levels, or the ground it follows.
+  if (line.crossFall !== null) {
+    const over = line.crossFall > MAX_CROSS_FALL + 1e-6
+    const flat = line.crossFall < 0.005
+    out.push({
+      id: id('drive-crossfall'),
+      title: title('drive-crossfall'),
+      status: over ? 'fail' : 'pass',
+      value: `${flat ? 'Level across' : `Tilts ${gradeText(line.crossFall)} sideways at most`}${line.built ? ', built to its levels' : ', on the ground it follows'}`,
+      limit: `Up to about ${gradeText(MAX_CROSS_FALL)} across the drive; the council’s driveway drawing decides`,
+      note: [
+        over && !line.built ? 'Too much tilt to drive or park on. This drive follows the ground, so it tilts as the ground does: give it a level at the street end or the garage end under Levels, and the cut and fill levels it across.' : null,
+        over && line.built ? 'Too much tilt to drive or park on. Part of the drive isn’t at its own levels: check the cut and fill round it.' : null,
+        'Edge to edge, square to the drive’s direction, on the finished ground. Cross-fall is the engineer’s word for it.',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      source: CROSS_SOURCE,
     })
   }
 
@@ -343,7 +376,7 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
         tooSteep ? `Too steep to walk across: ${fp.steepest!.says}.` : null,
         status === 'warn' && fp.note ? fp.note : null,
         status !== 'pass' ? fix.trim() : null,
-        `Across ${shape.footpath.toFixed(1)} m of footpath, from the boundary to the top of the kerb’s layback (${r.length.toFixed(2)} m, ${mm(r.rise)} up from the gutter${fp.assumed ? ', a typical one' : ''}).${kerbNote}${guessed}`,
+        `Across ${shape.footpath.toFixed(1)} m of footpath, from the boundary to the top of the kerb ramp (the layback: ${r.length.toFixed(2)} m, ${mm(r.rise)} up from the gutter${fp.assumed ? ', a typical one' : ''}).${kerbNote}`,
       ]
         .filter(Boolean)
         .join(' '),
@@ -370,7 +403,7 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
   }
   const short = segs.map((s, i) => ({ s, need: claims[i] })).filter(c => c.need > c.s.x1 - c.s.x0 + 0.05)
   const biggest = d.breaks.reduce<GradeBreak | null>((b, x) => (!b || x.change > b.change ? x : b), null)
-  const trLimit = `Over ${pctText(tr.summit)} at a summit or ${pctText(tr.sag)} at a sag needs a transition, about 2 m long (3 m for over 18%)`
+  const trLimit = `Over ${pctText(tr.summit)} at a hump (summit) or ${pctText(tr.sag)} at a dip (sag) needs easing over about 2 m (a transition; 3 m for over 18%)`
   if (blocked && !need.length) out.push({ id: id('drive-transitions'), title: title('drive-transitions'), ...blocked, source: tr.source })
   else {
     const status: CheckStatus = short.length ? 'fail' : need.length ? 'warn' : blocked ? blocked.status : 'pass'
@@ -379,20 +412,20 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
       title: title('drive-transitions'),
       status,
       value: need.length
-        ? `${need.length > 1 ? 'Transitions' : 'A transition'} needed: ${need.map(b => BREAK_TEXT(b, profile)).join(', ')}`
+        ? `Too sharp, needs easing (${need.length > 1 ? 'transitions' : 'a transition'}): ${need.map(b => BREAK_TEXT(b, profile)).join(', ')}`
         : blocked
           ? blocked.value
           : biggest
             ? `Biggest change ${BREAK_TEXT(biggest, profile)}`
-            : 'No changes of grade',
+            : 'One even grade, no humps or dips',
       limit: trLimit,
       note: [
         short.length
-          ? `No room for ${need.length > 1 ? 'them' : 'it'}: the stretch ${whereText(profile, (short[0].s.x0 + short[0].s.x1) / 2, profile?.boundary ?? end + 100)} is ${(short[0].s.x1 - short[0].s.x0).toFixed(1)} m long and its transitions need ${short[0].need.toFixed(1)} m. Lengthen the drive or bring its levels closer.`
+          ? `No room to ease ${need.length > 1 ? 'them' : 'it'}: the stretch ${whereText(profile, (short[0].s.x0 + short[0].s.x1) / 2, profile?.boundary ?? end + 100)} is ${(short[0].s.x1 - short[0].s.x0).toFixed(1)} m long and its transitions need ${short[0].need.toFixed(1)} m. Lengthen the drive or bring its levels closer.`
           : null,
-        need.length && !short.length ? 'The app draws the drive as straight grades meeting at sharp changes: build a transition (a short stretch at an in-between grade, or a curve) at each one.' : null,
+        need.length && !short.length ? 'The app draws the drive as straight grades meeting at sharp changes: ease each one with a transition (a short stretch at an in-between grade, or a curve).' : null,
         blocked && need.length ? blocked.note : null,
-        line.floor === null ? FLOOR_NOTE : 'From the garage floor (level) to where the drive meets the footpath; the layback and gutter are the council’s standard.',
+        line.floor === null ? FLOOR_NOTE : 'From the garage floor (level) to where the drive meets the footpath; the kerb ramp (layback) and gutter are the council’s standard.',
       ]
         .filter(Boolean)
         .join(' '),
@@ -400,7 +433,7 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
     })
   }
 
-  // Scraping: the B99 template along the long section.
+  // Scraping: the B99 template (a large car) along the long section.
   if (blocked || !d.scrape || !profile) out.push({ id: id('drive-scrape'), title: title('drive-scrape'), ...blocked!, source: SCRAPE_SOURCE })
   else {
     const s = d.scrape
@@ -411,12 +444,13 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
       id: id('drive-scrape'),
       title: title('drive-scrape'),
       status: hits ? 'fail' : 'pass',
-      value: hits ? `Scrapes ${mm(s.clearance)} ${where} (${PART[s.part]})` : `Clears by ${mm(s.clearance)}; tightest ${where}`,
-      limit: `${mm(B99.clearance)} under a B99 car (wheelbase ${B99.wheelbase.toFixed(2)} m, overhangs ${B99.front.toFixed(2)} and ${B99.rear.toFixed(2)} m), driving in and reversing in`,
+      value: hits ? `A car’s underside would scrape by ${mm(s.clearance)} ${where} (${PART[s.part]})` : `A car clears by ${mm(s.clearance)}; tightest ${where}`,
+      limit: `A large car with ${mm(B99.clearance)} under it, driving in and reversing in`,
       note: [
-        hits && fixAt ? `The change of grade there needs a transition (see Changes of grade), which is what fixes it.` : null,
+        hits && fixAt ? `The change of grade there needs easing with a transition (see Changes of grade), which is what fixes it.` : null,
         hits && !fixAt ? 'Ease the change of grade there, or ask the designer to run the council’s template.' : null,
-        `Run along the long section in 50 mm steps, from the garage floor across the footpath and down the layback to the road (rising ${pctText(std.road)} from the gutter). Past the wheels the template’s underside rises at ${B99.approach}° to the bumpers, lower than most cars; the standard’s own angles aren’t read yet.${kerbNote}`,
+        `The large car is the standard’s B99 car, sized to cover nearly every car on the road: wheelbase ${B99.wheelbase.toFixed(2)} m, overhangs ${B99.front.toFixed(2)} and ${B99.rear.toFixed(2)} m.`,
+        `Its outline (the ground clearance template) is run along the long section in 50 mm steps, from the garage floor across the footpath and down the kerb ramp (layback) to the road (rising ${pctText(std.road)} from the gutter). Past the wheels the template’s underside rises at ${B99.approach}° to the bumpers, lower than most cars; the standard’s own angles aren’t read yet.${kerbNote}`,
       ]
         .filter(Boolean)
         .join(' '),
@@ -424,12 +458,12 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
     })
   }
 
-  out.push(turnCheck(d, id('drive-turn'), title('drive-turn'), guessed))
+  out.push(turnCheck(d, id('drive-turn'), title('drive-turn')))
   return out
 }
 
 /** Turning in from the road and into the garage: what a simple check can say, and never a pass. */
-function turnCheck(d: DriveCrossing, id: string, title: string, guessed: string): CheckResult {
+function turnCheck(d: DriveCrossing, id: string, title: string): CheckResult {
   const { line, std, shape } = d
   if (line.why) {
     const b = cantCheck(line, d.kerb ?? { rl: 0, from: 'typed' })!
@@ -441,7 +475,7 @@ function turnCheck(d: DriveCrossing, id: string, title: string, guessed: string)
   const t: TurnIn = turnIn(B85, { kerbHalf: atKerb / 2, boundaryHalf: atBoundary / 2, footpath: shape.footpath }, ASSUMED.gap)
   const fails: string[] = []
   const checks: string[] = []
-  if (!t.fits) fails.push(`a B85 car (${B85.width.toFixed(1)} m wide) can’t turn in at full lock and stay on the crossing: it’s ${atKerb.toFixed(1)} m wide at the kerb and ${atBoundary.toFixed(1)} m at the boundary`)
+  if (!t.fits) fails.push(`an ordinary car (${B85.width.toFixed(1)} m wide) can’t turn in at full lock and stay on the crossing: it’s ${atKerb.toFixed(1)} m wide at the kerb and ${atBoundary.toFixed(1)} m at the boundary`)
   else checks.push(`Turning in at full lock from the near side of the road, its inner rear wheel passes ${t.inner.toFixed(2)} m from the drive’s centreline at the kerb (the crossing is ${atKerb.toFixed(1)} m wide there), and it starts with its far side ${t.road.toFixed(1)} m out from the kerb${t.road > ASSUMED.lane ? ', more than a lane, so it swings over the middle of the road' : ''}.`)
   if (t.corner !== null) checks.push(`Its front corner swings ${t.corner.toFixed(1)} m out from the centreline as it crosses the boundary: keep fences, walls and letterboxes clear there.`)
   if (line.width.min < MIN_WIDTH - 0.005) checks.push(`The drive is ${line.width.min.toFixed(2)} m at its narrowest, under the ${MIN_WIDTH.toFixed(1)} m a driveway needs.`)
@@ -460,11 +494,12 @@ function turnCheck(d: DriveCrossing, id: string, title: string, guessed: string)
     title,
     status,
     value: fails.length ? `${fails[0][0].toUpperCase()}${fails[0].slice(1)}` : 'Check with the designer',
-    limit: `A B85 car (${B85.length.toFixed(1)} × ${B85.width.toFixed(1)} m, ${B85.circle} m turning circle) in from the road and into the garage; driveways at least ${MIN_WIDTH.toFixed(1)} m wide`,
+    limit: `An ordinary car (${B85.length.toFixed(1)} × ${B85.width.toFixed(1)} m) in from the road and into the garage; driveways at least ${MIN_WIDTH.toFixed(1)} m wide`,
     note: [
       ...fails.slice(1).map(f => `Also, ${f}.`),
       ...checks,
-      `Not checked: a full swept path, bends in the drive, reversing out, the far side of the road, parked cars, and poles or street trees by the crossing.${std.width.kerb === null ? ' The crossing’s width at the kerb is taken as a typical one; the council’s drawing has the real one.' : ''}${guessed}`,
+      `The ordinary car is the standard’s B85 car, sized to cover 85 in 100 cars on the road, with an ${B85.circle} m turning circle.`,
+      `Not checked: a full swept path, bends in the drive, reversing out, the far side of the road, parked cars, and poles or street trees by the crossing.${std.width.kerb === null ? ' The crossing’s width at the kerb is taken as a typical one; the council’s drawing has the real one.' : ''}`,
     ].join(' '),
     source: std.width.source ? { ...TURN_SOURCE, clause: `${TURN_SOURCE.clause}; ${std.width.source.clause}` } : TURN_SOURCE,
   }
@@ -474,6 +509,7 @@ function turnCheck(d: DriveCrossing, id: string, title: string, guessed: string)
 export function noDriveChecks(std: CrossingStandard): CheckResult[] {
   const src: Record<(typeof DRIVE_CHECKS)[number], Source> = {
     'drive-grade': std.maxGrade.source,
+    'drive-crossfall': CROSS_SOURCE,
     'drive-footpath': std.footpath.source,
     'drive-transitions': std.transitions.source,
     'drive-scrape': SCRAPE_SOURCE,

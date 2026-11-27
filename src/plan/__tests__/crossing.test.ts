@@ -161,10 +161,21 @@ describe('a drive on the plan', () => {
     expect(line.natural).toBeCloseTo(80, 6)
     expect(line.width.min).toBeCloseTo(4, 6)
     expect(kerbPoint(line, 3.5)![1]).toBeCloseTo(-3.5, 6)
-    // Following the ground, it starts past the house pad's margin, and the floor isn't known.
-    expect(line.floor).toBeNull()
-    expect(line.along[0].x).toBe(0)
+    // Left alone, it meets the garage at the garage slab, not the pad 300 mm under it (DB-13).
+    expect(line.floor).toBe(84)
+    expect(line.along[0]).toEqual({ x: 0, z: 84 })
     expect(line.along[line.along.length - 1].z).toBeCloseTo(80, 6)
+    // Following the ground along the plane, it tilts with it: level across here.
+    expect(line.crossFall).toBeCloseTo(0, 6)
+  })
+
+  it('following the ground at a house on piers, starts past the house and the floor isn’t known', () => {
+    const plan = block(pts)
+    const piers = { ...plan, levels: plan.levels.map(l => ({ ...l, floorType: 'piers' as const })) }
+    const [line] = driveLines(piers, origin, boundary, driveGround(null, ground), { frontEdge: 0 })
+    expect(line.floor).toBeNull()
+    expect(line.built).toBe(false)
+    expect(line.along[0].x).toBe(0)
   })
 
   it('starts at the garage floor when the drive is built to the slab', () => {
@@ -173,10 +184,13 @@ describe('a drive on the plan', () => {
     expect(line.along[0]).toEqual({ x: 0, z: 84 })
   })
 
-  it('finds the street side from the drive when none is set, and says it guessed', () => {
+  it('waits for the street side when none is set, and never guesses one (DB-32)', () => {
     const [line] = driveLines(block(pts), origin, boundary, driveGround(null, ground))
-    expect(line.edge).toBe(0)
-    expect(line.guessed).toBe(true)
+    expect(line.why).toBe('no-street-side')
+    expect(line.edge).toBeNull()
+    expect(line.boundary).toBeNull()
+    // The drive itself is still read, garage end to its street end.
+    expect(line.along[line.along.length - 1].x).toBeCloseTo(21.5, 4)
   })
 
   it('doesn’t reach the street when the street side is elsewhere, or on a battle-axe lot', () => {

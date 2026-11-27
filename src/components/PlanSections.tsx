@@ -4,10 +4,11 @@
 
 import { RetainEdges } from './RetainEdges'
 import { useMemo, useRef } from 'react'
-import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
+import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_CROSS_FALL, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
+import { driveEndPoints, driveLevelsOf, garageRL, streetRL } from '../plan/driveway'
 import {
   AREA_KINDS,
   areaKind,
@@ -652,34 +653,34 @@ function stairRuleAdvice(rules: StairRule[]): string {
   return 'Comfortable stairs have 2 risers + going between 550 and 700 mm. Change the tread depth to bring it into range.'
 }
 
-/** A driveway's grade along its length and across it, with whether a car can manage it. */
+/** A driveway's grade along its direction (garage end to street end) and the tilt across it, with whether a car can manage it. */
 export function DrivewayGrade({ plan, area: a, survey, terrain, earth }: { plan: Plan; area: Area; survey: Survey; terrain: Terrain; earth: Earth | null }) {
-  const pl = plan.placement
+  const ends = driveEndPoints(plan, a, survey.origin, survey.boundary)
+  if (!ends) return null
   // With levels of its own the finished ground under it is the drive itself, which Levels reads;
   // these are the natural ground's grades along it, for comparison.
-  const levelled = !!a.drive
-  const grade = drivewayGrade(
-    levelled ? terrain.grid : (earth?.result.grid ?? terrain.grid),
-    a.pts.map(p => toSite(p, pl, survey.origin)),
-  )
+  const levels = driveLevelsOf(plan, a, ends)
+  const levelled = streetRL(levels) !== null || garageRL(plan, levels) !== null
+  const grade = drivewayGrade(levelled ? terrain.grid : (earth?.result.grid ?? terrain.grid), ends.poly, undefined, ends.along)
   const tooSteep = !!grade && grade.steepest > MAX_DRIVE_GRADE
+  const tilted = !!grade && grade.crossFall > MAX_CROSS_FALL + 1e-6
   return (
     <>
-      {levelled && grade !== null && <h4 className="drive-ground">The ground there now</h4>}
+      {levelled && grade !== null && <h4 className="drive-ground">The ground there now, before the works</h4>}
       {grade !== null && (
         <>
           <dl className="stats">
             <FragmentRow label="Average grade along the drive" value={gradeText(grade.average)} />
             <FragmentRow label={`Steepest ${DRIVE_RUN} m along the drive`} value={gradeText(grade.steepest)} strong={tooSteep} />
-            <FragmentRow label="Cross-fall, steepest" value={`${(grade.crossFall * 100).toFixed(0)}%`} />
+            <FragmentRow label="Tilt across the drive (cross-fall), steepest" value={gradeText(grade.crossFall)} strong={!levelled && tilted} />
           </dl>
-          {!levelled && <p className={tooSteep ? 'notice small' : 'muted small'}>{driveVerdict(grade)}.</p>}
+          {!levelled && <p className={tooSteep || tilted ? 'notice small' : 'muted small'}>{driveVerdict(grade)}.</p>}
         </>
       )}
       <p className="muted small">
         {levelled
-          ? 'The cut and fill grades the ground under it to its levels. These are the natural ground’s grades along it, down the middle, before the works.'
-          : `A driveway follows the finished ground. Grades are along its length, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on.`}
+          ? 'The cut and fill grades the ground under the drive to its levels, level across. These are the natural ground’s grades along it and its tilt across it, before the works.'
+          : `This driveway follows the finished ground. Grades are along it from the garage end to the street end, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on, and so is a tilt across it of more than about 1 in 16 (6%). Give it a level under Levels and the cut and fill levels it across.`}
       </p>
     </>
   )

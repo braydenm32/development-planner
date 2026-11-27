@@ -176,6 +176,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -199,7 +210,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -210,7 +221,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -381,6 +392,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -404,7 +426,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -415,7 +437,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -603,6 +625,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -626,7 +659,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -637,7 +670,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -813,6 +846,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -836,7 +880,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -847,7 +891,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -1035,6 +1079,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -1058,7 +1113,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -1069,7 +1124,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -1245,6 +1300,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -1268,7 +1334,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -1279,7 +1345,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -1468,6 +1534,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -1491,7 +1568,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -1502,7 +1579,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -1678,6 +1755,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -1701,7 +1789,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -1712,7 +1800,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -1900,6 +1988,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -1923,7 +2022,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -1934,7 +2033,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -2111,6 +2210,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -2134,7 +2244,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -2145,7 +2255,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -2335,6 +2445,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -2358,7 +2479,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -2369,7 +2490,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -2557,6 +2678,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -2580,7 +2712,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -2591,7 +2723,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -2780,6 +2912,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -2803,7 +2946,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -2814,7 +2957,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -3002,6 +3145,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -3025,7 +3179,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -3036,7 +3190,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -3224,6 +3378,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -3247,7 +3412,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -3258,7 +3423,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -3442,6 +3607,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -3465,7 +3641,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -3476,7 +3652,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -3664,6 +3840,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -3687,7 +3874,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -3698,7 +3885,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -3874,6 +4061,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -3897,7 +4095,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -3908,7 +4106,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -4108,6 +4306,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -4131,7 +4340,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -4142,7 +4351,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -4318,6 +4527,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -4341,7 +4561,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -4352,7 +4572,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -4555,6 +4775,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -4578,7 +4809,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -4589,7 +4820,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -4777,6 +5008,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -4800,7 +5042,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -4811,7 +5053,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -5011,6 +5253,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -5034,7 +5287,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -5045,7 +5298,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -5216,6 +5469,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -5239,7 +5503,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -5250,7 +5514,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -5450,6 +5714,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -5473,7 +5748,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -5484,7 +5759,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -5660,6 +5935,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -5683,7 +5969,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -5694,7 +5980,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -5894,6 +6180,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -5917,7 +6214,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -5928,7 +6225,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -6099,6 +6396,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -6122,7 +6430,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -6133,7 +6441,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -6326,6 +6634,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -6349,7 +6668,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -6360,7 +6679,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -6556,6 +6875,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -6579,7 +6909,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -6590,7 +6920,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -6849,6 +7179,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -6872,7 +7213,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -6883,7 +7224,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -7130,6 +7471,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -7153,7 +7505,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -7164,7 +7516,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -7425,6 +7777,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -7448,7 +7811,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -7459,7 +7822,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -7709,6 +8072,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -7732,7 +8106,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -7743,7 +8117,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -7930,6 +8304,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -7953,7 +8338,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -7964,7 +8349,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -8139,6 +8524,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -8162,7 +8558,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -8173,7 +8569,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -8361,6 +8757,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -8384,7 +8791,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -8395,7 +8802,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -8571,6 +8978,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -8594,7 +9012,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -8605,7 +9023,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -8792,6 +9210,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -8815,7 +9244,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -8826,7 +9255,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -9002,6 +9431,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -9025,7 +9465,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -9036,7 +9476,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -9224,6 +9664,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -9247,7 +9698,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -9258,7 +9709,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -9429,6 +9880,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -9452,7 +9914,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -9463,7 +9925,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -9663,6 +10125,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -9686,7 +10159,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -9697,7 +10170,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -9873,6 +10346,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -9896,7 +10380,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -9907,7 +10391,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -10109,6 +10593,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -10132,7 +10627,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -10143,7 +10638,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -10331,6 +10826,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -10354,7 +10860,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -10365,7 +10871,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -10553,6 +11059,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -10576,7 +11093,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -10587,7 +11104,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -10763,6 +11280,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -10786,7 +11314,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -10797,7 +11325,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -10987,6 +11515,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -11010,7 +11549,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -11021,7 +11560,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -11209,6 +11748,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -11232,7 +11782,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -11243,7 +11793,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -11433,6 +11983,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -11456,7 +12017,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -11467,7 +12028,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -11655,6 +12216,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -11678,7 +12250,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -11689,7 +12261,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -11878,6 +12450,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -11901,7 +12484,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -11912,7 +12495,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -12088,6 +12671,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -12111,7 +12705,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -12122,7 +12716,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -12310,6 +12904,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -12333,7 +12938,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -12344,7 +12949,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",
@@ -12520,6 +13125,17 @@
     "value": "Draw a driveway (Area tool, kind Driveway) to check this."
    },
    {
+    "id": "drive-crossfall",
+    "title": "Tilt across the drive (cross-fall)",
+    "status": "incomplete",
+    "source": {
+     "clause": "AS/NZS 2890.1:2004 cl 2.4.6 (1 in 16 across where cars park)",
+     "confidence": "unverified",
+     "asAt": "not read: as commonly restated for a driveway’s cross-fall"
+    },
+    "value": "Draw a driveway (Area tool, kind Driveway) to check this."
+   },
+   {
     "id": "drive-footpath",
     "title": "Footpath crossing",
     "status": "incomplete",
@@ -12543,7 +13159,7 @@
    },
    {
     "id": "drive-scrape",
-    "title": "Scraping (B99 car)",
+    "title": "Scraping underneath",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 Appendix C (ground clearance template)",
@@ -12554,7 +13170,7 @@
    },
    {
     "id": "drive-turn",
-    "title": "Turning in (B85 car)",
+    "title": "Turning in from the street",
     "status": "incomplete",
     "source": {
      "clause": "AS/NZS 2890.1:2004 cl 2.6.1 and the B85 car (turning circle)",

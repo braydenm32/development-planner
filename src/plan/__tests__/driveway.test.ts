@@ -3,7 +3,7 @@ import { driveEnds, driveVerdict, gradeText, type Surface } from '../../lib/drap
 import { evaluateEarthworks, prepareEarthworks } from '../../lib/earthworks'
 import type { Vec2 } from '../../lib/geom'
 import { Heightfield } from '../../lib/terrain'
-import { driveDesign, driveEndPoints, driveGround, drivewayPlatforms, garageSlab, MAX_DRIVE_GRADE, nearestKerbPoint, nearSpotLevels } from '../driveway'
+import { driveDesign, driveEndPoints, driveGround, driveLevelsOf, drivewayPlatforms, garageSlab, MAX_DRIVE_GRADE, nearestKerbPoint, nearSpotLevels } from '../driveway'
 import { earthworksOf, emptyPlan, type Area, type DriveLevels, type Plan } from '../model'
 import { addRoom, addWall } from '../ops'
 import { earthworksPlatforms } from '../platforms'
@@ -23,7 +23,7 @@ const style = { kind: 'external' as const, thickness: 0.27 }
  * A 10 m by 8 m house set 22 m back from the street (the south side), its ground floor at
  * RL 84.00, and a 4 m wide, 10 m long drive from 12 m back up to the house.
  */
-function site(drive?: DriveLevels, room = 'Garage'): { plan: Plan; area: Area } {
+function site(drive?: DriveLevels, room = 'Garage', pts?: Vec2[]): { plan: Plan; area: Area } {
   let plan = emptyPlan({ e: 1005, n: 2022, rotation: 0, ffl: 84 })
   const c: Vec2[] = [
     [0, 0],
@@ -39,7 +39,7 @@ function site(drive?: DriveLevels, room = 'Garage'): { plan: Plan; area: Area } 
     level: L,
     name: 'Driveway',
     kind: 'driveway',
-    pts: [
+    pts: pts ?? [
       [2, -10],
       [6, -10],
       [6, 0],
@@ -50,6 +50,14 @@ function site(drive?: DriveLevels, room = 'Garage'): { plan: Plan; area: Area } 
   plan = { ...plan, areas: [area] }
   return { plan, area }
 }
+
+/** The same drive stopping 3 m short of the house: x 7..11, y 12..19 on the block. */
+const AWAY: Vec2[] = [
+  [2, -10],
+  [6, -10],
+  [6, -3],
+  [2, -3],
+]
 
 /** Ground rising 1 in 10 to the north: RL 80.00 at the street, 0.1 m per metre back. */
 const ground: Surface = { cell: 0.5, sample: (_x, y) => 80 + 0.1 * y }
@@ -159,9 +167,32 @@ describe('driveway built to its own levels', () => {
     expect(gradeText(d.grade.average)).toBe('1 in 5.6 (18%)')
   })
 
-  it('has no design until an end has a level of its own', () => {
+  it('has no design until an end has a level of its own, for a drive that stops short of the house', () => {
+    // 3 m short of the house: both ends follow the ground.
+    const { plan, area } = site(undefined, 'Garage', AWAY)
+    const ends = driveEndPoints(plan, area, origin, boundary)!
+    expect(ends.atHouse).toBe(false)
+    expect(driveLevelsOf(plan, area, ends)).toEqual({})
+    expect(driveDesign(plan, area, ends, driveGround(null, ground))).toBeNull()
+  })
+
+  it('left alone, meets the garage at the garage slab, never the pad under it (DB-13)', () => {
     const { plan, area } = site()
-    expect(driveDesign(plan, area, driveEndPoints(plan, area, origin, boundary)!, driveGround(null, ground))).toBeNull()
+    const ends = driveEndPoints(plan, area, origin, boundary)!
+    expect(ends.atHouse).toBe(true)
+    expect(driveLevelsOf(plan, area, ends)).toEqual({ garage: 'slab' })
+    const g = graded(plan)
+    // The pad is 300 mm under the slab: the ground the garage end used to follow.
+    expect(g.ground.follow(ends.garage)).toBeCloseTo(83.7, 2)
+    const d = driveDesign(plan, area, ends, g.ground)!
+    expect(d.garage).toBe(84)
+    // The street end follows the natural ground at y 12: RL 81.20. 2.80 m over 10 m.
+    expect(d.street).toBeCloseTo(81.2, 2)
+    expect(d.grade.length).toBeCloseTo(10, 6)
+    // A typed level, or a house on piers (no pad, no slab to meet), is left as it is.
+    expect(driveLevelsOf(plan, { ...area, drive: { garage: 83.2 } }, ends)).toEqual({ garage: 83.2 })
+    const piers = { ...plan, levels: plan.levels.map(l => ({ ...l, floorType: 'piers' as const })) }
+    expect(driveLevelsOf(piers, area, ends)).toEqual({})
   })
 
   it('names the slab it takes', () => {
@@ -254,8 +285,8 @@ describe('driveway graded into the ground', () => {
     expect(raised.sample(9.125, 12.125) - at(g, 9.125, 12.125)).toBeCloseTo(0.0025, 4)
   })
 
-  it('leaves a drive with no levels to follow the finished ground, as before', () => {
-    const { plan, area } = site()
+  it('leaves a drive with no levels, short of the house, to follow the finished ground, as before', () => {
+    const { plan, area } = site(undefined, 'Garage', AWAY)
     expect(drivewayPlatforms(plan, origin, boundary)).toEqual([])
     const g = graded(plan)
     const houseOnly = evaluateEarthworks(prepareEarthworks(plane(), boundary, earthworksPlatforms(plan, origin), earthworksOf(plan)))

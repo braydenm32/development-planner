@@ -8,7 +8,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { measure } from '../../checks/measure'
 import { countChecks, runChecks } from '../../checks/rules'
 import { estimate } from '../../costs/estimate'
+import { gradeText } from '../../lib/drape'
 import { pointInPolygon, type Vec2 } from '../../lib/geom'
+import { driveDesign, driveEndPoints, driveGround } from '../../plan/driveway'
 import { balancedFloorRL, movesFloor, tallestRoof } from '../../plan/keyNumbers'
 import { floorRL, normalizePlan, sortedLevels, toSite } from '../../plan/model'
 import { designQuantities } from '../../plan/quantities'
@@ -83,10 +85,34 @@ describe('the example project', () => {
     expect(rs.filter(r => r.status === 'fail').map(r => r.title)).toEqual([])
     expect(rs.filter(r => r.status === 'unknown').map(r => r.title)).toEqual([])
     // Turning in from the road is never passed: a full swept path is the designer's (src/checks/crossing.ts).
-    expect(rs.filter(r => r.status === 'warn').map(r => r.title)).toEqual(['Retaining walls', 'Turning in (B85 car)'])
+    expect(rs.filter(r => r.status === 'warn').map(r => r.title)).toEqual(['Retaining walls', 'Turning in from the street'])
     expect(countChecks(rs).pass).toBeGreaterThanOrEqual(10)
     // A split level beside the living level is one storey, so the height is from the roof.
     expect(tallestRoof(plan, site.survey, site.terrain)!.height).toBeLessThan(8.5)
+  })
+
+  it('has a driveway that reads one way everywhere: garage slab out to the street, level across, its crossing checked (LF-01)', () => {
+    const drive = plan.areas.find(a => a.kind === 'driveway')!
+    const ends = driveEndPoints(plan, drive, site.survey.origin, site.survey.boundary)!
+    // 5.3 m wide and about 5.2 m long: it runs across its outline's long side.
+    expect(ends.crosswise).toBe(true)
+    expect(ends.length).toBeGreaterThan(5.1)
+    expect(ends.length).toBeLessThan(5.3)
+    const design = driveDesign(plan, drive, ends, driveGround(earth, site.terrain.grid))!
+    expect(design.garage).toBe(floorRL(plan))
+    expect(design.garage - design.street).toBeGreaterThan(0.3)
+    // One grade: Levels' is the fall between its ends over its length, and the checks' steepest agrees.
+    const fall = (design.garage - design.street) / ends.length
+    expect(design.grade.average).toBeCloseTo(fall, 2)
+    expect(design.grade.steepest).toBeCloseTo(fall, 2)
+    expect(design.grade.crossFall).toBeLessThan(0.005)
+    const ms = measure({ plan, survey: site.survey, terrain: site.terrain, earth })
+    const [line] = ms.drives
+    expect(line.why).toBeUndefined()
+    expect(line.floor).toBe(floorRL(plan))
+    const rows = runChecks(ms, 'cdc').filter(r => r.id.startsWith('drive-'))
+    expect(rows.map(r => r.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'warn'])
+    expect(rows[0].value).toBe(`Steepest ${gradeText(design.grade.steepest)}`)
   })
 
   it('has a cost for every line, in a sensible range per square metre', () => {

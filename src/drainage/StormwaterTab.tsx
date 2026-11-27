@@ -3,6 +3,7 @@
 // stormwater sketch; the plan draws the path as a dashed line while this tab is open.
 
 import { Num } from '../components/fields'
+import { StreetSidePick } from '../components/StreetSidePick'
 import { navigate } from '../nav/router'
 import { bearingName } from '../lib/terrain'
 import { levelById } from '../plan/model'
@@ -33,8 +34,7 @@ const CONFIDENCE_TIP = {
   unverified: 'Not confirmed yet: check before relying on it',
 }
 const STREET_FROM: Record<StreetFrom, string> = {
-  set: 'as set for the plan (Approvals › Checks › Lot facts, or Street view in 3D)',
-  'low-side': 'taken as the low side until you pick it under Approvals › Checks › Lot facts',
+  set: 'as set for the plan (Site › Block, or Approvals › Checks › Lot facts): the driveway’s crossing uses the same side',
 }
 
 const fmt = (n: number, d = 1) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })
@@ -47,7 +47,7 @@ export function StormwaterTab() {
 
 /** The fall report for the plan as it stands, with the street side the app knows. */
 function useFallReport(d: Loaded): FallReport {
-  const street = streetEdgeOf(d.plan, d.survey, d.terrain.stats.fallBearing)
+  const street = streetEdgeOf(d.plan, d.survey)
   return fallReport(d.plan, d.survey, d.terrain, street)
 }
 
@@ -184,6 +184,8 @@ function Stormwater({ d }: { d: Loaded }) {
         )}
       </dl>
       {report.street && <p className="muted small">Street side {STREET_FROM[report.street.from]}.</p>}
+      {/* Not assumed to be the low side: the driveway's crossing and the setbacks wait for the same answer. */}
+      <StreetSidePick survey={d.survey} terrain={d.terrain} why="Until the street side is picked, the water is shown heading for the low point of the block. The driveway’s crossing and the setbacks use the same side." />
 
       <h3>On the plan</h3>
       <ul className="drainage-legend small">

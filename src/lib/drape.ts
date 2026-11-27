@@ -36,9 +36,11 @@ export function drapePolygon(grid: Heightfield, poly: Vec2[], lift: number): num
 export const DRIVE_RUN = 3
 /** Steeper than 1 in 4 along a driveway is hard to drive on. */
 export const MAX_DRIVE_GRADE = 0.25
+/** More than about 1 in 16 across a driveway is too much tilt to drive or park on (src/checks/crossing.ts has the source). */
+export const MAX_CROSS_FALL = 1 / 16
 
 export interface DriveGrade {
-  /** Length along the drive's long axis (m). */
+  /** Length along the drive's direction (m). */
   length: number
   /** From one end of the centreline to the other (rise over run). */
   average: number
@@ -49,7 +51,7 @@ export interface DriveGrade {
 }
 
 /** Long and short directions of a polygon: the sides of the smallest rectangle round it. */
-function longAxis(poly: Vec2[]): { u: Vec2; v: Vec2 } {
+export function longAxis(poly: Vec2[]): { u: Vec2; v: Vec2 } {
   const hull = convexHull(poly)
   let best = { area: Infinity, e: [1, 0] as Vec2, long: true }
   for (let i = 0; i < hull.length; i++) {
@@ -71,21 +73,31 @@ function longAxis(poly: Vec2[]): { u: Vec2; v: Vec2 } {
 /** Anything with a level at each point: the ground's grid, or a driveway built to its own levels. */
 export type Surface = Pick<Heightfield, 'sample' | 'cell'>
 
-/** A driveway's long axis, its outline along and across it, and the stations just inside each end. */
+/** A driveway's direction, its outline along and across it, and the stations just inside each end. */
 interface DriveFrame {
   /** Along the drive, and across it. */
   u: Vec2
   v: Vec2
   /** Where the drive is at a station along it: its widest stretch across. */
   across: (s: number) => [number, number] | null
+  /** The middle of the drive across a station (see driveFrame: at an end cut at an angle it stays the drive's middle). */
+  mid: (s: number) => number | null
   length: number
   s0: number
   s1: number
+  /** The stretch at its full width, between ends cut at an angle. */
+  in0: number
+  in1: number
 }
 
-function driveFrame(poly: Vec2[]): DriveFrame | null {
+/**
+ * `along` is the drive's direction, a unit vector (src/plan/driveway.ts works it out from the
+ * garage end and the street end). Without one it is the outline's long side, which is wrong for
+ * a drive wider than it is long, as a double garage's often is.
+ */
+function driveFrame(poly: Vec2[], along?: Vec2): DriveFrame | null {
   if (poly.length < 3 || Math.abs(signedArea(poly)) < 1e-9) return null
-  const { u, v } = longAxis(poly)
+  const { u, v } = along ? { u: along, v: [-along[1], along[0]] as Vec2 } : longAxis(poly)
   // The outline in (along, across) coordinates.
   const st = poly.map(p => [p[0] * u[0] + p[1] * u[1], p[0] * v[0] + p[1] * v[1]] as Vec2)
   const across = (s: number): [number, number] | null => {
@@ -104,7 +116,29 @@ function driveFrame(poly: Vec2[]): DriveFrame | null {
   const length = Math.max(...ss) - Math.min(...ss)
   if (length < 1e-6) return null
   // Just inside each end, where the stretch across is still the drive's own.
-  return { u, v, across, length, s0: Math.min(...ss) + 1e-6 * length, s1: Math.max(...ss) - 1e-6 * length }
+  const s0 = Math.min(...ss) + 1e-6 * length
+  const s1 = Math.max(...ss) - 1e-6 * length
+  // An end cut at an angle (drawn along a street boundary that isn't square to the drive, say)
+  // tapers to a corner. The drive's middle there is still the middle of its full width just
+  // inside the taper, not that corner, which can be metres to one side on a wide drive.
+  const width = (s: number) => {
+    const c = across(s)
+    return c ? c[1] - c[0] : 0
+  }
+  const widths = Array.from({ length: 9 }, (_, k) => width(s0 + ((s1 - s0) * (k + 1)) / 10)).sort((a, b) => a - b)
+  const full = 0.9 * widths[4]
+  const inside = (from: number, dir: 1 | -1) => {
+    let s = from
+    for (let k = 0; k < 50 && width(s) < full; k++) s += (dir * length) / 200
+    return s
+  }
+  const in0 = inside(s0, 1)
+  const in1 = inside(s1, -1)
+  const mid = (s: number) => {
+    const c = across(Math.min(Math.max(s, in0), in1))
+    return c ? (c[0] + c[1]) / 2 : null
+  }
+  return { u, v, across, mid, length, s0, s1, in0, in1 }
 }
 
 /** A point given as (along, across) the drive. */
@@ -112,18 +146,19 @@ const atStation = (f: DriveFrame, s: number, t: number): Vec2 => [s * f.u[0] + t
 
 /** The middle of the drive across a station. */
 function centreAt(f: DriveFrame, s: number): Vec2 | null {
-  const c = f.across(s)
-  return c ? atStation(f, s, (c[0] + c[1]) / 2) : null
+  const t = f.mid(s)
+  return t === null ? null : atStation(f, s, t)
 }
 
 /**
  * How steep a driveway is to drive, on the given ground: grades along the centreline of its
- * long axis (the long side of the smallest rectangle round it), and the fall across it.
+ * direction (`along`; the long side of the smallest rectangle round it when none is given), and
+ * the fall across it.
  * With `own`, only over the stretch of centreline where it holds (where the drive is built to
  * its own levels, not where the house pad has taken over); `length` is still the whole drive's.
  */
-export function drivewayGrade(grid: Surface, poly: Vec2[], own?: (p: Vec2) => boolean): DriveGrade | null {
-  const f = driveFrame(poly)
+export function drivewayGrade(grid: Surface, poly: Vec2[], own?: (p: Vec2) => boolean, along?: Vec2): DriveGrade | null {
+  const f = driveFrame(poly, along)
   if (!f) return null
   let { s0, s1 } = f
   const length = f.length
@@ -145,8 +180,8 @@ export function drivewayGrade(grid: Surface, poly: Vec2[], own?: (p: Vec2) => bo
   }
   const across = f.across
   const centre = (s: number) => {
-    const c = across(s)
-    return c ? z(s, (c[0] + c[1]) / 2) : NaN
+    const t = f.mid(s)
+    return t === null ? NaN : z(s, t)
   }
   const span = s1 - s0
   const run = Math.min(DRIVE_RUN, span)
@@ -158,7 +193,13 @@ export function drivewayGrade(grid: Surface, poly: Vec2[], own?: (p: Vec2) => bo
     const s = s0 + (span * k) / n
     if (s + run <= s1) steepest = Math.max(steepest, Math.abs(centre(s + run) - centre(s)) / run)
     const c = across(s)
-    if (c && c[1] - c[0] > 1e-6) crossFall = Math.max(crossFall, Math.abs(z(s, c[1]) - z(s, c[0])) / (c[1] - c[0]))
+    if (!c) continue
+    // A drive built to its own levels: the ground right at its edge is half the batter beside it,
+    // so the fall across is read a grid cell in from each edge, and from each end.
+    if (own && (s < f.in0 + grid.cell || s > f.in1 - grid.cell) && f.in1 - f.in0 > 4 * grid.cell) continue
+    const inset = own ? Math.min(grid.cell, (c[1] - c[0]) / 4) : 0
+    const w = c[1] - c[0] - 2 * inset
+    if (w > 1e-6) crossFall = Math.max(crossFall, Math.abs(z(s, c[1] - inset) - z(s, c[0] + inset)) / w)
   }
   return { length, average: Math.abs(centre(s1) - centre(s0)) / span, steepest, crossFall }
 }
@@ -167,8 +208,8 @@ export function drivewayGrade(grid: Surface, poly: Vec2[], own?: (p: Vec2) => bo
  * The middle of each end of a driveway, where its grade along it is measured from and to, and
  * the direction along it (from a towards b): the chainage its levels are graded along.
  */
-export function driveEnds(poly: Vec2[]): { a: Vec2; b: Vec2; u: Vec2; length: number } | null {
-  const f = driveFrame(poly)
+export function driveEnds(poly: Vec2[], along?: Vec2): { a: Vec2; b: Vec2; u: Vec2; length: number } | null {
+  const f = driveFrame(poly, along)
   if (!f) return null
   const a = centreAt(f, f.s0)
   const b = centreAt(f, f.s1)
@@ -176,11 +217,11 @@ export function driveEnds(poly: Vec2[]): { a: Vec2; b: Vec2; u: Vec2; length: nu
 }
 
 /**
- * How wide a driveway is across its long axis: the narrowest and widest stretch, and at each end
+ * How wide a driveway is across its direction: the narrowest and widest stretch, and at each end
  * (just inside it), sampled every 0.25 m. Null for an outline with no length.
  */
-export function driveWidth(poly: Vec2[]): { min: number; max: number; a: number; b: number } | null {
-  const f = driveFrame(poly)
+export function driveWidth(poly: Vec2[], along?: Vec2): { min: number; max: number; a: number; b: number } | null {
+  const f = driveFrame(poly, along)
   if (!f) return null
   const w = (s: number) => {
     const c = f.across(s)
@@ -199,7 +240,8 @@ export function gradeText(g: number): string {
   return g < 0.005 ? 'level (0%)' : `1 in ${(1 / g).toFixed(1)} (${(g * 100).toFixed(0)}%)`
 }
 
-/** Whether the steepest stretch along the drive is drivable. */
+/** Whether the steepest stretch along the drive is drivable, and the tilt across it. */
 export function driveVerdict(g: DriveGrade): string {
-  return g.steepest > MAX_DRIVE_GRADE ? 'Too steep: over 1 in 4' : 'OK to drive'
+  if (g.steepest > MAX_DRIVE_GRADE) return 'Too steep: over 1 in 4'
+  return g.crossFall > MAX_CROSS_FALL + 1e-6 ? 'Tilts too much: over 1 in 16 across' : 'OK to drive'
 }

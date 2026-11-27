@@ -80,9 +80,17 @@ describe('what moves the ground', () => {
     expect(t.plan).toEqual({ kind: 'areas', ids: ['drv'] })
   })
 
-  it('leaves a driveway without levels out: it follows the ground', () => {
-    const { r } = run(withDrive(base(), false))
-    expect(r('hc-works-boundary').status).toBe('pass')
+  it('leaves a driveway without levels, short of the house, out: it follows the ground', () => {
+    // Stopping 3 m short of the garage, neither end has a level: nothing is cut or filled for it.
+    const plan = withDrive(base(), false)
+    const short = { ...plan, areas: plan.areas.map(a => (a.id === 'drv' ? { ...a, pts: a.pts.map(p => [Math.min(p[0], -3), p[1]] as [number, number]) } : a)) }
+    expect(run(short).r('hc-works-boundary').status).toBe('pass')
+  })
+
+  it('grades a driveway that runs up to the garage, left alone, to meet the garage slab (DB-13)', () => {
+    const { ms, r } = run(withDrive(base(), false))
+    expect(r('hc-works-boundary').status).toBe('fail')
+    expect(ms.earth!.closestAt!.source).toMatchObject({ kind: 'driveway', areaId: 'drv' })
   })
 
   it('lists every part of the design within 1 m of the boundary, closest first', () => {

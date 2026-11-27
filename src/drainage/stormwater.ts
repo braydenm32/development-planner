@@ -170,21 +170,21 @@ export function edgeFacing(boundary: Vec2[], bearing: number): number | null {
   return best
 }
 
-/** Where the street side came from, so the panel can say how sure it is. */
-export type StreetFrom = 'set' | 'low-side'
+/** Where the street side came from: only ever the plan's own setting. */
+export type StreetFrom = 'set'
 
 /**
- * Which side of the block the street is on: the plan's street side (set under Approvals › Checks ›
- * Lot facts, or for Street view in 3D) when there is one, else the low side, which is where most
- * blocks drain to.
+ * Which side of the block the street is on: the plan's street side (set under Site › Block or
+ * Approvals › Checks › Lot facts), the same one the driveway's crossing uses. Null until it is
+ * picked: the panel asks for it, and the water is shown heading for the low point meanwhile.
+ * It used to be taken as the low side, which could be a different side from the one the driveway
+ * ran to.
  */
-export function streetEdgeOf(plan: Plan, survey: Survey, fallBearing: number): { edge: number; from: StreetFrom } | null {
+export function streetEdgeOf(plan: Plan, survey: Survey): { edge: number; from: StreetFrom } | null {
   const b = survey.boundary
   if (b.length < 3) return null
   const front = frontEdgeOf(plan, b)
-  if (front !== undefined) return { edge: front, from: 'set' }
-  const e = edgeFacing(b, fallBearing)
-  return e === null ? null : { edge: e, from: 'low-side' }
+  return front === undefined ? null : { edge: front, from: 'set' }
 }
 
 export interface GroundPoint {
@@ -341,7 +341,7 @@ export interface StormwaterSheet {
 
 export function stormwaterSheet(plan: Plan, survey: Survey, terrain: Terrain): StormwaterSheet | null {
   const roofs = roofCatchments(plan)
-  const report = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, terrain.stats.fallBearing))
+  const report = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey))
   if (!roofs.length && !report.house) return null
   const sw = stormwaterOf(plan)
   const rows: [string, string][] = []

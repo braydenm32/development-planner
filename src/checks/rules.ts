@@ -27,7 +27,7 @@ import { crossingChecks } from './crossing'
 import { battersText, isRetained } from '../plan/batters'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
-import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
+import { NEED_FRONT, type CheckResult, type CheckStatus, type CouncilId, type Pathway, type Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
 const m2 = (v: number) => `${v.toFixed(1)} m²`
@@ -149,8 +149,8 @@ const minClear = (es: Edge[], upper = false) => {
   return ds.length ? Math.min(...ds) : null
 }
 const closest = (es: Edge[]) => es.reduce<Edge | null>((b, e) => (e.clearance !== null && (!b || e.clearance < (b.clearance ?? Infinity)) ? e : b), null)
-/** A setback that waits for the street side: Checks puts the question in the row (and under Lot facts). */
-export const NEED_FRONT = 'Pick the side that faces the street (or the lot in front), and this can be checked.'
+// A setback that waits for the street side says NEED_FRONT (./types), as a driveway's crossing does.
+export { NEED_FRONT }
 /** A distance to the boundary, or how far over it the house goes: "1.20 m", "0.40 m over". */
 const dist = (d: number) => (d >= 0 ? m(d) : `${m(-d)} over`)
 /** "1.20 m to the west side", or "0.40 m over the west side" where the house goes past it. */
@@ -988,6 +988,7 @@ const NEEDS: Record<string, Part[]> = {
   'da-sun-neighbours': ['outline', 'roof'],
   // The driveway crossing checks (./crossing.ts), on either pathway.
   'drive-grade': ['driveway'],
+  'drive-crossfall': ['driveway'],
   'drive-footpath': ['driveway'],
   'drive-transitions': ['driveway'],
   'drive-scrape': ['driveway'],
