@@ -150,6 +150,15 @@ function summaryFor(id: string, plan: Plan | null): MetaPatch {
   }
 }
 
+// Records that go in the same write as the plan: its undo history (./undoHistory.ts), so a
+// reload straight after an Undo finds the two in step and Redo is still there.
+let besidePlan: ((id: string) => Record<string, unknown> | null) | null = null
+
+/** Write these records with each plan save (`fn` gives what is waiting for a project, or null). */
+export function saveBesidePlan(fn: (id: string) => Record<string, unknown> | null) {
+  besidePlan = fn
+}
+
 /** Save the plan edit that is waiting, now. */
 export function flushPlan(): Promise<void> {
   clearTimeout(timer)
@@ -157,7 +166,7 @@ export function flushPlan(): Promise<void> {
   pendingPlan = null
   if (!job) return Promise.resolve()
   const name = job.plan.name?.trim()
-  return save(job.id, { records: { plan: job.plan }, meta: { ...summaryFor(job.id, job.plan), ...(name ? { name } : {}) } })
+  return save(job.id, { records: { plan: job.plan, ...besidePlan?.(job.id) }, meta: { ...summaryFor(job.id, job.plan), ...(name ? { name } : {}) } })
 }
 
 usePlan.subscribe((state, prev) => {

@@ -380,12 +380,15 @@ function UndoRedo() {
   useFileStep(s => s.step)
   const undo = undoTarget('undo')
   const redo = undoTarget('redo')
+  // The buttons name the step they would take: "Undo: move wall".
+  const undoName = undo.label ? `Undo: ${undo.label}` : 'Undo'
+  const redoName = redo.label ? `Redo: ${redo.label}` : 'Redo'
   return (
     <div className="undo-redo" role="group" aria-label="History">
-      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={`Undo (${shortcutText('mod+Z')})`} data-tip={`Undo ${shortcutText('mod+Z')}`}>
+      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={`${undoName} (${shortcutText('mod+Z')})`} data-tip={`${undoName} ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={`Redo (${shortcutText('mod+shift+Z')})`} data-tip={`Redo ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={`${redoName} (${shortcutText('mod+shift+Z')})`} data-tip={`${redoName} ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>

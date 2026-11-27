@@ -56,17 +56,42 @@ describe('Undo and Redo after a reload', () => {
     expect(app.st().future).toHaveLength(0)
   })
 
+  // LD-35: an Undo, then a reload before the history's own write was due, used to lose Redo
+  // (the plan had saved, its history hadn't). The two go in one write now.
+  it('keeps Redo when the page closes straight after an Undo', async () => {
+    let app = await load()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    app.st().commit(dropWall)
+    app.st().commit(dropWall)
+    await app.settle()
+    app.st().undo()
+    // What the page does as it closes: the plan's save, with nothing waited for after it.
+    await app.session.flushPlan()
+
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.walls).toHaveLength(9)
+    expect(app.st().future).toHaveLength(1)
+    app.st().redo()
+    expect(app.st().plan!.walls).toHaveLength(8)
+  })
+
   it('writes once the edits settle, not on every one', async () => {
     const app = await load()
     const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    const before = app.session.projectsNow().list.find(m => m.id === id)!.revision
     for (let i = 0; i < 5; i++) app.st().commit(dropWall)
-    await app.actions.flush()
     expect((await app.actions.read(id))?.history).toBeUndefined()
-    await new Promise(r => setTimeout(r, app.history.HISTORY_SETTLE_MS + 150))
+    // The plan's save takes the history with it: one write for the five edits, not one each.
     await app.actions.flush()
     const saved = (await app.actions.read(id))?.history as { past: Plan[]; future: Plan[] }
     expect(saved.past).toHaveLength(5)
     expect(saved.future).toEqual([])
+    expect(app.session.projectsNow().list.find(m => m.id === id)!.revision).toBe(before + 1)
+    // And nothing more is written when the history's own wait is over.
+    await new Promise(r => setTimeout(r, app.history.HISTORY_SETTLE_MS + 150))
+    await app.actions.flush()
+    expect(app.session.projectsNow().list.find(m => m.id === id)!.revision).toBe(before + 1)
   })
 
   it('never mixes two projects’ histories, even when one opens before the other’s save', async () => {
@@ -141,21 +166,22 @@ describe('Undo and Redo after a reload', () => {
     // Marked from Approvals › Checks: the site features' history, with Site › Features not open.
     setTreeRemoval('tree1', true)
     expect(site().data.features[0].remove).toBe(true)
-    expect(undoTarget('undo')).toBe(site())
+    expect(undoTarget('undo').kind).toBe('site')
+    expect(undoTarget('undo').label).toBe('mark tree for removal')
     undoTarget('undo').undo()
     expect(site().data.features[0].remove).toBeFalsy()
     // Redo puts it back; with the site's steps taken back, Undo goes on to the plan's.
-    expect(undoTarget('redo')).toBe(site())
+    expect(undoTarget('redo').kind).toBe('site')
     undoTarget('undo').undo()
     expect(app.st().plan!.walls).toEqual(garageFloor().walls)
-    // Redo follows the history just changed: the plan's step comes back.
+    // Redo brings back the step undone last: the plan's.
     undoTarget('redo').redo()
     expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 1)
-    // Marking again, then editing the plan, makes the plan's history the one Undo works on.
+    // Marking again, then editing the plan, makes the plan's step the one Undo takes back.
     setTreeRemoval('tree1', true)
-    expect(undoTarget('undo')).toBe(site())
+    expect(undoTarget('undo').kind).toBe('site')
     app.st().commit(dropWall)
-    expect(undoTarget('undo')).toBe(app.st())
+    expect(undoTarget('undo').kind).toBe('plan')
   })
 
   it('opens a project saved before histories were kept with an empty one', async () => {

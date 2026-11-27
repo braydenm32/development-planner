@@ -1038,7 +1038,16 @@ export const HOMES: Home[] = [
     items: [
       { id: 'view-plan', label: 'Show the plan', icon: 'plan', keywords: ['floor plan', '2D', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
       { id: 'view-3d', label: 'Show in 3D', icon: 'cube', keywords: ['3D site', 'model', 'canvas'], features: ['mode-3d-site'], action: 'view-3d', run: 'now' },
-      { id: 'undo', label: 'Undo', icon: 'undo', keywords: ['back', 'revert', 'history'], features: ['undo-button', 'undo-after-reload', 'cost-undo'], action: 'undo', run: 'now', shortcut: 'mod+Z' },
+      {
+        id: 'undo',
+        label: 'Undo',
+        icon: 'undo',
+        keywords: ['back', 'revert', 'history', 'take back', 'last change', 'undo example'],
+        features: ['undo-button', 'undo-after-reload', 'cost-undo', 'undo-one-order', 'undo-names-step', 'open-top-undo'],
+        action: 'undo',
+        run: 'now',
+        shortcut: 'mod+Z',
+      },
       { id: 'redo', label: 'Redo', icon: 'redo', keywords: ['again'], features: ['redo-button'], action: 'redo', run: 'now', shortcut: 'mod+shift+Z' },
       {
         id: 'check-everything',
@@ -1063,7 +1072,7 @@ export const HOMES: Home[] = [
         label: 'Undo a replaced survey or plan',
         icon: 'undo',
         keywords: ['put back', 'oops', 'review', 'undo import', 'undo new plan', 'undo delete'],
-        features: ['undo-toast', 'review-sheet'],
+        features: ['undo-toast', 'review-sheet', 'file-error-stays'],
         hint: 'Replace survey, Import plan, Start the plan again, Open and deleting a project each show what will change first. Afterwards a note at the bottom offers Undo for a few seconds.',
       },
     ],
@@ -1091,8 +1100,8 @@ export const HOMES: Home[] = [
         id: 'save-state',
         label: 'Where it’s saved',
         icon: 'check',
-        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage'],
-        features: ['save-state', 'storage-persist'],
+        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage', 'two tabs', 'another tab', 'other window'],
+        features: ['save-state', 'storage-persist', 'other-tab-notice'],
       },
       {
         // Shown as "Sign in to save to the cloud…" or "Cloud saves" with the account's name (src/cloud).

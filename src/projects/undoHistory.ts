@@ -8,7 +8,7 @@
 
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
-import { projectsNow, registerRecordKind } from './session'
+import { projectsNow, registerRecordKind, saveBesidePlan } from './session'
 
 export const HISTORY_KIND = 'history'
 /** Steps kept each way. */
@@ -59,6 +59,16 @@ export function flushHistory(): Promise<void> {
   pending = null
   return job ? saveHistory(job.value, job.id) : Promise.resolve()
 }
+
+// The history waiting goes in the same write as the plan it belongs to, whenever that is saved:
+// a reload within the second it would otherwise wait (after an Undo, say) keeps Redo.
+saveBesidePlan(id => {
+  if (pending?.id !== id) return null
+  clearTimeout(timer)
+  const value = pending.value
+  pending = null
+  return { [HISTORY_KIND]: value }
+})
 
 usePlan.subscribe((s, prev) => {
   if (restoring || (s.past === prev.past && s.future === prev.future)) return

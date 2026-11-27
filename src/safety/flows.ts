@@ -378,18 +378,26 @@ export async function openProjectText(text: string, fileName: string): Promise<v
   if (!choice) return
   const meta = await busy(() => projectActions.openFile(text))
   host.toProject()
+  // The toast's Undo and the top bar's (./fileUndo.ts) both put it away, once.
+  let undone = false
+  const putAway = async () => {
+    if (undone) return
+    undone = true
+    forgetFileStep()
+    await projectActions.archive(meta.id)
+    if (before) {
+      await projectActions.open(before.id)
+      host.toProject()
+    }
+    showToast({ text: `Put “${meta.name}” away under Archived.` })
+  }
   showToast({
     text: `Opened “${meta.name}” as a new project.${before ? ` “${before.name}” is under All projects.` : ''}`,
     project: true,
-    undo: async () => {
-      await projectActions.archive(meta.id)
-      if (before) {
-        await projectActions.open(before.id)
-        host.toProject()
-      }
-      showToast({ text: `Put “${meta.name}” away under Archived.` })
-    },
+    undo: putAway,
   })
+  // The toast goes after a few seconds; Undo stays on the top bar until something is changed.
+  rememberFileStep({ label: 'Open the project file', opened: true, undo: putAway })
 }
 
 // ---------------------------------------------------------------------------

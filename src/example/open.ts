@@ -7,6 +7,7 @@ import { navigate } from '../nav/router'
 import { resumeRoute } from '../nav/route'
 import { usePhoneMode } from '../phone/device'
 import { projectActions, projectsNow } from '../projects/session'
+import { forgetFileStep, rememberFileStep } from '../safety/fileUndo'
 import { showToast, useSafety } from '../safety/store'
 import { exampleProjectText } from './exampleProject'
 
@@ -25,17 +26,25 @@ export async function openExample(): Promise<void> {
   usePhoneMode.getState().setMode('edit')
   navigate({ kind: 'app', area: 'design', tab: 'plan', view: '3d' })
   const id = meta.id
+  // The toast's Undo and the top bar's (src/safety/fileUndo.ts) both put it away, once.
+  let undone = false
+  const putAway = async () => {
+    if (undone) return
+    undone = true
+    forgetFileStep()
+    await projectActions.archive(id)
+    if (before) {
+      await projectActions.open(before.id)
+      navigate(resumeRoute(projectsNow().opened?.prefs.place))
+    } else navigate({ kind: 'projects' })
+    showToast({ text: `Put “${meta.name}” away under Archived.` })
+  }
   showToast({
     // Short, so it stays a line or two beside its two actions on a phone.
     text: 'Opened the example: a made-up house on a made-up block. Your own projects aren’t touched.',
     link: { label: 'Getting started', go: () => openGuide() },
-    undo: async () => {
-      await projectActions.archive(id)
-      if (before) {
-        await projectActions.open(before.id)
-        navigate(resumeRoute(projectsNow().opened?.prefs.place))
-      } else navigate({ kind: 'projects' })
-      showToast({ text: `Put “${meta.name}” away under Archived.` })
-    },
+    undo: putAway,
   })
+  // The toast goes after a few seconds; Undo stays on the top bar until something is changed.
+  rememberFileStep({ label: 'Open the example', opened: true, undo: putAway })
 }

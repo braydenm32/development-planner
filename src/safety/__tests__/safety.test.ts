@@ -18,7 +18,8 @@ import { SKETCH_DATUM } from '../../start/sketch'
 import { fitOnBlock, groundAtHouse, placeOnSketch } from '../align'
 import { detectFile, readSite } from '../files'
 import { duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
-import { undoToast, useSafety, type Review } from '../store'
+import { dismissToast, undoToast, useSafety, type Review } from '../store'
+import { undoTarget } from '../../shell/undoTarget'
 
 // Synthetic blocks only: the tilted-plane test block, sketch blocks, and the test garage.
 
@@ -344,6 +345,41 @@ describe('Open project file', () => {
     await undo()
     expect(projectsNow().currentId).toBe(first)
     expect(projectsNow().list.find(m => m.id === opened.id)?.archived).toBe(true)
+  })
+
+  // AX-12: the toast's Undo goes after twelve seconds; the top bar's stays until the next change.
+  it('keeps Undo on the top bar after the toast has gone, until something is changed', async () => {
+    const first = await garageOnPlane()
+    const done = openRead(detectFile('their-house.project.json', projectFileText(plane('their-survey.dxf'), { ...garageFloor(), name: 'Their house' })))
+    ;(await review()).answer('ok')
+    await done
+    const opened = projectsNow().currentId!
+    dismissToast(useSafety.getState().toast!.id)
+    expect(useSafety.getState().toast).toBeNull()
+    const target = undoTarget('undo')
+    expect(target.kind).toBe('file')
+    expect(target.label).toBe('open the project file')
+    expect(target.past).toHaveLength(1)
+    target.undo()
+    await new Promise(res => setTimeout(res, 50))
+    await projectActions.flush()
+    expect(projectsNow().currentId).toBe(first)
+    expect(projectsNow().list.find(m => m.id === opened)?.archived).toBe(true)
+    expect(undoTarget('undo').kind).not.toBe('file')
+  })
+
+  it('gives the top bar’s Undo to the next change made in the project it opened', async () => {
+    await garageOnPlane()
+    const done = openRead(detectFile('their-house.project.json', projectFileText(plane('their-survey.dxf'), { ...garageFloor(), name: 'Their house' })))
+    ;(await review()).answer('ok')
+    await done
+    const opened = projectsNow().currentId!
+    expect(undoTarget('undo').kind).toBe('file')
+    usePlan.getState().commit(p => ({ ...p, walls: p.walls.slice(1) }))
+    expect(undoTarget('undo').kind).toBe('plan')
+    undoTarget('undo').undo()
+    expect(projectsNow().currentId).toBe(opened)
+    expect(undoTarget('undo').kind).toBeNull()
   })
 
   it('names it as it will be named when a project of that name is already here', async () => {
