@@ -131,7 +131,7 @@ class Looker {
     const c = controls as unknown as { enabled: boolean; target: THREE.Vector3; update(): boolean } | null
     cam.fov = saved.fov
     cam.aspect = saved.aspect
-    if (saved.view) cam.setViewOffset(saved.view.fullWidth, saved.view.fullHeight, saved.view.offsetX, saved.view.offsetY, saved.view.width, saved.view.height)
+    if (saved.view?.enabled) cam.setViewOffset(saved.view.fullWidth, saved.view.fullHeight, saved.view.offsetX, saved.view.offsetY, saved.view.width, saved.view.height)
     else cam.clearViewOffset()
     cam.layers.mask = saved.layers
     if (!this.stay) {
