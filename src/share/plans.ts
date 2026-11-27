@@ -43,7 +43,7 @@ import { drawShadowKey, drawShadowLabels, drawShadows } from '../sun/sheet'
 import { PdfDocument, textWidth, wrapText, type PdfPage, type RGB } from './pdfWriter'
 import { sectionsOf } from '../sections/lines'
 import { drawingSheets, drawSectionMarks } from '../sections/sheets'
-import { roofEavesRL } from '../plan/roofline'
+import { roofCoveredBy, roofEavesRL } from '../plan/roofline'
 import { sketchPolyline } from '../sketch/geometry'
 import { sketchOf } from '../sketch/ops'
 import { colourOf, sketchLegend, SKETCH_PAINT } from '../sketch/colours'
@@ -1015,6 +1015,9 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
         align: 'center',
         color: GREY,
       })
+      // A roof with a storey built over all of it isn't a real roof: the sheet says so (Design › Roofs flags it too).
+      const over = roofCoveredBy(plan, roof)
+      if (over) pg.text(c[0], c[1] - 6, `Under ${over.name}: inside that storey, not built`, { size: 2.4, font: 'bold', align: 'center' })
     }
     return view
   }

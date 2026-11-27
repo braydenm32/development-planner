@@ -197,7 +197,9 @@ describe('adding levels and setting their RL', () => {
     expect(below.plan.walls.some(w => w.level === lv.id)).toBe(false)
     const beside = addLevelAt(plan, 84.6)
     expect(floorRL(beside.plan, beside.id)).toBeCloseTo(84.6, 9)
-    expect(beside.plan.levels.find(l => l.id === beside.id)!.name).toBe('Level 4')
+    // Named by where they are, not by how many levels there are.
+    expect(beside.plan.levels.find(l => l.id === beside.id)!.name).toBe('Split level')
+    expect(lv.name).toBe('Lower floor')
   })
 
   it('sets a level’s floor by its RL', () => {

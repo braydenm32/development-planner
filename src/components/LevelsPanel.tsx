@@ -6,13 +6,14 @@ import { useMemo, useState } from 'react'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
-import { deleteLevelWithReview } from '../plan/editActions'
+import { deleteLevelWithReview, undoToastFor } from '../plan/editActions'
 import { planarFaces, roomShape } from '../plan/geometry'
 import { levelSummaries } from '../plan/keyNumbers'
 import { groundedLevels, levelFloorWords } from '../plan/levelMenu'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { addLevelAbove, addLevelAt, addLevelBelow, setLevelRL, updateLevel } from '../plan/ops'
 import { focusPlan } from '../plan/planFocus'
+import { storeyWarnings } from '../plan/storeys'
 import { usePlan, type Selection } from '../plan/store'
 import { selectOnPlan } from '../shell/useSite'
 import { Num, TextField } from './fields'
@@ -21,16 +22,22 @@ import { CeilingLineUp } from './RoofLineFields'
 import { FragmentRow } from './PlanSections'
 import './levels.css'
 
-/** Add a level (one undoable step) and draw on it. */
-function addAndPick(add: (p: Plan) => { plan: Plan; id: string }) {
+/** Add a level (one undoable step) and draw on it. Roofs the new storey would bury move up with it, and a toast says so, with Undo. */
+function addAndPick(add: (p: Plan) => { plan: Plan; id: string; roofsMoved?: number }) {
   const st = usePlan.getState()
+  const from = st.activeLevel
   let id = ''
+  let moved = 0
   st.commit(p => {
     const r = add(p)
     id = r.id
+    moved = r.roofsMoved ?? 0
     return r.plan
   })
-  if (id) st.setActiveLevel(id)
+  if (!id) return
+  st.setActiveLevel(id)
+  const name = usePlan.getState().plan?.levels.find(l => l.id === id)?.name
+  if (moved && name) undoToastFor(`${name} added. ${moved === 1 ? 'The roof' : `${moved} roofs`} moved up onto it, so ${moved === 1 ? 'it isn’t' : 'they aren’t'} left inside the new storey.`, () => usePlan.getState().setActiveLevel(from))
 }
 
 export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; beforePick?: () => void; survey?: Survey | null; terrain?: Terrain | null }) {
@@ -39,6 +46,8 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
   const st = usePlan.getState()
   const levels = sortedLevels(plan)
   const grounded = useMemo(() => groundedLevels(plan, survey, terrain?.grid), [plan, survey, terrain])
+  // Heights that clash between storeys (a ceiling above the next floor, a very low ceiling), level by level.
+  const warnings = useMemo(() => new Map(plan.levels.map(l => [l.id, storeyWarnings(plan, l.id)])), [plan])
   // "Add level beside at RL…": the RL being typed, or null while it's closed.
   const [besideAt, setBesideAt] = useState<number | null>(null)
   return (
@@ -49,6 +58,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
             <button className="level-btn" onClick={() => st.setActiveLevel(l.id)}>
               <span>
                 {l.name} <span className="muted small">· {levelFloorWords(plan, l.id, grounded.has(l.id))}</span>
+                {warnings.get(l.id)?.length ? <span className={`level-flag ${warnings.get(l.id)!.some(w => w.tone === 'bad') ? 'bad' : 'warn'}`}> · check its heights</span> : null}
               </span>
               <span className="muted">RL {floorRL(plan, l.id).toFixed(2)}</span>
             </button>
@@ -74,22 +84,32 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
                 />
               )}
               <Num label="Ceiling height" unit="mm" value={l.height} min={1.8} onCommit={height => st.commit(p => updateLevel(p, l.id, { height }))} />
+              {(warnings.get(l.id) ?? []).map(w => (
+                <p key={w.id} className={`small storey-warn ${w.tone}`} role="note">
+                  {w.text}
+                </p>
+              ))}
               <CeilingLineUp plan={plan} levelId={l.id} />
               <LevelFloorType key={l.id} plan={plan} level={l.id} onGround={grounded.has(l.id)} />
-              <div className="row floor-from-contour">
-                <button
-                  className="secondary"
-                  aria-pressed={picking?.level === l.id}
-                  onClick={() => {
-                    if (picking?.level === l.id) return cancelContourPick()
-                    beforePick?.()
-                    startContourPick(l.id)
-                  }}
-                >
-                  {picking?.level === l.id ? 'Picking a contour… (Esc)' : 'Pick a contour'}
-                </button>
-              </div>
-              <p className="muted small">Click a contour line on the plan to put {l.name}’s floor at its RL.</p>
+              {/* A floor set from a contour is one that sits on the ground: not a storey up in the air. */}
+              {grounded.has(l.id) && (
+                <>
+                  <div className="row floor-from-contour">
+                    <button
+                      className="secondary"
+                      aria-pressed={picking?.level === l.id}
+                      onClick={() => {
+                        if (picking?.level === l.id) return cancelContourPick()
+                        beforePick?.()
+                        startContourPick(l.id)
+                      }}
+                    >
+                      {picking?.level === l.id ? 'Picking a contour… (Esc)' : 'Pick a contour'}
+                    </button>
+                  </div>
+                  <p className="muted small">Click a contour line on the plan to put {l.name}’s floor at its RL.</p>
+                </>
+              )}
             </div>
           )
         })}
@@ -116,7 +136,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
             <button
               className="primary"
               onClick={() => {
-                addAndPick(p => addLevelAt(p, besideAt, levelHeight(p, level)))
+                addAndPick(p => addLevelAt(p, besideAt, levelHeight(p, level), besideAt < floorRL(p) - 2 ? 'below' : 'beside'))
                 setBesideAt(null)
               }}
             >

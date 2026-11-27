@@ -168,6 +168,28 @@
   margin-top: 8px;
 }
 
+/* Heights that clash between storeys, under the level's fields: red for what can't be built, amber for a look. */
+.storey-warn {
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.storey-warn.bad {
+  background: #fdecea;
+  color: var(--danger);
+}
+
+.level-flag.warn {
+  color: var(--warn-text);
+}
+
+.level-flag.bad {
+  color: var(--danger);
+}
+
 .floor-type-warn {
   margin: 4px 0 0;
   padding: 6px 8px;

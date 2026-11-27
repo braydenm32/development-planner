@@ -45,13 +45,13 @@ export function useSteps(d: Loaded): Step[] {
   const street = useStreetPending(plan, survey.boundary)
   const hints = useHintPrefs()
   const facts = useQuestionContext(s => s.facts)
-  const questions = useMemo(
-    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, offer, hints, facts }),
-    [plan, level, street, ask, dismissed, offer, hints, facts],
-  )
-
   // The levels on the natural ground, as the flow asks their floor types.
   const onGround = useMemo(() => [...onGroundLevels(plan, q => groundAtPlan(q, plan.placement, survey, terrain.grid))], [plan, survey, terrain])
+  const questions = useMemo(
+    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, onGround: new Set(onGround), offer, hints, facts }),
+    [plan, level, street, ask, dismissed, onGround, offer, hints, facts],
+  )
+
   const drawn = floorDrawn(plan)
   return useMemo(() => {
     const h = checksHeadline(checks.pathway, checks.results)
@@ -69,7 +69,8 @@ export function useSteps(d: Loaded): Step[] {
         floorArea: numbers.floorArea,
         ffl: numbers.ffl,
         earth: numbers.earth,
-        roofHeight: numbers.roof?.height ?? null,
+        // Building height, the figure the strip and the checks give.
+        roofHeight: numbers.height ?? numbers.roof?.height ?? null,
         implied: numbers.retaining?.implied ?? null,
       },
       onGround,

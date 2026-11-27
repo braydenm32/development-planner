@@ -69,7 +69,7 @@ import { SketchColours, SketchOptions, SketchSelection } from '../sketch/SketchP
 import { colourSketch } from '../sketch/actions'
 import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
-import { roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
+import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -447,9 +447,30 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       const len = o.map((p, i) => Math.hypot(o[(i + 1) % o.length][0] - p[0], o[(i + 1) % o.length][1] - p[1]))
       set({ pts: o, gables: defaultGables(o), lowEdge: len.indexOf(Math.max(...len)) })
     }
+    // A storey built over all of it: it would be inside that storey, so it's flagged and can move up.
+    const over = roofCoveredBy(plan, r)
     return (
       <section className="selection">
         <h2>Roof</h2>
+        {over && (
+          <>
+            <p className="notice small" role="note">
+              {coveredRoofWords(over)}
+            </p>
+            <div className="row">
+              <button
+                className="secondary"
+                onClick={() => {
+                  st.commit(p => moveRoofUp(p, r.id))
+                  st.setActiveLevel(over.id)
+                  st.select({ type: 'roof', id: r.id })
+                }}
+              >
+                Move it up to {over.name}
+              </button>
+            </div>
+          </>
+        )}
         <Select<RoofType> label="Type" value={r.type} options={ROOF_TYPES} onChange={type => set({ type })} />
         {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} onCommit={pitch => set({ pitch: Math.min(pitch, 75) })} />}
         <Num label="Overhang" unit="mm" value={r.overhang} min={0} onCommit={overhang => set({ overhang })} />

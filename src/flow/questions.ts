@@ -39,6 +39,8 @@ export interface QuestionInput {
   /** The flow's floor type question (just asked), and levels whose question was put off. */
   ask: { level: string } | null
   dismissed: ReadonlySet<string>
+  /** The levels that sit on the ground (see onGroundLevels): each is asked its floor type. Without it, the lowest alone. */
+  onGround?: ReadonlySet<string>
   offer: OfferState | null
   hints: HintPrefs
   /** Facts the checks can't work out from the plan (Approvals › Checks' "Add a fact"). */
@@ -54,7 +56,7 @@ export function questionsFor(q: QuestionInput): Question[] {
   // it was put off: "Floor type not chosen" stays until it is, through a reload too.
   for (const l of sortedLevels(plan)) {
     // A split level near the ground is asked too (the flow's own question), and stays once put off.
-    const grounded = isLowestLevel(plan, l.id) || q.ask?.level === l.id || q.dismissed.has(l.id)
+    const grounded = isLowestLevel(plan, l.id) || q.ask?.level === l.id || q.dismissed.has(l.id) || !!q.onGround?.has(l.id)
     if (!grounded || levelFloorAnswer(plan, l.id) !== undefined) continue
     const walls = plan.walls.filter(w => w.level === l.id && w.kind !== 'retaining')
     const enclosed = planarFaces(walls).some(f => f.area > 0) || plan.rooms.some(r => r.level === l.id)
@@ -65,7 +67,7 @@ export function questionsFor(q: QuestionInput): Question[] {
       kind: 'floor-type',
       level: l.id,
       title: `Floor type not chosen: ${l.name}`,
-      detail: later ? 'Put off for now. It builds as a slab on ground until it’s set.' : 'Slab, piers or something else: it changes the earthworks.',
+      detail: later ? `Put off for now. It builds as ${isLowestLevel(plan, l.id) ? 'a slab on ground' : 'a framed floor'} until it’s set.` : 'Slab, piers or something else: it changes the earthworks.',
       fresh: q.ask?.level === l.id,
     })
   }

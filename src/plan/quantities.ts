@@ -14,7 +14,7 @@ import { areaKind, floorRL, type AreaKind, type Opening, type Plan, type Roof } 
 import type { RetainingProfile } from './retaining'
 import type { ImpliedTotals } from '../grading/implied'
 import { roofGeometry } from './roof'
-import { insideEdgeMid, wallTopAt } from './roofline'
+import { insideEdgeMid, roofCoveredBy, wallTopAt } from './roofline'
 
 /** Rooms that need their own fit-out and plumbing, found by their names. */
 export type WetRoom = 'kitchen' | 'bathroom' | 'laundry' | 'toilet'
@@ -269,7 +269,8 @@ export function designQuantities(
   const roofs = { ...counted(), first: null as Roof | null }
   for (const r of plan.roofs) {
     const g = roofGeometry(r)
-    if (g.error) continue
+    // A roof with a storey built over all of it isn't a roof that gets built (Design › Roofs flags it).
+    if (g.error || roofCoveredBy(plan, r)) continue
     roofs.count++
     roofs.area += g.area
     roofs.ids.push(r.id)

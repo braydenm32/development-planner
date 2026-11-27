@@ -122,6 +122,20 @@ describe('Levels & rooms', () => {
     expect(ids(step(stepsOf(input(plan)), 'levels'))).toEqual(['openings:level_low', 'openings:level_mid', 'openings:level_top'])
   })
 
+  it('lists storey heights that clash and a roof left under a storey', () => {
+    const plan = splitLevels()
+    // The lower level's ceiling raised above the top level's floor, which is built over it.
+    const tall = { ...plan, levels: plan.levels.map(l => (l.id === 'level_low' ? { ...l, height: 3.3 } : l)) }
+    const levels = step(stepsOf(input(tall)), 'levels').items
+    expect(levels.find(i => i.id === 'storey:level_low:ceiling-over:level_top')).toMatchObject({ text: 'Check Lower level’s heights', go: { tab: 'floors', level: 'level_low' } })
+    // Listed once, on the lower of the two.
+    expect(levels.filter(i => i.id.startsWith('storey:'))).toHaveLength(1)
+    // A roof on the lower wing, with the top level built over all of it.
+    const roof = { id: 'r', level: 'level_low', pts: [[0, 0], [8, 0], [8, 6], [0, 6]] as [number, number][], type: 'hip' as const, pitch: 22.5, overhang: 0.45, gables: [], lowEdge: 0, plateLift: 0 }
+    const roofs = step(stepsOf(input({ ...plan, roofs: [roof] })), 'roof').items
+    expect(roofs.find(i => i.id === 'covered:r')).toMatchObject({ text: 'The roof on Lower level is under Top level', go: { sel: { type: 'roof', id: 'r' } } })
+  })
+
   it('points out a stair whose top meets no floor', () => {
     const plan = splitLevels()
     const loose = { ...plan, stairs: plan.stairs.map(s => ({ ...s, toLevel: undefined, rise: 2.1 })) }

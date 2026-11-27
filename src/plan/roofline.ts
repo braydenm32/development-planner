@@ -5,7 +5,7 @@
 
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { floorRL, houseWalls, levelById, sortedLevels, type Level, type Plan, type Roof, type RoofEaves, type Wall } from './model'
-import { growRing, keepPlateLift, levelOutlines } from './roof'
+import { growRing, keepPlateLift, levelOutlines, outlineAround } from './roof'
 
 /** Ceilings this close (m) line up, for one roof over both and for the Floors helper. */
 export const CEILING_MATCH = 0.005
@@ -131,6 +131,72 @@ function outlinesOf(plan: Plan, levelId: string): Vec2[][] {
   let o = m.get(levelId)
   if (!o) m.set(levelId, (o = levelOutlines(houseWalls(plan.walls.filter(w => w.level === levelId)))))
   return o
+}
+
+/**
+ * The storey that buries a roof: a level higher than the roof's own whose walls go right round
+ * the roof's whole outline and whose ceiling is above its eaves, so the roof would be inside that
+ * storey's rooms (a roof left on the ground floor when a first floor goes on over all of it). The
+ * highest such level, which is where the roof belongs; undefined for a roof that's in the open,
+ * or only partly under the storey above (a lower roof beside or around an upper storey is real).
+ */
+export function roofCoveredBy(plan: Plan, roof: Roof): Level | undefined {
+  if (roof.pts.length < 3) return undefined
+  const eaves = roofEavesRL(plan, roof)
+  const floor = floorRL(plan, roof.level)
+  // The roof's wall line, at its corners and the middle of each side: all inside the storey's outline.
+  const probes = roof.pts.flatMap((p, i): Vec2[] => {
+    const q = roof.pts[(i + 1) % roof.pts.length]
+    return [p, [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]]
+  })
+  let best: Level | undefined
+  for (const l of plan.levels) {
+    if (l.id === roof.level || floorRL(plan, l.id) <= floor + 0.05 || ceilingRL(plan, l.id) <= eaves + 0.05) continue
+    if (best && ceilingRL(plan, l.id) <= ceilingRL(plan, best.id)) continue
+    // A little slack, since a storey copied from the one below has the very same outline.
+    const rings = outlinesOf(plan, l.id).map(o => growRing(o, 0.05))
+    if (rings.length && probes.every(p => rings.some(o => pointInPolygon(p[0], p[1], o)))) best = l
+  }
+  return best
+}
+
+/**
+ * Where "Roof this building" puts a roof for a click at `p` on `levelId`: the outline of the
+ * building clicked, on that level, or, when a storey is built over all of that building, on the
+ * top storey over it, so a roof is never made inside the storey above. Null when the click is
+ * inside no building.
+ */
+export function roofTarget(plan: Plan, levelId: string, p: Vec2): { level: string; outline: Vec2[] } | null {
+  let level = levelId
+  let outline = outlineAround(wallsUnderRoofline(plan, level), p)
+  if (!outline) return null
+  for (let i = 0; i < plan.levels.length; i++) {
+    const over = roofCoveredBy(plan, { id: '', level, pts: outline, type: 'flat', pitch: 0, overhang: 0, gables: [], lowEdge: 0 })
+    const up = over && outlineAround(wallsUnderRoofline(plan, over.id), p)
+    if (!over || !up) break
+    level = over.id
+    outline = up
+  }
+  return { level, outline }
+}
+
+/** Move a roof the storey above buries up onto that storey's walls (its eaves follow that level's ceiling). The same plan when it isn't buried. */
+export function moveRoofUp(plan: Plan, roofId: string): Plan {
+  const roof = plan.roofs.find(r => r.id === roofId)
+  const over = roof && roofCoveredBy(plan, roof)
+  if (!roof || !over) return plan
+  return { ...plan, roofs: plan.roofs.map(r => (r.id === roofId ? withEaves(r, { level: over.id, eaves: undefined }) : r)) }
+}
+
+/** What a roof under a storey is told, wherever it's listed. */
+export const coveredRoofWords = (over: Level) => `${over.name} is built over all of this roof, so it would be inside that storey. It’s left out of the estimate until it’s moved up or deleted.`
+
+/** The roofs a storey above buries (see roofCoveredBy), each with the level over it. */
+export function coveredRoofs(plan: Plan): { roof: Roof; under: Level }[] {
+  return plan.roofs.flatMap(roof => {
+    const under = roofCoveredBy(plan, roof)
+    return under ? [{ roof, under }] : []
+  })
 }
 
 /**

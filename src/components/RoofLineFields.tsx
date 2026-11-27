@@ -60,11 +60,16 @@ export function CeilingLineUp({ plan, levelId }: { plan: Plan; levelId: string }
   const others = sortedLevels(plan).filter(l => l.id !== levelId)
   if (!others.length) return null
   const lined = ceilingLinedUpWith(plan, levelId)
+  const here = `Ceiling at RL ${rl(ceilingRL(plan, levelId))}, ${Math.round((ceilingRL(plan, levelId) - floorRL(plan, levelId)) * 1000)} mm above the floor.`
+  // Only a level whose ceiling is far enough above this floor can be lined up with: a split level
+  // beside this one. The storey under this one never can, so a plain two-storey house isn't offered it.
+  const can = others.filter(l => ceilingHeightToMatch(plan, levelId, l.id) !== null)
+  if (!can.length) return <p className="muted small">{here}</p>
   const options = [
     { id: '', label: lined ? 'Its own height' : 'No other level' },
     ...others.map(l => {
       const h = ceilingHeightToMatch(plan, levelId, l.id)
-      return { id: l.id, label: h === null ? `${l.name} (too low from here)` : `${l.name} (RL ${rl(ceilingRL(plan, l.id))})` }
+      return { id: l.id, label: h === null ? `${l.name} (can’t: its ceiling is at or below this floor)` : `${l.name} (RL ${rl(ceilingRL(plan, l.id))})` }
     }),
   ]
   return (
@@ -80,7 +85,7 @@ export function CeilingLineUp({ plan, levelId }: { plan: Plan; levelId: string }
         }}
       />
       <p className="muted small">
-        Ceiling at RL {rl(ceilingRL(plan, levelId))}, {Math.round((ceilingRL(plan, levelId) - floorRL(plan, levelId)) * 1000)} mm above the floor.
+        {here}
         {lined ? ' Roof this building puts one roof over both.' : ' Line it up with another level to put one roof over both.'}
       </p>
     </>
