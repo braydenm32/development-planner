@@ -377,7 +377,7 @@ export default function App() {
             ) : (
               <span className="muted">
                 Point at the ground to read its level.
-                <span className="controls-hint"> Drag to orbit, scroll to zoom, right-drag to pan.</span>
+                <span className="controls-hint"> Drag to orbit, scroll to zoom, right-drag to pan; or use the arrow keys, + and −.</span>
               </span>
             )}
           </div>

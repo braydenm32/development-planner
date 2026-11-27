@@ -78,6 +78,9 @@ describe('may a shortcut fire?', () => {
     for (const k of ['w', 'Backspace', 'ArrowRight', 'PageUp', '?']) expect(shortcutAllowed(key(k, panelButton), tabbing)).toBe(false)
     // The tools beside the plan are part of the drawing; the page itself has no control in focus.
     expect(shortcutAllowed(key('d', railButton), tabbing)).toBe(true)
+    // So is the 3D view, which Tab stops on: its arrows turn it and + and − zoom.
+    const scene = el('DIV', { inside: ['[tabindex]', '.scene-keys'] })
+    for (const k of ['ArrowLeft', 'ArrowUp', '+', '-']) expect(shortcutAllowed(key(k, scene), tabbing)).toBe(true)
     expect(shortcutAllowed(key('w', body), tabbing)).toBe(true)
     // Esc always puts down what is in hand.
     expect(shortcutAllowed(key('Escape', panelButton), tabbing)).toBe(true)

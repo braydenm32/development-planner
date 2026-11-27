@@ -66,6 +66,7 @@ import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Announcer } from '../a11y/Announcer'
 import { useAnnounceResults } from '../a11y/announceResults'
+import { SkipLinks } from '../a11y/SkipLinks'
 import { netText } from './format'
 import { StepsPanel } from '../steps/StepsPanel'
 import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
@@ -319,6 +320,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   return (
     <ShellContext.Provider value={data}>
       <div ref={shellRef} className={`app-shell${phone ? ' phone' : ''}${presenting ? ' presenting' : ''}`}>
+        <SkipLinks />
         <AreaNav route={route} go={r => navigate(r)} variant="rail" />
         {route.kind === 'projects' ? (
           <>

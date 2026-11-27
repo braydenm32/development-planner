@@ -160,6 +160,34 @@ export function northUp(p: Pose): Pose {
   return { position: add(p.target, fromSpherical(s.r, s.phi, 0)), target: [...p.target] }
 }
 
+/** A step of the camera from a key or a button: a turn about the house, a tilt, a zoom. */
+export interface CameraStep {
+  /** Steps to the right about the target (negative: left), each TURN_STEP. */
+  turn?: number
+  /** Steps up, towards looking straight down (negative: lower), each TILT_STEP. */
+  tilt?: number
+  /** Steps in (negative: out), each ZOOM_STEP_3D closer. */
+  zoom?: number
+}
+
+/** One press turns the view 15°, tilts it 10°, or moves a fifth closer. */
+export const TURN_STEP = Math.PI / 12
+export const TILT_STEP = Math.PI / 18
+export const ZOOM_STEP_3D = 1.25
+
+/**
+ * The camera one step on, about the same target, kept within what dragging allows: no closer or
+ * further than `min` and `max`, never under the ground (`maxPolar`), never quite straight down.
+ */
+export function steppedPose(p: Pose, by: CameraStep, limits: { min: number; max: number; maxPolar: number }): Pose {
+  const s = toSpherical(sub(p.position, p.target))
+  const r = Math.min(Math.max(s.r / ZOOM_STEP_3D ** (by.zoom ?? 0), limits.min), limits.max)
+  const phi = Math.min(Math.max(s.phi - (by.tilt ?? 0) * TILT_STEP, 0.02), limits.maxPolar)
+  // Turning right walks the camera to its right round the house, as dragging left does.
+  const theta = s.theta + (by.turn ?? 0) * TURN_STEP
+  return { position: add(p.target, fromSpherical(r, phi, theta)), target: [...p.target] }
+}
+
 /** The shortest turn from angle a to angle b, in radians. */
 export function shortestTurn(a: number, b: number): number {
   let d = (b - a) % (2 * Math.PI)

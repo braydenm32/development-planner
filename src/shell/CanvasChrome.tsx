@@ -1,7 +1,7 @@
 // What floats on the canvas: the tool rail with the current tool's options beside it, the
 // selection inspector, and the fit and orientation controls.
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
 import { TOOLS } from '../components/tools'
@@ -12,22 +12,38 @@ import { isOpeningTool, usePlan, type Selection, type Tool } from '../plan/store
 import { ViewLock } from '../phone/ViewLock'
 import { useTouchCanvas } from '../phone/device'
 import { useSun } from '../sun/store'
+import { TurnButtons } from '../a11y/SceneKeys'
+import { toolbarStep } from '../a11y/toolbar'
+import { useCamera } from '../phone/cameraStore'
 import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
 import type { Loaded } from './useSite'
 
 const RAIL = TOOLS.filter(t => !t.more)
 
+/** The tool rail's own keys: arrows, Home and End move the focus along it (and never nudge the plan from here). */
+function railKeys(e: KeyboardEvent<HTMLDivElement>) {
+  const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button')]
+  const to = toolbarStep(e.key, buttons.indexOf(document.activeElement as HTMLButtonElement), buttons.length)
+  if (to === null) return
+  e.preventDefault()
+  e.stopPropagation()
+  buttons[to]?.focus()
+}
+
 export function ToolRail() {
   const tool = usePlan(s => s.tool)
   const st = usePlan.getState()
   // A phone shows the sketch, but draws it only on a computer.
   const phone = !!useTouchCanvas()?.phone
+  const shown = phone ? RAIL.filter(t => !t.desk) : RAIL
+  // One Tab stop for the whole rail (the tool in hand); the arrow keys, Home and End move along it.
+  const stop = shown.some(t => t.id === tool) ? tool : shown[0]?.id
   return (
-    <div className="tool-rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical">
-      {(phone ? RAIL.filter(t => !t.desk) : RAIL).map((t, i) => (
+    <div className="tool-rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical" onKeyDown={railKeys}>
+      {shown.map((t, i) => (
         <span key={t.id} className={i === 1 ? 'tool-gap' : undefined}>
-          <button className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(tool === t.id && (t.id === 'measure' || t.id === 'note') ? 'select' : t.id)} data-tip={`${t.label} ${t.key}`} aria-label={`${t.label} tool (${t.key})`}>
+          <button tabIndex={t.id === stop ? 0 : -1} className={tool === t.id ? 'on' : ''} aria-pressed={tool === t.id} onClick={() => st.setTool(tool === t.id && (t.id === 'measure' || t.id === 'note') ? 'select' : t.id)} data-tip={`${t.label} ${t.key}`} aria-label={`${t.label} tool (${t.key})`}>
             <Icon name={(t.icon ?? 'select') as IconName} size={17} />
             <span className="tool-name">{t.short ?? t.label}</span>
           </button>
@@ -131,7 +147,7 @@ interface ControlsProps {
 /** A view button: its name shows beside the icon on a desktop and is the icon's label on a phone. */
 function Ctl({ icon, label, onClick, pressed }: { icon: IconName; label: string; onClick: () => void; pressed?: boolean }) {
   return (
-    <button onClick={onClick} aria-pressed={pressed} aria-label={label}>
+    <button onClick={onClick} aria-pressed={pressed} aria-label={label} title={label}>
       <Icon name={icon} size={16} />
       <span>{label}</span>
     </button>
@@ -190,6 +206,9 @@ function ViewBar({ canvas, up, run }: ControlsProps) {
         </>
       ) : (
         <>
+          {/* A press each, where a wheel, a drag or a pinch was the only way (the arrow keys and + and − do the same). */}
+          <ZoomButtons onZoom={dir => useCamera.getState().nudge({ zoom: dir })} />
+          <TurnButtons />
           <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
           <SunCtl />
         </>

@@ -57,8 +57,8 @@ const choiceField = (el: KeyTarget): boolean => el.tagName === 'SELECT' || (el.t
 /** A button, link or anything else Tab stops on. */
 const BUTTONISH = 'button, a[href], summary, [role="button"], [role="tab"], [role="option"], [tabindex]:not([tabindex="-1"])'
 
-/** Where single keys always belong to the drawing: the plan and the tools beside it. */
-const DRAWING = '.plan-editor, .tool-rail'
+/** Where single keys always belong to the drawing: the plan, the tools beside it, and the 3D view (its arrows and + and −). */
+const DRAWING = '.plan-editor, .tool-rail, .scene-keys'
 
 /** A dialog, sheet, menu or the search palette: while one is open the keyboard is its, not the plan's behind it. */
 export const OVERLAY = '[aria-modal="true"], [role="menu"], [data-overlay]'
