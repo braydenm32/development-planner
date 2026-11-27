@@ -105,6 +105,23 @@ export const coordsText = (l: Pick<SiteLocation, 'lat' | 'lon'>) =>
   `${Math.abs(l.lat).toFixed(3)}° ${l.lat < 0 ? 'S' : 'N'}, ${Math.abs(l.lon).toFixed(3)}° ${l.lon < 0 ? 'W' : 'E'}`
 
 /**
+ * What was typed in the latitude box, as degrees south: the app shows "33.870° S", so "33.9",
+ * "33.9 S", "33.9°S" and the map's "-33.9" all mean the same place. Australia is all south.
+ */
+export const tidyLatitude = (typed: string): string =>
+  typed
+    .trim()
+    .replace(/^[-−]\s*/, '')
+    .replace(/\s*(°|deg(rees)?)?\s*(s|south)?$/i, '')
+
+/** The same for the longitude box, degrees east: "151.2", "151.2 E", "151.2°E". */
+export const tidyLongitude = (typed: string): string => typed.trim().replace(/\s*(°|deg(rees)?)?\s*(e|east)?$/i, '')
+
+/** Where the boxes' limits come from, said in the box when a value is outside them. */
+export const LATITUDE_RANGE = 'Latitude in Australia is between 9° and 44° south'
+export const LONGITUDE_RANGE = 'Longitude in Australia is between 112° and 154° east'
+
+/**
  * Grid convergence on MGA (GDA2020, UTM zones of 6°): how far grid north is turned clockwise
  * from true north, in degrees. About +1° around Sydney, so if a survey's bearings are MGA, true
  * north sits about 1° anticlockwise of its grid north.
