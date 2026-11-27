@@ -187,17 +187,20 @@ describe('print model', () => {
     expect(m.status()).toBe('NoError')
     m.delete()
     for (let i = 1; i < near.parts.length; i++) expect(near.parts[i].volume).toBeCloseTo(model100.parts[i].volume, 3)
+    // The panel's estimate of this, made from the whole-block model, lands close to it.
+    const guess = aroundHouseVolume(model100, input, { ...SOLID, margin: 3 })!
+    expect(Math.abs(guess - plasticOf(near)) / plasticOf(near)).toBeLessThan(0.05)
   })
 
   it('says from the whole-block model about what printing only the ground around the house takes', () => {
-    // The hint beside "over a litre" quotes this figure, so it has to land near the real build.
-    for (const s of [{ ...SOLID, tiles: false, margin: 3 }, { ...DEFAULT_PRINT, tiles: false, margin: 3 }]) {
-      const whole = s.hollow ? buildPrintModel(wasm, input, s) : model100
-      const real = plasticOf(buildPrintModel(wasm, input, { ...s, terrain: 'house' }))
-      const guess = aroundHouseVolume(whole, input, s)!
-      expect(guess).toBeLessThan(plasticOf(whole))
-      expect(Math.abs(guess - real) / real).toBeLessThan(0.05)
-    }
+    // The hint beside "over a litre" quotes this figure, so it has to land near the real build
+    // (hollow, as the panel starts; the solid case is checked with the test above).
+    const s = { ...DEFAULT_PRINT, tiles: false, margin: 3 }
+    const whole = buildPrintModel(wasm, input, s)
+    const real = plasticOf(buildPrintModel(wasm, input, { ...s, terrain: 'house' }))
+    const guess = aroundHouseVolume(whole, input, s)!
+    expect(guess).toBeLessThan(plasticOf(whole))
+    expect(Math.abs(guess - real) / real).toBeLessThan(0.05)
     // A margin wider than the block saves nothing; a model with no terrain has nothing to crop.
     expect(aroundHouseVolume(model100, input, { ...SOLID, margin: 500 })).toBeCloseTo(plasticOf(model100), 6)
     expect(aroundHouseVolume({ parts: model100.parts.slice(1) }, input, SOLID)).toBeNull()
