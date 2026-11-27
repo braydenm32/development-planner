@@ -36,12 +36,13 @@ describe('editing walls', () => {
     expect(p.openings.some(o => o.wall === 'east')).toBe(false)
   })
 
-  it('keeps a new opening inside its wall', () => {
+  it('keeps a new opening inside its wall, clear of the wall that turns the corner', () => {
     const plan = garageFloor()
     const wall = plan.walls.find(w => w.id === 'hall_n')!
     const p = addOpening(plan, wall, 'door', 0, { width: 0.82, height: 2.04, sill: 0 })
     const o = p.openings.at(-1)!
-    expect(o.offset).toBeCloseTo(0.41, 9)
+    // Half the door, past half the 300 mm east wall it starts at.
+    expect(o.offset).toBeCloseTo(0.56, 9)
   })
 
   it('starts a new level with a copy of the external walls below', () => {

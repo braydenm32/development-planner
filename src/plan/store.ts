@@ -1,10 +1,11 @@
 import { create } from 'zustand'
+import { dismissToast, showToast } from '../safety/store'
 import { findSelection } from '../shell/selection'
 import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
+import { fitOpenings, fixesText, type OpeningFix } from './openingFit'
 import {
-  clampOpenings,
   DOOR_DEFAULT,
   GARAGE_DOOR_DEFAULT,
   normalizePlan,
@@ -132,12 +133,52 @@ function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Sel
   return { selection: all[0] ?? null, extra: all.slice(1) }
 }
 
+/** Openings the last tidy had to narrow or drop to fit their walls, to be said once the change is kept. */
+let lastFixes: OpeningFix[] = []
+
 /**
  * After every change: openings stay in their walls, stairs keep to the levels they join, and a
  * floor that was the lowest keeps the floor type it was built with when levels change order.
+ * A change that leaves the plan as it was gives back the plan itself, so it adds no undo step.
  */
 function tidy(p: Plan, before: Plan): Plan {
-  return keepFloorTypes(before, followLevels(linkStairs(clampOpenings(p))))
+  const fitted = fitOpenings(p)
+  lastFixes = fitted.fixes
+  const next = keepFloorTypes(before, followLevels(linkStairs(fitted.plan)))
+  return samePlan(next, before) ? before : next
+}
+
+/** Two plans hold the same things (compared part by part, so parts that weren't touched cost nothing). */
+function samePlan(a: Plan, b: Plan): boolean {
+  if (a === b) return true
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof Plan>
+  for (const k of keys) if (a[k] !== b[k] && JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false
+  return true
+}
+
+/**
+ * Say that doors or windows were narrowed (or dropped) to fit a wall that got shorter, with Undo.
+ * The toast goes once something else changes the plan, so its Undo never undoes another thing.
+ */
+function reportFixes() {
+  const text = fixesText(lastFixes)
+  lastFixes = []
+  if (!text) return
+  const after = usePlan.getState().plan
+  let unsub = () => {}
+  const id = showToast({
+    text,
+    undo: () => {
+      const st = usePlan.getState()
+      if (st.plan === after) st.undo()
+    },
+    settle: () => unsub(),
+  })
+  unsub = usePlan.subscribe(s => {
+    if (s.plan === after) return
+    unsub()
+    dismissToast(id)
+  })
 }
 
 export const usePlan = create<PlanStore>((setState, getState) => ({
@@ -179,6 +220,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     const next = tidy(fn(plan), plan)
     if (next === plan) return
     setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
+    reportFixes()
   },
 
   beginGesture: () => setState({ gestureStart: getState().plan }),
@@ -191,9 +233,11 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
 
   endGesture: () => {
     const { plan, gestureStart, past } = getState()
-    if (gestureStart && plan && gestureStart !== plan) {
+    // A drag that ends where it began (or never moved anything) is no step.
+    if (gestureStart && plan && !samePlan(gestureStart, plan)) {
       setState({ past: [...past, gestureStart].slice(-HISTORY), future: [], gestureStart: null })
-    } else setState({ gestureStart: null })
+      reportFixes()
+    } else setState({ gestureStart: null, ...(gestureStart && plan ? { plan: gestureStart } : {}) })
   },
 
   undo: () => {
@@ -233,6 +277,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
       setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
       nudgeRun = { key, base: plan, result: next, at: now }
     }
+    reportFixes()
   },
   setActiveLevel: activeLevel => setState({ activeLevel, selection: null, extra: [] }),
   setWallStyle: wallStyle => setState({ wallStyle }),

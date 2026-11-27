@@ -49,6 +49,7 @@ import { onNaturalGround } from '../plan/floorTypes'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { earthAgainstWall, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { wallClear } from '../plan/openingFit'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
@@ -90,6 +91,8 @@ const MAX_OVERHANG = 5
 const MAX_STAIR_WIDTH = 3
 const MAX_GOING = 0.6
 const MAX_STAIR_RISE = 20
+
+const mm = (m: number) => Math.round(m * 1000)
 
 /** The stair panel's "Goes up to" choice for a top typed in by hand, not joined to a level. */
 const CUSTOM_TOP = '__custom'
@@ -383,6 +386,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const w = o && plan.walls.find(x => x.id === o.wall)
     if (!o || !w) return null
     const set = (patch: Partial<typeof o>) => st.commit(p => updateOpening(p, o.id, patch))
+    // What it has to fit in: the wall's clear run between the walls that turn off its ends, and the wall's height.
+    const run = wallClear(plan.walls, w)
+    const high = wallTopRL(plan, w) - floorRL(plan, w.level)
+    const nib = run.from > 0.0005 || run.to < wallLength(w) - 0.0005
+    const head = o.sill + o.height
     return (
       <section className="selection">
         <h2>{OPENING_NAMES[o.kind]}</h2>
@@ -395,14 +403,48 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             <option value="opening">Opening (no door)</option>
           </select>
         </label>
-        <Num label="Width" unit="mm" value={o.width} min={0.3} onCommit={width => set({ width })} />
-        <Num label="Height" unit="mm" value={o.height} min={0.3} onCommit={height => set({ height })} />
-        {o.kind === 'window' && <Num label="Sill height" unit="mm" value={o.sill} min={0} onCommit={sill => set({ sill })} />}
+        <Num
+          label="Width"
+          unit="mm"
+          value={o.width}
+          min={0.3}
+          check={v => (v > run.to - run.from + 1e-9 ? `Max ${mm(run.to - run.from)} mm, the widest that fits ${nib ? 'between the corners of its wall' : 'its wall'}` : null)}
+          onCommit={width => set({ width })}
+        />
+        <Num
+          label="Height"
+          unit="mm"
+          value={o.height}
+          min={0.3}
+          check={v => (v + o.sill > high + 1e-9 ? `Max ${mm(high - o.sill)} mm: the wall is ${mm(high)} mm high${o.sill > 0 ? ` and the sill is at ${mm(o.sill)}` : ''}` : null)}
+          onCommit={height => set({ height })}
+        />
+        {o.kind === 'window' && (
+          <Num
+            label="Sill height"
+            unit="mm"
+            value={o.sill}
+            min={0}
+            check={v => (v + o.height > high + 1e-9 ? `Max ${mm(Math.max(0, high - o.height))} mm, or its head is above the ${mm(high)} mm wall` : null)}
+            onCommit={sill => set({ sill })}
+          />
+        )}
+        {head > high + 0.0005 && (
+          <p className="notice small">
+            Its head is {mm(head)} mm above the floor, higher than the {mm(high)} mm wall. Lower it or make it shorter.
+          </p>
+        )}
         <Num
           label="From wall start to near edge"
           unit="mm"
           value={o.offset - o.width / 2}
-          min={0}
+          check={v =>
+            v < run.from - 1e-9
+              ? `Min ${mm(run.from)} mm${run.from > 0.0005 ? ', clear of the wall at that corner' : ''}`
+              : v > run.to - o.width + 1e-9
+                ? `Max ${mm(run.to - o.width)} mm, to stay ${run.to < wallLength(w) - 0.0005 ? 'clear of the wall at the far corner' : 'in its wall'}`
+                : null
+          }
           onCommit={edge => set({ offset: edge + o.width / 2 })}
         />
         {o.kind === 'door' && (

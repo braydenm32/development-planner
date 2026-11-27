@@ -6,7 +6,6 @@ import {
   newId,
   sortedLevels,
   wallDir,
-  wallLength,
   type Area,
   type AreaKind,
   type Furniture,
@@ -21,6 +20,7 @@ import {
   type WallKind,
 } from './model'
 import { furnitureCorners, resized } from './furniture'
+import { wallClear } from './openingFit'
 import { defaultGables, simplifyRing } from './roof'
 import { followLevels, linkStairs, stairLayout } from './stairs'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
@@ -69,14 +69,15 @@ export function updateWall(plan: Plan, id: string, patch: Partial<Wall>): Plan {
 }
 
 export function addOpening(plan: Plan, wall: Wall, kind: OpeningKind, offset: number, d: OpeningDefaults): Plan {
-  const len = wallLength(wall)
-  const width = Math.min(d.width, len - 0.05)
+  // Inside the wall's clear run, so it doesn't cut into a wall that turns off the end.
+  const run = wallClear(plan.walls, wall)
+  const width = Math.min(d.width, run.to - run.from)
   if (width < 0.3) return plan
   const o: Opening = {
     id: newId(kind),
     wall: wall.id,
     kind,
-    offset: Math.min(Math.max(offset, width / 2), len - width / 2),
+    offset: Math.min(Math.max(offset, run.from + width / 2), run.to - width / 2),
     width,
     height: d.height,
     sill: kind === 'window' ? d.sill : 0,
