@@ -73,7 +73,7 @@ describe('the cover checklist', () => {
 
   it('says what to add for a sheet the plan can’t make yet', () => {
     const rs = rows({ sheets: { site: ['DA-02'], checks: ['DA-03'] } })
-    expect(row(rs, 'floor-plans')).toMatchObject({ status: 'not-drawn', detail: 'Draw the walls under Design › Floors.' })
+    expect(row(rs, 'floor-plans')).toMatchObject({ status: 'not-drawn', detail: 'Draw the walls under Design › Plan.' })
     expect(row(rs, 'shadows')?.status).toBe('not-drawn')
     expect(row(rs, 'cut-fill')?.detail).toMatch(/Earthworks › Place/)
     expect(row(rs, 'stormwater')?.status).toBe('not-drawn')

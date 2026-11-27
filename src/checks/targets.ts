@@ -165,6 +165,6 @@ export function fixOf(r: CheckResult): FixLink | null {
     case 'driveway':
       return go('earthworks', 'driveway', 'Earthworks › Driveway')
     case 'size':
-      return go('design', 'floors', 'Design › Floors')
+      return go('design', 'floors', 'Design › Levels')
   }
 }

@@ -79,7 +79,7 @@ export function selectionName(plan: Plan, sels: Selection[]): string {
     case 'room':
       return plan.rooms.find(x => x.id === s.id)?.name.trim() || 'Room'
     case 'area':
-      return plan.areas.find(x => x.id === s.id)?.name.trim() || 'Area'
+      return plan.areas.find(x => x.id === s.id)?.name.trim() || 'Outdoor area'
     case 'roof':
       return 'Roof'
     case 'stair':
@@ -99,7 +99,7 @@ export function selectionCounts(sels: Selection[]): string {
     wall: ['wall', 'walls'],
     opening: ['door or window', 'doors and windows'],
     room: ['room', 'rooms'],
-    area: ['area', 'areas'],
+    area: ['outdoor area', 'outdoor areas'],
     roof: ['roof', 'roofs'],
     stair: ['stair', 'stairs'],
     furniture: ['piece of furniture', 'pieces of furniture'],

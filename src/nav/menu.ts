@@ -402,13 +402,17 @@ export const AREAS: Area[] = [
       },
       {
         id: 'floors',
-        label: 'Floors',
+        label: 'Levels',
         icon: 'floors',
         subtitle: 'The levels of the house, their floor heights and how each is built.',
         shows: ['ffl'],
         keywords: [
+          'level',
           'levels',
+          'floors',
           'storey',
+          'floor level',
+          'FFL',
           'first floor',
           'upstairs',
           'ceiling',
@@ -461,7 +465,7 @@ export const AREAS: Area[] = [
         label: 'Sections',
         icon: 'section',
         view: 'plan',
-        subtitle: 'Cuts through the house and the slope, and the four elevations.',
+        subtitle: 'Sections through the house and the slope, and the four elevations.',
         keywords: [
           'section',
           'sections',
@@ -500,11 +504,11 @@ export const AREAS: Area[] = [
     more: {
       label: 'More',
       icon: 'sliders',
-      subtitle: 'The plan file and tools you rarely need.',
+      subtitle: 'The house plan’s own file and tools you rarely need.',
       items: [
         {
           id: 'plan-file',
-          label: 'Plan file',
+          label: 'House plan file',
           icon: 'file',
           keywords: ['export', 'import', 'import plan', 'replace plan', 'new plan', 'json', 'save', 'backup'],
           features: ['plan-autosave', 'plan-import', 'review-import-plan'],
@@ -1065,7 +1069,7 @@ export const HOMES: Home[] = [
     label: 'Top bar',
     features: [],
     items: [
-      { id: 'view-plan', label: 'Show the plan', icon: 'plan', keywords: ['floor plan', '2D', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
+      { id: 'view-plan', label: 'Show in 2D (the plan)', icon: 'plan', keywords: ['floor plan', 'plan view', 'top view', 'show the plan', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
       { id: 'view-3d', label: 'Show in 3D', icon: 'cube', keywords: ['3D site', 'model', 'canvas'], features: ['mode-3d-site'], action: 'view-3d', run: 'now' },
       {
         id: 'undo',
@@ -1156,7 +1160,7 @@ export const HOMES: Home[] = [
         action: 'open-file',
         run: 'menu',
       },
-      { id: 'export-plan', label: 'Export plan', icon: 'download', keywords: ['save plan', 'json', 'backup'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
+      { id: 'export-plan', label: 'Export the house plan only', icon: 'download', keywords: ['export plan', 'save plan', 'plan file', 'json', 'without the survey'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
       // Clears the plan in this project (reviewed, with Undo); New project… is the one that starts another.
       { id: 'new-plan', label: 'Start the plan again', icon: 'rotate', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
       // The pages about the app (src/legal): they open on their own, with or without a project.
@@ -1399,7 +1403,7 @@ export const HOMES: Home[] = [
         id: 'floor-from-contour',
         label: 'Floor level from a contour',
         icon: 'floors',
-        keywords: ['pick a contour', 'contour line', 'RL', 'set floor level', 'FFL', 'ground floor =', 'floor height'],
+        keywords: ['pick a contour', 'contour line', 'RL', 'set floor level', 'FFL', 'ground floor =', 'floor height', 'floor RL'],
         features: ['floor-level-from-contour'],
         action: 'pick-contour',
         run: 'now',
@@ -1462,14 +1466,14 @@ export const HOMES: Home[] = [
       },
       {
         id: 'section-strip',
-        label: 'Show or fold the section under the plan',
+        label: 'Show or fold the live section under the plan',
         icon: 'section',
         keywords: ['section', 'live section', 'section strip', 'cross section', 'split level', 'levels', 'floor RL', 'drag level', 'move floor', 'eaves', 'roofline', 'match roofline', 'stairs', 'cut line', 'fold away', 'slope'],
         features: ['section-strip', 'section-strip-levels', 'section-strip-eaves', 'section-strip-cut', 'section-strip-phone'],
         action: 'section-strip',
         run: 'now',
         at: 'design/plan',
-        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the cut’s ends on the plan to move it.',
+        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the ends of its line on the plan to move it.',
       },
       {
         id: 'paint-grade',
@@ -1575,7 +1579,7 @@ export const HOMES: Home[] = [
         keywords: ['risers', 'going', 'treads', 'rotate', 'ncc', 'joins', 'goes up to'],
         features: ['stair-shape', 'stair-turn', 'stair-width', 'stair-going', 'stair-bottom-rl', 'stair-top-rl', 'stair-direction', 'stair-stats', 'stair-rotate-90', 'stair-start-on-ground', 'stair-joins', 'stair-ncc-limits', 'stair-landing-checks'],
       },
-      { id: 'inspect-area', at: 'design/plan', hint: 'Click an area on the plan: its settings open on the right.', label: 'Selected area', icon: 'area', keywords: ['slab', 'deck', 'driveway', 'top level'], features: ['area-name', 'area-type', 'area-top-level'] },
+      { id: 'inspect-area', at: 'design/plan', hint: 'Click an outdoor area on the plan: its settings open on the right.', label: 'Selected outdoor area', icon: 'area', keywords: ['area', 'slab', 'deck', 'driveway', 'garden', 'top level'], features: ['area-name', 'area-type', 'area-top-level'] },
       { id: 'inspect-furniture', at: 'design/plan', hint: 'Click a piece of furniture on the plan: its settings open on the right.', label: 'Selected furniture', icon: 'furniture', keywords: ['size', 'turn', 'rename'], features: ['furniture-settings'] },
       { id: 'delete', label: 'Delete the selection', icon: 'x', keywords: ['remove'], features: ['delete-selected'], shortcut: 'Delete', hint: 'Select something on the plan, then press Delete or use Delete at the foot of its settings.' },
     ],
@@ -1643,9 +1647,9 @@ export const HOMES: Home[] = [
     items: [
       {
         id: 'guide',
-        label: 'Help: getting started guide',
+        label: 'Getting started guide',
         icon: 'list',
-        keywords: ['how do I', 'how to', 'tutorial', 'getting started', 'learn', 'instructions', 'manual', 'first steps', 'what next'],
+        keywords: ['help', 'how it works', 'how do I', 'how to', 'tutorial', 'learn', 'instructions', 'manual', 'first steps', 'what next'],
         features: ['getting-started-guide'],
         action: 'guide',
         run: 'now',
@@ -1703,7 +1707,7 @@ export const HOMES: Home[] = [
         keywords: ['copy', 'cut', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl x', 'ctrl v', 'ctrl d', 'cmd c', 'cmd x', 'paste in place', 'same place', 'another floor'],
         features: ['kbd-copy-paste', 'kbd-cut', 'paste-in-place'],
         shortcut: 'mod+C',
-        hint: '⌘C or Ctrl+C copies furniture, rooms, areas and walls with their doors and windows; X cuts them (one Undo brings them back); V pastes them a little off to one side, or in the same place on another floor; Shift+V pastes in place; D copies and pastes in one go.',
+        hint: '⌘C or Ctrl+C copies furniture, rooms, outdoor areas and walls with their doors and windows; X cuts them (one Undo brings them back); V pastes them a little off to one side, or in the same place on another level; Shift+V pastes in place; D copies and pastes in one go.',
       },
       {
         id: 'kbd-multi',
@@ -1727,7 +1731,7 @@ export const HOMES: Home[] = [
         label: 'Tool keys',
         keywords: ['shortcuts', 'V W T D N O G R A F S U M'],
         features: ['kbd-tool-shortcuts'],
-        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A area, F roof, S stair, U furniture, M move. X draws a section line.',
+        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A outdoor area, F roof, S stair, U furniture, M move. X draws a section line.',
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo', 'undo-keeps-selection', 'undo-shows-level'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change, and what you had selected stays selected.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },

@@ -108,20 +108,20 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
     <g className={`sstrip-cut${open ? '' : ' folded'}`}>
       <line className="line" x1={pa[0]} y1={pa[1]} x2={pb[0]} y2={pb[1]} />
       <text className="tag" x={lead[0] + 8} y={lead[1] - 8}>
-        Section
+        Live section
       </text>
       {grab &&
         (['a', 'b'] as const).map(end => {
           const p = end === 'a' ? pa : pb
           return (
             <circle key={end} className="end" cx={p[0]} cy={p[1]} r={6} onPointerDown={e => down(e, end)} onPointerMove={e => move(e)} onPointerUp={up}>
-              <title>Drag to swing the section line (Shift for any angle)</title>
+              <title>Drag to swing the live section’s line (Shift for any angle)</title>
             </circle>
           )
         })}
       {grab && (
         <rect className="mid" x={mid[0] - 6} y={mid[1] - 6} width={12} height={12} rx={2} transform={`rotate(45 ${mid[0]} ${mid[1]})`} onPointerDown={e => down(e, 'mid')} onPointerMove={e => move(e)} onPointerUp={up}>
-          <title>Drag to move the section line across the plan</title>
+          <title>Drag to move the live section’s line across the plan</title>
         </rect>
       )}
     </g>

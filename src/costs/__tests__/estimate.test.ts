@@ -218,7 +218,7 @@ describe('the estimate, built by a builder', () => {
     const q = quantities()
     q.ground = { ...q.ground!, parts: [{ type: 'slab', area: 60 }, { type: 'piers', area: 40 }] }
     const x = estimate(q, emptyCosts())
-    expect(line(x, 'floor-slab')).toMatchObject({ qty: 60, from: 'Part of the ground floor, from Design › Floors' })
+    expect(line(x, 'floor-slab')).toMatchObject({ qty: 60, from: 'Part of the ground floor, from Design › Levels' })
     expect(line(x, 'floor-piers')).toMatchObject({ qty: 40, estimate: 40 * R('floor-piers') })
   })
 })
@@ -475,7 +475,7 @@ describe('how costs read', () => {
     expect(qtyText({ qty: 1, unit: 'item', dp: 0 })).toBe('')
     expect(dateText('2026-11-08')).toBe('8 Nov 2026')
     expect(atName('earthworks/cut-fill')).toBe('Earthworks › Cut & fill')
-    expect(atName('design/floors')).toBe('Design › Floors')
+    expect(atName('design/floors')).toBe('Design › Levels')
   })
 
   it('reads a typed amount, with or without a dollar sign and commas', () => {

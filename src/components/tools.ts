@@ -25,7 +25,7 @@ export const TOOLS: ToolDef[] = [
   { id: 'opening', label: 'Wall opening', key: 'O', icon: 'opening', short: 'Opening' },
   { id: 'garage', label: 'Garage door', key: 'G', icon: 'garage', short: 'Garage' },
   { id: 'room', label: 'Room', key: 'R', icon: 'room' },
-  { id: 'area', label: 'Area', key: 'A', icon: 'area' },
+  { id: 'area', label: 'Outdoor area', key: 'A', icon: 'area', short: 'Outdoor' },
   { id: 'roof', label: 'Roof', key: 'F', icon: 'roof' },
   { id: 'stair', label: 'Stair', key: 'S', icon: 'stair' },
   { id: 'furniture', label: 'Furniture', key: 'U', icon: 'furniture' },

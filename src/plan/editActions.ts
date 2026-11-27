@@ -209,7 +209,7 @@ export async function deleteLevelWithReview(id: string): Promise<boolean> {
             {
               id: 'keep',
               label: `Leave it at ${rl(floorRL(plan, left.level.id))}`,
-              detail: `Its floor stays ${left.drop.toFixed(2)} m up and is treated as built on the ground there, so expect a lot of fill until you lower it in Design › Floors.`,
+              detail: `Its floor stays ${left.drop.toFixed(2)} m up and is treated as built on the ground there, so expect a lot of fill until you lower it in Design › Levels.`,
             },
           ],
         }

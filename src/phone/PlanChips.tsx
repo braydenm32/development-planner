@@ -23,7 +23,7 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
         onClick={() => many && setOpen(!open)}
         aria-haspopup={many ? 'listbox' : undefined}
         aria-expanded={many ? open : undefined}
-        aria-label={`${name}, floor RL ${rl.toFixed(2)}${many ? '. Change floor' : ''}`}
+        aria-label={`${name}, FFL RL ${rl.toFixed(2)}${many ? '. Change level' : ''}`}
       >
         <span className="level-chip-text">
           <b>{name}</b>

@@ -128,7 +128,7 @@ function Sections({ d }: { d: Loaded }) {
         </div>
       ) : editing ? (
         <>
-          <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want to cut through the house and the ground; on a slope, run it down the fall.</p>
+          <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want a section through the house and the ground; on a slope, run it down the fall.</p>
           <div className="row">
             <button className="secondary" onClick={beginSectionLine}>
               Draw a section line <kbd>{SECTION_KEY}</kbd>

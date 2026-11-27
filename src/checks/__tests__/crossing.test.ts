@@ -238,7 +238,7 @@ describe('on the sample block', () => {
     const all = runChecks(ms, 'cdc')
     const drive = all.filter(r => r.id.startsWith('drive-'))
     expect(drive.map(r => r.status)).toEqual(['incomplete', 'incomplete', 'incomplete', 'incomplete', 'incomplete', 'incomplete'])
-    expect(drive[0].value).toBe('Draw a driveway (Area tool, kind Driveway) to check this.')
+    expect(drive[0].value).toBe('Draw a driveway (Outdoor area tool, type Driveway) to check this.')
     // And the rest are the same as without them.
     expect(crossingChecks([], null).length).toBe(6)
   })

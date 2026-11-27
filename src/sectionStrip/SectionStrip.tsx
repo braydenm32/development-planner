@@ -186,7 +186,7 @@ export function SectionStrip(props: SectionStripProps) {
       st().preview(() => moveLevel(d.start, d.id, rl))
       const name = levelById(d.start, d.id)?.name ?? 'Level'
       const now = st().plan ?? d.start
-      setBubble({ x: at.x, y: at.y, lines: [`${name} · floor RL ${rlText(rl)} (${signed(rl - d.rl)})`, ...stairsOnLevel(now, d.id)] })
+      setBubble({ x: at.x, y: at.y, lines: [`${name} · FFL RL ${rlText(rl)} (${signed(rl - d.rl)})`, ...stairsOnLevel(now, d.id)] })
     } else {
       const roof = d.start.roofs.find(r => r.id === d.id)
       if (!roof) return
@@ -263,7 +263,7 @@ export function SectionStrip(props: SectionStripProps) {
           onPointerCancel={() => finish(true)}
           onWheel={e => setPan(pan + e.deltaY / Math.max(k, 1) / 4)}
           role="img"
-          aria-label={`Section through the house, ${ends[0]} to ${ends[1]}`}
+          aria-label={`Live section through the house, ${ends[0]} to ${ends[1]}`}
         >
           {/* Each level's floor, faintly across the strip; the one being drawn on in the accent colour. */}
           {levels.map(l => {
@@ -348,7 +348,7 @@ export function SectionStrip(props: SectionStripProps) {
         )}
         {!frame.linedUp && (
           <p className="sstrip-tilt" style={{ left: bandX + 150 }}>
-            The section line runs at an angle on the plan, so the section is centred under it.{' '}
+            The live section’s line runs at an angle on the plan, so the section is centred under it.{' '}
             <button type="button" className="link" onClick={onLineUp}>
               Turn the plan to line them up
             </button>
@@ -365,7 +365,7 @@ export function SectionStrip(props: SectionStripProps) {
           className="sstrip-grab"
           role="separator"
           aria-orientation="horizontal"
-          aria-label="Resize the section"
+          aria-label="Resize the live section"
           aria-valuemin={MIN_H}
           aria-valuemax={MAX_H}
           aria-valuenow={height}
@@ -382,7 +382,7 @@ export function SectionStrip(props: SectionStripProps) {
         />
       )}
       <header className="sstrip-head" style={{ paddingLeft: Math.max(12, left + 4), paddingRight: Math.max(12, right + 4) }}>
-        <h2>Section</h2>
+        <h2>Live section</h2>
         <span className="muted ends">
           {ends[0]} → {ends[1]}
         </span>
@@ -405,12 +405,12 @@ export function SectionStrip(props: SectionStripProps) {
         <span className="grow" />
         {open && editable && <span className="muted hint">Click a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
         {!alongHouse && (
-          <button type="button" className="plain small" onClick={onReset} title="Put the section line back through the middle of the house, along it">
+          <button type="button" className="plain small" onClick={onReset} title="Put the live section’s line back through the middle of the house, along it">
             Along the house
           </button>
         )}
         <button type="button" className="plain small fold" onClick={() => setStripOpen(!open)} aria-expanded={open}>
-          <Icon name={open ? 'chevD' : 'chevU'} size={14} /> {open ? 'Fold away' : 'Show the section'}
+          <Icon name={open ? 'chevD' : 'chevU'} size={14} /> {open ? 'Fold away' : 'Show the live section'}
         </button>
       </header>
       {body}

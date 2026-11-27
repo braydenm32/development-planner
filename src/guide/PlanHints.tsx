@@ -29,7 +29,7 @@ export function PlanHints({ plan, level, phone }: { plan: Plan; level: string; p
           </button>
         )}
         <button type="button" className="plan-hint-link" onClick={() => openGuide(tip.section)}>
-          How it works
+          Getting started
         </button>
         <button type="button" className="plan-hint-link quiet" onClick={hideAllHints}>
           Hide tips

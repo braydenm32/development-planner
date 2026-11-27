@@ -263,7 +263,7 @@ describe('Import plan', () => {
     expect(r.facts).toEqual(
       expect.arrayContaining([
         { label: 'Floor area', value: m2(totalFloorArea(incoming)) },
-        { label: 'Floors', value: '1 floor: Ground floor' },
+        { label: 'Levels', value: '1 level: Ground floor' },
       ]),
     )
     expect(r.warning).toBe('Where the file puts it, the house would land outside your block, about 700 m from it.')

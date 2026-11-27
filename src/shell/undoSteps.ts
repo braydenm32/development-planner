@@ -120,7 +120,7 @@ export function namePlanStep(a: Plan, b: Plan): StepName {
   // Nothing added or taken away: something moved or changed.
   if (levels.changed.length) {
     const [x, y] = levels.changed[0]
-    const what = x.name !== y.name ? 'rename floor' : x.elevation !== y.elevation ? 'change floor level' : x.height !== y.height ? 'change ceiling height' : 'change floor'
+    const what = x.name !== y.name ? 'rename level' : x.elevation !== y.elevation ? 'change floor level' : x.height !== y.height ? 'change ceiling height' : 'change level'
     return { what, area: 'design', tab: 'floors', also: ['earthworks'] }
   }
   if (furniture.changed.length) return { what: furniture.changed.some(([x, y]) => differ(x.at, y.at) || x.rotation !== y.rotation) ? 'move furniture' : 'change furniture', ...DESIGN }

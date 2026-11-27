@@ -42,7 +42,7 @@ function addAndPick(add: (p: Plan) => { plan: Plan; id: string; roofsMoved?: num
   if (!id) return
   st.setActiveLevel(id)
   const name = usePlan.getState().plan?.levels.find(l => l.id === id)?.name
-  if (moved && name) undoToastFor(`${name} added. ${moved === 1 ? 'The roof' : `${moved} roofs`} moved up onto it, so ${moved === 1 ? 'it isn’t' : 'they aren’t'} left inside the new storey.`, () => usePlan.getState().setActiveLevel(from))
+  if (moved && name) undoToastFor(`${name} added. ${moved === 1 ? 'The roof' : `${moved} roofs`} moved up onto it, so ${moved === 1 ? 'it isn’t' : 'they aren’t'} left inside the new level.`, () => usePlan.getState().setActiveLevel(from))
 }
 
 export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; beforePick?: () => void; survey?: Survey | null; terrain?: Terrain | null }) {
@@ -87,7 +87,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
           return (
             <div key={l.id} className="tool-options">
               <TextField label="Name" value={l.name} onCommit={name => st.commit(p => updateLevel(p, l.id, { name }))} />
-              <Num label="Floor RL" unit="RL" value={rl} check={rlCheck} onCommit={v => st.commit(p => setLevelRL(p, l.id, v))} />
+              <Num label="Floor level (FFL)" unit="RL" value={rl} check={rlCheck} onCommit={v => st.commit(p => setLevelRL(p, l.id, v))} />
               {below && (
                 <Num
                   label={`Step up from ${below.name}`}
@@ -240,7 +240,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="muted small">No rooms or areas on this level yet.</p>
+                  <p className="muted small">No rooms or outdoor areas on this level yet.</p>
                 )}
                 {s.rooms.some(r => r.sameAs) && (
                   <p className="notice small">Two room labels are in one space, so it’s counted once. Draw the wall between them, or delete one label.</p>

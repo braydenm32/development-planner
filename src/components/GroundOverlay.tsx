@@ -298,7 +298,7 @@ export function GroundReadout({ ground, floor, lowest }: { ground: number; floor
       {floor !== null && (
         <>
           {' '}
-          · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+          · FFL RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
         </>
       )}
     </span>

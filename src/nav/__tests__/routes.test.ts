@@ -274,7 +274,7 @@ describe('the menu', () => {
       'Survey file name',
       'Download a backup (project file)',
       'Open a project file…',
-      'Export plan',
+      'Export the house plan only',
       'Start the plan again',
       'About Contour & Gable',
       'Privacy policy',

@@ -65,11 +65,11 @@ export function makeArea(item: SketchItem, kind: AreaKind): boolean {
     return r?.plan ?? p
   })
   if (!id) {
-    showToast({ text: 'That sketch has no inside to make an area of. Draw a closed shape, or a line with three or more corners.' })
+    showToast({ text: 'That sketch has no inside to make an outdoor area of. Draw a closed shape, or a line with three or more corners.' })
     return false
   }
   st.select({ type: 'area', id })
-  undoToastFor('Area made from the sketch. The sketch line stays.')
+  undoToastFor('Outdoor area made from the sketch. The sketch line stays.')
   return true
 }
 

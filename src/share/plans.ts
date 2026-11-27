@@ -507,7 +507,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     const footprint = buildingFootprint(plan)
     const rows: [string, string][] = [
       ['Site area', `${input.siteArea.toFixed(0)} m²`],
-      ['Building footprint (all floors)', `${footprint.toFixed(2)} m²`],
+      ['Building footprint (all levels)', `${footprint.toFixed(2)} m²`],
       ['Site coverage', `${((footprint / Math.max(input.siteArea, 1)) * 100).toFixed(1)}%`],
       ...fflRows(),
     ]
@@ -1195,7 +1195,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       })
       // A roof with a storey built over all of it isn't a real roof: the sheet says so (Design › Roofs flags it too).
       const over = roofCoveredBy(plan, roof)
-      if (over) pg.text(c[0], c[1] - 6, `Under ${over.name}: inside that storey, not built`, { size: 2.4, font: 'bold', align: 'center' })
+      if (over) pg.text(c[0], c[1] - 6, `Under ${over.name}: inside that level, not built`, { size: 2.4, font: 'bold', align: 'center' })
     }
     return view
   }

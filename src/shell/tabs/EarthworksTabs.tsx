@@ -98,7 +98,7 @@ export function DrivewayTab() {
     </>
   ) : (
     <>
-      <p className="muted">No driveway yet. Draw one with the Area tool, kind Driveway, and its grade, its footpath crossing and whether a car gets in show here.</p>
+      <p className="muted">No driveway yet. Draw one with the Outdoor area tool, type Driveway, and its grade, its footpath crossing and whether a car gets in show here.</p>
       <DriveFromSlab plan={d.plan} survey={d.survey} />
       <div className="row">
         <button className="secondary" onClick={draw}>

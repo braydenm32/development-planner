@@ -20,7 +20,7 @@ export interface Term {
 }
 
 export const TERMS: Term[] = [
-  { id: 'ffl', short: 'FFL', long: 'Finished floor level', says: 'The height of the top of a finished floor, as an RL. The ground floor’s FFL sets how high or low the house sits on the block.', match: /\bFFL\b/ },
+  { id: 'ffl', short: 'FFL', long: 'Finished floor level', says: 'The floor level: the height of the top of a level’s finished floor, as an RL. The lowest level’s FFL sets how high or low the house sits on the block.', match: /\bFFL\b/ },
   { id: 'rl', short: 'RL', long: 'Reduced level', says: 'A height in metres above a fixed datum, usually AHD. Every level on a survey is an RL, so RL 45.50 is 45.5 m above it.', match: /\bRL\b/ },
   { id: 'ahd', short: 'AHD', long: 'Australian Height Datum', says: 'The datum most Australian surveys measure heights from: roughly mean sea level.', match: /\bAHD\b/ },
   { id: 'cdc', short: 'CDC', long: 'Complying development certificate', says: 'The fast-track approval, also called complying development: for a house that meets fixed rules (in NSW, the Housing Code). A council or a registered certifier issues it, without a full council assessment.', match: /\bCDC\b/ },
@@ -28,12 +28,12 @@ export const TERMS: Term[] = [
   { id: 'lep', short: 'LEP', long: 'Local environmental plan', says: 'The council’s legal planning rules: zones, and limits such as building height and floor space ratio.', match: /\bLEP\b/ },
   { id: 'dcp', short: 'DCP', long: 'Development control plan', says: 'The council’s detailed guidelines for a DA: setbacks, landscaping, privacy, cut and fill and the like.', match: /\bDCP\b/ },
   { id: 'fsr', short: 'FSR', long: 'Floor space ratio', says: 'Gross floor area divided by the block’s area. A ratio of 0.5:1 on a 600 m² block allows 300 m² of floor.', match: /\bFSR\b|floor space ratio/i },
-  { id: 'gfa', short: 'GFA', long: 'Gross floor area', says: 'The floor area of every storey, measured to the inside of the outside walls. The rules say what counts: one garage space, for example, often doesn’t.', match: /\bGFA\b|gross floor area/i },
+  { id: 'gfa', short: 'GFA', long: 'Gross floor area', says: 'The floor area of every level, measured to the inside of the outside walls. The rules say what counts: one garage space, for example, often doesn’t.', match: /\bGFA\b|gross floor area/i },
   { id: 'height', short: 'Building height', says: 'The most the house rises above the natural ground under it: the ground as it was before any digging. The rules set a limit.', match: /\bbuilding height\b|\babove ground\b/i },
-  { id: 'storey', short: 'Storey', says: 'A floor of the house. A split level, where floors step up the slope side by side, can still count as one storey if no floor sits over another.', match: /\bstoreys?\b/i },
+  { id: 'storey', short: 'Storey', says: 'What the planning rules count: a level of the house that sits over another. The app calls each one a level. A split level, where levels step up the slope side by side, can still count as one storey if no level sits over another.', match: /\bstoreys?\b/i },
   { id: 'cut-fill', short: 'Cut and fill', says: 'Cut is earth dug away to make level ground for the house; fill is earth put back to build ground up. Both are measured in cubic metres (m³).', match: /\bcut and fill\b|\bcut · fill\b|\bcut\b|\bfill\b/i },
   { id: 'out-of-balance', short: 'Out of balance', says: 'When the cut and the fill are far from equal, so earth has to be trucked away or brought in. Raising or lowering the floor can balance them.', match: /out of balance/i },
-  { id: 'batter', short: 'Batter', says: 'A slope of earth left at the edge of a cut or fill instead of a wall. 2:1 means 2 m across for every 1 m up or down: the bigger the number, the gentler the slope.', match: /\bbatters?\b/i },
+  { id: 'batter', short: 'Batter', says: 'A slope of earth left at the edge of a cut or fill instead of a wall. Written 1 in 2, which means 2 m across for every 1 m up or down: the bigger the second number, the gentler the slope.', match: /\bbatters?\b/i },
   { id: 'retaining-wall', short: 'Retaining wall', says: `A wall that holds back ground that’s higher on one side. One holding back over ${ENGINEER_TEXT} needs an engineer’s certificate under the NSW Housing Code; a council’s own rule can differ.`, match: /\bretaining walls?\b|\btallest wall\b/i },
   { id: 'setback', short: 'Setback', says: 'How far the house sits from a boundary. The rules set a least distance at the front, the sides and the rear.', match: /\bsetbacks?\b/i },
   { id: 'building-line', short: 'Building line', says: 'The line a house must sit behind, a set distance back from the front boundary. A lot’s width is measured along it.', match: /\bbuilding line\b/i },
