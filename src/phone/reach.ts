@@ -1,7 +1,8 @@
 // Every key number within two taps on a phone. The numbers are all in the Overview, which
-// the peek sheet at the bottom of the canvas opens with one tap. When a sheet covers the
-// peek, one tap closes it; and from anywhere, Site in the bottom bar opens the 3D view,
-// where nothing covers the peek. The shell decides what shows with these same rules.
+// the peek sheet at the bottom of the canvas opens with one tap, and so does the Key numbers
+// button in the head of a tab's panel. When a sheet covers the peek, one tap closes it; and from
+// anywhere, Site in the bottom bar opens Site's panel on the 3D view, whose Key numbers button is
+// one tap more. The shell decides what shows with these same rules.
 
 import { areaById, type AreaId } from '../nav/menu'
 import { areaRoute, canvasOf } from '../nav/route'
@@ -48,8 +49,23 @@ export const panelLocked = (phone: boolean, editing: boolean, tabKey: string) =>
  */
 export const panelReads = (tabKey: string) => tabKey.startsWith('approvals/')
 
-/** A phone's 3D view needs the whole screen, so there a tab's panel starts folded away as a pill. */
+/**
+ * A phone's 3D view needs the whole screen, so there a tab's panel starts folded away as a pill:
+ * after Back, a link or search. A tap on the tab itself opens it (PH-25, `tabTapped`).
+ */
 export const panelStartsHidden = (phone: boolean, canvas: Canvas) => phone && canvas === '3d'
+
+let tapped: string | null = null
+/** A tab (area/tab) was tapped in the tab bar or the bottom bar: its panel opens, even where it would start folded. */
+export function tabTapped(tabKey: string) {
+  tapped = tabKey
+  // Read by the effect the tap's navigation runs (twice over in React's strict mode); gone after that.
+  setTimeout(() => {
+    if (tapped === tabKey) tapped = null
+  }, 0)
+}
+/** Whether the tab now showing was opened by a tap on it. */
+export const wasTapped = (tabKey: string) => tapped === tabKey
 
 /** The selection's sheet shows on the plan only (a retaining wall in its own tab shows there instead). */
 export const inspectorShows = (canvas: Canvas, loaded: boolean, selected: boolean, inTab: boolean) => canvas === 'plan' && loaded && selected && !inTab
@@ -59,7 +75,7 @@ export function peekShows(s: Screen): boolean {
   return s.phone && s.loaded && !s.inspector && !s.panel && !s.toolCard && !s.overview
 }
 
-/** What a phone shows after a tap on an area in the bottom bar, with something selected or not. */
+/** What a phone shows after a tap on an area in the bottom bar, with something selected or not: the tab's panel open, since it was tapped. */
 export function arriveAt(area: AreaId, selected: boolean): Screen {
   const route = areaRoute(area)
   const canvas = canvasOf(route)
@@ -69,7 +85,7 @@ export function arriveAt(area: AreaId, selected: boolean): Screen {
     loaded: true,
     canvas,
     inspector: inspectorShows(canvas, true, selected, false),
-    panel: !tab.noPanel && !panelStartsHidden(true, canvas),
+    panel: !tab.noPanel,
     toolCard: false,
     overview: false,
   }
@@ -79,8 +95,11 @@ export function arriveAt(area: AreaId, selected: boolean): Screen {
 export function tapsToNumbers(s: Screen, selected = s.inspector): number {
   if (s.overview) return 0
   if (peekShows(s)) return 1
+  // A tab's panel on its own: its header's Key numbers button opens the Overview (PH-25).
+  if (s.panel && !s.inspector && !s.toolCard) return 1
   const covers = [s.inspector, s.panel, s.toolCard].filter(Boolean).length
-  // Close the one sheet, then the peek; or Site in the bottom bar, then the peek.
-  const viaSite = peekShows(arriveAt('site', selected)) ? 2 : Infinity
+  // Close the one sheet, then the peek; or Site in the bottom bar, then what it shows.
+  const there = arriveAt('site', selected)
+  const viaSite = there.overview ? 1 : peekShows(there) || (there.panel && !there.inspector && !there.toolCard) ? 2 : Infinity
   return Math.min(covers === 1 ? 2 : Infinity, viaSite)
 }

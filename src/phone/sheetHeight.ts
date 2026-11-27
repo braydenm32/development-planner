@@ -5,7 +5,7 @@
 import { useLayoutEffect, useState } from 'react'
 
 /** The sheets that sit over the foot of the canvas (not the pill a hidden panel leaves). */
-export const SHEET_SELECTOR = '.float-col > .float-card:not(.panel-pill), .inspector'
+export const SHEET_SELECTOR = '.float-col > .float-card:not(.panel-pill), .inspector, .selection-peek'
 
 /** A tab's panel alone: the plan fits above it, as it fits beside a computer's panel. */
 export const PANEL_SELECTOR = '.float-col > .tab-panel'

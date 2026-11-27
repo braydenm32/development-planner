@@ -23,6 +23,7 @@ const RULES: [RegExp, string][] = [
   [/ Delete removes; right-tap for more\./g, ' Its panel has Delete.'],
   [/[;,] or double-tap or press Esc to stop\b/g, ''],
   [/ Esc stops\./g, ''],
+  [/ Esc finishes\./g, ''],
   // Site features: on a phone the panel is the sheet underneath, and Done ends tracing.
   [/, on the left; Esc stops tracing\./g, '; Done stops tracing.'],
   [/, on the left\b/g, ''],

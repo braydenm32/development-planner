@@ -21,6 +21,7 @@ import { usePlan, type Tool } from '../plan/store'
 import { addSketch, newSketch } from '../sketch/ops'
 import { useSketch } from '../sketch/store'
 import { measure, measureText } from './measure'
+import { forTouch } from '../phone/words'
 import { NoteBox, type Editing } from './NoteBox'
 import './measure.css'
 
@@ -246,6 +247,12 @@ export function useMeasureNotes(a: MeasureArgs) {
         </g>
       )}
       {tool === 'measure' && placed.length === 0 && cursor && <circle className="measure-cursor" cx={S(cursor)[0]} cy={S(cursor)[1]} r={4} />}
+      {/* The first point alone (a finger has no pointer to draw on to): marked, so the second tap knows where it's from (PH-29). */}
+      {drawnLine.length === 1 && (
+        <g className="measure-line">
+          <circle cx={S(drawnLine[0])[0]} cy={S(drawnLine[0])[1]} r={4.5} />
+        </g>
+      )}
     </g>
   )
 
@@ -288,7 +295,7 @@ export function useMeasureNotes(a: MeasureArgs) {
               )}
             </>
           ) : (
-            <span className="muted">{hint} Esc finishes.</span>
+            <span className="muted">{forTouch(`${hint} Esc finishes.`)}</span>
           )}
           <label className="check measure-keep">
             <input type="checkbox" checked={keep} onChange={e => useSketch.getState().setKeepMeasures(e.target.checked)} />

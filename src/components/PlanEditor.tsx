@@ -101,6 +101,8 @@ import { useSectionStrip } from '../sectionStrip/useSectionStrip'
 import { opensItself, stripSpace, useStrip, useStripSpace } from '../sectionStrip/store'
 import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
+import { useTapMeasure } from '../phone/tapMeasure'
+import { selectionScreenY } from '../phone/selectionPeek'
 import { useSketchGuides, useSketchLayer } from '../sketch/useSketchLayer'
 import { useSketch } from '../sketch/store'
 import { SketchKey } from '../sketch/SketchPanel'
@@ -690,12 +692,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // the plan slides up (at the same zoom) so the thing shows in the part left clear (PH-12).
   const lastDown = useRef<{ x: number; y: number; t: number } | null>(null)
   const sheet = touch?.phone ? (frame?.sheet ?? 0) : 0
+  const lastSheet = useRef({ sheet, sel: selection?.id })
   useEffect(() => {
+    const was = lastSheet.current
+    lastSheet.current = { sheet, sel: selection?.id }
     const d = lastDown.current
-    if (!sheet || !selection || !d || performance.now() - d.t > 1500) return
+    const tapped = !!d && performance.now() - d.t <= 1500
+    // The one-line peek opening into the full card: the selection itself is what must show (src/phone/SelectionPeek.tsx).
+    const opened = !tapped && !!selection && was.sel === selection.id && sheet > was.sheet
+    const y = tapped ? d!.y : opened ? selectionScreenY(plan, selection!, vRef.current, rhoRef.current, size) : null
+    if (!sheet || !selection || y === null) return
     lastDown.current = null
     const now = vRef.current
-    const to = clearOfSheet(d.y, size.h, frame?.insets.t ?? 0, sheet)
+    const to = clearOfSheet(y, size.h, frame?.insets.t ?? 0, sheet)
     if (!to) return
     // Slide the page by `to` pixels: what was at the tap ends up in the middle of the clear part.
     const qy = to / now.k
@@ -832,6 +841,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
   // The Measure and Note tools: the ruler and the plan's text notes.
   const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, guides, viewOnly, size, snapAt: (raw, o) => snapHere(raw, o).p })
+  // A phone in View: Measure's two taps (PH-29).
+  const tm = useTapMeasure({ on: viewOnly && !!touch?.phone, plan, level, survey, terrain, S, snapAt: (raw, o) => snapHere(raw, o).p })
   // Habits from other planners (src/pointer): Space to pan, the right-click menu, a length typed on its label, the grid.
   const habits = usePlanPointer({
     plan,
@@ -1800,6 +1811,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const moved = downAt.current ? Math.hypot(s[0] - downAt.current.x, s[1] - downAt.current.y) : Infinity
       downAt.current = null
       if (moved > TAP_SLOP) settle()
+      if (moved <= TAP_SLOP && tm.tap(W(s[0], s[1]), snapFree(e))) return
       if (moved <= TAP_SLOP && comments.click(W(s[0], s[1]))) return
       if (moved > TAP_SLOP || doubleTapped(e, s)) return
       // While the street question is open, a tap on a side of the block picks it, as a click does in Edit.
@@ -3013,6 +3025,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {strip.over}
         {brush.over}
         {mn.over}
+        {tm.over}
         {sk.over}
         <CostsPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
         <ChecksPlanLayer plan={plan} level={level} survey={survey} terrain={terrain} earth={earth ?? null} S={S} k={k} />
@@ -3060,7 +3073,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <span>N</span>
         </div>
       </div>
-      {groundPin && pinGround !== null && (
+      {groundPin && pinGround !== null && !tm.on && (
         <div className="plan-ground-pin" style={{ left: S(groundPin)[0], top: S(groundPin)[1] }}>
           <div className="ground-pin" role="status">
             <div className="ground-pin-tip">
@@ -3107,6 +3120,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {flow.html}
       {comments.html}
       {mn.html}
+      {tm.html}
       {strip.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
