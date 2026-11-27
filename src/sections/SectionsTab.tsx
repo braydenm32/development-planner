@@ -129,6 +129,8 @@ function Sections({ d }: { d: Loaded }) {
       ) : editing ? (
         <>
           <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want to cut through the house and the ground; on a slope, run it down the fall.</p>
+          {/* The strip under the plan cuts the house too, but it is a way of looking, not a drawing: say how the two meet. */}
+          <p className="muted small">The live section under Design › Plan isn’t listed here until you keep it: its Add to drawings makes its line a section line.</p>
           <div className="row">
             <button className="secondary" onClick={beginSectionLine}>
               Draw a section line <kbd>{SECTION_KEY}</kbd>
