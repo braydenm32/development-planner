@@ -6,6 +6,7 @@
 // then sharing. Rare things live under each area's More. Nothing is removed.
 
 import { TOOLS } from '../components/tools'
+import { SHORTCUTS } from '../shell/shortcuts'
 import { TERMS } from '../guide/glossary'
 import type { Tool } from '../plan/store'
 import type { IconName } from './icons'
@@ -468,7 +469,7 @@ export const AREAS: Area[] = [
         icon: 'roof',
         subtitle: 'New roofs, and the roofs on the plan.',
         keywords: ['pitch', 'hip', 'gable', 'skillion', 'eaves', 'overhang'],
-        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang'],
+        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang', 'roofs-on-plan', 'roofs-building-height'],
       },
       {
         id: 'furniture',
@@ -1093,6 +1094,14 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   sketch: ['sketch', 'construction line', 'guide', 'guide line', 'arc', 'curve', 'circle', 'setout', 'kept measurement', 'dimension', 'clear sketch'],
 }
 
+/**
+ * The single-letter tool keys, from the list the keyboard help shows, so the Tool keys hint
+ * can't leave one out (LD-22): "V select", "X section line", "B grading brush".
+ */
+const TOOL_KEYS = SHORTCUTS.find(g => g.title === 'Tools')!
+  .rows.filter(r => r.keys.length === 1 && /^[A-Z]$/.test(r.keys[0]))
+  .map(r => ({ key: r.keys[0], what: r.what.split(':')[0].toLowerCase() }))
+
 export const HOMES: Home[] = [
   {
     id: 'top-bar',
@@ -1318,7 +1327,7 @@ export const HOMES: Home[] = [
         label: 'Summary strip',
         icon: 'list',
         keywords: ['key numbers', 'chips'],
-        features: ['summary-strip', 'checks-chip'],
+        features: ['summary-strip', 'checks-chip', 'strip-more-numbers'],
         hint: 'The line of key numbers under the tabs. Each one opens the panel it comes from.',
       },
       {
@@ -1647,6 +1656,14 @@ export const HOMES: Home[] = [
         features: ['sidebar-hide', 'sidebar-show', 'sidebar-fold-section'],
         hint: 'The arrow at the top of each panel tucks it away; the tab’s name brings it back. Headings under More fold too.',
       },
+      {
+        id: 'more-tabs',
+        label: 'Tabs that don’t fit',
+        icon: 'chevD',
+        keywords: ['more tabs', 'hidden tabs', 'overflow', 'tab bar'],
+        features: ['tab-bar-more-tabs'],
+        hint: 'When an area’s tabs don’t fit, the +N button at the end of the tab bar lists the rest. On a phone the tabs scroll.',
+      },
     ],
   },
   {
@@ -1809,9 +1826,9 @@ export const HOMES: Home[] = [
       {
         id: 'kbd-tools',
         label: 'Tool keys',
-        keywords: ['shortcuts', 'V W T D N O G R A F S U M'],
+        keywords: ['shortcuts', TOOL_KEYS.map(k => k.key).join(' ')],
         features: ['kbd-tool-shortcuts'],
-        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A outdoor area, F roof, S stair, U furniture, M move. X draws a section line.',
+        hint: `On the plan, press a tool’s letter: ${TOOL_KEYS.map(k => `${k.key} ${k.what}`).join(', ')}.`,
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo', 'undo-keeps-selection', 'undo-shows-level'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change, and what you had selected stays selected.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },

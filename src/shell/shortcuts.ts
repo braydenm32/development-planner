@@ -19,7 +19,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['O'], what: 'Opening' },
       { keys: ['G'], what: 'Garage door' },
       { keys: ['R'], what: 'Room' },
-      { keys: ['A'], what: 'Area' },
+      { keys: ['A'], what: 'Outdoor area' },
       { keys: ['F'], what: 'Roof' },
       { keys: ['S'], what: 'Stair' },
       { keys: ['U'], what: 'Furniture' },
