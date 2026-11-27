@@ -52,9 +52,9 @@ import { roofGeometry, toggleGable } from '../plan/roof'
 import { moveRoofUp, roofCoveredBy, roofsOverLevel, roofTarget } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
 import { showToast } from '../safety/store'
-import { suggestedRoomName } from '../plan/roomTypes'
+import { setRoomType, suggestedRoomName } from '../plan/roomTypes'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
-import { snap, type SnapResult } from '../plan/snap'
+import { snap, typedLengthEnd, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
 import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel, undoToastFor } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
@@ -68,6 +68,10 @@ import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } from './GroundOverlay'
 import { LevelMenu } from './LevelMenu'
 import { askName } from './nameFocus'
+import { closesFirstOutline, nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
+import { floorStack, nextOnFloor } from '../plan/floorPick'
+import { useWallMode } from '../plan/wallMode'
+import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
@@ -91,7 +95,7 @@ import { undoTarget } from '../shell/undoTarget'
 import { useSiteStore } from '../site/store'
 import { useSectionMarks } from '../sections/SectionMarks'
 import { useSectionStrip } from '../sectionStrip/useSectionStrip'
-import { useStripSpace } from '../sectionStrip/store'
+import { opensItself, stripSpace, useStrip, useStripSpace } from '../sectionStrip/store'
 import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
 import { useSketchGuides, useSketchLayer } from '../sketch/useSketchLayer'
@@ -151,6 +155,8 @@ type Drag =
   /** A box on empty ground, from a corner, to pick what's inside (Shift or Ctrl/⌘ and drag). */
   | { type: 'box'; from: Vec2; fromPx: Pt; add: boolean }
   | { type: 'brush' }
+  /** A rectangle room being dragged out, corner to corner (src/components/RectRoom.tsx keeps the corners). */
+  | { type: 'rect' }
   /** A sketch line or kept measurement, or one of its points (src/sketch/useSketchLayer.tsx keeps which). */
   | { type: 'sketch' }
 
@@ -177,14 +183,14 @@ const VIEW_HINT = {
 }
 
 const HINTS: Record<Tool, string> = {
-  select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
-  wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Hold Shift to turn off snapping. For a retaining wall, use the Retaining wall tool (T).',
+  select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag to pan.',
+  wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to turn off snapping. For a whole room in one go, Shift+W.',
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
   opening: 'Click on a wall to add an opening with no door, such as an archway.',
   garage: 'Click on a wall to add a garage door.',
-  room: 'Click inside an area enclosed by walls to name it as a room.',
+  room: 'Click inside a room to name it. A space the walls close round with no room yet gets one.',
   area: 'Click the corners of a slab, driveway, deck or garden. Type a length in mm and press Enter for an exact side. Click the first point or press Enter to close it.',
   roof: 'Click inside the walls to roof that building. Select a roof to set its type, pitch and gable ends.',
   stair: 'Click where the stair starts, then click the direction it goes up. Hold Shift for any angle.',
@@ -338,7 +344,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
-  const draftKey = `${tool}|${level}`
+  // (The Wall tool's two ways of drawing count as two tools here.)
+  const wallMode = useWallMode(s => s.mode)
+  const draftKey = `${tool === 'wall' ? `wall:${wallMode}` : tool}|${level}`
   const [draftState, setDraft] = useState<Draft>(emptyDraft(draftKey))
   const draft = draftState.key === draftKey ? draftState : emptyDraft(draftKey)
   const { chain, areaPts, typed, stairStart } = draft
@@ -505,8 +513,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
 
   /** Frame the house (or the block, when there is no house yet), the whole block, or some points (a drawing being lined up). */
-  const fitView = (target: 'house' | 'block' | Vec2[] = 'house'): View => {
-    const b = target === 'house' ? houseBounds(plan) : null
+  const fitView = (target: 'house' | 'block' | Vec2[] = 'house', of: Plan = plan, under = 0): View => {
+    const b = target === 'house' ? houseBounds(of) : null
     const pts: Vec2[] = Array.isArray(target) && target.length
       ? target
       : b
@@ -525,7 +533,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const minY = Math.min(...ys)
     const maxY = Math.max(...ys)
     // Keep clear of anything floating over the canvas's edges.
-    const ins = insets ?? { l: 0, r: 0, t: 0, b: 0 }
+    // (`under`: more room to leave at the foot, for the section strip about to open.)
+    const edge = insets ?? { l: 0, r: 0, t: 0, b: 0 }
+    const ins = { ...edge, b: edge.b + under }
     const w = frame ? Math.max(size.w - ins.l - ins.r, 100) : size.w
     const h = frame ? Math.max(size.h - ins.t - ins.b, 100) : size.h
     const k = Math.min(Math.max(Math.min(w / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1)) * 0.75, 5), 400)
@@ -769,6 +779,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     // A house's first walls: its floor starts at the mean ground under them (src/plan/levelGround.ts).
     floorToFirstWalls(c.plan, survey, terrain.grid)
     wallsPlaced(c.plan, c.level)
+    // The house's first outline: the plan, until now on the whole block, comes in to the house.
+    if (closesFirstOutline(c.plan, usePlan.getState().plan!)) glideToHouse()
   }
   // Switching tool or level drops the run, and leaving the plan ends it: ask then.
   useEffect(() => askAfterChain, [draftKey])
@@ -777,13 +789,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     askAfterChain()
   }
 
-  /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it. */
+  /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it (square to the nearest step unless Shift is held). */
   function typedEnd(a: Vec2, toward: Vec2): Vec2 | null {
     const l = Math.hypot(toward[0] - a[0], toward[1] - a[1])
     if (!typed) return l > 1e-6 ? toward : null
-    const len = parseFloat(typed) / 1000
-    if (!(len > 0) || l < 1e-6) return null
-    return [a[0] + ((toward[0] - a[0]) / l) * len, a[1] + ((toward[1] - a[1]) / l) * len]
+    return typedLengthEnd(a, toward, parseFloat(typed) / 1000, cursor?.kind === 'free')
   }
 
   const placeWallPoint = (p: Vec2) => {
@@ -804,7 +814,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
       const style = wallStyleAt(now, level, last, end, wallStyle)
       commit(pl => addWall(pl, level, last, end, style))
-      notify(style === wallStyle ? null : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.`)
+      // A wall that closed round a space made its room in the same step (src/plan/autoRooms.ts): say so.
+      const room = roomsMadeNote(now, usePlan.getState().plan!)
+      notify(style === wallStyle ? room : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.${room ? ` ${room}` : ''}`)
     }
     // Walls that close round a space make a room: its floor type, or a retaining wall, is asked
     // about when the run ends (finishChain).
@@ -978,6 +990,38 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }
   useEffect(() => () => cancelAnimationFrame(zoomFrame.current), [])
 
+  /**
+   * Bring the view in from the block to the house, smoothly (straight there where motion is turned
+   * down), and leave it there as the place the plan was left, so it opens the same next time. The
+   * section strip opens by itself once there is a house and the tool goes back to Select: the
+   * house is framed clear of where the strip will be, so it isn't left half under it.
+   */
+  const glideToHouse = () => {
+    const st = usePlan.getState()
+    if (!st.plan) return
+    const strip = useStrip.getState()
+    const phone = !!touch?.phone
+    const under = Math.max(stripSpace(stripShows, strip.choice ?? opensItself(phone, true), strip.height, phone) - stripH, 0)
+    stopZoom()
+    const start = vRef.current
+    const end = fitView('house', st.plan, under)
+    if (typeof window.matchMedia !== 'function' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setView(end)
+      settle()
+      return
+    }
+    let t0 = -1
+    const step = (now: number) => {
+      if (t0 < 0) t0 = now
+      const t = Math.min((now - t0) / 350, 1)
+      const e = 1 - (1 - t) ** 3
+      setView({ cx: start.cx + (end.cx - start.cx) * e, cy: start.cy + (end.cy - start.cy) * e, k: start.k * (end.k / start.k) ** e, token: end.token })
+      if (t < 1) zoomFrame.current = requestAnimationFrame(step)
+      else settle()
+    }
+    zoomFrame.current = requestAnimationFrame(step)
+  }
+
   /** A tap that didn't move: true when it was the second of a double tap, and zoomed. */
   const doubleTapped = (e: ReactPointerEvent<SVGSVGElement>, s: Pt): boolean => {
     const tap = { t: e.timeStamp, x: s[0], y: s[1] }
@@ -1016,6 +1060,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       drag.current = { type: 'pan', sx, sy, start: v }
       return
     }
+    stopZoom()
     startPointer(e)
     setDragKind(drag.current?.type ?? null)
   }
@@ -1081,6 +1126,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     return null
   }
 
+  /** What lies flat under a point (src/plan/floorPick.ts): the next of them to pick if this press turns out a click, and when a floor was last pressed. */
+  const floorNext = useRef<Selection | null>(null)
+  const lastFloorPress = useRef(0)
+
   /** What every drawing tool snaps a point to: the walls it can see and the sketch layer. */
   const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) => snap(raw, { walls: snapWalls, guides, tol, ...o })
 
@@ -1091,6 +1140,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const world = W(sx, sy)
     downAt.current = { x: sx, y: sy }
     shift.current = e.shiftKey
+    floorNext.current = null
     svgRef.current!.setPointerCapture(e.pointerId)
     if (!view || view.token !== fitToken) setView(v) // freeze the fitted view once the user interacts
 
@@ -1118,6 +1168,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     }
 
     if (tool === 'furniture' && (grabTurnHandle(sx, sy) || grabFurniture(world, true))) return
+
+    // The Rectangle room: a press and drag goes from one corner to the opposite one.
+    if (rectRoom.down(world, e)) {
+      drag.current = { type: 'rect' }
+      return
+    }
 
     if (tool !== 'select') {
       // Drawing tools act on click (pointer up); dragging pans.
@@ -1213,6 +1269,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       beginGesture()
       drag.current = { type: 'group', start: plan, startWorld: world, sels: selectedList(usePlan.getState()), solo: { type: hit.type, id: hit.item.id } }
       return
+    }
+    // On a floor (no wall, door, furniture or label there): the room it's in is picked, then on
+    // another click what lies with it, a slab under it or the roof over it. A drag still pans.
+    if (!hit || hit.type === 'area' || hit.type === 'roof') {
+      const under = floorStack(plan, level, faces, roofs, world, 6 / v.k)
+      if (under.length) {
+        if (group || !under.some(u => isSel(u.type, u.id))) select(under[0])
+        // Not the second click of a double-click, which is for the room's name.
+        else if (under.length > 1 && e.timeStamp - lastFloorPress.current > 500) floorNext.current = nextOnFloor(under, u => isSel(u.type, u.id))
+        lastFloorPress.current = e.timeStamp
+        drag.current = { type: 'pan', sx, sy, start: v }
+        return
+      }
     }
     switch (hit?.type) {
       case 'opening': {
@@ -1575,6 +1644,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       brush.up()
       return
     }
+    if (d?.type === 'rect') {
+      const [sx, sy] = local(e)
+      const dragged = !!downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) > 4
+      downAt.current = null
+      rectRoom.up(W(sx, sy), dragged, e.shiftKey)
+      return
+    }
     if (d?.type === 'box') {
       downAt.current = null
       const [sx, sy] = local(e)
@@ -1637,6 +1713,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     site.deselect()
     if (mn.click(world, e.shiftKey)) return
     if (sk.click(world, e.shiftKey)) return
+    if (rectRoom.click(world, e.shiftKey)) return
+    if (tool === 'select' && floorNext.current) {
+      // A click on the floor of what's already picked: the next thing under it (the room, a slab, the roof).
+      select(floorNext.current)
+      return
+    }
     if (tool === 'wall') {
       const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free: e.shiftKey })
       placeWallPoint(s.p)
@@ -1712,14 +1794,18 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       const existing = plan.rooms.find(r => r.level === level && pointInPolygon(r.at[0], r.at[1], shape.centre))
-      if (existing) {
-        select({ type: 'room', id: existing.id })
-        return
-      }
-      const n = plan.rooms.filter(r => r.level === level).length + 1
       // The type picked on the Room tool's card names the room; with none it's "Room 3" until one is picked.
       const type = usePlan.getState().roomTypeDefault
-      commit(p => (type ? addRoom(p, level, world, suggestedRoomName(p, type), type) : addRoom(p, level, world, `Room ${n}`)))
+      if (existing) {
+        // Rooms make themselves when walls close (src/plan/autoRooms.ts), so the Room tool mostly names
+        // them: one nobody has named yet takes the card's type, and what is typed next is its name.
+        if (type && stillToName(existing)) commit(p => setRoomType(p, existing.id, type))
+        select({ type: 'room', id: existing.id })
+        if (!touch?.phone) askName(existing.id)
+        notify(null)
+        return
+      }
+      commit(p => (type ? addRoom(p, level, world, suggestedRoomName(p, type), type) : addRoom(p, level, world, nextRoomName(p))))
       const created = usePlan.getState().plan!.rooms.at(-1)
       if (created) select({ type: 'room', id: created.id })
       // What is typed next names it (a phone would only have its keyboard cover the plan).
@@ -1780,6 +1866,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (site.key(e)) {
+        e.preventDefault()
+        return
+      }
+      if (rectRoom.key(e)) {
         e.preventDefault()
         return
       }
@@ -1844,7 +1934,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       // View on a phone changes nothing; Esc still clears the selection.
       if (viewOnly && e.key !== 'Escape') return
-      // A typed length sets the next wall or outline side, in the direction of the pointer.
+      // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
       const drawnFrom = tool === 'wall' || tool === 'retaining' ? chain.at(-1) : tool === 'area' || tool === 'roof' ? areaPts.at(-1) : undefined
       if (drawnFrom) {
         if (/^[0-9.]$/.test(e.key)) {
@@ -2103,6 +2193,25 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   // The sketch layer: drawing it with the Sketch tool, its lines under the walls, kept measurements over them.
   const sk = useSketchLayer({ plan, level, tool, shown: sketchShown, S, k, snapAt: snapHere, cursor, viewOnly, tag, dim: dimLabel })
+
+  // The Wall tool's Rectangle room: four walls and their room from two corners.
+  const rectRoom = useRectRoom({
+    level,
+    tool,
+    S,
+    snapAt: snapHere,
+    cursor,
+    viewOnly,
+    phone: !!touch?.phone,
+    path,
+    tag,
+    dim: liveDim,
+    // As after a run of walls: the first walls set the floor, a closed space asks its floor type, the first outline zooms in.
+    made: before => {
+      chainStart.current = { plan: before, level }
+      askAfterChain()
+    },
+  })
 
   // How far the piece being placed, or the selected piece, is from the walls around it.
   const measured = ghost?.item ?? selFurniture
@@ -2584,6 +2693,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {/* Drawing in progress */}
         {chain.length > 1 && <path className="chain" d={path(chain, false)} />}
         {previewWall}
+        {rectRoom.over}
         {outlinePreview}
         {stairPreview}
         {corners && (
@@ -2665,7 +2775,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <span className="muted">
             {viewOnly
               ? (readHint ?? VIEW_HINT[touch?.phone ? 'phone' : 'desk'])
-              : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (sk.hint ?? HINTS[tool])))}
+              : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (rectRoom.hint ?? sk.hint ?? HINTS[tool])))}
           </span>
         )}
       </div>

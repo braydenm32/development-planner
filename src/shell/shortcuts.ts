@@ -12,6 +12,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
     rows: [
       { keys: ['V'], what: 'Select' },
       { keys: ['W'], what: 'Wall' },
+      { keys: ['shift+W'], what: 'Rectangle room: four walls and their room from two corners' },
       { keys: ['T'], what: 'Retaining wall' },
       { keys: ['D'], what: 'Door' },
       { keys: ['N'], what: 'Window' },
@@ -72,6 +73,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
     title: 'Drawing and typing',
     rows: [
       { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter' },
+      { keys: ['0–9', 'X'], what: 'Rectangle room, after its first corner: type width x depth in mm (4000x3000), then Enter' },
       { keys: ['Enter'], what: 'Close an outdoor area or roof outline' },
       { keys: ['shift+drag'], what: 'While dragging an item, turn snapping off' },
       { keys: ['Enter'], what: 'In a number box, keep the value and stay in the box (a bare number is mm; 0.9 or 9m is metres)' },

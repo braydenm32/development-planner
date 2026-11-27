@@ -3,6 +3,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
+import { WallModeSwitch } from '../components/WallModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
 import { TransformTools } from '../components/TransformTools'
 import { TOOLS } from '../components/tools'
@@ -83,6 +84,7 @@ export function ToolCard({ compact = false }: { compact?: boolean }) {
         ) : folded ? (
           <div className="tool-options">
             {tool === 'roof' && <RoofModeSwitch />}
+            {tool === 'wall' && <WallModeSwitch />}
             <p className="muted small">
               The selected {word}’s settings are on the right.{' '}
               <button className="link" onClick={() => setNextOpen(true)}>

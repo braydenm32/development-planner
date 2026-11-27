@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { dismissToast, showToast } from '../safety/store'
 import { findSelection } from '../shell/selection'
+import { roomsForNewSpaces } from './autoRooms'
 import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
@@ -245,7 +246,8 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   commit: fn => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan), plan)
+    // A space the change's walls close round is a room, in the same step (src/plan/autoRooms.ts).
+    const next = tidy(roomsForNewSpaces(plan, fn(plan)), plan)
     if (next === plan) return
     setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [], ...onLevel(next, plan, getState()) })
     reportFixes()
@@ -263,7 +265,8 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     const { plan, gestureStart, past } = getState()
     // A drag that ends where it began (or never moved anything) is no step.
     if (gestureStart && plan && !samePlan(gestureStart, plan)) {
-      setState({ past: [...past, gestureStart].slice(-HISTORY), future: [], gestureStart: null })
+      // A drag that closed walls round a space made a room of it, once it's let go.
+      setState({ plan: roomsForNewSpaces(gestureStart, plan), past: [...past, gestureStart].slice(-HISTORY), future: [], gestureStart: null })
       reportFixes()
     } else setState({ gestureStart: null, ...(gestureStart && plan ? { plan: gestureStart } : {}) })
   },
@@ -274,14 +277,15 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     const prev = past[past.length - 1]
     // The step can take away the level being drawn on (undoing "Add level above"): go to the nearest one left.
     const activeLevel = levelStillThere(prev, plan, getState().activeLevel)
-    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], activeLevel, ...keepSelection(prev, { ...getState(), activeLevel }) })
+    // The hint bar's line was about the step just undone ("it's a room now"): it goes with it.
+    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], activeLevel, notice: null, ...keepSelection(prev, { ...getState(), activeLevel }) })
   },
 
   redo: () => {
     const { plan, past, future } = getState()
     if (!plan || future.length === 0) return
     const activeLevel = levelStillThere(future[0], plan, getState().activeLevel)
-    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), activeLevel, ...keepSelection(future[0], { ...getState(), activeLevel }) })
+    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), activeLevel, notice: null, ...keepSelection(future[0], { ...getState(), activeLevel }) })
   },
 
   setTool: tool => setState({ tool, notice: null }),
@@ -296,7 +300,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   nudge: (key, fn) => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan), plan)
+    const next = tidy(roomsForNewSpaces(plan, fn(plan)), plan)
     if (next === plan) return
     const now = Date.now()
     const run = nudgeRun

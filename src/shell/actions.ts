@@ -23,6 +23,7 @@ import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { openSteps } from '../steps/store'
+import { setWallMode } from '../plan/wallMode'
 import { undoTarget } from './undoTarget'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
@@ -203,6 +204,11 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       // The next click on a contour sets the active floor's level; it needs the plan.
       if (!planShowing()) showPlan()
       startContourPick()
+      return true
+    case 'rect-room':
+      // The Wall tool, set to draw a room from two corners.
+      setWallMode('rect')
+      pickTool('wall')
       return true
     case 'draw-section':
       // Two clicks on the plan; Design › Sections opens beside it to show the drawing.

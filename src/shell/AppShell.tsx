@@ -81,7 +81,7 @@ const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 const SAFE = (a: ActionId) =>
   a.startsWith('tool:') ||
   a.startsWith('term:') ||
-  ['guide', 'glossary', 'plan-tips', 'check-everything', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help'].includes(a)
+  ['guide', 'glossary', 'plan-tips', 'check-everything', 'view-plan', 'view-3d', 'overview', 'fit-house', 'fit-block', 'zoom-in', 'zoom-out', 'projects', 'new-project', 'about', 'privacy', 'terms', 'accuracy', 'cloud', 'reset-camera', 'camera-street', 'camera-above', 'camera-rear', 'pick-contour', 'keyboard-help', 'rect-room'].includes(a)
 
 /** The 3D presets' actions, by the preset they show. */
 const PRESET_OF = { 'camera-street': 'street', 'camera-above': 'above', 'camera-rear': 'rear' } as const

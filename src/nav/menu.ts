@@ -51,6 +51,7 @@ export type ActionId =
   | 'camera-rear'
   | 'pick-contour'
   | 'draw-section'
+  | 'rect-room'
   | 'section-strip'
   | 'grade-brush'
   | 'keyboard-help'
@@ -386,6 +387,9 @@ export const AREAS: Area[] = [
           'draw-walls',
           'place-opening',
           'place-room',
+          'rooms-from-walls',
+          'click-room-floor',
+          'first-outline-fit',
           'draw-area',
           'draw-roof',
           'place-stair',
@@ -1461,6 +1465,18 @@ export const HOMES: Home[] = [
         hint: 'On a phone the plan opens in View: one finger pans, two pinch, a double tap zooms and a tap shows numbers. Tap Edit at the top to change things.',
       },
       { id: 'north-up', label: 'North up', icon: 'north', keywords: ['top of view', 'orientation', 'compass', 'square to the house'], features: ['top-of-view'], action: 'north-up', run: 'now' },
+      {
+        id: 'rect-room',
+        label: 'Rectangle room',
+        icon: 'room',
+        keywords: ['rectangle', 'rectangular', 'box', 'square room', 'draw a room', 'room shape', 'four walls', 'width x depth', 'drag a room', 'room in one go'],
+        features: ['rectangle-room'],
+        action: 'rect-room',
+        run: 'now',
+        shortcut: 'shift+W',
+        at: 'design/plan',
+        hint: 'Drag from one corner of the room to the opposite one, or click each: four walls and their room in one go. It’s the Wall tool’s second way of drawing.',
+      },
       {
         id: 'draw-section',
         label: 'Draw a section line',
