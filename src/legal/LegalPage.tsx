@@ -6,7 +6,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon, Logo } from '../nav/icons'
 import { PAGE_IDS, PROJECTS, formatHash, pageRoute, type PageId } from '../nav/route'
 import { navigate } from '../nav/router'
-import { LAST_UPDATED } from './caveat'
+import { ACCURACY_UPDATED, LAST_UPDATED } from './caveat'
 import { LegalFooter } from './LegalFooter'
 import { About, Accuracy, Privacy, Terms } from './pages'
 import { startAtTop } from './startAtTop'
@@ -72,7 +72,7 @@ export function LegalPage({ page, onBack, onHome }: { page: PageId; onBack: () =
         <h1 tabIndex={-1} ref={heading}>
           {title}
         </h1>
-        {page !== 'about' && <p className="lg-date">Last updated {LAST_UPDATED}</p>}
+        {page !== 'about' && <p className="lg-date">Last updated {page === 'accuracy' ? ACCURACY_UPDATED : LAST_UPDATED}</p>}
         <Body />
       </main>
       <LegalFooter />
