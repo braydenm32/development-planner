@@ -930,7 +930,8 @@ button.chip:hover .chip-label {
 .app-shell .canvas-plan .readout > .notice,
 .app-shell .canvas-plan .readout > .ground-readout {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* Two lines as written; the third is for wider letter and word spacing set by the reader (WCAG 1.4.12), which used to cut the hint short. */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   white-space: normal;
 }
@@ -1175,6 +1176,8 @@ button.chip:hover .chip-label {
 }
 
 .plain.small {
+  /* Done, Options, Fold away: small words, but 24 px of height to hit (WCAG 2.5.8). */
+  min-height: 24px;
   font-size: 12.5px;
 }
 

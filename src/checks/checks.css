@@ -259,7 +259,8 @@
 
 .app-shell .cr-council select {
   min-width: 0;
-  max-width: 150px;
+  /* As wide as its longest name, up to the panel: a fixed 150 px cut "Pick your council" short once letters are spaced out (WCAG 1.4.12). */
+  max-width: 100%;
   padding: 5px 6px;
   border: 1px solid var(--field-line);
   border-radius: var(--r);
@@ -562,6 +563,13 @@
 .checks-layer .ck-pin.confirm circle,
 .checks-mini .ck-pin.confirm circle {
   fill: #a85f00;
+}
+
+/* The room round a small pin that takes the tap: there, never seen. */
+.checks-mini .ck-pin circle.ck-hit,
+.checks-mini .ck-pin.on circle.ck-hit {
+  fill: transparent;
+  stroke: none;
 }
 
 .checks-layer .ck-pin.on circle,

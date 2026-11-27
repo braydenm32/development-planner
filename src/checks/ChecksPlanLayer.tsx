@@ -91,7 +91,8 @@ export function ChecksMarks(props: Props & { pins: Pin[]; targets: Record<string
           }}
         >
           <title>{`${p.n}. ${p.title}`}</title>
-          <circle r={11} />
+          {/* 24 px across: the least a pointer target should be (WCAG 2.5.8). */}
+          <circle r={12} />
           <text dy="0.35em">{p.n}</text>
         </g>
       ))}

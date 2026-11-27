@@ -113,6 +113,10 @@ describe('the pins on the plan', () => {
     expect(html).not.toContain('ck-line')
   })
 
+  it('makes each pin a 24 px target (AX-31)', () => {
+    expect(draw(pins).match(/<circle r="12"/g)).toHaveLength(2)
+  })
+
   it('the row pointed at draws what it measures in red', () => {
     expect(draw(pins, 'a')).toContain('class="ck-line"')
     expect(draw(pins, 'a')).toContain('class="ck-gap"')
