@@ -139,6 +139,15 @@ describe('floor types belong to their level', () => {
     // A one-level plan and the lowest level's answer are untouched.
     expect(migrateFloorTypes(setLevelFloorType(garageFloor(), 'level_ground', 'piers')).levels[0].floorType).toBe('piers')
   })
+
+  it('answers the floor type for a plan saved before floor types, never for one still waiting to be asked', () => {
+    // Before floor types: a ground floor with rooms was a slab.
+    expect(normalizePlan(garageFloor()).levels[0].floorType).toBe('slab')
+    // Made since: rooms drawn, the question not answered yet. Opening it again leaves it waiting.
+    const waiting: Plan = { ...garageFloor(), floorsByLevel: true }
+    expect(normalizePlan(waiting).levels[0].floorType).toBeUndefined()
+    expect(normalizePlan(waiting)).toEqual({ ...waiting, notes: [] })
+  })
 })
 
 describe('a pad for every level built on the ground', () => {

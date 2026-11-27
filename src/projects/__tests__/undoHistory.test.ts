@@ -118,6 +118,24 @@ describe('Undo and Redo after a reload', () => {
     expect(app.st().plan!.walls).toEqual(garageFloor().walls)
   })
 
+  it('a reload leaves "How is this floor built?" waiting, and adds no step that undoes nothing', async () => {
+    let app = await load()
+    // A plan made in today's app (floorsByLevel) whose ground floor has rooms and no floor type yet.
+    const { id } = await app.actions.create({ survey: survey(), plan: { ...garageFloor(), floorsByLevel: true } })
+    app.st().commit(dropWall)
+    app.st().commit(dropWall)
+    await app.settle()
+    expect(app.st().plan!.levels[0].floorType).toBeUndefined()
+
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.levels[0].floorType).toBeUndefined()
+    expect(app.st().past).toHaveLength(2)
+    // Undo takes back the last real edit.
+    app.st().undo()
+    expect(app.st().plan!.walls).toHaveLength(9)
+  })
+
   it('keeps the last hundred steps', async () => {
     const app = await load()
     const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
