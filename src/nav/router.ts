@@ -4,15 +4,18 @@
 // Forward and typed links.
 
 import { create } from 'zustand'
-import { defaultRoute, formatHash, parseHash, type Route } from './route'
+import { areaById, MORE } from './menu'
+import { defaultRoute, formatHash, parseHash, unknownHash, type Route } from './route'
 
 interface RouterState {
   route: Route
   /** A More item to scroll to and highlight once its panel shows. */
   focus: string | null
+  /** Counts the addresses opened that name no page here, so the app can say so once each (LF-31). */
+  lost: number
 }
 
-export const useRouter = create<RouterState>(() => ({ route: defaultRoute(), focus: null }))
+export const useRouter = create<RouterState>(() => ({ route: defaultRoute(), focus: null, lost: 0 }))
 
 /** The old layout's mode, which picks where a first visit with no hash lands. */
 function legacyMode(): string | null {
@@ -39,6 +42,8 @@ export const hasAppHistory = (): boolean => backMark() === true
 
 /** Go somewhere. `replace` updates the current history entry instead of adding one. */
 export function navigate(route: Route, opts: { replace?: boolean; focus?: string | null } = {}) {
+  // A More item opened by search or a link goes in the address, so a reload lands on it (LD-31).
+  if (route.kind === 'app' && route.tab === MORE && opts.focus && areaById(route.area)?.more.items.some(i => i.id === opts.focus)) route = { ...route, item: opts.focus }
   const hash = formatHash(route)
   if (location.hash !== hash) {
     if (opts.replace) history.replaceState(history.state, '', hash)
@@ -52,9 +57,12 @@ export function navigate(route: Route, opts: { replace?: boolean; focus?: string
 function sync() {
   // An entry made by a plain link or a typed address has no mark yet: it came after one of ours.
   if (backMark() === undefined) history.replaceState(withMark(true), '')
+  if (unknownHash(location.hash)) useRouter.setState(s => ({ lost: s.lost + 1 }))
   const parsed = parseHash(location.hash)
   if (parsed) {
-    if (!same(parsed, useRouter.getState().route)) useRouter.setState({ route: parsed })
+    // A link to one of More's items opens it there, as search does.
+    const item = parsed.kind === 'app' ? parsed.item : undefined
+    if (!same(parsed, useRouter.getState().route)) useRouter.setState(item ? { route: parsed, focus: item } : { route: parsed })
     // Tidy a hand-typed or partial link into its full form.
     if (formatHash(parsed) !== location.hash) history.replaceState(history.state, '', formatHash(parsed))
     return

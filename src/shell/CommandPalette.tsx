@@ -30,11 +30,25 @@ function useFeatures(): Feature[] | null {
   return features
 }
 
-const KIND_LABEL: Record<SearchItem['kind'], string> = { area: 'Area', tab: 'Tab', more: 'More', command: 'Command', feature: 'Feature', term: 'Word' }
+/**
+ * What choosing a row does, in two plain words (HO-33): "Go" takes you to it, "Do it" does it
+ * straight away. A word's meaning and a line that says the app doesn't do something say so.
+ */
+function kindLabel(r: SearchItem): { text: string; run: boolean } {
+  if (r.kind === 'absent') return { text: 'Not here', run: false }
+  if (r.kind === 'term') return { text: 'Meaning', run: false }
+  if (r.action && r.kind !== 'feature' && r.run === 'now') return { text: 'Do it', run: true }
+  return { text: 'Go', run: false }
+}
 
 export type Choice = 'done' | 'offer'
 
 interface Props {
+  /** The open project's own rooms, levels and roofs, found by name beside the menu (src/nav/search.ts thingItems). */
+  things?: SearchItem[]
+  /** Search these rows only, instead of the menu (the Projects home, which has no project open). */
+  only?: SearchItem[]
+  placeholder?: string
   /** Go to the item's home, or run it. `direct` runs an action without offering first. */
   choose: (item: SearchItem, direct: boolean) => Choice
   run: (item: SearchItem) => void
@@ -42,14 +56,15 @@ interface Props {
   onClose: (restore: boolean) => void
 }
 
-export function CommandPalette({ choose, run, onClose }: Props) {
+export function CommandPalette({ things, only, placeholder, choose, run, onClose }: Props) {
   const features = useFeatures()
   // A copy of the app with no cloud doesn't offer cloud commands that would dead-end (src/nav/search.ts).
   const noCloud = useCloud(c => c.phase === 'unavailable')
   const index = useMemo(() => {
+    if (only) return only
     const all = buildIndex(features ?? [])
-    return noCloud ? withoutCloud(all) : all
-  }, [features, noCloud])
+    return [...(noCloud ? withoutCloud(all) : all), ...(things ?? [])]
+  }, [features, noCloud, things, only])
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [offer, setOffer] = useState<SearchItem | null>(null)
@@ -60,7 +75,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
   const id = useId()
   // Tab stays in the search (or its offer), and Esc closes it wherever focus is (src/nav/useModal.ts).
   useModal(box, true, () => onClose(true), { focus: 'none' })
-  const results = useMemo(() => (query.trim() ? search(index, query) : suggestions(index)), [index, query])
+  const results = useMemo(() => (query.trim() ? search(index, query) : only ? only.filter(i => i.kind === 'thing') : suggestions(index)), [index, query, only])
   const current = Math.min(active, results.length - 1)
 
   useEffect(() => {
@@ -109,7 +124,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             aria-controls={`${id}-list`}
             aria-activedescendant={results.length ? `${id}-${current}` : undefined}
             aria-autocomplete="list"
-            placeholder="Search areas, tabs, features and commands"
+            placeholder={placeholder ?? 'Search tabs, tools and commands, or a room by its name'}
             value={query}
             onChange={e => {
               setQuery(e.target.value)
@@ -122,7 +137,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             Close
           </button>
         </div>
-        <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : 'Areas and tabs'}>
+        <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : only ? 'Projects' : 'Areas and tabs'}>
           {results.length === 0 && <li className="palette-empty muted">Nothing matches “{query}”.</li>}
           {results.map((r, i) => (
             <li
@@ -131,17 +146,17 @@ export function CommandPalette({ choose, run, onClose }: Props) {
               data-i={i}
               role="option"
               aria-selected={i === current}
-              className={`${i === current ? 'on' : ''}${r.kind === 'feature' ? ' pi-feature' : ''}`}
+              className={`${i === current ? 'on' : ''}${r.kind === 'feature' ? ' pi-feature' : ''}${r.kind === 'absent' ? ' pi-absent' : ''}`}
               onMouseMove={() => i !== current && setActive(i)}
               onClick={e => pick(r, e.metaKey || e.ctrlKey)}
             >
-              <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
+              <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' && r.kind !== 'absent' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
               <span className="pi-text">
                 <span className="pi-label">{r.label}</span>
                 <span className="pi-where">{r.kind === 'area' ? 'Area' : r.where}</span>
               </span>
               {r.shortcut && <kbd>{shortcutText(r.shortcut)}</kbd>}
-              {r.action && r.kind !== 'feature' && r.kind !== 'term' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
+              <span className={`pi-kind${kindLabel(r).run ? ' run' : ''}`}>{kindLabel(r).text}</span>
             </li>
           ))}
         </ul>
@@ -158,7 +173,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             <kbd>↵</kbd> go
           </span>
           <span>
-            <kbd>{shortcutText('mod+↵')}</kbd> run now
+            <kbd>{shortcutText('mod+↵')}</kbd> do it now
           </span>
         </div>
       </div>
@@ -189,7 +204,7 @@ export function PaletteOffer({ item, run, onClose, onKeyDown, runButton, box }: 
             <b>{item.entry.label}</b>
             <span className="muted"> · {item.where}</span>
           </p>
-          <p className="muted">It’s here now. Run it?</p>
+          <p className="muted">It’s here now. Do it?</p>
           <div className="row">
             <button
               ref={runButton}
@@ -199,7 +214,7 @@ export function PaletteOffer({ item, run, onClose, onKeyDown, runButton, box }: 
                 onClose(true)
               }}
             >
-              Run now
+              Do it now
             </button>
             <button className="plain" onClick={() => onClose(true)}>
               Not now

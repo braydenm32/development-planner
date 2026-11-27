@@ -62,6 +62,7 @@ import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
 import { styleSymbol } from '../plan/openingStyles'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
 import { CanvasFrame } from './canvasFrame'
+import { revealShift, selectionPoints } from '../plan/reveal'
 import type { Earth } from '../plan/useEarthworks'
 import { finishedContours, finishedShown, planContours, readFinishedPref, saveFinishedPref } from '../plan/finishedContours'
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
@@ -580,6 +581,29 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   useLayoutEffect(() => {
     live.current = { key: viewKey, level, view, fitToken, size, insets }
   })
+  // The selection's card opens over the right of the plan. Something picked that lies under it (from
+  // a list, with a key, or as the card opens) slides out by just enough to see it (src/plan/reveal.ts).
+  // Mid-drag the plan holds still: the slide waits for the pointer to lift.
+  const coveredRight = insets?.r ?? 0
+  const selId = selection?.id
+  useEffect(() => {
+    if (!frame || !selId) return
+    const slide = () => {
+      const st = usePlan.getState()
+      const cur = vRef.current
+      const { size: sz, insets: ins } = live.current
+      if (!st.plan || !st.selection || !ins) return
+      const xs = selectionPoints(st.plan, st.selection).map(p => ((p[0] - cur.cx) * rc - (p[1] - cur.cy) * rs) * cur.k + sz.w / 2)
+      const d = revealShift(xs, sz.w, ins) / cur.k
+      if (d > 0) setView({ ...cur, cx: cur.cx + d * rc, cy: cur.cy - d * rs, token: live.current.fitToken })
+    }
+    if (!drag.current) return slide()
+    window.addEventListener('pointerup', slide, { once: true })
+    return () => window.removeEventListener('pointerup', slide)
+    // Only as the selection or the card's width changes: panning afterwards is the person's own.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId, coveredRight])
+
   /** Remember the view, when it's one the person moved to (not a fit, which remembers itself). */
   const saveView = () => {
     const m = live.current

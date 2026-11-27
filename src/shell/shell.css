@@ -955,6 +955,42 @@ button.chip:hover .chip-label {
   flex: none;
 }
 
+/* The ground readout is a sentence, not a number: it takes the box's width and wraps to its second
+   line instead of running out under the view bar (HO-14, DB-26). */
+.app-shell .canvas-plan .readout > .ground-readout {
+  flex: 1 1 100%;
+}
+
+/* How much room the plan has between what floats at its sides: along its top (--row-room) and
+   along its foot (--foot-room, where the view bar keeps to the right edge under the selection's
+   card). The chips and buttons fold or step aside when it runs short. Each clamp below is a length
+   that is 0 or its full size either side of a width: clamp(0px, (limit - room) * 999, size). */
+.app-shell:not(.phone) .shell-main {
+  --row-room: calc(100vw - var(--nav-w) - var(--free-left, 14px) - var(--free-right, 16px));
+  --foot-room: calc(100vw - var(--nav-w) - var(--free-left, 14px) - 16px - var(--foot-right, 0px));
+  /* Under 628 px the hint has a line of its own above the Key and the view bar, and what sat there
+     (the questions' pill, the scale bar, a card) moves up by --foot-lift. */
+  --foot-lift: clamp(0px, (628px - var(--foot-room)) * 999, 62px);
+}
+
+/* Under 880 px at the foot (a panel or a tool's card open on a small window), the view bar's
+   buttons keep their icons and drop their names, so the hint beside them still has room. */
+.app-shell:not(.phone) .canvas-controls button > span {
+  max-width: clamp(0px, (var(--foot-room) - 880px) * 999, 120px);
+  margin-left: clamp(-7px, (880px - var(--foot-room)) * -999, 0px);
+  overflow: hidden;
+}
+
+/* With no room beside the view bar at all, the plan's hint moves up to its own line, the width of
+   the plan's free part: its sentence is never cut off under the buttons (HO-14, DB-26). There the
+   width it keeps clear of is nothing, so --controls-w, which its max-width subtracts, cancels out. */
+.app-shell:not(.phone) .shell-main.canvas-plan .readout {
+  --controls-w: calc(var(--view-bar-w, 470px) - min(var(--foot-lift) * 99, var(--view-bar-w, 470px) + 104px));
+  left: calc(var(--free-left, 16px) + 94px - min(var(--foot-lift) * 2, 94px));
+  bottom: calc(var(--gap) + var(--section-strip-h, 0px) + min(var(--foot-lift), 44px));
+}
+
+
 /* The Key pill, at the foot beside the hint; its key opens upwards. */
 .app-shell .plan-actions {
   top: auto;
@@ -994,8 +1030,9 @@ button.chip:hover .chip-label {
   top: calc(var(--gap) + 44px);
 }
 
+/* Beside the selection's card, whichever width it has (--free-right: AppShell's inset). */
 .app-shell .has-inspector .plan-compass {
-  right: 326px;
+  right: calc(var(--free-right, 330px) - 4px);
 }
 
 .app-shell .canvas-3d .compass {
@@ -1046,6 +1083,12 @@ button.chip:hover .chip-label {
   cursor: pointer;
 }
 
+/* Design's rail is fifteen tools long: on a short window its buttons close up so the last one
+   still shows (15 buttons, their gaps, the five group lines and the bars above the canvas). */
+.app-shell:not(.phone) .tool-rail.full button {
+  height: clamp(30px, calc((100vh - 232px) / 15), 42px);
+}
+
 .tool-rail .tool-name {
   max-width: 48px;
   overflow: hidden;
@@ -1053,6 +1096,19 @@ button.chip:hover .chip-label {
   line-height: 1.1;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* The ground's short rail has room for a name on two lines: "Move house" in full. */
+.app-shell:not(.phone) .tool-rail:not(.full) button {
+  height: auto;
+  min-height: 42px;
+  padding: 3px 0;
+}
+
+.app-shell:not(.phone) .tool-rail:not(.full) .tool-name {
+  max-width: 50px;
+  white-space: normal;
+  text-align: center;
 }
 
 .tool-rail button:hover {
@@ -1193,7 +1249,9 @@ button.chip:hover .chip-label {
   right: var(--gap);
   z-index: 5;
   width: 300px;
-  max-height: calc(100% - 92px);
+  /* It stops above the view bar (Fit house, Picture, North up) and the section under the plan,
+     and scrolls inside, so neither is ever under it (LD-18). */
+  max-height: calc(100% - 92px - var(--section-strip-h, 0px));
   overflow-y: auto;
 }
 

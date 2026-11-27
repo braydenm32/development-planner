@@ -1,5 +1,7 @@
-// "Check everything": the whole project as six steps (Block, Levels & rooms, Ground & walls, Roof,
-// Checks, Costs & share), each with its headline number, whether it's done, and what's left in it.
+// "Check everything": the whole project as six steps (Block, Levels & rooms, Roof, Ground & walls,
+// Checks, Costs & share: the order of the rail and the guide, Design before Earthworks), each with
+// its headline number, whether it's done, and what's left in it. A thing to do is listed once,
+// under the step that owns it (LF-08).
 // Everything here is worked out from what the app already knows (the plan, the key numbers, the
 // checks, the estimate and the plan's question list in src/flow/questions.ts), as plain data, so
 // the list updates as things are fixed and the tests read it without drawing. Each item says where
@@ -91,7 +93,7 @@ export interface StepsInput {
     streetSet: boolean
     /** Survey layers read by guessing, not looked at since. */
     layerGuesses: number
-    /** Placed on the map (Site › Map). */
+    /** Placed on the map (Site › Map), or a made-up block (the example's) that has no place on one. */
     mapPlaced: boolean
   }
   numbers: {
@@ -379,9 +381,17 @@ function checksStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       if (WORD_OF[r.status] !== word) continue
       // The street side is asked once, under Block.
       if (!i.site.streetSet && r.note === NEED_FRONT) continue
+      // A wall that needs an engineer is listed once, by name, under Ground & walls (LF-08).
+      if (word === 'confirm' && r.id.endsWith('-retaining') && i.retaining.some(w => needsEngineer(w.height))) continue
       const detail = [r.value, r.limit && `rule: ${r.limit}`].filter(Boolean).join(' · ') || r.note
       items.push({ id: `check:${r.id}`, text: r.title, detail, tone: CHECK_TONE[word]!, go: { to: 'check', id: r.id, fix: word === 'fix' ? fixOf(r) : null } })
     }
+  // The DA pack's title block: only a DA lodges one, and it's put together in Approvals (LF-08, HO-18).
+  if (c.name === 'DA') {
+    if (!i.da.address) items.push({ id: 'address', text: 'Add the site’s address', detail: 'For the DA pack’s title blocks. It stays on this device.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-address' }) })
+    if (!i.da.lot) items.push({ id: 'lot', text: 'Add the Lot and DP', detail: 'For the DA pack’s title blocks.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-lot' }) })
+    if (!i.da.preparedBy) items.push({ id: 'by', text: 'Say who prepared the plans', detail: 'Your name or business, on the DA pack.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-by' }) })
+  }
   return { id: 'checks', title: STEP_TITLES.checks, headline: `${c.name} · ${c.head}`, items, started: true, word: c.word }
 }
 
@@ -398,15 +408,12 @@ function costsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boole
       tone: 'todo',
       go: place('costs', 'estimate'),
     })
-  if (!i.da.address) items.push({ id: 'address', text: 'Add the site’s address', detail: 'For the DA pack’s title blocks. It stays on this device.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-address' }) })
-  if (!i.da.lot) items.push({ id: 'lot', text: 'Add the Lot and DP', detail: 'For the DA pack’s title blocks.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-lot' }) })
-  if (!i.da.preparedBy) items.push({ id: 'by', text: 'Say who prepared the plans', detail: 'Your name or business, on the DA pack.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-by' }) })
   return { id: 'costs', title: STEP_TITLES.costs, headline: ready ? `About ${shortMoney(c!.total)}` : 'No estimate yet', items, started: ready }
 }
 
-/** The six steps, in order, each with what's left. */
+/** The six steps, in the order of the rail and the guide (the house, its roof, then the ground), each with what's left. */
 export function stepsOf(i: StepsInput): Step[] {
-  return [blockStep(i), levelsStep(i), groundStep(i), roofStep(i), checksStep(i), costsStep(i)].map(({ started, ...s }, k) => ({
+  return [blockStep(i), levelsStep(i), roofStep(i), groundStep(i), checksStep(i), costsStep(i)].map(({ started, ...s }, k) => ({
     ...s,
     n: k + 1,
     status: s.items.length ? 'todo' : started ? 'done' : 'empty',

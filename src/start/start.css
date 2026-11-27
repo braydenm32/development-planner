@@ -579,6 +579,42 @@
   left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
 }
 
+/* On a computer the floor's chip has the top left of the plan, so the notice sits at the top right,
+   beside the compass, as wide as the room between them (HO-13). Short of room (a tool's card open,
+   a small window) it drops to a line of its own under the compass: --row-room is the width of the
+   plan's free part (shell.css), and each clamp is 0 or its full size either side of 880 px. */
+.app-shell:not(.phone) .sketch-chip {
+  --tight: clamp(0px, (880px - var(--row-room)) * 999, 60px);
+  top: calc(12px + var(--tight));
+  left: auto;
+  right: calc(var(--free-right, 16px) + 60px - var(--tight));
+  transform: none;
+  max-width: calc(var(--row-room) - 16px - clamp(0px, (var(--row-room) - 880px) * 999, 490px));
+}
+
+/* In 3D the camera buttons have the top middle: the notice goes under them (CB-32, LD-17). */
+.app-shell:not(.phone) .canvas-3d .sketch-chip {
+  top: 58px;
+  right: auto;
+  left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
+  transform: translateX(-50%);
+  max-width: calc(100% - var(--free-left, 14px) - 32px);
+}
+
+/* On Costs the plan's top left says what a line measures, and its foot has no hint: the notice sits there, beside the view bar. */
+.app-shell:not(.phone) .shell-main.report.canvas-plan .sketch-chip {
+  top: auto;
+  right: auto;
+  bottom: var(--gap);
+  left: var(--free-left, 14px);
+  max-width: calc(100% - var(--free-left, 14px) - var(--controls-w, 470px) - 2 * var(--gap) - 12px);
+}
+
+/* The empty floor's tip steps down a line when the notice has dropped under the floor's chip. */
+.app-shell:not(.phone) .shell-main:has(.sketch-chip) .plan-hint {
+  top: calc(60px + clamp(0px, (880px - var(--row-room)) * 999, 52px));
+}
+
 /* On a phone: under the floor chip, clear of the tool rail (in Edit) and the canvas buttons down the right. */
 .app-shell.phone .sketch-chip {
   top: 64px;
@@ -606,9 +642,10 @@
   margin: 0 0 8px;
 }
 
+/* Two boxes to a row, each as wide as its half of the card (a box's own width would push the second off it, LD-17). */
 .sketch-size {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px 10px;
 }
 
@@ -621,6 +658,9 @@
 
 .sketch-size input,
 .sketch-size select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   min-height: 30px;
   font: inherit;
   color: #16181b;

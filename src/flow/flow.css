@@ -356,8 +356,10 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
 .plan-editor .q-pill,
 .plan-editor .q-tray {
   position: absolute;
-  /* Above the live section under the plan, when it's open (src/sectionStrip). */
-  bottom: calc(64px + var(--section-strip-h, 0px));
+  /* Above the live section under the plan, when it's open (src/sectionStrip), and above the hint
+     when a small window gives it a line of its own (--foot-lift, shell.css). */
+  /* 74 px: clear of the hint along the foot when it takes its two lines. */
+  bottom: calc(74px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
   left: calc(var(--free-left, 0px) + 4px);
   z-index: 7;
 }
@@ -414,7 +416,9 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
   display: grid;
   gap: 10px;
   width: min(380px, calc(100% - var(--free-left, 0px) - 90px));
-  max-height: calc(100% - 140px);
+  /* Its top stays under the chips along the top of the plan, even where the sketch notice has
+     dropped to a second row (start.css): the list scrolls instead of covering them. */
+  max-height: calc(100% - 190px - var(--section-strip-h, 0px) - var(--foot-lift, 0px));
   overflow-y: auto;
   padding: 12px 14px 14px;
   border: 1px solid var(--line);
@@ -543,6 +547,20 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
 
 .plan-editor .q-go:hover {
   border-color: var(--text);
+}
+
+/* A note at the foot of the screen (Undo, "Floor set to RL…") would land on the open list and cover
+   its choices: while the list is open on a computer, notes show at the top of the plan instead (CB-39).
+   The selectors are long so they win over the notes' own places above the section strip. */
+.app-shell:not(.phone):has(.shell-main .plan-editor .q-tray) .toast,
+body:has(.app-shell:not(.phone) .shell-main .plan-editor .q-tray) .sf-toast {
+  top: 166px;
+  bottom: auto;
+}
+
+body:has(.app-shell:not(.phone) .shell-main .plan-editor .q-tray):has(.app-shell .toast) .sf-toast {
+  top: 218px;
+  bottom: auto;
 }
 
 /* A question opened in the list: its card, without a card's own float. */

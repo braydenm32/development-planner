@@ -22,6 +22,7 @@ import { retainingNames } from '../plan/wallNames'
 import { useProjects } from '../projects/session'
 import { guessCount, layersKey, useLayersSeen } from '../site/layersSeen'
 import { useStreetPending } from '../start/streetQuestion'
+import { SAMPLE_FILE_NAME } from '../example/sampleSurvey'
 import { stepsOf, type Step } from './model'
 
 export function useSteps(d: Loaded): Step[] {
@@ -63,7 +64,8 @@ export function useSteps(d: Loaded): Step[] {
         sketch: sketch ? (sketch.rough ? 'rough' : 'sized') : null,
         streetSet: frontEdgeOf(plan, survey.boundary) !== undefined,
         layerGuesses: seen ? 0 : guessCount(d.layers, d.project.roles),
-        mapPlaced: !!place,
+        // The example's block is made up: there is nowhere on the map to put it (LF-29).
+        mapPlaced: !!place || d.project.fileName === SAMPLE_FILE_NAME,
       },
       numbers: {
         floorArea: numbers.floorArea,
@@ -80,5 +82,5 @@ export function useSteps(d: Loaded): Step[] {
       da: { address: !!(details.address || place?.lot.address), lot: !!(details.lot || place?.lot.label), preparedBy: !!details.preparedBy },
       questions,
     })
-  }, [plan, terrain, survey, sketch, seen, d.layers, d.project.roles, place, numbers, onGround, profiles, names, drawn, checks, estimate, details, questions])
+  }, [plan, terrain, survey, sketch, seen, d.layers, d.project.roles, d.project.fileName, place, numbers, onGround, profiles, names, drawn, checks, estimate, details, questions])
 }

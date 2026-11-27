@@ -15,6 +15,8 @@ import { showToast, useSafety } from '../safety/store'
 import type { ProjectMeta } from '../projects/types'
 import { EXAMPLE_NAME } from './examplePlan'
 import { exampleProjectText } from './exampleProject'
+import { SAMPLE_FILE_NAME } from './sampleSurvey'
+import { layersKey, markLayersSeen } from '../site/layersSeen'
 
 /** The example already here: an active project still carrying the example's name (or "… 2"), the latest one edited. */
 export function exampleHere(list: ProjectMeta[]): ProjectMeta | null {
@@ -36,6 +38,8 @@ export async function openExample(opts: { fresh?: boolean } = {}): Promise<void>
   } finally {
     useSafety.setState({ busy: false })
   }
+  // The example's survey is the app's own: its layers are read right, with nothing to check (LF-29).
+  markLayersSeen(layersKey(meta.id, SAMPLE_FILE_NAME))
   // A new project is for changing: a phone opens it in Edit.
   usePhoneMode.getState().setMode('edit')
   navigate({ kind: 'app', area: 'design', tab: 'plan', view: '3d' })

@@ -10,6 +10,8 @@ import { PROJECTS, tabRoute, type AppRoute, type Route } from '../nav/route'
 import { linkTo, type Go } from './links'
 import { ScrollCue } from './ScrollCue'
 import { usePhone } from '../phone/device'
+import { projectsNow } from '../projects/session'
+import { openingTab } from './lastTab'
 
 /** The areas, as the side rail or the phone's bottom bar. */
 export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant: 'rail' | 'bottom' }) {
@@ -23,7 +25,7 @@ export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant:
       {AREAS.map(a => {
         const on = route.kind === 'app' && route.area === a.id
         return (
-          <a key={a.id} className={`area-link${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} {...linkTo(tabRoute(route, a.id, a.defaultTab), go)}>
+          <a key={a.id} className={`area-link${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} {...linkTo(tabRoute(route, a.id, openingTab(projectsNow().opened?.id, a)), go)}>
             <Icon name={a.icon!} size={variant === 'rail' ? 20 : 22} />
             <span>{a.label}</span>
             {a.id === 'share' && <CommentsBadge keep />}
