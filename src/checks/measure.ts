@@ -23,6 +23,7 @@ import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
 import { earthSource, worksNearBoundary, type EarthSource, type NearBoundary } from './earthSources'
 import { isPadId } from '../plan/platforms'
+import { isPieceId } from '../plan/groundPieces'
 import { worksOf, type Works, type WorksGround } from './trees'
 import type { CheckSettings, CheckTree } from './types'
 
@@ -156,6 +157,8 @@ export interface Measures {
   drives: DriveLine[]
   /** A driveway with levels is in the cut and fill, and the earthworks and retaining wall rows leave its works out (see checkedEarth). */
   drivesLeftOut?: boolean
+  /** The same for a pool or tank set in or on the ground. */
+  piecesLeftOut?: boolean
 }
 
 /** The nearest point to p on the segment a–b. */
@@ -319,16 +322,18 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
 
 /**
  * The cut and fill the earthworks and retaining wall checks measure: the whole model without its
- * driveways. A drive with levels is graded in with the rest (3D, sections, volumes and costs), but
- * the owner's call is that a drive's own cut and fill never fails or warns a check. A drive gives
- * way to every other platform, so leaving it out leaves the house pad and the rest as they are.
+ * driveways, pools and tanks. A drive with levels is graded in with the rest (3D, sections, volumes
+ * and costs), but the owner's call is that a drive's own cut and fill never fails or warns a check;
+ * a pool's or tank's likewise, as a pool's dig is assessed under its own rules. Each platform's
+ * level ground is worked out on its own, so leaving these out leaves the house pad and the rest as they are.
  */
 export function checkedEarth<E extends NonNullable<MeasureInput['earth']>>(plan: Plan, earth: E): E {
   const drives = new Set(plan.areas.filter(a => areaKind(a) === 'driveway').map(a => a.id))
-  const isDrive = (id: string | undefined) => id !== undefined && drives.has(id)
-  if (!earth.prep.platforms.some(p => isDrive(p.id))) return earth
-  const prep = prepWithout(earth.prep, p => isDrive(p.id))
-  const platforms = earth.platforms.filter(p => !isDrive((p as { id?: string }).id))
+  // Pools and tanks too: a pool's dig is assessed under its own rules, not the house's earthworks limits.
+  const leftOut = (id: string | undefined) => id !== undefined && (drives.has(id) || isPieceId(id))
+  if (!earth.prep.platforms.some(p => leftOut(p.id))) return earth
+  const prep = prepWithout(earth.prep, p => leftOut(p.id))
+  const platforms = earth.platforms.filter(p => !leftOut((p as { id?: string }).id))
   return { ...earth, prep, result: evaluateEarthworks(prep), platforms }
 }
 
@@ -457,6 +462,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
       battleAxe: settings.battleAxe,
       natural: dem ? undefined : p => terrain.grid.sample(p[0], p[1]),
     }),
-    ...(checked !== earth ? { drivesLeftOut: true } : {}),
+    ...(checked !== earth && earth?.prep.platforms.some(p => !isPieceId(p.id) && plan.areas.some(a => a.id === p.id && areaKind(a) === 'driveway')) ? { drivesLeftOut: true } : {}),
+    ...(checked !== earth && earth?.prep.platforms.some(p => isPieceId(p.id)) ? { piecesLeftOut: true } : {}),
   }
 }

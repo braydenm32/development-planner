@@ -379,6 +379,22 @@ export interface Furniture {
   label?: string
   /** Mirrored left to right, for a handed piece (a corner sofa, a bath's tap end). Missing in older plans: as drawn. */
   mirrored?: boolean
+  /**
+   * A pool or tank set in the ground or on a level base of its own (src/plan/groundPieces.ts).
+   * Missing in older plans: it stands at its floor level, as drawn, and moves no earth.
+   */
+  ground?: PieceGround
+}
+
+/** How a pool or tank sits: dug into the ground, or standing on a level base. Levels are RLs. */
+export interface PieceGround {
+  sits: 'above' | 'in'
+  /** Floor to top edge (m). Missing: the piece's usual depth (a pool's 1.5 m, a tank's own height). */
+  depth?: number
+  /** In the ground: the top edge (coping or lid). Missing: follows the ground at its highest corner. */
+  top?: number
+  /** Above ground: the level base it stands on. Missing: the mean ground under it. */
+  base?: number
 }
 
 /** A short text label on the plan, on one level, at a point in the house's frame (m). */

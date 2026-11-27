@@ -168,7 +168,7 @@ export function FurniturePicker() {
 }
 
 /** Settings for a selected piece of furniture. */
-export function FurnitureSelection({ item: f, del }: { item: Furniture; del: ReactNode }) {
+export function FurnitureSelection({ item: f, del, ground }: { item: Furniture; del: ReactNode; ground?: ReactNode }) {
   const st = usePlan.getState()
   const size = (patch: Partial<Pick<Furniture, 'width' | 'depth' | 'height'>>) => st.commit(p => resizeFurniture(p, f.id, patch))
   const turn = (rotation: number) => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(rotation) }))
@@ -198,6 +198,7 @@ export function FurnitureSelection({ item: f, del }: { item: Furniture; del: Rea
           </button>
         )}
       </div>
+      {ground}
       <p className="muted small">
         Drag it to move it; {item?.wall ? 'its back snaps flush to a wall, and into a corner. ' : ''}Drag the round handle to turn it, or press Q. The
         distances to the walls show on the plan. Changing the depth keeps its back where it is.

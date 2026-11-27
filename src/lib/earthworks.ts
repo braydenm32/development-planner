@@ -56,6 +56,11 @@ export interface Platform {
    * under the upper slab.
    */
   pad?: boolean
+  /**
+   * Its sides go straight down at its edge, with no margin and no batter: a pool's shell or a tank
+   * holds them. Only its own footprint is levelled.
+   */
+  sheer?: boolean
 }
 
 /**
@@ -381,7 +386,7 @@ export function prepareEarthworks(
     }
     // The platform's edge lies about half a cell past its outermost node.
     const margin = pf.margin ?? opts.margin
-    for (let k = 0; k < dist.length; k++) dist[k] = dist[k] === 0 ? 0 : Math.max(0, (dist[k] - 0.5) * cell - margin)
+    for (let k = 0; k < dist.length; k++) dist[k] = dist[k] === 0 ? 0 : pf.sheer ? Infinity : Math.max(0, (dist[k] - 0.5) * cell - margin)
     const out: PreparedPlatform = {
       id: pf.id,
       level: pf.level,

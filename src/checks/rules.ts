@@ -629,11 +629,18 @@ function impliedWords(walls: WallNumbers[]): string {
   return n === walls.length ? (n === 1 ? ' (implied)' : ' (all implied)') : ` (${n} implied)`
 }
 
-/** Said on the earthworks and wall rows when a driveway with levels is in the cut and fill: these rows leave it out. */
-const drivesNote = (ms: Measures): string => (ms.drivesLeftOut ? 'Drives aren’t counted here: their cut and fill is in the volumes and costs.' : '')
+/** Said on the earthworks and wall rows when a driveway with levels, or a pool or tank in or on the ground, is in the cut and fill: these rows leave it out. */
+const drivesNote = (ms: Measures): string =>
+  [
+    ms.drivesLeftOut ? 'Drives aren’t counted here: their cut and fill is in the volumes and costs.' : '',
+    ms.piecesLeftOut ? 'Pools and tanks aren’t counted here: their cut and fill is in the volumes and costs, and a pool’s dig is assessed under its own rules.' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
-/** An earthworks row's value with nothing to measure: the drive's own cut and fill, when it has some, is left out. */
-const noCutFill = (ms: Measures): string => (ms.drivesLeftOut ? 'Only the drive’s cut and fill' : 'No cut and fill')
+/** An earthworks row's value with nothing to measure: the drive's (or pool's and tank's) own cut and fill, when there is some, is left out. */
+const noCutFill = (ms: Measures): string =>
+  ms.drivesLeftOut && ms.piecesLeftOut ? 'Only the drive’s, pool’s or tank’s cut and fill' : ms.drivesLeftOut ? 'Only the drive’s cut and fill' : ms.piecesLeftOut ? 'Only the pool’s or tank’s cut and fill' : 'No cut and fill'
 
 /** What an implied wall is, once, where a row counts any. */
 const impliedNote = (ms: Measures): string =>

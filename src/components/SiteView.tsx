@@ -292,7 +292,7 @@ export function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground
         <BoundaryLine survey={survey} ground={ground} refZ={refZ} />
         <SiteFeatures3D boundary={survey.boundary} ground={ground} refZ={refZ} trees={view.showTrees} />
         {plan && view.showHouse && (
-          <House3D plan={plan} origin={survey.origin} refZ={refZ} showLevels={levelsShown} showRoof={view.showRoof} showFurniture={view.showFurniture} ground={ground} />
+          <House3D plan={plan} origin={survey.origin} refZ={refZ} showLevels={levelsShown} showRoof={view.showRoof} showFurniture={view.showFurniture} ground={ground} natural={grid} />
         )}
       </group>
       {/* Outside the stretched group, so the numbers keep their shape; they place themselves at the stretched height. */}

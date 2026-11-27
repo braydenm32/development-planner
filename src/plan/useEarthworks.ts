@@ -14,6 +14,7 @@ import { gradingPlatforms } from '../grading/model'
 import { drivewayPlatforms } from './driveway'
 import { earthworksOf, type Earthworks, type Plan } from './model'
 import { earthworksPlatforms, retainingStrips } from './platforms'
+import { piecePlatforms, pieceSpecs, type PieceSpec } from './groundPieces'
 
 export interface Earth {
   prep: PreparedEarthworks
@@ -23,8 +24,12 @@ export interface Earth {
   strips: WallStrip[]
 }
 
-/** What the finished ground is worked out from: the levelled areas (the house's, the painted grading and driveways), the settings and the retaining walls. */
-export type EarthInputs = [Platform[], Earthworks, WallStrip[]]
+/**
+ * What the finished ground is worked out from: the levelled areas (the house's, the painted grading
+ * and driveways), the settings, the retaining walls, and the pools and tanks set in or on the ground
+ * (whose levels follow the natural ground, so they're read in earthFrom).
+ */
+export type EarthInputs = [Platform[], Earthworks, WallStrip[], PieceSpec[]?]
 
 export function earthInputs(plan: Plan, survey: Pick<Survey, 'origin' | 'boundary'>): EarthInputs {
   // Driveways with levels of their own are graded in with the rest: one finished ground for all.
@@ -32,13 +37,17 @@ export function earthInputs(plan: Plan, survey: Pick<Survey, 'origin' | 'boundar
     [...earthworksPlatforms(plan, survey.origin), ...gradingPlatforms(plan, survey.origin), ...drivewayPlatforms(plan, survey.origin, survey.boundary)],
     earthworksOf(plan),
     retainingStrips(plan, survey.origin),
+    pieceSpecs(plan, survey.origin),
   ]
 }
 
 /** Cut and fill on the natural ground for those inputs. */
-export function earthFrom(natural: Heightfield, boundary: Survey['boundary'], [platforms, opts, strips]: EarthInputs): Earth {
-  // Retaining walls are the lines cut and fill stops at.
-  const barriers = strips.map((s): Barrier => [s.a, s.b])
+export function earthFrom(natural: Heightfield, boundary: Survey['boundary'], [house, opts, walls, specs = []]: EarthInputs): Earth {
+  const pieces = piecePlatforms(specs, natural)
+  const platforms = pieces.platforms.length ? [...house, ...pieces.platforms] : house
+  const strips = pieces.strips.length ? [...walls, ...pieces.strips] : walls
+  // Retaining walls are the lines cut and fill stops at; a pool's shell only holds its own hole.
+  const barriers = walls.map((s): Barrier => [s.a, s.b])
   const prep = prepareEarthworks(natural, boundary, platforms, opts, barriers)
   return { prep, result: evaluateEarthworks(prep), platforms, strips }
 }

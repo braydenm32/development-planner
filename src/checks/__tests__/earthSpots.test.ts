@@ -10,6 +10,12 @@ import { garageFloor } from '../../plan/__tests__/fixtures'
 import { normalizePlan, toSite, type Plan, type Wall } from '../../plan/model'
 import { earthFrom, earthInputs } from '../../plan/useEarthworks'
 import { measure } from '../measure'
+import { earthSource } from '../earthSources'
+import { newFurniture } from '../../plan/furniture'
+import { levelsOf } from '../../plan/groundPieces'
+import { designQuantities } from '../../plan/quantities'
+import { estimate } from '../../costs/estimate'
+import { emptyCosts } from '../../costs/model'
 import { runChecks } from '../rules'
 import { fixOf, targetOf } from '../targets'
 import { L0, PLACEMENT, site } from './sample'
@@ -143,6 +149,61 @@ describe('what moves the ground', () => {
     expect(ms.earth!.fillOutsideAt!.source).toMatchObject({ kind: 'pad' })
     expect(fill.note).toMatch(/Upper split floor's slab pad/)
     expect(targetOf(fill, ms)!.at).toEqual(ms.earth!.fillOutsideAt!.at)
+  })
+})
+
+/** A pool beside the house's west side, turned so it runs north–south, 0.75 m from the west boundary: its pit would break the boundary row. */
+function withPool(plan: Plan, sits: 'in' | 'above' = 'in'): Plan {
+  const f = newFurniture('pool', L0, [-3.5, 6], 90)!
+  return { ...plan, furniture: [...plan.furniture, { ...f, ground: { sits } }] }
+}
+
+describe('pools and tanks in the earthworks', () => {
+  it('leaves an in-ground pool out of the earthworks rows, but keeps it in the volumes and the costs', () => {
+    const { ms, earth, r } = run(withPool(base()))
+    const alone = run(base())
+    expect(earth.platforms.some(p => p.id?.startsWith('piece:'))).toBe(true)
+    expect(ms.piecesLeftOut).toBe(true)
+    expect(ms.drivesLeftOut).toBeUndefined()
+    for (const id of ['hc-works-boundary', 'hc-cut', 'hc-fill', 'hc-retaining']) {
+      expect(r(id).status, id).toBe(alone.r(id).status)
+      expect(r(id).note, id).toMatch(/Pools and tanks aren’t counted here/)
+    }
+    expect(ms.earth?.closestWorks ?? null).toBe(alone.ms.earth?.closestWorks ?? null)
+    expect(ms.earth!.cutOutside).toBeCloseTo(alone.ms.earth!.cutOutside, 6)
+    // Dug down to its floor, 1.5 m under its highest corner, on top of the house's own cut.
+    const pool = withPool(base()).furniture.at(-1)!
+    const lv = levelsOf(withPool(base()), pool, s.survey.origin, s.terrain.grid)!
+    const mid = toSite(pool.at, PLACEMENT, s.survey.origin)
+    expect(lv.sits === 'in' && earth.result.grid.sample(mid[0], mid[1])).toBeCloseTo(lv.sits === 'in' ? lv.floor : 0, 3)
+    expect(earth.result.cut - alone.earth.result.cut).toBeGreaterThan(10)
+    // The estimate's dig-out line is the volume the strip and Cut & fill show.
+    const est = estimate(designQuantities(withPool(base()), earth.result, []), emptyCosts())
+    expect(est.lines.find(l => l.id === 'cut')!.qty).toBe(earth.result.cut)
+    // Without a pool, nothing is said about pools.
+    expect(alone.ms.piecesLeftOut).toBeUndefined()
+    expect(alone.r('hc-works-boundary').note ?? '').not.toMatch(/Pools/)
+  })
+
+  it('leaves an above-ground pool’s base out too', () => {
+    const { ms, earth, r } = run(withPool(base(), 'above'))
+    expect(earth.result.cut + earth.result.fill).toBeGreaterThan(run(base()).earth.result.cut + run(base()).earth.result.fill + 1)
+    expect(ms.piecesLeftOut).toBe(true)
+    expect(r('hc-works-boundary').status).toBe(run(base()).r('hc-works-boundary').status)
+  })
+
+  it('still fails a row the house’s own pad breaks when a pool is there too', () => {
+    const { ms, r } = run(withSplit(withPool(base())))
+    expect(r('hc-works-boundary').status).toBe('fail')
+    expect(r('hc-fill').status).toBe('fail')
+    expect(ms.earth!.closestAt!.source).toMatchObject({ kind: 'pad' })
+    const alone = run(withSplit(base())).ms.earth!
+    expect(ms.earth!.closestWorks).toBeCloseTo(alone.closestWorks!, 6)
+    expect(ms.earth!.fillOutside).toBeCloseTo(alone.fillOutside, 6)
+  })
+
+  it('names the hole dug for a pool', () => {
+    expect(earthSource(withPool(base()), `piece:${withPool(base()).furniture.at(-1)!.id}`, 'level').name).toBe('the hole dug for the pool')
   })
 })
 

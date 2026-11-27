@@ -484,8 +484,8 @@ export const AREAS: Area[] = [
         label: 'Furniture',
         icon: 'furniture',
         subtitle: 'Pick a piece, then click on the plan to place it.',
-        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank', 'rainwater tank', 'swimming pool', 'corner sofa'],
-        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room', 'furniture-outdoor-fixtures'],
+        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank', 'rainwater tank', 'swimming pool', 'corner sofa', 'in-ground pool', 'above-ground pool', 'pool excavation', 'tank pad', 'bury tank'],
+        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room', 'furniture-outdoor-fixtures', 'furniture-sits-in-ground'],
       },
       {
         id: 'finishes',
@@ -664,7 +664,7 @@ export const AREAS: Area[] = [
         icon: 'shovel',
         subtitle: 'Levelling the ground under the house.',
         shows: ['cut-fill', 'warnings'],
-        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters'],
+        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters', 'pool dig', 'pool excavation'],
         features: [
           'earthworks-cut-batter',
           'earthworks-fill-batter',
@@ -682,6 +682,7 @@ export const AREAS: Area[] = [
           'remove-retained-edges',
           'cut-fill-works-tint',
           'cut-fill-folds',
+          'earthworks-pieces-volumes',
         ],
       },
       {

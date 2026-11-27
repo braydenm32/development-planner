@@ -21,6 +21,7 @@ import {
   type Plan,
 } from '../plan/model'
 import { furnitureSolids } from '../plan/furniture'
+import { levelsOf, pieceShape } from '../plan/groundPieces'
 import { garagePanelFootprint } from '../plan/garageDoor'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { openWallOutlines, pierOutlines } from '../plan/platforms'
@@ -43,6 +44,8 @@ interface Props {
   showFurniture?: boolean
   /** Finished ground level, for posts and anything laid on the ground. */
   ground: Heightfield
+  /** The ground as surveyed, which a pool or tank's levels follow (src/plan/groundPieces.ts); `ground` when missing. */
+  natural?: Heightfield
 }
 
 /** Extrude a site-frame polygon between two scene heights. */
@@ -57,7 +60,7 @@ function prism(pts: Vec2[], y0: number, y1: number, holes: Vec2[][] = []): THREE
   return g.index ? g.toNonIndexed() : g
 }
 
-export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurniture = true, ground }: Props) {
+export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurniture = true, ground, natural }: Props) {
   const geoms = useMemo(() => {
     const pl = plan.placement
     const site = (p: Vec2) => toSite(p, pl, origin)
@@ -73,6 +76,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
     const stairs: THREE.BufferGeometry[] = []
     const retaining: THREE.BufferGeometry[] = []
     const furniture: THREE.BufferGeometry[] = []
+    const water: THREE.BufferGeometry[] = []
     const draped = { concrete: [] as number[], garden: [] as number[] }
     const shown = (id: string) => !showLevels || showLevels.has(id)
     const levels = sortedLevels(plan)
@@ -193,6 +197,18 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
 
       if (showFurniture) {
         for (const f of plan.furniture.filter(x => x.level === level.id)) {
+          // A pool or tank in the ground or on its base stands at its own levels, not the floor's.
+          const lv = levelsOf(plan, f, origin, natural ?? ground)
+          if (lv) {
+            const shape = pieceShape(f, lv)
+            for (const s of shape.solids) {
+              const g = prism(s.pts.map(site), s.z0 - refZ, s.z1 - refZ)
+              if (g) furniture.push(g)
+            }
+            const w = shape.water && prism(shape.water.pts.map(site), shape.water.z - 0.02 - refZ, shape.water.z - refZ)
+            if (w) water.push(w)
+            continue
+          }
           for (const s of furnitureSolids(f)) {
             const g = prism(s.pts.map(site), floorY + s.z0, floorY + s.z1)
             if (g) furniture.push(g)
@@ -274,10 +290,11 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       stairs: merge(stairs),
       retaining: merge(retaining),
       furniture: merge(furniture),
+      water: merge(water),
       driveway: drapedGeom(draped.concrete),
       garden: drapedGeom(draped.garden),
     }
-  }, [plan, origin, refZ, showLevels, showRoof, showFurniture, ground])
+  }, [plan, origin, refZ, showLevels, showRoof, showFurniture, ground, natural])
 
   useEffect(
     () => () => {
@@ -338,6 +355,11 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       {geoms.furniture && (
         <mesh name="furniture" geometry={geoms.furniture} castShadow receiveShadow>
           <meshStandardMaterial color="#9aa5b1" roughness={0.9} />
+        </mesh>
+      )}
+      {geoms.water && (
+        <mesh name="pool water" geometry={geoms.water} receiveShadow>
+          <meshStandardMaterial color="#5aa9d6" roughness={0.15} metalness={0.1} transparent opacity={0.8} />
         </mesh>
       )}
       {geoms.garageDoors && (

@@ -187,7 +187,7 @@ export async function buildModel(i: ModelInput): Promise<BuiltModel> {
         h(
           'group',
           { key: l.id, name: l.name || 'Level' },
-          h(House3D, { plan, origin: survey.origin, refZ, showLevels: new Set([l.id]), showRoof: true, showFurniture: i.furniture !== false, ground }),
+          h(House3D, { plan, origin: survey.origin, refZ, showLevels: new Set([l.id]), showRoof: true, showFurniture: i.furniture !== false, ground, natural: terrain.grid }),
         ),
       ),
     ),

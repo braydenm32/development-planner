@@ -9,7 +9,8 @@ export function newFurniture(kind: string, level: string, at: Vec2, rotation = 0
   const item = catalogItem(kind)
   if (!item) return null
   const [width, depth, height] = item.size
-  return { id: newId('furniture'), level, kind, at: [at[0], at[1]], rotation: normDeg(rotation), width, depth, height }
+  // A pool starts in the ground and a tank on a level base (both only once they're outside the house).
+  return { id: newId('furniture'), level, kind, at: [at[0], at[1]], rotation: normDeg(rotation), width, depth, height, ...(item.sits ? { ground: { sits: item.sits } } : {}) }
 }
 
 export function furnitureName(f: Pick<Furniture, 'kind' | 'label'>): string {
@@ -65,7 +66,10 @@ export function furnitureSymbol(f: Furniture): { parts: SymbolPart[]; code: stri
   const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, own(f, q))), closed: p.closed }))
   // A custom box carries the name it was given, kept short enough to sit on it.
   const named = f.kind === CUSTOM_BOX ? f.label?.trim().slice(0, 14) : undefined
-  return { parts, code: item?.code ?? (named || null) }
+  // A pool or tank set in the ground says so, as a plan note would.
+  const inGround = !!item?.sits && f.ground?.sits === 'in' ? 'IN GROUND' : null
+  const code = item?.code ?? (named || null)
+  return { parts, code: inGround ? (code ? `${code} ${inGround}` : inGround) : code }
 }
 
 /** The 3D shape in the plan frame, heights above the floor. */
