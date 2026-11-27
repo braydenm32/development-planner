@@ -22,6 +22,7 @@ import { PLAN_NAME_ID } from '../a11y/planCanvas'
 import { toolbarStep } from '../a11y/toolbar'
 import { useCamera } from '../phone/cameraStore'
 import { WalkButton } from '../walk/WalkPanel'
+import { PhotoViewButton } from '../photoview/PhotoLayer'
 import { useWalk } from '../walk/walkStore'
 import { setTapMeasure, useTapMeasureOn } from '../phone/tapMeasure'
 import { findSelection } from './selection'
@@ -329,6 +330,7 @@ function ViewBar({ canvas, up, run }: ControlsProps) {
             </>
           )}
           <WalkButton />
+          {!slim && <PhotoViewButton />}
           {!slim && <SunCtl />}
         </>
       )}

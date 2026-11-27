@@ -9,6 +9,7 @@ import { between, lessMotion, levelLens, loadPose, moveDuration, northUp, preset
 import { useCamera } from './cameraStore'
 import { openArea } from './frame'
 import { useWalk } from '../walk/walkStore'
+import { usePhotoView } from '../photoview/store'
 
 /** The parts of OrbitControls the rig uses. */
 interface Controls extends THREE.EventDispatcher<{ start: object; change: object; end: object }> {
@@ -290,8 +291,8 @@ export function CameraRig({ frame, storageKey, upBearing, phone, hasPlan }: Prop
   }, [rig, ready, hasPlan, upBearing])
 
   useFrame(() => {
-    // Walk-through has the camera (src/walk).
-    if (useWalk.getState().active) return
+    // Walk-through and the photo view have the camera (src/walk, src/photoview).
+    if (useWalk.getState().active || usePhotoView.getState().active) return
     rig.tick(performance.now())
     rig.level()
   })
