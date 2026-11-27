@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { garageFloor } from '../../plan/__tests__/fixtures'
+import { grossFloorArea } from '../../plan/keyNumbers'
 import { normalizePlan, type Opening, type Plan } from '../../plan/model'
 import { addRoof } from '../../plan/ops'
 import { levelOutlines } from '../../plan/roof'
@@ -68,11 +69,14 @@ describe('living areas and floor area', () => {
     const plan = garageFloor()
     const f = floorAreas(plan)
     // The garage floor is about 9.8 × 13.7 m to the outside of its walls, with notches: around 92 m².
-    expect(f.gross).toBeGreaterThan(85)
-    expect(f.gross).toBeLessThan(100)
+    // Both figures are on the inside faces (DB-29): the floor inside its outside walls, less the garage inside its own.
+    const g = grossFloorArea(plan)
+    expect(f.inside).toBeCloseTo(g.inside, 9)
+    expect(f.inside).toBeLessThan(g.outside)
+    expect(f.inside).toBeGreaterThan(g.outside - 12)
     expect(f.garages).toBeGreaterThan(30)
-    expect(f.garages).toBeLessThan(f.gross)
-    expect(f.conditioned).toBeCloseTo(f.gross - f.garages, 9)
+    expect(f.garages).toBeLessThan(f.inside)
+    expect(f.conditioned).toBeCloseTo(f.inside - f.garages, 9)
   })
 })
 

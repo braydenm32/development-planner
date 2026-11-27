@@ -8,7 +8,7 @@ import { bounds, pointInPolygon, signedArea, unionArea, type Vec2 } from '../lib
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
-import { buildingHeight, levelSummaries, roomsTotal, sideLabel } from '../plan/keyNumbers'
+import { buildingHeight, floorAreasOf, levelSummaries, roomsTotal, sideLabel } from '../plan/keyNumbers'
 import { areaKind, earthworksOf, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
 import { driveLines, type DriveLine } from '../plan/crossing'
 import { driveGround } from '../plan/driveway'
@@ -113,6 +113,12 @@ export interface Measures {
   /** Floor area to the outside of the walls, every level (m²). The rooms' own areas are a lower bound. */
   grossArea: number
   roomsArea: number
+  /**
+   * Gross floor area as the rules count it (m²): inside the outside walls, less one car space of
+   * garage (src/plan/keyNumbers.ts, floorAreasOf). `garageSpace` is what was left out.
+   */
+  gfa: number
+  garageSpace: number
   /** Area the house covers in plan (m²). */
   footprint: number
   /** Area under the house, slabs, driveways and decks together (m²). */
@@ -386,6 +392,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
 
   const out = outsideLot(all, pl, survey)
   const roomsArea = summaries.reduce((t, s) => t + roomsTotal(s.rooms), 0)
+  const floors = floorAreasOf(summaries)
   return {
     settings,
     lotArea: Math.abs(signedArea(b)),
@@ -394,8 +401,10 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     hasRoof: plan.roofs.some(r => !roofGeometry(r).error),
     hasRooms: roomsArea > 0,
     outside: out.any ? { by: out.by, all: out.all } : null,
-    grossArea: summaries.reduce((t, s) => t + s.gross.area, 0),
+    grossArea: floors.outside,
     roomsArea,
+    gfa: floors.gfa,
+    garageSpace: floors.carSpace,
     footprint: all.length ? unionArea(all) : 0,
     hardArea: all.length || hardPolys.length ? unionArea([...all, ...hardPolys]) : 0,
     height: houseHeight(plan, survey, terrain),

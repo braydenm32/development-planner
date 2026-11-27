@@ -25,6 +25,7 @@ import {
 import { WOLLONGONG } from './councils/wollongong'
 import { crossingChecks } from './crossing'
 import { battersText, isRetained } from '../plan/batters'
+import { GFA_CAR_SPACE } from '../plan/keyNumbers'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
 import { NEED_FRONT, type CheckResult, type CheckStatus, type CouncilId, type Pathway, type Source } from './types'
@@ -338,6 +339,14 @@ function livingSun(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] {
   ]
 }
 
+/**
+ * Gross floor area, said one way wherever it is shown (the Housing Code row, the floor space
+ * ratio, the glossary): the figure is floorAreasOf's in src/plan/keyNumbers.ts.
+ */
+const gfaText = (ms: Measures) =>
+  `${m2(ms.gfa)} inside the outside walls${ms.garageSpace > 0 ? `, one garage space of ${m2(ms.garageSpace)} left out` : ''} (${m2(ms.grossArea)} to the outside of the walls)`
+const GFA_NOTE = `Gross floor area is measured to the inside of the outside walls, the walls between rooms included. One garage or carport space up to ${GFA_CAR_SPACE} m² doesn’t count: give that room the type Garage or carport. Stairs and voids over a floor below don’t count either, and aren’t taken off here.`
+
 // ---------------------------------------------------------------------------
 // Housing Code (CDC)
 
@@ -361,18 +370,19 @@ function housingCode(ms: Measures): CheckResult[] {
   }
 
   const gfa = hcMaxGfa(area)
+  // Over the limit with no garage named: one car space could still come off, so naming the rooms decides it.
+  const garageDecides = ms.gfa > gfa && ms.garageSpace === 0 && ms.gfa - GFA_CAR_SPACE <= gfa
   out.push({
     id: 'hc-gfa',
     title: 'Gross floor area',
-    // Over the limit to the outside of the walls, the rooms decide it: with none drawn, it can't be told.
-    status: !ms.hasHouse || ms.grossArea <= gfa ? 'pass' : !ms.hasRooms ? 'incomplete' : ms.roomsArea <= gfa ? 'warn' : 'fail',
+    status: !ms.hasHouse || ms.gfa <= gfa ? 'pass' : garageDecides ? (ms.hasRooms ? 'warn' : 'incomplete') : 'fail',
     value: !ms.hasHouse
       ? 'No floors yet'
-      : !ms.hasRooms && ms.grossArea > gfa
-        ? `${m2(ms.grossArea)} to the outside of the walls. ${DRAW.rooms}`
-        : `${m2(ms.grossArea)} to the outside of the walls${ms.hasRooms ? ` (rooms ${m2(ms.roomsArea)})` : ''}`,
+      : garageDecides
+        ? `${gfaText(ms)}. ${ms.hasRooms ? `Over by ${m2(ms.gfa - gfa)} unless a garage comes off: give its room the type Garage or carport` : DRAW.rooms}`
+        : gfaText(ms),
     limit: `${m2(gfa)} on a ${m2(area)} lot`,
-    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
+    note: GFA_NOTE + ' Check the table against the current text.',
     source: HC_TABLE('cl 3.9'),
   })
 
@@ -813,16 +823,18 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
 
   if (c.fsr) {
     const fsrArea = title ?? lot
-    const ratio = ms.grossArea / fsrArea
+    // The same gross floor area as the Housing Code row: one definition wherever it is shown.
+    const ratio = ms.gfa / fsrArea
     out.push({
       id: 'da-fsr',
       title: 'Floor space ratio',
       status: s.lepFsr === undefined ? 'unknown' : atMost(ratio, s.lepFsr),
-      value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)}`,
+      value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)} (gross floor area ${m2(ms.gfa)})`,
       limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
       note:
         (s.lepFsr === undefined ? 'Enter the map value here once it’s looked up. ' : '') +
-        (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).'),
+        (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).') +
+        ` ${GFA_NOTE} A council may leave out more parking than that.`,
       source: cite(c, c.fsr.source),
     })
   }

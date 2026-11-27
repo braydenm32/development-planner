@@ -131,6 +131,9 @@ describe('measurements', () => {
     expect(ms.footprint).toBeCloseTo(83.64, 4)
     expect(ms.grossArea).toBeCloseTo(83.64, 4)
     expect(ms.roomsArea).toBeCloseTo(9.8 * 7.8, 4)
+    // Gross floor area is inside the outside walls: 9.8 × 7.8 m, with no garage to leave out.
+    expect(ms.gfa).toBeCloseTo(9.8 * 7.8, 4)
+    expect(ms.garageSpace).toBe(0)
     expect(ms.edges.map(e => e.role)).toEqual(['front', 'side', 'rear', 'side'])
     // South-west outside corner at (4, 5): 5 m south, 4 m west, 30 − 13.2 = 16.8 m north, 20 − 14.2 = 5.8 m east.
     expect(ms.edges.map(e => e.clearance!)).toEqual([expect.closeTo(5, 4), expect.closeTo(5.8, 4), expect.closeTo(16.8, 4), expect.closeTo(4, 4)])
@@ -187,13 +190,38 @@ describe('Housing Code (CDC)', () => {
     expect(byId(r, 'hc-lot-shape').status).toBe('pass')
     expect(byId(run(house({ frontEdge: 0, battleAxe: true })).cdc, 'hc-front').status).toBe('pass') // 5 m
   })
-  it('floor area over the limit fails, and between rooms and outside walls warns', () => {
-    // A second level of the same box makes 167.28 m² gross; the limit on 600 m² is 300 m².
+  it('gross floor area is inside the outside walls, less one garage space, and says so', () => {
+    // A second level of the same box makes 2 × 9.8 × 7.8 = 152.88 m²; the limit on 600 m² is 300 m².
     const two = house({ frontEdge: 0 }, { levels: [{ id: L0, name: 'Ground', elevation: 0, height: 2.7 }, { id: L1, name: 'First', elevation: 3, height: 2.7 }], walls: [...box('g', 0, 0, 10, 8), ...box('u', 0, 0, 10, 8, L1)] })
-    expect(byId(run(two).cdc, 'hc-gfa').status).toBe('pass')
+    const r2 = byId(run(two).cdc, 'hc-gfa')
+    expect(r2.status).toBe('pass')
+    expect(r2.value).toBe('152.9 m² inside the outside walls (167.3 m² to the outside of the walls)')
+    expect(r2.note).toMatch(/^Gross floor area is measured to the inside of the outside walls/)
+    // Outside 15.4 × 20 = 308 m² > 300, but inside 15 × 19.6 = 294 m²: it passes, where the outside figure used to warn (DB-16).
     const big = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.2, 19.8), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
-    // Outside 15.4 × 20 = 308 m² > 300; rooms 15 × 19.6 = 294 m² ≤ 300.
-    expect(byId(run(big).cdc, 'hc-gfa').status).toBe('warn')
+    expect(byId(run(big).cdc, 'hc-gfa').status).toBe('pass')
+    // Inside 15.6 × 19.8 = 308.88 m²: over by less than a garage space, so it asks for the garage and says why (HO-25).
+    const over = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.8, 20), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
+    const ro = byId(run(over).cdc, 'hc-gfa')
+    expect(ro.status).toBe('warn')
+    expect(ro.value).toBe('308.9 m² inside the outside walls (323.2 m² to the outside of the walls). Over by 8.9 m² unless a garage comes off: give its room the type Garage or carport')
+    // The same house with a 6 × 6 m garage walled off inside it: one space of 18 m² comes off, and it passes.
+    const garage = house(
+      { frontEdge: 0 },
+      {
+        walls: [...box('g', 0, 0, 15.8, 20), wall('i1', [0, 6], [6, 6]), wall('i2', [6, 6], [6, 0])],
+        rooms: [
+          { id: 'r', level: L0, name: 'Big', at: [10, 10] },
+          { id: 'c', level: L0, name: 'Garage', at: [3, 3] },
+        ],
+      },
+    )
+    const rg = byId(run(garage).cdc, 'hc-gfa')
+    expect(rg.status).toBe('pass')
+    expect(rg.value).toBe('290.9 m² inside the outside walls, one garage space of 18.0 m² left out (323.2 m² to the outside of the walls)')
+    // Over by more than a garage space fails outright.
+    const huge = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 16.2, 20.2), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
+    expect(byId(run(huge).cdc, 'hc-gfa').status).toBe('fail')
   })
   it('a two-storey house holds its upper floor 8 m from the rear', () => {
     const levels = [
@@ -315,12 +343,12 @@ describe('an unfinished design', () => {
     expect(byId(run(q).cdc, 'hc-side').status).toBe('fail')
   })
 
-  it('floor area over the limit to the outside of the walls waits for rooms to tell', () => {
-    const big = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.2, 19.8), rooms: [] })
-    const r = byId(run(big).cdc, 'hc-gfa')
+  it('floor area over the limit by less than a garage space waits for rooms to tell', () => {
+    const over = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.8, 20), rooms: [] })
+    const r = byId(run(over).cdc, 'hc-gfa')
     expect(r.status).toBe('incomplete')
-    expect(r.value).toBe('308.0 m² to the outside of the walls. Add rooms to check this.')
-    // Under the limit, the outside of the walls is enough to pass.
+    expect(r.value).toBe('308.9 m² inside the outside walls (323.2 m² to the outside of the walls). Add rooms to check this.')
+    // Under the limit, the outline is enough to pass.
     expect(byId(run(house({ frontEdge: 0 }, { rooms: [] })).cdc, 'hc-gfa').status).toBe('pass')
   })
 
@@ -384,7 +412,8 @@ describe('Wollongong LEP and DCP (DA)', () => {
     expect(byId(run(house()).da, 'da-fsr').status).toBe('unknown')
     const r = byId(run(house({ lepFsr: 0.5, titleArea: 660, battleAxe: true })).da, 'da-fsr')
     expect(r.status).toBe('pass')
-    expect(r.value).toBe(`${(83.64 / 660).toFixed(2)}:1 on 660.0 m²`)
+    // The same gross floor area as the Housing Code row: 9.8 × 7.8 m inside the outside walls.
+    expect(r.value).toBe(`${(76.44 / 660).toFixed(2)}:1 on 660.0 m² (gross floor area 76.4 m²)`)
   })
   it('battle-axe lots: a second storey warns, the front setback is unknown', () => {
     const levels = [
