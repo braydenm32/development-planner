@@ -8,7 +8,7 @@ import type { Terrain } from '../lib/terrain'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import { deleteLevelWithReview } from '../plan/editActions'
 import { planarFaces, roomShape } from '../plan/geometry'
-import { levelSummaries } from '../plan/keyNumbers'
+import { levelSummaries, roomsTotal as roomsTotalOf } from '../plan/keyNumbers'
 import { groundedLevels, levelFloorWords } from '../plan/levelMenu'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { addLevelAbove, addLevelAt, addLevelBelow, setLevelRL, updateLevel } from '../plan/ops'
@@ -175,7 +175,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
       {[...summary].reverse().map(s => {
         const open = !folded.has(s.level.id)
         const faces = planarFaces(plan.walls.filter(w => w.level === s.level.id))
-        const roomsTotal = s.rooms.reduce((t, r) => t + (r.area ?? 0), 0)
+        const roomsTotal = roomsTotalOf(s.rooms)
         const on = (type: Selection['type'], id: string) => selection?.type === type && selection.id === id
         return (
           <section key={s.level.id} className={`area-summary level-fold${open ? ' open' : ''}`}>
@@ -200,7 +200,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
                           onClick={() => showOnPlan(s.level.id, { type: 'room', id: r.room.id }, roomShape(r.room, faces)?.inner ?? [r.room.at])}
                         >
                           <span>{r.room.name}</span>
-                          <span className="muted">{r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`}</span>
+                          <span className="muted">{r.sameAs ? `Same space as ${r.sameAs.name}` : r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`}</span>
                         </button>
                       </li>
                     ))}
@@ -221,6 +221,9 @@ export function AreasBody({ plan }: { plan: Plan }) {
                   </ul>
                 ) : (
                   <p className="muted small">No rooms or areas on this level yet.</p>
+                )}
+                {s.rooms.some(r => r.sameAs) && (
+                  <p className="notice small">Two room labels are in one space, so it’s counted once. Draw the wall between them, or delete one label.</p>
                 )}
                 <dl className="stats">
                   {s.rooms.length > 0 && <FragmentRow label="Rooms total" value={`${roomsTotal.toFixed(2)} m²`} strong />}

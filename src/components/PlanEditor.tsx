@@ -3,7 +3,7 @@ import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { buildingOutline, closestOnSegment, planarFaces, roomShape, wallPolygons } from '../plan/geometry'
+import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, wallPolygons, type Face } from '../plan/geometry'
 import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
 import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
@@ -1844,7 +1844,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // Labels that would pile up hide the lower of each pair; a phone zoomed out drops the small numbers (C20).
   useLabelDeclutter(svgRef, !!touch?.phone && k < PHONE_LABELS_K)
   const selWall = !group && selection?.type === 'wall' ? walls.find(w => w.id === selection.id) : undefined
-  const roomShapes = plan.rooms.filter(r => r.level === level).map(r => ({ room: r, shape: roomShape(r, faces) }))
+  // A label in a space another label already names says so, in place of the same area twice.
+  const firstIn = new Map<Face, string>()
+  const roomShapes = plan.rooms
+    .filter(r => r.level === level)
+    .map(r => {
+      const face = faceAround(r.at, faces)
+      const sameAs = face ? firstIn.get(face) : undefined
+      if (face && sameAs === undefined) firstIn.set(face, r.name)
+      return { room: r, shape: roomShape(r, faces), sameAs }
+    })
 
   const dimLabel = (a: Vec2, b: Vec2, offset: number, text: string, key: string, cls = 'dim', minPx = 36) => {
     const d: Vec2 = [b[0] - a[0], b[1] - a[1]]
@@ -2351,7 +2360,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         })}
 
         {/* Room labels */}
-        {roomShapes.map(({ room, shape }) => {
+        {roomShapes.map(({ room, shape, sameAs }) => {
           const [x, y] = S(room.at)
           const sel = isSel('room', room.id)
           return (
@@ -2359,8 +2368,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
               <text className="room-name" x={x} y={y - 7} textAnchor="middle">
                 {room.name}
               </text>
-              <text className={`room-area${shape ? '' : ' open'}`} x={x} y={y + 9} textAnchor="middle">
-                {shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed'}
+              <text className={`room-area${shape && sameAs === undefined ? '' : ' open'}`} x={x} y={y + 9} textAnchor="middle">
+                {sameAs !== undefined ? `same space as ${sameAs}` : shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed'}
               </text>
               {roomFloorNote(plan, room) && (
                 <text className="room-area" x={x} y={y + 23} textAnchor="middle">

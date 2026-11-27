@@ -8,7 +8,7 @@ import { bounds, pointInPolygon, signedArea, unionArea, type Vec2 } from '../lib
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
-import { levelSummaries, roofAboveGround, sideLabel } from '../plan/keyNumbers'
+import { levelSummaries, roofAboveGround, roomsTotal, sideLabel } from '../plan/keyNumbers'
 import { areaKind, earthworksOf, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
 import { driveLines, type DriveLine } from '../plan/crossing'
 import { driveGround } from '../plan/driveway'
@@ -380,7 +380,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
   })
 
   const out = outsideLot(all, pl, survey)
-  const roomsArea = summaries.reduce((t, s) => t + s.rooms.reduce((u, r) => u + (r.area ?? 0), 0), 0)
+  const roomsArea = summaries.reduce((t, s) => t + roomsTotal(s.rooms), 0)
   return {
     settings,
     lotArea: Math.abs(signedArea(b)),

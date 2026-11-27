@@ -207,7 +207,8 @@ export function designQuantities(
   const wet = Object.fromEntries(WET_ROOMS.map(w => [w.id, { ...counted(), names: [] as string[] }])) as DesignQuantities['wet']
   for (const s of summaries)
     for (const r of s.rooms) {
-      if (r.area === null) continue
+      // A second label in a space already named adds no floor.
+      if (r.area === null || r.sameAs) continue
       if (!isGarageRoom(r.room.name)) {
         finishes.count++
         finishes.area += r.area

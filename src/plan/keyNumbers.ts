@@ -5,7 +5,7 @@ import { balancingShift, type EarthworksResult, type PreparedEarthworks } from '
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { buildingOutline, planarFaces, roomShape } from './geometry'
+import { buildingOutline, faceAround, planarFaces, roomShape, type Face } from './geometry'
 import { floorRL, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
 import { roofGeometry, type RoofGeometry } from './roof'
@@ -13,7 +13,11 @@ import { roofEavesRL } from './roofline'
 
 export interface LevelSummary {
   level: Level
-  rooms: { room: Room; area: number | null }[]
+  /**
+   * `sameAs` is set on a label that sits in a space another label already names (a wall between
+   * them went): its area is that same space's, and totals count the space once, under the first.
+   */
+  rooms: { room: Room; area: number | null; sameAs?: Room }[]
   areas: { area: Area; size: number }[]
   /** The outside of the walls: its rings and floor area. */
   gross: { outlines: Vec2[][]; area: number }
@@ -24,10 +28,30 @@ export function levelSummaries(plan: Plan): LevelSummary[] {
   return sortedLevels(plan).map(l => {
     const walls = plan.walls.filter(w => w.level === l.id)
     const faces = planarFaces(walls)
-    const rooms = plan.rooms.filter(r => r.level === l.id).map(r => ({ room: r, area: roomShape(r, faces)?.area ?? null }))
+    const named = new Map<Face, Room>()
+    const rooms = plan.rooms
+      .filter(r => r.level === l.id)
+      .map(r => {
+        const face = faceAround(r.at, faces)
+        const first = face ? named.get(face) : undefined
+        if (face && !first) named.set(face, r)
+        return { room: r, area: roomShape(r, faces)?.area ?? null, ...(first ? { sameAs: first } : {}) }
+      })
     const areas = plan.areas.filter(a => a.level === l.id).map(a => ({ area: a, size: Math.abs(signedArea(a.pts)) }))
     return { level: l, rooms, areas, gross: buildingOutline(faces) }
   })
+}
+
+/** All the rooms on a level together (m²), each enclosed space counted once however many labels sit in it. */
+export const roomsTotal = (rooms: LevelSummary['rooms']): number => rooms.reduce((t, r) => t + (r.sameAs ? 0 : (r.area ?? 0)), 0)
+
+/** The room label that already names the space this one sits in (the first drawn there), or null when it has the space to itself. */
+export function sameSpaceAs(plan: Plan, room: Room): Room | null {
+  const faces = planarFaces(plan.walls.filter(w => w.level === room.level))
+  const face = faceAround(room.at, faces)
+  if (!face) return null
+  const first = plan.rooms.find(r => r.level === room.level && faceAround(r.at, faces) === face)
+  return first && first.id !== room.id ? first : null
 }
 
 /** A room's floor area, as the Rooms & areas panel works it out; null when its walls don't enclose it. */

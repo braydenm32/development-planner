@@ -49,7 +49,7 @@ import { piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
-import { earthAgainstWall, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { earthAgainstWall, roomArea, roofAboveGround, sameSpaceAs, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import { wallClear } from '../plan/openingFit'
 import { MIN_WALL, stillerEnd, wallLengthProblem, type WallEnd } from '../plan/wallJoins'
 import type { Earth } from '../plan/useEarthworks'
@@ -477,6 +477,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const r = plan.rooms.find(x => x.id === selection.id)
     if (!r) return null
     const area = roomArea(plan, r)
+    const shared = sameSpaceAs(plan, r)
     return (
       <section className="selection">
         <h2>Room</h2>
@@ -484,6 +485,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <span>Area</span>
           <b>{area === null ? 'not enclosed' : `${area.toFixed(2)} m²`}</b>
         </div>
+        {shared && (
+          <p className="notice small">
+            Same space as {shared.name}: no wall divides them, so this is the area of both together and it’s counted once in Rooms total. Draw the wall between them, or delete one label.
+          </p>
+        )}
         <TextField label="Name" value={r.name} onCommit={name => st.commit(p => updateRoom(p, r.id, { name }))} />
         <RoomFloorType key={r.id} plan={plan} room={r} />
         <RoomGround plan={plan} room={r} survey={survey} terrain={terrain} />
