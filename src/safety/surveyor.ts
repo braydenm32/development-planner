@@ -24,8 +24,11 @@ async function copyRequest() {
   showToast(ok ? { text: 'Copied. Paste it into an email to your surveyor.', ms: NOTE_MS } : { text: `Ask your surveyor: “${SURVEYOR_REQUEST}”`, ms: UNDO_MS * 2 })
 }
 
-/** A file that couldn't be opened, said in a toast; with the request to copy when a better file is the fix. */
+/**
+ * A file that couldn't be opened, said in a toast that stays until it's dismissed; with the
+ * request to copy when a better file is the fix.
+ */
 export function sayFileError(e: unknown) {
   const text = (e as Error)?.message || 'That file couldn’t be opened.'
-  showToast({ text, link: askSurveyor(e) ? { label: COPY_REQUEST, go: () => void copyRequest() } : undefined })
+  showToast({ text, error: true, link: askSurveyor(e) ? { label: COPY_REQUEST, go: () => void copyRequest() } : undefined })
 }

@@ -62,6 +62,12 @@ export interface Toast {
    * All projects, where it would only be in the way, and its Undo would act on a project you've left.
    */
   project?: boolean
+  /**
+   * Something went wrong (a file that couldn't be opened): it stays until it's dismissed or
+   * another toast takes its place, and is announced straight away (role=alert), since a long
+   * message can't be read, let alone acted on, in a few seconds.
+   */
+  error?: boolean
   ms: number
 }
 
@@ -128,10 +134,10 @@ export function chooseInReview(id: string) {
 let toastId = 0
 
 /** Show a toast; with `undo`, it offers Undo for at least UNDO_MS. A toast already showing settles first. */
-export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; project?: boolean; ms?: number }): number {
+export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; project?: boolean; error?: boolean; ms?: number }): number {
   const old = get().toast
   const id = ++toastId
-  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, project: t.project, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
+  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, project: t.project, error: t.error, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
   old?.settle?.()
   return id
 }

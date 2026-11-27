@@ -15,6 +15,13 @@ export interface QueuedProjectStore extends ProjectStore {
   flush(id?: string): Promise<void>
   /** Projects with changes that haven't reached storage, because a write failed. */
   unsaved(): string[]
+  /** An edit to this project (not only preferences) is still to be written, or is being written now. */
+  unsavedEdits(id: string): boolean
+  /**
+   * Forget every change to this project that hasn't been written (the copy stored is newer: another
+   * tab saved it). Saves still waiting fail with `why`. Resolves once nothing is in flight.
+   */
+  drop(id: string, why: unknown): Promise<void>
 }
 
 interface Waiter {
@@ -24,6 +31,8 @@ interface Waiter {
 
 interface Lane {
   running: Promise<void> | null
+  /** The write in flight is an edit (not only preferences). */
+  runningEdit: boolean
   pending: { change: ProjectChange; waiters: Waiter[] } | null
   /** A change whose write failed, folded into the next one. */
   failed: ProjectChange | null
@@ -42,7 +51,7 @@ export function withWriteQueue(store: ProjectStore): QueuedProjectStore {
   const lanes = new Map<string, Lane>()
   const lane = (id: string) => {
     let l = lanes.get(id)
-    if (!l) lanes.set(id, (l = { running: null, pending: null, failed: null }))
+    if (!l) lanes.set(id, (l = { running: null, runningEdit: false, pending: null, failed: null }))
     return l
   }
 
@@ -53,6 +62,7 @@ export function withWriteQueue(store: ProjectStore): QueuedProjectStore {
     l.pending = null
     const change = l.failed ? mergeChanges(l.failed, job.change) : job.change
     l.failed = null
+    l.runningEdit = change.touch !== false
     l.running = store.save(id, change).then(
       meta => job.waiters.forEach(w => w.resolve(meta)),
       err => {
@@ -116,5 +126,22 @@ export function withWriteQueue(store: ProjectStore): QueuedProjectStore {
     },
 
     unsaved: () => [...lanes].filter(([, l]) => l.failed).map(([id]) => id),
+
+    unsavedEdits: id => {
+      const l = lanes.get(id)
+      const edit = (c: ProjectChange | null | undefined) => !!c && c.touch !== false
+      return !!l && (edit(l.failed) || edit(l.pending?.change) || (!!l.running && l.runningEdit))
+    },
+
+    drop: async (id, why) => {
+      const l = lanes.get(id)
+      if (!l) return
+      const waiting = l.pending
+      l.pending = null
+      l.failed = null
+      waiting?.waiters.forEach(w => w.reject(why))
+      await settle(id)
+      l.failed = null
+    },
   }
 }

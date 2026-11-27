@@ -337,6 +337,12 @@
   padding: 4px 0;
 }
 
+/* An error: it stays until dismissed, with a red edge to tell it from a passing note. */
+.sf-toast.sf-error {
+  border-left: 4px solid #ff8a80;
+  padding-left: 12px;
+}
+
 .sf-undo {
   flex: none;
   min-height: 30px;
