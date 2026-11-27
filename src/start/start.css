@@ -404,6 +404,50 @@
   color: #ffffff;
 }
 
+/* Which way a sketch block falls (FallPicker.tsx): the way, then how much. */
+.st-fall {
+  display: grid;
+  gap: 7px;
+}
+
+.st-fall > .st-label {
+  margin-bottom: -3px;
+}
+
+.st-field.st-select select {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 550;
+  color: inherit;
+}
+
+.st-fall .fall-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.st-fall .fall-row > .st-label {
+  margin: 0;
+  text-align: right;
+}
+
+.fall-compact,
+.fall-compact .fall-row {
+  display: grid;
+  gap: 4px;
+}
+
+.fall-compact .fall-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 6em);
+  align-items: center;
+}
+
 .st-note {
   margin: 2px 0 0;
   color: var(--st-muted);
@@ -717,6 +761,7 @@
 }
 
 .sketch-size .row,
+.sketch-size .sketch-fall,
 .sketch-size .sketch-error {
   grid-column: 1 / -1;
 }

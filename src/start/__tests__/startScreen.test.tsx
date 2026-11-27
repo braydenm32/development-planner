@@ -24,4 +24,12 @@ describe('the start screen', () => {
     expect(text).toContain('Lot and DP (the lot and plan numbers on your rates notice)')
     expect(text).toContain('Getting started')
   })
+
+  it('asks which way a sketch block falls in plain words, sideways too (HO-21)', () => {
+    expect(text).toContain('Which way does the ground fall?')
+    for (const way of ['Down to the street', 'Down to the back', 'Down to the left', 'Down to the right', 'Two ways (front to back and side to side)']) expect(text).toContain(way)
+    expect(text).toContain('Left and right as you stand on the street looking at the block')
+    // The old box that took a minus for "falls away" is gone.
+    expect(text).not.toContain('Rough fall')
+  })
 })

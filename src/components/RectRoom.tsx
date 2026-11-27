@@ -9,6 +9,7 @@ import { MIN_RECT_SIDE, rectangleWalls, rectSizeKey, roomsMadeNote, typedRectang
 import type { Plan } from '../plan/model'
 import type { SnapResult } from '../plan/snap'
 import { usePlan, type Tool } from '../plan/store'
+import { rectCentre, useWallFace } from '../plan/wallFace'
 import { setWallMode, useWallMode } from '../plan/wallMode'
 import { FREE_KEY, snapFree } from '../pointer/snapping'
 
@@ -43,6 +44,8 @@ const HINT = {
 export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, path, tag, dim, made }: RectRoomArgs) {
   const mode = useWallMode(s => s.mode)
   const thickness = usePlan(s => s.wallStyle.thickness)
+  // Drawn by a face (src/plan/wallFace.ts): the corners are the outside corners, or the room's clear ones.
+  const face = useWallFace(s => s.face)
   const active = tool === 'wall' && mode === 'rect' && !viewOnly
   // The corner put down, and what's typed for the size: dropped with the tool, the level or the mode.
   const key = `${active}|${level}`
@@ -73,7 +76,8 @@ export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, p
       set({ from: null, pressed: false, typed: '' })
       return
     }
-    st.commit(p => rectangleWalls(p, level, a, c, st.wallStyle))
+    const [ca, cc] = rectCentre(face, a, c, st.wallStyle.thickness)
+    st.commit(p => rectangleWalls(p, level, ca, cc, st.wallStyle))
     const after = usePlan.getState().plan!
     set({ from: null, pressed: false, typed: '' })
     if (after === before) {
@@ -167,22 +171,28 @@ export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, p
     const y0 = Math.min(from[1], far[1])
     const y1 = Math.max(from[1], far[1])
     const h = thickness / 2
+    // The centreline, from the face the corners are on: in from the outside, out from the inside.
+    const gc = face === 'outside' ? -h : face === 'inside' ? h : 0
     const ring = (g: number): Vec2[] => [
       [x0 - g, y0 - g],
       [x1 + g, y0 - g],
       [x1 + g, y1 + g],
       [x0 - g, y1 + g],
     ]
-    const hollow = x1 - x0 > thickness && y1 - y0 > thickness
+    const wc = w + 2 * gc
+    const dc = d + 2 * gc
+    const hollow = wc > thickness && dc > thickness
     const mm = (m: number) => Math.round(m * 1000).toString()
-    const size = across === 0 ? `${mm(w)} × ${mm(d)} mm` : `${mm(d)} × ${mm(w)} mm`
-    const inside = Math.max(w - thickness, 0) * Math.max(d - thickness, 0)
+    // The size shown is the face's being drawn by: overall from the outside, clear from the inside.
+    const which = face === 'centre' ? '' : ` ${face}`
+    const size = (across === 0 ? `${mm(w)} × ${mm(d)} mm` : `${mm(d)} × ${mm(w)} mm`) + which
+    const inside = Math.max(wc - thickness, 0) * Math.max(dc - thickness, 0)
     return (
       <g className="rect-room-preview">
-        <path className="wall preview" fillRule="evenodd" d={`${path(ring(h))}${hollow ? path(ring(-h)) : ''}`} />
+        <path className="wall preview" fillRule="evenodd" d={`${path(ring(gc + h))}${hollow ? path(ring(gc - h)) : ''}`} />
         {!typed && dim([x0, y0], [x1, y0], 0, 'rect-w')}
         {!typed && dim([x1, y0], [x1, y1], 0, 'rect-d')}
-        {tag(far, [typed ? `${typed.replace(/[x*]/, ' × ')}▌ mm` : size, `${inside.toFixed(1)} m² inside the walls`])}
+        {tag(far, [typed ? `${typed.replace(/[x*]/, ' × ')}▌ mm${which}` : size, `${inside.toFixed(1)} m² inside the walls`])}
       </g>
     )
   })()

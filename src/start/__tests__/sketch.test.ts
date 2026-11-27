@@ -5,7 +5,7 @@ import { parseDxf } from '../../lib/dxf'
 import { isLevel, slopeText } from '../../components/siteWords'
 import { streetSideLabel } from '../../phone/streetSideWords'
 import { guessCount, madeBlock } from '../../site/layersSeen'
-import { chipFit, aboveStreet, describeSketch, ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
+import { chipFit, aboveStreet, describeSketch, fallChoiceOf, fallNumbers, FLAT, ROUGH_SIZE, sketchDxf, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
 
 const block = (b: Partial<SketchBlock> = {}): SketchBlock => ({ width: 15, depth: 30, fall: 0, street: 'S', ...b })
 
@@ -126,6 +126,68 @@ describe('a sketch block has no survey leftovers (HO-17, CB-31, LD-16, DB-33, HO
     expect(aboveStreet(102)).toBe('2.00 m above the street')
     expect(aboveStreet(99.25)).toBe('0.75 m below the street')
     expect(aboveStreet(100.004)).toBe('level with the street')
+  })
+})
+
+describe('a sketch block that falls sideways (HO-21)', () => {
+  it('turns the way picked into the fall back and the fall across, in plain words', () => {
+    expect(fallNumbers(FLAT)).toEqual({ fall: '', cross: '' })
+    expect(fallNumbers({ ...FLAT, way: 'front', amount: '2' })).toEqual({ fall: '2', cross: '' })
+    expect(fallNumbers({ ...FLAT, way: 'back', amount: '2' })).toEqual({ fall: '-2', cross: '' })
+    // A minus typed as well is the same way, not the opposite.
+    expect(fallNumbers({ ...FLAT, way: 'back', amount: '-2' })).toEqual({ fall: '-2', cross: '' })
+    expect(fallNumbers({ ...FLAT, way: 'left', amount: '1.5' })).toEqual({ fall: '', cross: '1.5' })
+    expect(fallNumbers({ ...FLAT, way: 'right', amount: '1.5' })).toEqual({ fall: '', cross: '-1.5' })
+    expect(fallNumbers({ ...FLAT, way: 'both', front: '2', frontTo: 'back', side: '1', sideTo: 'left' })).toEqual({ fall: '-2', cross: '1' })
+    // And back again, for changing it under Site › Block.
+    for (const c of [{ ...FLAT, way: 'front' as const, amount: '2' }, { ...FLAT, way: 'right' as const, amount: '1.5' }]) expect(fallNumbers(fallChoiceOf(readSketchSize('15', '30', fallNumbers(c).fall, 'S', fallNumbers(c).cross)))).toEqual(fallNumbers(c))
+    expect(fallChoiceOf({ fall: -2, cross: 1 })).toMatchObject({ way: 'both', front: '2', frontTo: 'back', side: '1', sideTo: 'left' })
+    expect(fallChoiceOf({ fall: 0 })).toEqual(FLAT)
+  })
+
+  it('falls to the left as seen from the street, whichever side the street is on', () => {
+    // Falls 1.5 m to the left: the left side (standing on the street looking in) is the low one.
+    const sides = {
+      S: { left: [0, 10], right: [15, 10] },
+      N: { left: [15, 10], right: [0, 10] },
+      // Across the street's east or west side the block is 30 m east-west and 15 m north-south.
+      W: { left: [10, 15], right: [10, 0] },
+      E: { left: [10, 0], right: [10, 15] },
+    } as const
+    for (const street of ['S', 'N', 'E', 'W'] as const) {
+      const b = block({ street, cross: 1.5 })
+      const { left, right } = sides[street]
+      expect(sketchGround(b, right[0], right[1]) - sketchGround(b, left[0], left[1])).toBeCloseTo(1.5, 9)
+    }
+  })
+
+  it('builds the ground from both falls, with the street’s middle at the datum', () => {
+    // Street to the south, 2 m up to the back and 1 m down to the left.
+    const b = readSketchSize('15', '30', '2', 'S', '1')
+    expect(b).toEqual({ width: 15, depth: 30, fall: 2, cross: 1, street: 'S' })
+    expect(describeSketch(b)).toBe('15 × 30 m, 2 m up to the back and 1 m down to the left, street to the south')
+    expect(describeSketch(block({ cross: -1 }))).toBe('15 × 30 m, 1 m down to the right, street to the south')
+    expect(sketchGround(b, 7.5, 0)).toBeCloseTo(SKETCH_DATUM, 9)
+    expect(sketchGround(b, 0, 0)).toBeCloseTo(SKETCH_DATUM - 0.5, 9)
+    expect(sketchGround(b, 15, 30)).toBeCloseTo(SKETCH_DATUM + 2.5, 9)
+    const { terrain, survey } = readSite(sketchSurvey(b))
+    expect(terrain.grid.sample(7.5, 15)).toBeCloseTo(SKETCH_DATUM + 1, 2)
+    expect(terrain.grid.sample(2, 15) - terrain.grid.sample(13, 15)).toBeCloseTo(-11 / 15, 2)
+    // Contours slant across it, each at its own level, and every one is on the block.
+    expect(survey.contours.length).toBeGreaterThan(4)
+    for (const c of survey.contours) {
+      expect(c.z).toBeGreaterThan(SKETCH_DATUM - 0.5)
+      expect(c.z).toBeLessThan(SKETCH_DATUM + 2.5)
+    }
+    // A block that only falls sideways has its contours run front to back.
+    expect(sketchDxf(block({ cross: 2 }))).toContain('SKETCH_CONTOURS')
+  })
+
+  it('keeps a block sketched before this exactly as it was', () => {
+    const old = block({ fall: 2, street: 'E' })
+    expect(sketchDxf(old)).toBe(sketchDxf({ ...old, cross: 0 }))
+    expect(readSketchSize('15', '30', '2', 'E')).not.toHaveProperty('cross')
+    expect(sketchProblems('15', '30', '', '45')).toEqual({ cross: 'The fall from side to side needs to be within 30 m.' })
   })
 })
 

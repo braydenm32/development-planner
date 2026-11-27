@@ -300,5 +300,20 @@ export function useMeasureNotes(a: MeasureArgs) {
     </>
   )
 
-  return { active, move, click, dblclick, key: onKey, over, html, drawing: tool === 'measure' && placed.length > 0 && !done }
+  return {
+    active,
+    move,
+    click,
+    dblclick,
+    key: onKey,
+    over,
+    html,
+    drawing: tool === 'measure' && placed.length > 0 && !done,
+    /** The measurement's last point, while one is under way (a drag from it carries on: src/pointer/dragDraw.ts). */
+    last: tool === 'measure' && !done ? (placed.at(-1) ?? null) : null,
+    /** Drop a measurement's first point, keeping nothing (a drag that turned into a pinch). */
+    drop: () => {
+      if (ptsRef.current.pts.length < 2) setPts({ key: '', pts: [] })
+    },
+  }
 }

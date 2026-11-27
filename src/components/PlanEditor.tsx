@@ -72,6 +72,7 @@ import { askName } from './nameFocus'
 import { closesFirstOutline, nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
 import { floorStack, menuPick, nextOnFloor } from '../plan/floorPick'
 import { useWallMode } from '../plan/wallMode'
+import { bodySide, faceRunStep, faceWord, flipWallSide, FLIP_KEY, startSide, useWallFace, type FaceRun, type Side } from '../plan/wallFace'
 import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
@@ -127,6 +128,9 @@ import { FREE_KEY, snapFree } from '../pointer/snapping'
 import { typedKey, typedLabel, typedPoint } from '../pointer/typedEntry'
 import { wheelPan } from '../pointer/wheel'
 import { dragHint, isDragHint } from '../pointer/dragHint'
+import { doorSwingAt } from '../plan/openingHit'
+import { continuesRun, DRAW_SLOP, dragDraws, pastSlop } from '../pointer/dragDraw'
+import { startSectionLine, useSections } from '../sections/store'
 import { faceGuides } from '../pointer/faceSnap'
 import { openingGapDims } from '../pointer/openingGaps'
 import './editing.css'
@@ -174,6 +178,12 @@ type Drag =
   | { type: 'rect' }
   /** A sketch line or kept measurement, or one of its points (src/sketch/useSketchLayer.tsx keeps which). */
   | { type: 'sketch' }
+  /**
+   * A press with a tool that draws point to point (src/pointer/dragDraw.ts): a click until it moves
+   * past `slop`, then a drag that draws from `world` to the release. `pending`: the run under way
+   * was ended, and the press point goes down on the next move; `placedFirst`: it went down.
+   */
+  | { type: 'draw'; sx: number; sy: number; world: Vec2; slop: number; started: boolean; pending: boolean; placedFirst: boolean }
 
 /**
  * Outside Design and Earthworks the plan is for looking at: a plain drag pans, and nothing moves
@@ -199,7 +209,7 @@ const VIEW_HINT = {
 
 const HINTS: Record<Tool, string> = {
   select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes; right-click for more. Drag empty space to pan.',
-  wall: `Click to start a wall, click again for each corner. Type a length in mm and press Enter (3000<45 sets the angle too). Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to keep it square, ${FREE_KEY} to turn off snapping. For a whole room in one go, Shift+W.`,
+  wall: `Click to start a wall, click again for each corner. Type a length in mm and press Enter (3000<45 sets the angle too). Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to keep it square, ${FREE_KEY} to turn off snapping. Or press and drag to draw a wall from end to end. For a whole room in one go, Shift+W.`,
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
@@ -366,7 +376,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // In-progress drawing belongs to one tool on one level; switching either drops it.
   // (The Wall tool's two ways of drawing count as two tools here.)
   const wallMode = useWallMode(s => s.mode)
-  const draftKey = `${tool === 'wall' ? `wall:${wallMode}` : tool}|${level}`
+  // Wall by wall, drawn by a face (src/plan/wallFace.ts): the points are that face, not the centreline.
+  const wallFace = useWallFace(s => s.face)
+  // What a press and drag does with the Sketch tool depends on what it draws (src/pointer/dragDraw.ts).
+  const sketchMode = useSketch(s => s.mode)
+  const faceFlipped = useWallFace(s => s.flipped)
+  const byFace = tool === 'wall' && wallMode === 'line' && wallFace !== 'centre'
+  const draftKey = `${tool === 'wall' ? `wall:${wallMode}:${wallFace}` : tool}|${level}`
   const [draftState, setDraft] = useState<Draft>(emptyDraft(draftKey))
   const draft = draftState.key === draftKey ? draftState : emptyDraft(draftKey)
   const { chain, areaPts, typed, stairStart } = draft
@@ -878,8 +894,21 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     return typedLengthEnd(a, toward, Math.hypot(p[0] - a[0], p[1] - a[1]), cursor?.kind === 'free')
   }
 
+  /** The walls of a run drawn by a face so far, so each corner can meet the next wall. */
+  const faceRun = useRef<FaceRun>({ ids: [] })
+  /** Which side a wall drawn by a face goes from the face points so far: the run's turn, else the marker. */
+  const faceSide = (pts: Vec2[]): Side => {
+    // The house frame's side that looks right on screen (the plan is drawn with its y axis flipped).
+    const o = S([0, 0])
+    const x = S([1, 0])
+    const y = S([0, 1])
+    const screenRight: Side = (x[0] - o[0]) * (y[1] - o[1]) - (x[1] - o[1]) * (y[0] - o[0]) > 0 ? 1 : -1
+    return bodySide(wallFace, pts, startSide(wallFace, screenRight, faceFlipped))
+  }
+
   const placeWallPoint = (p: Vec2) => {
     if (chain.length === 0) {
+      faceRun.current = { ids: [] }
       setChain([p])
       return
     }
@@ -889,13 +918,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const end: Vec2 = closes ? first : p
     chainStart.current ??= { plan: usePlan.getState().plan!, level }
     const now = usePlan.getState().plan!
-    if (wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
+    // Drawn by a face: the run's walls so far take the new corner, and the new wall goes in, as one step.
+    const pts = [...chain, end]
+    const step = byFace ? faceRunStep(now, level, faceRun.current, pts, closes, faceSide(pts), wallStyle) : null
+    if (step ? !step.added : wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
       // Nothing is added, and the run carries on from here.
       notify('There’s already a wall there, so no new one was drawn.')
     } else {
       // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
-      const style = wallStyleAt(now, level, last, end, wallStyle)
-      commit(pl => addWall(pl, level, last, end, style))
+      const style = step ? step.style : wallStyleAt(now, level, last, end, wallStyle)
+      if (step) {
+        commit(() => step.plan)
+        faceRun.current = step.run
+      } else commit(pl => addWall(pl, level, last, end, style))
       // A wall that closed round a space made its room in the same step (src/plan/autoRooms.ts): say so.
       const room = roomsMadeNote(now, usePlan.getState().plan!)
       notify(style === wallStyle ? room : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.${room ? ` ${room}` : ''}`)
@@ -1046,6 +1081,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = null
     downAt.current = null
     setDragKind(null)
+    // A drag that was drawing: the first point it put down goes again.
+    if (d?.type === 'draw' && d.placedFirst) drawRun().drop()
     if (d?.type === 'brush') brush.cancel()
     else if (d && d.type !== 'pan') {
       const start = usePlan.getState().gestureStart
@@ -1197,7 +1234,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     // Sketch lines and kept measurements: on their line, before the area or roof they're drawn over.
     const sketchItem = sketch ? sk.hit(world) : null
     if (sketchItem) return { type: 'sketch', item: sketchItem }
-    const area = plan.areas.find(a => a.level === level && pointInPolygon(world[0], world[1], a.pts))
+    // A door's leaf and swing arc, out past its wall (an outward door's lie over bare ground): src/plan/openingHit.ts.
+    const swing = doorSwingAt(plan.openings, walls, world, 4 / v.k)
+    if (swing) return { type: 'opening', item: swing }
+    const area =plan.areas.find(a => a.level === level && pointInPolygon(world[0], world[1], a.pts))
     if (area) return { type: 'area', item: area }
     if (insideRooms) {
       const shape = roomShape({ id: 'probe', level, name: '', at: world }, faces)
@@ -1219,7 +1259,63 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
    * Sketch, wall faces too. Shift (kept in `shift` as the pointer moves) holds the line square.
    */
   const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) =>
-    snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' ? faceSnaps : guides, tol, ortho: shift.current, ...o })
+    snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' || byFace ? faceSnaps : guides, tol, ortho: shift.current, ...o })
+
+  /** The run a drag would draw on from, with the tool out now: its last point, ending it, and dropping a lone first point. */
+  const drawRun = (): { last: Vec2 | null; end: () => void; drop: () => void } => {
+    if (sections.active) return { last: useSections.getState().drawing?.a ?? null, end: startSectionLine, drop: startSectionLine }
+    if (tool === 'measure') return { last: mn.last, end: () => void mn.dblclick(), drop: mn.drop }
+    if (tool === 'sketch') return { last: sk.last, end: sk.end, drop: sk.end }
+    const clearStair = () => updateDraft(() => ({ stairStart: null }))
+    if (tool === 'stair') return { last: stairStart, end: clearStair, drop: clearStair }
+    return { last: chain.at(-1) ?? null, end: finishChain, drop: finishChain }
+  }
+
+  /**
+   * A drawing press moving: once past its slop it's a drag, and the press point goes down as a
+   * click would put it (unless the press was on the run's last point, which it carries on from).
+   * Pressed away from a run under way, the run ends first and the point goes down on the next move,
+   * once the plan has caught up.
+   */
+  const moveDrawDrag = (d: Extract<Drag, { type: 'draw' }>, sx: number, sy: number, free: boolean, shiftKey: boolean) => {
+    if (d.pending) {
+      d.pending = false
+      d.placedFirst = true
+      clickAt(d.world, free, shiftKey)
+      return
+    }
+    if (d.started || !pastSlop({ x: d.sx, y: d.sy }, { x: sx, y: sy }, d.slop)) return
+    d.started = true
+    const run = drawRun()
+    if (run.last && continuesRun({ x: d.sx, y: d.sy }, { x: S(run.last)[0], y: S(run.last)[1] })) return
+    if (run.last) {
+      run.end()
+      d.pending = true
+      return
+    }
+    d.placedFirst = true
+    clickAt(d.world, free, shiftKey)
+  }
+
+  /** The release of a drag that drew: the next click, at the release (a typed length still sets a wall's length). */
+  const endDrawDrag = (d: Extract<Drag, { type: 'draw' }>, world: Vec2, free: boolean, shiftKey: boolean) => {
+    shift.current = shiftKey
+    if (d.pending) {
+      // Let go before the plan caught up: the press point starts the next run.
+      clickAt(d.world, free, shiftKey)
+      return
+    }
+    const from = chain.at(-1)
+    if ((tool === 'wall' || tool === 'retaining') && typed && from) {
+      const end = typedEnd(from, snapHere(world, { anchor: from, points: chain.slice(0, 1), free }).p)
+      if (end) {
+        if (tool === 'wall') placeWallPoint(end)
+        else placeRetainingPoint(end)
+        return
+      }
+    }
+    clickAt(world, free, shiftKey)
+  }
 
   const startPointer = (e: ReactPointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -1238,7 +1334,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       drag.current = { type: 'pan', sx, sy, start: v }
       return
     }
-    if (e.button === 1 || e.button === 2 || habits.space.grab() || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
+    const spaceHeld = e.button !== 1 && e.button !== 2 && habits.space.grab()
+    // A press and drag with a tool that draws point to point draws, from here to the release (src/pointer/dragDraw.ts).
+    const drawDrag =
+      e.button === 0 && !spaceHeld && !site.active && !flow.active && !brush.active && dragDraws({ tool, wallMode, sketchMode, sectionLine: sections.active })
+    if (drawDrag) {
+      const slop = touch && e.pointerType === 'touch' ? TAP_SLOP : DRAW_SLOP
+      drag.current = { type: 'draw', sx, sy, world, slop, started: false, pending: false, placedFirst: false }
+      return
+    }
+    if (e.button === 1 || e.button === 2 || spaceHeld || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
       return
@@ -1525,6 +1630,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     sections.move(world, free)
     brush.move(world)
     if (d?.type === 'brush') return
+    if (d?.type === 'draw') moveDrawDrag(d, sx, sy, free, e.shiftKey)
 
     if (d?.type === 'pan') {
       if (Math.hypot(sx - d.sx, sy - d.sy) < (e.pointerType === 'touch' ? TAP_SLOP : 4)) return
@@ -1725,7 +1831,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
     }
-    const d = drag.current
+    const pressed = drag.current
+    // A drawing press that never moved is a click, as any press that doesn't move is.
+    const d: Drag | null = pressed?.type === 'draw' && !pressed.started ? { type: 'pan', sx: pressed.sx, sy: pressed.sy, start: v } : pressed
     drag.current = null
     setDragKind(null)
     setBox(null)
@@ -1749,6 +1857,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const dragged = !!downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) > 4
       downAt.current = null
       rectRoom.up(W(sx, sy), dragged, snapFree(e))
+      return
+    }
+    if (d?.type === 'draw' && d.started) {
+      const [sx, sy] = local(e)
+      downAt.current = null
+      habits.space.release()
+      endDrawDrag(d, W(sx, sy), snapFree(e), e.shiftKey)
       return
     }
     if (d?.type === 'box') {
@@ -1817,10 +1932,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       if (say) notify(say)
     }
     if (e.button !== 0 || moved > 4 || (d && d.type !== 'pan')) return
+    clickAt(W(sx, sy), snapFree(e), e.shiftKey)
+  }
 
-    const world = W(sx, sy)
-    const free = snapFree(e)
-    shift.current = e.shiftKey
+  /** A click on the plan at a point (or the press and the release of a drag that draws), with snapping held off or not. */
+  const clickAt = (world: Vec2, free: boolean, shiftKey: boolean) => {
+    shift.current = shiftKey
     if (isDragHint(notice)) notify(null)
     if (flow.click(world)) return
     if (sections.click(world, free)) return
@@ -2074,6 +2191,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       // View on a phone changes nothing; Esc still clears the selection.
       if (viewOnly && e.key !== 'Escape') return
+      // Drawing by a face, H flips the side the wall goes (until the run's turn decides it).
+      if (byFace && e.key.toUpperCase() === FLIP_KEY && !e.altKey && !typed) {
+        e.preventDefault()
+        flipWallSide()
+        return
+      }
       // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
       const drawnFrom = tool === 'wall' || tool === 'retaining' ? chain.at(-1) : tool === 'area' || tool === 'roof' ? areaPts.at(-1) : undefined
       if (drawnFrom) {
@@ -2253,8 +2376,37 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
     const angle = ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 360) % 360
     const lines = [typed ? typedLabel(typed) : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`]
+    // Drawn by a face, the length is that face's: say so.
+    if (byFace && before === chain) lines.push(`along the ${faceWord(wallFace)}`)
     if (before.length > 1) lines.push(`Total ${fmtMm(polylineLength(before) + len)} mm`)
     return tag(b, lines)
+  }
+
+  /**
+   * A first wall drawn by a face: an arrow off the face's middle to the side the wall goes, until
+   * the run turns and its turn decides. H, or the Wall card's Flip side, flips it.
+   */
+  const faceMarker = (a: Vec2, b: Vec2, side: number) => {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+    if (len * v.k < 40) return null
+    const m: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    const out: Vec2 = [(-(b[1] - a[1]) / len) * side, ((b[0] - a[0]) / len) * side]
+    const [mx, my] = S(m)
+    const q = S([m[0] + out[0], m[1] + out[1]])
+    const ux = (q[0] - mx) / v.k
+    const uy = (q[1] - my) / v.k
+    const r = wallStyle.thickness * v.k + 10
+    const tip: Vec2 = [mx + ux * (r + 10), my + uy * (r + 10)]
+    const base: Vec2 = [mx + ux * r, my + uy * r]
+    const wing = (s: number): Vec2 => [base[0] - uy * 6 * s, base[1] + ux * 6 * s]
+    return (
+      <g className="face-side" aria-hidden="true">
+        <path d={`M${wing(1)[0]} ${wing(1)[1]}L${tip[0]} ${tip[1]}L${wing(-1)[0]} ${wing(-1)[1]}z`} />
+        <text x={tip[0] + ux * 8} y={tip[1] + uy * 8 + 4} textAnchor={Math.abs(ux) < 0.3 ? 'middle' : ux > 0 ? 'start' : 'end'}>
+          {touch?.phone ? 'Wall this side' : `Wall this side · ${FLIP_KEY} flips`}
+        </text>
+      </g>
+    )
   }
 
   /** The opening that a click would add, with how far it sits from each end of the wall. */
@@ -2382,15 +2534,20 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const d: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]
     const half = (tool === 'retaining' ? retainingThickness : wallStyle.thickness) / 2
     const n: Vec2 = [-d[1] * half, d[0] * half]
+    // Drawn by a face, the line drawn is that face and the wall lies wholly to one side of it.
+    const side = byFace ? faceSide([...chain, b]) : 0
+    const [lo, hi] = byFace ? (side > 0 ? [0, 2] : [-2, 0]) : [-1, 1]
     const poly: Vec2[] = [
-      [a[0] - n[0], a[1] - n[1]],
-      [b[0] - n[0], b[1] - n[1]],
-      [b[0] + n[0], b[1] + n[1]],
-      [a[0] + n[0], a[1] + n[1]],
+      [a[0] + n[0] * lo, a[1] + n[1] * lo],
+      [b[0] + n[0] * lo, b[1] + n[1] * lo],
+      [b[0] + n[0] * hi, b[1] + n[1] * hi],
+      [a[0] + n[0] * hi, a[1] + n[1] * hi],
     ]
     return (
       <g>
         <path className={`wall preview${tool === 'retaining' ? ' retaining' : ''}`} d={path(poly)} />
+        {byFace && <path className="chain" d={path([a, b], false)} />}
+        {byFace && chain.length === 1 && faceMarker(a, b, side)}
         {drawingTag(a, b, chain)}
       </g>
     )
