@@ -121,7 +121,7 @@ const MAX_CONTOUR_LABELS = 10
 const CUT = new THREE.Color().setRGB(...CUT_RGB, THREE.SRGBColorSpace)
 const FILL = new THREE.Color().setRGB(...FILL_RGB, THREE.SRGBColorSpace)
 
-function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFill, onPin }: Props & { refZ: number; onPin?: (p: Pin) => void }) {
+export function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFill, onPin }: Props & { refZ: number; onPin?: (p: Pin) => void }) {
   const { grid, stats } = terrain
   const exag = view.exaggeration
   // The levels the Show menu leaves on (null: all of them), kept stable so the house isn't rebuilt each frame.
@@ -248,6 +248,7 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
     <>
       <group scale={[1, exag, 1]}>
         <mesh
+          name="ground surface"
           geometry={surface}
           receiveShadow
           castShadow
@@ -258,7 +259,7 @@ function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFi
           <meshStandardMaterial vertexColors roughness={0.95} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
         </mesh>
         {view.showSolid && (
-          <mesh geometry={sides} receiveShadow>
+          <mesh name="block sides" geometry={sides} receiveShadow>
             <meshStandardMaterial color="#b49a7c" roughness={1} />
           </mesh>
         )}
@@ -341,8 +342,9 @@ function Markers({ points, color, kind, survey, terrain, refZ, exag, onHover }: 
     return g
   }, [inside, terrain, refZ, exag])
 
+  // Survey marks belong to the screen, not to a model file (userData.helper: src/export/model3d.tsx).
   return (
-    <group>
+    <group userData={{ helper: true }}>
       <lineSegments geometry={stems}>
         <lineBasicMaterial color={color} />
       </lineSegments>

@@ -1,12 +1,12 @@
-// Share › Export: a DXF for a surveyor or engineer, pictures of the plan and the 3D view, and the
-// door and window schedule (on screen, and as a CSV for a spreadsheet).
+// Share › Export: a DXF for a surveyor or engineer, pictures of the plan and the 3D view, the
+// door and window schedule (on screen, and as a CSV for a spreadsheet), and the 3D model.
 
 import { useState } from 'react'
 import { toastDownloaded } from '../components/printFiles'
 import { Waiting } from '../shell/tabs/Waiting'
 import { useLoaded } from '../shell/useSite'
 import { sortedLevels } from '../plan/model'
-import { dxfText, saveDxf, savePicture, saveScheduleCsv, scheduleRows } from './files'
+import { dxfText, saveDxf, saveModel, savePicture, saveScheduleCsv, scheduleRows, type ModelFormat } from './files'
 import { openingLayer, wallLayer } from './planDxf'
 import './export.css'
 import '../share/share.css'
@@ -17,6 +17,7 @@ export function ExportTab() {
   const d = useLoaded()
   const [error, setError] = useState<string | null>(null)
   const [dxfError, setDxfError] = useState<string | null>(null)
+  const [model, setModel] = useState<{ ground: boolean; furniture: boolean; busy: ModelFormat | null; error: string | null }>({ ground: true, furniture: true, busy: null, error: null })
   if (!d) return <Waiting />
   const rows = scheduleRows(d.plan)
   // The floor only helps when there is more than one.
@@ -34,6 +35,15 @@ export function ExportTab() {
     } catch (err) {
       setDxfError((err as Error).message || 'The DXF could not be written.')
     }
+  }
+  const saveTheModel = (format: ModelFormat) => {
+    setModel(m => ({ ...m, busy: format, error: null }))
+    saveModel({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, format, ground: model.ground, furniture: model.furniture })
+      .then(name => {
+        toastDownloaded(name)
+        setModel(m => ({ ...m, busy: null }))
+      })
+      .catch((err: Error) => setModel(m => ({ ...m, busy: null, error: err.message || 'The 3D model could not be made.' })))
   }
   return (
     <>
@@ -66,6 +76,38 @@ export function ExportTab() {
         </button>
       </div>
       {error && <p className="notice small">{error}</p>}
+
+      <h3>3D model</h3>
+      <p className="muted small">
+        The house and the block as the 3D view shows them, in real metres. A .glb (the one to pick) opens in Blender and most renderers and imports into SketchUp; OBJ is the
+        old standby that nearly every 3D program reads.
+      </p>
+      <details className="sh-whats">
+        <summary>What’s in it</summary>
+        <p className="muted small">
+          The ground and the block, then each level in its own group: walls with their openings, floors and slabs, roofs, stairs, retaining walls, the
+          driveway and outdoor areas, and furniture, each named (“Ground floor outside walls”) and in its own colour. Y is up and north is −Z. The origin
+          is the middle of the block at the bottom of the block’s base; the file notes its easting, northing and RL. The OBJ comes in a ZIP with its .mtl.
+        </p>
+      </details>
+      <label className="check">
+        <input type="checkbox" checked={model.ground} onChange={e => setModel(m => ({ ...m, ground: e.target.checked }))} />
+        Include the ground and the block
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={model.furniture} onChange={e => setModel(m => ({ ...m, furniture: e.target.checked }))} />
+        Include furniture
+      </label>
+      <div className="row">
+        {/* .glb first, the one to pick: one file with its colours inside, read by more programs. */}
+        <button className="secondary" disabled={!!model.busy} onClick={() => saveTheModel('glb')}>
+          {model.busy === 'glb' ? 'Making the model…' : 'Download 3D model (.glb)'}
+        </button>
+        <button className="secondary" disabled={!!model.busy} onClick={() => saveTheModel('obj')}>
+          {model.busy === 'obj' ? 'Making the model…' : 'Download OBJ (.zip)'}
+        </button>
+      </div>
+      {model.error && <p className="error">{model.error}</p>}
 
       <h3>Door and window schedule</h3>
       {rows.length === 0 ? (

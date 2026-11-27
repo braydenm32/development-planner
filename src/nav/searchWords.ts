@@ -31,6 +31,8 @@ export const MORE_WORDS: Record<string, string[]> = {
   materials: ['colour', 'colours', 'finishes', 'cladding colour'],
   'camera-street': ['walk around', 'look around', 'eye level'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
+  'cmd-model': ['gltf', 'glb', 'obj', 'sketchup', 'skp', 'blender', 'render', 'rendering', 'model export', 'export model', '3d file', 'fbx', 'dae', 'collada', 'twinmotion', 'lumion', 'enscape', 'architect model'],
+  'cmd-model-obj': ['obj', 'wavefront', 'mtl', 'sweet home 3d', 'model export'],
   'plan-overlays': ['grid', 'snapping'],
   sun: ['daylight'],
 }
