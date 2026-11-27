@@ -64,9 +64,15 @@ export interface OpeningFix {
  * Keep openings inside their wall's clear run after a change: slid along, and narrowed when the
  * wall is now shorter than they are. One goes only with its wall, or when its wall has no room
  * left for any opening; `fixes` lists every one that was narrowed or dropped, so it can be said.
+ *
+ * With `before` (the plan the change was made to), only the openings the change touched are
+ * fitted: one added or edited itself, one whose wall's ends moved, or one whose wall's clear run
+ * changed (a wall newly joined at its corner, say). The rest stay exactly as they were, so an
+ * unrelated edit never moves a door in an older plan that sits in a corner zone.
  */
-export function fitOpenings(plan: Plan): { plan: Plan; fixes: OpeningFix[] } {
+export function fitOpenings(plan: Plan, before?: Plan): { plan: Plan; fixes: OpeningFix[] } {
   const walls = new Map(plan.walls.map(w => [w.id, w]))
+  const touched = before ? touchedBy(before, plan) : () => true
   const fixes: OpeningFix[] = []
   let changed = false
   const openings = plan.openings.flatMap(o => {
@@ -75,6 +81,7 @@ export function fitOpenings(plan: Plan): { plan: Plan; fixes: OpeningFix[] } {
       changed = true
       return []
     }
+    if (!touched(o, w)) return [o]
     const run = wallClear(plan.walls, w)
     const room = run.to - run.from
     if (room < MIN_RUN) {
@@ -90,6 +97,41 @@ export function fitOpenings(plan: Plan): { plan: Plan; fixes: OpeningFix[] } {
     return [{ ...o, offset, width }]
   })
   return { plan: changed ? { ...plan, openings } : plan, fixes }
+}
+
+/** Whether a change from `before` to `after` touched an opening: itself, its wall's ends, or its wall's clear run. */
+function touchedBy(before: Plan, after: Plan): (o: Opening, w: Wall) => boolean {
+  if (before.walls === after.walls && before.openings === after.openings) return () => false
+  const wallWas = new Map(before.walls.map(w => [w.id, w]))
+  const was = new Map(before.openings.map(o => [o.id, o]))
+  const moved = new Map<string, boolean>()
+  const wallMoved = (w: Wall) => {
+    let m = moved.get(w.id)
+    if (m === undefined) {
+      const w0 = wallWas.get(w.id)
+      m = !w0 || w0.level !== w.level || !exact(w0.a, w.a) || !exact(w0.b, w.b)
+      if (!m && w0 && before.walls !== after.walls) {
+        const r0 = wallClear(before.walls, w0)
+        const r = wallClear(after.walls, w)
+        m = Math.abs(r0.from - r.from) > 1e-9 || Math.abs(r0.to - r.to) > 1e-9
+      }
+      moved.set(w.id, m)
+    }
+    return m
+  }
+  return (o, w) => {
+    const o0 = was.get(o.id)
+    if (!o0 || (o0 !== o && (o0.wall !== o.wall || o0.kind !== o.kind || o0.offset !== o.offset || o0.width !== o.width || o0.height !== o.height || o0.sill !== o.sill))) return true
+    return wallMoved(w)
+  }
+}
+
+const exact = (a: Vec2, b: Vec2) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9
+
+/** Whether an opening sits inside its wall's clear run (see wallClear): false for one that cuts into a corner's return wall. */
+export function openingClear(walls: Wall[], w: Wall, o: Pick<Opening, 'offset' | 'width'>): boolean {
+  const run = wallClear(walls, w)
+  return o.offset - o.width / 2 >= run.from - 0.0005 && o.offset + o.width / 2 <= run.to + 0.0005
 }
 
 /** Keep openings inside their walls (see fitOpenings). */

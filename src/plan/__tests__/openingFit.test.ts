@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Vec2 } from '../../lib/geom'
 import { useSafety } from '../../safety/store'
 import { emptyPlan, wallLength, type Plan, type Wall } from '../model'
-import { addOpening, addWall, deleteSelection, moveJoint, moveWall, updateOpening, updateRoof } from '../ops'
-import { fitOpenings, fixesText, wallClear } from '../openingFit'
+import { addOpening, addRoom, addWall, deleteSelection, moveJoint, moveWall, updateOpening, updateRoof, updateWall } from '../ops'
+import { fitOpenings, fixesText, openingClear, wallClear } from '../openingFit'
 import { usePlan } from '../store'
 
 const L = 'level_ground'
@@ -95,6 +95,84 @@ describe('an opening that no longer fits is narrowed, never dropped (DB-05, LD-0
     void toast.undo!()
     expect(usePlan.getState().plan!.openings[0].width).toBe(4.8)
     expect(wallLength(by(usePlan.getState().plan!, 'n'))).toBeCloseTo(10, 9)
+  })
+})
+
+describe('an opening an edit didn’t touch stays exactly as saved', () => {
+  /** An older plan: a door hard against the corner of the west wall (inside the 135 mm corner zone), and a window too wide for the east wall's clear run. */
+  function older(): Plan {
+    const p = box()
+    return {
+      ...p,
+      walls: [...p.walls, wall('shed', [20, 0], [24, 0])],
+      openings: [
+        { id: 'door', wall: 'w', kind: 'door', offset: 0.45, width: 0.82, height: 2.04, sill: 0, flipHinge: false, flipSwing: false },
+        { id: 'wide', wall: 'e', kind: 'window', offset: 4, width: 7.9, height: 1.2, sill: 0.9, flipHinge: false, flipSwing: false },
+      ],
+    }
+  }
+  const door = () => usePlan.getState().plan!.openings.find(o => o.id === 'door')!
+  const wide = () => usePlan.getState().plan!.openings.find(o => o.id === 'wide')!
+  beforeEach(() => {
+    usePlan.getState().load(older())
+    useSafety.setState({ toast: null })
+  })
+
+  it('an unrelated edit leaves its offset and width alone, and says nothing', () => {
+    const st = usePlan.getState()
+    // A wall that touches neither opening's wall: retyped, moved, and a new one drawn; then a room and a setting.
+    st.commit(p => updateWall(p, 'shed', { thickness: 0.2 }))
+    st.commit(p => moveWall(p, 'shed', [0, 1], p))
+    st.commit(p => addWall(p, L, [20, 5], [24, 5], { kind: 'external', thickness: 0.27 }))
+    st.commit(p => addRoom(p, L, [5, 4], 'Living'))
+    st.commit(p => ({ ...p, name: 'Renamed' }))
+    // A drag of that wall, there and back and there again.
+    const start = usePlan.getState().plan!
+    st.beginGesture()
+    st.preview(() => moveWall(start, 'shed', [1, 0], start))
+    st.preview(() => moveWall(start, 'shed', [2, 0], start))
+    st.endGesture()
+    expect(usePlan.getState().past.length).toBe(6)
+    expect(door()).toMatchObject({ offset: 0.45, width: 0.82 })
+    expect(wide()).toMatchObject({ offset: 4, width: 7.9 })
+    expect(useSafety.getState().toast).toBeNull()
+    // The card can still say it's in the corner zone.
+    const p = usePlan.getState().plan!
+    expect(openingClear(p.walls, by(p, 'w'), door())).toBe(false)
+  })
+
+  it('editing one opening fits that one only', () => {
+    usePlan.getState().commit(p => updateOpening(p, 'door', { height: 2.1 }))
+    expect(door().offset).toBeCloseTo(0.135 + 0.41, 9)
+    expect(wide()).toMatchObject({ offset: 4, width: 7.9 })
+  })
+
+  it('a change to its own wall fits it: its ends moving, or a wall newly joined at its corner', () => {
+    const st = usePlan.getState()
+    // The north wall moves in, taking the west wall's start and the east wall's end with it: the
+    // door is slid clear of the corner, and the window is narrowed to the shorter east wall.
+    st.commit(p => moveWall(p, 'n', [0, -1], p))
+    expect(door().offset).toBeCloseTo(0.545, 9)
+    expect(wide().width).toBeCloseTo(6.73, 9)
+    expect(useSafety.getState().toast?.text).toBe('Window narrowed to 6730 mm to fit its wall')
+    // A free-standing wall with a door at its end, then a wall drawn square off that end.
+    usePlan.getState().load({ ...box(), walls: [wall('a', [0, 0], [4, 0])], openings: [{ id: 'door', wall: 'a', kind: 'door', offset: 0.41, width: 0.82, height: 2.04, sill: 0, flipHinge: false, flipSwing: false }] })
+    usePlan.getState().commit(p => addWall(p, L, [20, 5], [24, 5], { kind: 'external', thickness: 0.27 }))
+    expect(door().offset).toBe(0.41)
+    usePlan.getState().commit(p => addWall(p, L, [0, 0], [0, 3], { kind: 'external', thickness: 0.27 }))
+    expect(door().offset).toBeCloseTo(0.545, 9)
+  })
+
+  it('a drag that takes its wall away and back leaves it as it was', () => {
+    const st = usePlan.getState()
+    const start = usePlan.getState().plan!
+    st.beginGesture()
+    st.preview(() => moveWall(start, 'n', [0, 1], start))
+    expect(door().offset).toBeCloseTo(0.545, 9)
+    st.preview(() => moveWall(start, 'n', [0, 0], start))
+    st.endGesture()
+    expect(door().offset).toBe(0.45)
+    expect(usePlan.getState().past.length).toBe(0)
   })
 })
 

@@ -3,7 +3,7 @@
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
 import { RetainEdges } from './RetainEdges'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
@@ -50,7 +50,8 @@ import { onNaturalGround } from '../plan/floorTypes'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { earthAgainstWall, roomArea, roofAboveGround, sameSpaceAs, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
-import { wallClear } from '../plan/openingFit'
+import { openingClear, wallClear } from '../plan/openingFit'
+import { showMovingEnd } from '../plan/movingEnd'
 import { MIN_WALL, stillerEnd, wallLengthProblem, type WallEnd } from '../plan/wallJoins'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
@@ -440,6 +441,13 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             onCommit={sill => set({ sill })}
           />
         )}
+        {!openingClear(plan.walls, w, o) && (
+          <p className="notice small">
+            {o.width > run.to - run.from + 0.0005
+              ? `It’s wider than the ${mm(run.to - run.from)} mm that fits ${nib ? 'between the corners of its wall' : 'in its wall'}. Make it narrower.`
+              : 'It runs into the wall at the corner. Move it clear of the corner, or make it narrower.'}
+          </p>
+        )}
         {head > high + 0.0005 && (
           <p className="notice small">
             Its head is {mm(head)} mm above the floor, higher than the {mm(high)} mm wall. Lower it or make it shorter.
@@ -720,8 +728,14 @@ function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
   // The end that disturbs less of the plan, until the person picks one.
   const [picked, setPicked] = useState<WallEnd | null>(null)
   const end = picked ?? stillerEnd(plan, w.id)
+  // While the length is being typed (or the end chosen), the plan marks the end that will move.
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    showMovingEnd(focused ? { wall: w.id, end } : null)
+    return () => showMovingEnd(null)
+  }, [focused, w.id, end])
   return (
-    <>
+    <div style={{ display: 'contents' }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
       <Num
         label="Length (centreline)"
         unit="mm"
@@ -741,7 +755,7 @@ function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
         onChange={setPicked}
       />
       <p className="muted small">The walls joined at that end slide with it, so the plan stays square.</p>
-    </>
+    </div>
   )
 }
 

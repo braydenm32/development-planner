@@ -140,9 +140,11 @@ let lastFixes: OpeningFix[] = []
  * After every change: openings stay in their walls, stairs keep to the levels they join, and a
  * floor that was the lowest keeps the floor type it was built with when levels change order.
  * A change that leaves the plan as it was gives back the plan itself, so it adds no undo step.
+ * Only openings the change touched are fitted to their walls (`since`: the plan the change
+ * started from, which for a drag is the plan when it began), so the rest stay as they were saved.
  */
-function tidy(p: Plan, before: Plan): Plan {
-  const fitted = fitOpenings(p)
+function tidy(p: Plan, before: Plan, since: Plan = before): Plan {
+  const fitted = fitOpenings(p, since)
   lastFixes = fitted.fixes
   const next = keepFloorTypes(before, followLevels(linkStairs(fitted.plan)))
   return samePlan(next, before) ? before : next
@@ -226,9 +228,9 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   beginGesture: () => setState({ gestureStart: getState().plan }),
 
   preview: fn => {
-    const { plan } = getState()
+    const { plan, gestureStart } = getState()
     if (!plan) return
-    setState({ plan: tidy(fn(plan), plan) })
+    setState({ plan: tidy(fn(plan), plan, gestureStart ?? plan) })
   },
 
   endGesture: () => {

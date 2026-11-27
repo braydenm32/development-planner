@@ -69,6 +69,7 @@ import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
 import { useWallFocus } from '../plan/wallFocus'
+import { useMovingEnd } from '../plan/movingEnd'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
@@ -274,6 +275,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const onRetainingTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'retaining-walls')
   const onCutFillTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'cut-fill')
   const wallHover = useWallFocus(s => s.hover)
+  const movingEnd = useMovingEnd(s => s.at)
   const wallChanged = useWallFocus(s => s.changed)
   const wallZoom = useWallFocus(s => s.zoom)
   const retainingThickness = useRetaining(s => s.thickness)
@@ -2463,6 +2465,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           !viewOnly &&
           tool === 'select' &&
           [selWall.a, selWall.b].map((p, i) => <circle key={i} className="handle" cx={S(p)[0]} cy={S(p)[1]} r={6} />)}
+        {/* The end that moves when the selected wall's length is typed, while that box has focus */}
+        {selWall && movingEnd?.wall === selWall.id && <circle className="moving-end" cx={S(selWall[movingEnd.end])[0]} cy={S(selWall[movingEnd.end])[1]} r={12} />}
 
         {site.over}
         {flow.over}
