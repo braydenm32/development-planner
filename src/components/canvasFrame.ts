@@ -12,7 +12,10 @@ export interface Insets {
  * `rail` is how much of the canvas's left the plan's tool rail takes (px), when it shows: what runs
  * along the foot of the plan (the live section) starts right of it.
  *
+ * `sheet` is how much of the canvas's foot a phone's open bottom sheet covers (px): the plan slides
+ * what was tapped clear of it, and the tool rail stops above it.
+ *
  * The frame floats its panels over the canvas, so fitting the plan keeps clear of them.
  * With no frame (a test rendering the plan alone), the plan fits the whole canvas.
  */
-export const CanvasFrame = createContext<{ insets: Insets; toolCard?: boolean; rail?: number } | null>(null)
+export const CanvasFrame = createContext<{ insets: Insets; toolCard?: boolean; rail?: number; sheet?: number } | null>(null)

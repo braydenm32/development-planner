@@ -68,6 +68,8 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
         title="Project menu"
+        // A phone shows only "⋯" (drawn in CSS), which is no name to a screen reader (AX-21).
+        aria-label={phone ? `Project menu: ${title}` : undefined}
       >
         <span className="project-title">{title}</span>
         <Icon name="chevD" size={14} />
