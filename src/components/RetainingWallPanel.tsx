@@ -35,6 +35,7 @@ import type { Earth } from '../plan/useEarthworks'
 import { Num, Select } from './fields'
 import { holdsBackSentence, SIDE_WORDS, sideLabel as sideWords } from './retainingWords'
 import { WallsHere } from './WallsHere'
+import { keepAndStay, settled } from './fieldKeys'
 import './retaining.css'
 
 interface Props {
@@ -474,7 +475,6 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
       placeholder={placeholder}
       value={editing ?? shown}
       onFocus={e => {
-        setEditing(shown)
         e.target.select()
         onFocus?.()
       }}
@@ -483,8 +483,9 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
         onBlur?.()
         commit()
       }}
+      data-settled={settled(editing, shown)}
       onKeyDown={e => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        if (e.key === 'Enter') keepAndStay(e.target as HTMLInputElement)
         if (e.key === 'Escape') {
           cancelled.current = true
           ;(e.target as HTMLInputElement).blur()
