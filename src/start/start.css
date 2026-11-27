@@ -602,6 +602,41 @@
   max-width: calc(var(--row-room) - 16px - clamp(0px, (var(--row-room) - 880px) * 999, 490px));
 }
 
+/* Placed by measuring (SketchChip, chipFit): in the top row whole or short, under the compass, or
+   waiting while the selection's card is open, so it never sits on the house (final check 4). */
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-row,
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-short {
+  top: 12px;
+  right: calc(var(--free-right, 16px) + 60px);
+  max-width: none;
+}
+
+/* Its own box on a computer, so its width can be measured even while folded away. */
+.app-shell:not(.phone) .sketch-chip .sk-what {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.app-shell:not(.phone) .sketch-chip.fit-short .sk-what,
+.app-shell:not(.phone) .sketch-chip.fit-drop .sk-what {
+  max-width: 0;
+  overflow: hidden;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-drop {
+  top: 72px;
+  right: var(--free-right, 16px);
+  max-width: none;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-off {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* In 3D the camera buttons have the top middle: the notice goes under them (CB-32, LD-17). */
 .app-shell:not(.phone) .canvas-3d .sketch-chip {
   top: 58px;
@@ -623,6 +658,11 @@
 /* The empty floor's tip steps down a line when the notice has dropped under the floor's chip. */
 .app-shell:not(.phone) .shell-main:has(.sketch-chip) .plan-hint {
   top: calc(60px + clamp(0px, (880px - var(--row-room)) * 999, 52px));
+}
+
+/* In the row, the tip keeps its place. */
+.app-shell:not(.phone) .shell-main:has(.sketch-chip.fit-row, .sketch-chip.fit-short, .sketch-chip.fit-off) .plan-hint {
+  top: 60px;
 }
 
 /* On a phone: under the floor chip, clear of the tool rail (in Edit) and the canvas buttons down the right. */

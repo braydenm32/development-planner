@@ -2,24 +2,57 @@
 // Site panel a line on what the sketch is, with Add the survey and Change size. Both go
 // through Replace survey's review, so the plan is kept and nothing changes unconfirmed.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from '../nav/router'
 import { useProjects } from '../projects/session'
 import { replaceSurvey } from '../safety/flows'
 import { pickFile, showToast } from '../safety/store'
-import { describeSketch, readSketchSize, SIDE_NAME, sketchSurvey, type SketchBlock, type StreetSide } from './sketch'
+import { chipFit, describeSketch, readSketchSize, SIDE_NAME, sketchSurvey, type SketchBlock, type StreetSide } from './sketch'
 import './start.css'
 
 /** On the canvas: this block is a sketch, and the survey can come in any time. */
 export function SketchChip() {
   const sketch = useProjects().opened?.survey?.sketch
+  const ref = useRef<HTMLDivElement>(null)
+  const [fit, setFit] = useState<ReturnType<typeof chipFit> | null>(null)
+  const on = !!sketch
+  useLayoutEffect(() => {
+    const el = ref.current
+    const main = el?.closest<HTMLElement>('.shell-main')
+    if (!on || !el || !main) return
+    const measure = () => {
+      const level = main.querySelector('.level-chip')?.getBoundingClientRect()
+      const compass = main.querySelector('.plan-compass')?.getBoundingClientRect()
+      // Only a computer's plan has the row (a phone, 3D and Costs place it in CSS).
+      if (!main.matches('.canvas-plan:not(.report)') || main.closest('.phone') || !level || !compass) return setFit(null)
+      const part = (q: string) => el.querySelector<HTMLElement>(q)
+      const edges = 30
+      const short = (part('b')?.offsetWidth ?? 0) + (part('button')?.offsetWidth ?? 0) + edges
+      const full = short + (part('.sk-what')?.scrollWidth ?? 0)
+      setFit(chipFit(compass.left - level.right - 16, full, short, main.classList.contains('has-inspector')))
+    }
+    measure()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    ro?.observe(main)
+    const level = main.querySelector('.level-chip')
+    if (level) ro?.observe(level)
+    // The selection's card opening moves the compass without resizing anything.
+    const mo = typeof MutationObserver === 'undefined' ? null : new MutationObserver(measure)
+    mo?.observe(main, { attributes: true, attributeFilter: ['class', 'style'] })
+    return () => {
+      ro?.disconnect()
+      mo?.disconnect()
+    }
+  }, [on])
   if (!sketch) return null
   return (
-    <div className="sketch-chip" role="status">
+    <div ref={ref} className={`sketch-chip${fit ? ` fit-${fit}` : ''}`} role="status" aria-hidden={fit === 'off' || undefined}>
       <span>
-        <b>Sketch block</b> · {describeSketch(sketch)}
+        <b>Sketch block</b> <span className="sk-what">· {describeSketch(sketch)}</span>
       </span>
-      <button onClick={() => pickFile('survey')}>Add the survey</button>
+      <button onClick={() => pickFile('survey')} tabIndex={fit === 'off' ? -1 : undefined}>
+        Add the survey
+      </button>
     </div>
   )
 }

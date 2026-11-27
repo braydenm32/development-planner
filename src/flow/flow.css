@@ -359,8 +359,10 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
   position: absolute;
   /* Above the live section under the plan, when it's open (src/sectionStrip), and above the hint
      when a small window gives it a line of its own (--foot-lift, shell.css). */
-  /* 74 px: clear of the hint along the foot when it takes its two lines. */
-  bottom: calc(74px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
+  /* 74 px: clear of the hint along the foot when it takes its two lines; on a computer, above it
+     however many lines it takes (--readout-h, measured by QuestionTray.tsx), so it never covers it. */
+  --q-bottom: calc(var(--section-strip-h, 0px) + max(74px + var(--foot-lift, 0px), var(--gap, 14px) + min(var(--foot-lift, 0px), 44px) + var(--readout-h, 0px) + 8px));
+  bottom: var(--q-bottom);
   left: calc(var(--free-left, 0px) + 4px);
   z-index: 7;
 }
@@ -419,7 +421,7 @@ body:has(.app-shell .toast):has(.sf-toast) .flow-card {
   width: min(380px, calc(100% - var(--free-left, 0px) - 90px));
   /* Its top stays under the chips along the top of the plan, even where the sketch notice has
      dropped to a second row (start.css): the list scrolls instead of covering them. */
-  max-height: calc(100% - 190px - var(--section-strip-h, 0px) - var(--foot-lift, 0px));
+  max-height: calc(100% - 116px - var(--q-bottom));
   overflow-y: auto;
   padding: 12px 14px 14px;
   border: 1px solid var(--line);

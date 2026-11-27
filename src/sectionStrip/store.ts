@@ -38,6 +38,10 @@ interface StripState {
   auto: boolean
   /** Its height on a computer (px), heading included. */
   height: number
+  /** The plan has too little room left for it (stripTight): it folds for now, without that being kept as a choice. */
+  tight: boolean
+  /** Shown all the same while tight: the viewer asked for it. */
+  tightShown: boolean
   /** Each project's cut, by project id, once it's been moved; a project not listed cuts along its house. */
   cuts: Record<string, Cut>
 }
@@ -106,8 +110,22 @@ function save(key: string, value: unknown) {
 export const useStrip = create<StripState>(() => {
   const prefs = readPrefs(load(PREFS))
   // Folded until the plan says there's a house (setStripAuto), unless the viewer chose.
-  return { ...prefs, auto: false, open: prefs.choice ?? false, cuts: readCuts(load(CUTS)) }
+  return { ...prefs, auto: false, tight: false, tightShown: false, open: prefs.choice ?? false, cuts: readCuts(load(CUTS)) }
 })
+
+/** Open as chosen, or as the plan has it, unless folded for room. */
+const openNow = (s: Pick<StripState, 'choice' | 'auto' | 'tight' | 'tightShown'>) => (s.choice ?? s.auto) && (!s.tight || s.tightShown)
+
+/** Plan narrower than this between the panel and the selection's card (px)… */
+export const TIGHT_W = 400
+/** …on a window shorter than this (px): the strip folds to leave the plan some room. */
+export const TIGHT_H = 900
+
+/**
+ * Whether the plan is too cramped for the strip on a computer: a small window with a panel and the
+ * selection's card both open leaves a strip of plan 200 px wide, and the strip took most of its height.
+ */
+export const stripTight = (planRoom: number, windowH: number) => planRoom < TIGHT_W && windowH < TIGHT_H
 
 const savePrefs = () => {
   const { choice, height } = useStrip.getState()
@@ -116,15 +134,23 @@ const savePrefs = () => {
 
 /** Fold away, or Show the section: the viewer's choice, which is kept. */
 export function setStripOpen(open: boolean) {
-  useStrip.setState({ open, choice: open })
+  // Shown while the plan is cramped, it stays shown until the room changes.
+  useStrip.setState({ open, choice: open, tightShown: open && useStrip.getState().tight })
   savePrefs()
+}
+
+/** The plan has room for the strip, or not (stripTight): folded for now, back as it was when there's room. */
+export function setStripTight(tight: boolean) {
+  const s = useStrip.getState()
+  if (s.tight === tight) return
+  useStrip.setState({ tight, tightShown: false, open: openNow({ ...s, tight, tightShown: false }) })
 }
 
 /** Whether the strip opens by itself (see opensItself): it does unless the viewer has chosen. */
 export function setStripAuto(auto: boolean) {
   const s = useStrip.getState()
   if (s.auto === auto) return
-  useStrip.setState({ auto, open: s.choice ?? auto })
+  useStrip.setState({ auto, open: openNow({ ...s, auto }) })
 }
 
 export const toggleStrip = () => setStripOpen(!useStrip.getState().open)

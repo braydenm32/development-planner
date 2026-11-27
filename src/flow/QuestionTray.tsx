@@ -93,6 +93,24 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     }
   }, [phone, open])
 
+  // On a computer the pill and the open list sit above the plan's hint at the foot, however many
+  // lines it has just grown to ("The walls close round a space…"): its height, for flow.css.
+  const pill = useRef<HTMLButtonElement>(null)
+  const shown = qs.length > 0
+  useLayoutEffect(() => {
+    const editor = (tray.current ?? pill.current)?.closest<HTMLElement>('.plan-editor')
+    const hint = editor?.querySelector<HTMLElement>(':scope > .readout')
+    if (phone || !editor || !hint) return
+    const measure = () => editor.style.setProperty('--readout-h', `${Math.round(hint.getBoundingClientRect().height)}px`)
+    measure()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    ro?.observe(hint)
+    return () => {
+      ro?.disconnect()
+      editor.style.removeProperty('--readout-h')
+    }
+  }, [phone, open, shown])
+
   if (!qs.length) return null
   const n = waiting(qs)
   // Something you did just asked; say so once the tool is down, so drawing isn't interrupted.
@@ -101,6 +119,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   if (!open)
     return (
       <button
+        ref={pill}
         type="button"
         className={`q-pill${fresh ? ' fresh' : ''}`}
         onClick={() => {

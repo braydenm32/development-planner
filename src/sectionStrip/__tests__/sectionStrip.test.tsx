@@ -17,7 +17,7 @@ import { garageFloor } from '../../plan/__tests__/fixtures'
 import { sectionDrawing } from '../../sections/section'
 import { bearingToLineUp, defaultCut, draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, stairsOnLevel, stripFrame, topRL } from '../geometry'
 import { SectionStrip } from '../SectionStrip'
-import { clampHeight, DEFAULT_H, FOLDED_H, MAX_H, MIN_H, opensItself, PHONE_H, phoneHeight, readCuts, readPrefs, setStripAuto, setStripOpen, stripSpace, useStrip } from '../store'
+import { clampHeight, DEFAULT_H, FOLDED_H, MAX_H, MIN_H, opensItself, PHONE_H, phoneHeight, readCuts, readPrefs, setStripAuto, setStripOpen, setStripTight, stripSpace, stripTight, useStrip } from '../store'
 import { steppedHouse } from './fixtures'
 
 const doc = parseDxf(readFileSync(new URL('../../../samples/sample-block.dxf', import.meta.url), 'utf8'))
@@ -222,6 +222,39 @@ describe('what the strip remembers', () => {
       setStripOpen(false)
       setStripAuto(true)
       expect(useStrip.getState()).toMatchObject({ open: false, choice: false })
+    } finally {
+      useStrip.setState(was)
+    }
+  })
+
+  it('folds for now when the plan is cramped, without that being kept, and shows when asked to (final check 4)', () => {
+    // 1024 × 768 with a panel and the selection's card open: about 180 px of plan across.
+    expect(stripTight(180, 768)).toBe(true)
+    expect(stripTight(436, 800)).toBe(false)
+    expect(stripTight(180, 1080)).toBe(false)
+    const was = useStrip.getState()
+    try {
+      useStrip.setState({ choice: null, auto: true, open: true, tight: false, tightShown: false })
+      setStripTight(true)
+      expect(useStrip.getState()).toMatchObject({ open: false, choice: null })
+      setStripAuto(false)
+      setStripAuto(true)
+      expect(useStrip.getState().open).toBe(false)
+      // Show the live section, there and then: it stays until the room changes.
+      setStripOpen(true)
+      expect(useStrip.getState()).toMatchObject({ open: true, tightShown: true })
+      setStripTight(false)
+      expect(useStrip.getState().open).toBe(true)
+      setStripTight(true)
+      expect(useStrip.getState().open).toBe(false)
+      // Room again: back as it was.
+      setStripTight(false)
+      expect(useStrip.getState().open).toBe(true)
+      // Folded away by choice stays folded.
+      setStripOpen(false)
+      setStripTight(true)
+      setStripTight(false)
+      expect(useStrip.getState().open).toBe(false)
     } finally {
       useStrip.setState(was)
     }

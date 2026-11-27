@@ -1025,6 +1025,27 @@ button.chip:hover .chip-label {
   left: calc(var(--free-left, 16px));
 }
 
+/* The floor's chip keeps to the plan's free part, beside the compass, never under the selection's
+   card: it wraps instead. With under 400 px of plan across (a small window with a panel and the
+   card open) the compass steps down under it, so the chip has the row (final check 4). */
+.app-shell:not(.phone) .shell-main.canvas-plan .level-chip.level-menu {
+  max-width: calc(var(--row-room) - 16px - clamp(0px, (var(--row-room) - 400px) * 999, 64px));
+}
+
+/* Narrow, its button's words wrap whole (Drawing on / Living level · FFL…) and the ghosts' note goes. */
+.app-shell:not(.phone) .shell-main.canvas-plan .level-menu-button {
+  flex-wrap: wrap;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan .level-chip.level-menu > .muted {
+  max-height: clamp(0px, (var(--row-room) - 400px) * 999, 80px);
+  overflow: hidden;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan .plan-compass {
+  top: calc(16px + clamp(0px, (400px - var(--row-room)) * 999, 112px));
+}
+
 /* A hidden panel's pill sits in the chip's corner: the chip goes under it. */
 .app-shell:not(.phone) .has-pill .level-chip {
   top: calc(var(--gap) + 44px);

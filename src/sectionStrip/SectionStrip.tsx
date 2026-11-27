@@ -22,7 +22,7 @@ import { floorRL, levelById, sortedLevels, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, stairsOnLevel, stripFrame, topRL, type StripFrame } from './geometry'
-import { FOLDED_H, MAX_H, MIN_H, phoneHeight, setStripHeight, setStripOpen, useStrip, type Cut } from './store'
+import { FOLDED_H, MAX_H, MIN_H, phoneHeight, setStripHeight, setStripOpen, setStripTight, stripTight, useStrip, type Cut } from './store'
 import '../sections/sections.css'
 import './strip.css'
 import { forTouch } from '../phone/words'
@@ -85,7 +85,14 @@ export function SectionStrip(props: SectionStripProps) {
   const width = Math.max(0, planW - from)
   const left = Math.max(0, coverL - from)
   const open = useStrip(s => s.open)
+  const foldedForRoom = useStrip(s => s.tight && !s.open && (s.choice ?? s.auto))
   const stored = useStrip(s => s.height)
+  // A small window with a panel and the selection's card open leaves little plan: the strip folds for now.
+  const room = planW - coverL - right
+  useLayoutEffect(() => {
+    setStripTight(!phone && stripTight(room, window.innerHeight))
+  }, [phone, room])
+  useEffect(() => () => setStripTight(false), [])
   const height = !open ? FOLDED_H : phone ? phoneHeight() : stored
   const level = usePlan(s => s.activeLevel)
   const frame: StripFrame = stripFrame(cut, S, k)
@@ -435,6 +442,7 @@ export function SectionStrip(props: SectionStripProps) {
             Along the house
           </button>
         )}
+        {foldedForRoom && <span className="muted hint">Folded to leave room for the plan</span>}
         <button type="button" className="plain small fold" onClick={() => setStripOpen(!open)} aria-expanded={open}>
           <Icon name={open ? 'chevD' : 'chevU'} size={14} /> {open ? 'Fold away' : 'Show the live section'}
         </button>

@@ -171,3 +171,16 @@ export function sketchAround(w: number, d: number): SketchBlock {
   const fit = (v: number) => Math.min(LIMITS.max, Math.max(12, Math.ceil(v + 12)))
   return { width: fit(w), depth: fit(d), fall: 0, street: 'S' }
 }
+
+/**
+ * Where the chip goes on a computer's plan, from the room in the top row between the floor's chip
+ * and the compass (px) and its own width with and without the block's size: in the row whole, or
+ * as "Sketch block" and its button alone; with no room there, a line under the compass, except
+ * while the selection's card is open, when it would sit on the house and take the clicks meant
+ * for it, so it waits (it's in Site › Block too) until the card closes.
+ */
+export function chipFit(room: number, full: number, short: number, inspector: boolean): 'row' | 'short' | 'drop' | 'off' {
+  if (full <= room) return 'row'
+  if (short <= room) return 'short'
+  return inspector ? 'off' : 'drop'
+}

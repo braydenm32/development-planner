@@ -5,7 +5,7 @@ import { parseDxf } from '../../lib/dxf'
 import { isLevel, slopeText } from '../../components/siteWords'
 import { streetSideLabel } from '../../phone/streetSideWords'
 import { guessCount, madeBlock } from '../../site/layersSeen'
-import { aboveStreet, describeSketch, ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
+import { chipFit, aboveStreet, describeSketch, ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
 
 const block = (b: Partial<SketchBlock> = {}): SketchBlock => ({ width: 15, depth: 30, fall: 0, street: 'S', ...b })
 
@@ -126,5 +126,15 @@ describe('a sketch block has no survey leftovers (HO-17, CB-31, LD-16, DB-33, HO
     expect(aboveStreet(102)).toBe('2.00 m above the street')
     expect(aboveStreet(99.25)).toBe('0.75 m below the street')
     expect(aboveStreet(100.004)).toBe('level with the street')
+  })
+})
+
+describe('where the sketch chip sits on a computer’s plan (final check 4)', () => {
+  it('takes the top row whole, then short, and never drops onto the house while the selection’s card is open', () => {
+    expect(chipFit(600, 580, 200, true)).toBe('row')
+    expect(chipFit(300, 580, 200, true)).toBe('short')
+    expect(chipFit(120, 580, 200, true)).toBe('off')
+    // With no card open it may take a line under the compass, short.
+    expect(chipFit(120, 580, 200, false)).toBe('drop')
   })
 })
