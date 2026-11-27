@@ -214,4 +214,29 @@ describe('Undo and Redo after a reload', () => {
     await app.settle()
     expect(((await app.actions.read(id))!.history as { past: Plan[] }).past).toHaveLength(1)
   })
+
+  // Final check 8: leaving the page (pagehide, or the tab hidden) saves at once what was waiting
+  // its 400 ms, and first keeps what is being typed in a box, which would otherwise only be kept
+  // as the box lost focus, which a reload never does.
+  it('saves the edit waiting, the history beside it and what is being typed, as the page is left', async () => {
+    let app = await load()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    await app.settle()
+    app.st().commit(dropWall)
+    let blurred = 0
+    // A name box whose blur keeps what was typed in it, as fields.tsx's do.
+    const box = { tagName: 'INPUT', type: 'text', blur: () => (blurred++, app.st().commit(dropWall)) }
+    expect(app.session.leavePage(box as unknown as Element)).toBe(box)
+    expect(blurred).toBe(1)
+    // Nothing waited for: the page may be gone a moment later.
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 2)
+    expect(app.st().past).toHaveLength(2)
+    // A button with focus is left alone; so is nothing.
+    const button = { tagName: 'BUTTON', blur: () => blurred++ }
+    expect(app.session.leavePage(button as unknown as Element)).toBeNull()
+    expect(app.session.leavePage(null)).toBeNull()
+    expect(blurred).toBe(1)
+  })
 })
