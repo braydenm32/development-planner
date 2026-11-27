@@ -1651,11 +1651,11 @@ export const HOMES: Home[] = [
       },
       {
         id: 'kbd-copy',
-        label: 'Copy, paste and duplicate',
-        keywords: ['copy', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl v', 'ctrl d', 'cmd c', 'paste in place', 'same place', 'another floor'],
-        features: ['kbd-copy-paste', 'paste-in-place'],
+        label: 'Copy, cut, paste and duplicate',
+        keywords: ['copy', 'cut', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl x', 'ctrl v', 'ctrl d', 'cmd c', 'cmd x', 'paste in place', 'same place', 'another floor'],
+        features: ['kbd-copy-paste', 'kbd-cut', 'paste-in-place'],
         shortcut: 'mod+C',
-        hint: '⌘C or Ctrl+C copies furniture, rooms, areas and walls with their doors and windows; V pastes them a little off to one side, or in the same place on another floor; Shift+V pastes in place; D copies and pastes in one go.',
+        hint: '⌘C or Ctrl+C copies furniture, rooms, areas and walls with their doors and windows; X cuts them (one Undo brings them back); V pastes them a little off to one side, or in the same place on another floor; Shift+V pastes in place; D copies and pastes in one go.',
       },
       {
         id: 'kbd-multi',

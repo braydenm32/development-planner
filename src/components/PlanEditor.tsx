@@ -51,7 +51,7 @@ import { roofAtPoint } from '../plan/roofPick'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
-import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
+import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
 import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
@@ -1724,10 +1724,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (mod) {
-        // Select all, copy, paste and duplicate; any other Ctrl/⌘ key goes on to the browser or the app (Ctrl+S saves).
+        // Select all, copy, cut, paste and duplicate; any other Ctrl/⌘ key goes on to the browser or the app (Ctrl+S saves).
         const k = e.key.toLowerCase()
         if (e.altKey || viewOnly) return
-        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'v' ? pasteCopied(e.shiftKey) : k === 'd' ? duplicateSelected() : false
+        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'x' ? cutSelected() : k === 'v' ? pasteCopied(e.shiftKey) : k === 'd' ? duplicateSelected() : false
         if (handled) e.preventDefault()
         return
       }
