@@ -2,6 +2,7 @@
 // selection inspector, and the fit and orientation controls.
 
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { withKey } from '../phone/words'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { WallModeSwitch } from '../components/WallModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
@@ -111,7 +112,7 @@ export function ToolRail({ earthworks = false }: { earthworks?: boolean }) {
       {buttons.map((b, i) => (
         // A line between one group of tools and the next.
         <span key={b.id} className={i > 0 && buttons[i - 1].group !== b.group ? 'tool-gap' : undefined}>
-          <button tabIndex={b.id === stop ? 0 : -1} className={b.on ? 'on' : ''} aria-pressed={b.on} onClick={b.pick} data-tip={`${b.label}: ${b.tip} (${b.key})`} aria-label={`${b.label} tool (${b.key})`} aria-description={b.tip}>
+          <button tabIndex={b.id === stop ? 0 : -1} className={b.on ? 'on' : ''} aria-pressed={b.on} onClick={b.pick} data-tip={`${b.label}: ${b.tip} (${b.key})`} aria-label={withKey(`${b.label} tool`, b.key)} aria-description={b.tip}>
             <Icon name={(b.icon ?? 'select') as IconName} size={17} />
             <span className="tool-name">{b.short ?? b.label}</span>
           </button>

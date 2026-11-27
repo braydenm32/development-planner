@@ -65,7 +65,7 @@ import { ViewLock } from '../phone/ViewLock'
 import { toggleTall, useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { usePlanNotices } from '../phone/notices'
 import { fitClearOf, PANEL_SELECTOR, useSheetHeight } from '../phone/sheetHeight'
-import { forTouch } from '../phone/words'
+import { forTouch, isTouch } from '../phone/words'
 import { projectsNow } from '../projects/session'
 import { projectTitle } from '../share/project'
 import { showToast } from '../safety/store'
@@ -334,7 +334,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       {/* View on a phone changes nothing (only Costs' prices can change there): the tabs get Undo and Redo's room (PH-34). */}
       {!(phone && mode === 'view' && route.kind === 'app' && route.area !== 'costs') && <UndoRedo />}
       {route.kind === 'app' && !phone && <StepsButton />}
-      <button className="search-button" onClick={openPalette} aria-label={nameWithKey('Search', 'mod+K', phone)} title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
+      <button className="search-button" onClick={openPalette} aria-label={nameWithKey('Search', 'mod+K', phone || isTouch())} title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
         <Icon name="search" size={16} />
         <span className="desk-only">Search</span>
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
@@ -426,10 +426,10 @@ function UndoRedo() {
   const redoName = redo.label ? `Redo: ${redo.label}` : 'Redo'
   return (
     <div className="undo-redo" role="group" aria-label="History">
-      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={nameWithKey(undoName, 'mod+Z', phone)} data-tip={`${undoName} ${shortcutText('mod+Z')}`}>
+      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={nameWithKey(undoName, 'mod+Z', phone || isTouch())} data-tip={`${undoName} ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={nameWithKey(redoName, 'mod+shift+Z', phone)} data-tip={`${redoName} ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={nameWithKey(redoName, 'mod+shift+Z', phone || isTouch())} data-tip={`${redoName} ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>
@@ -911,7 +911,7 @@ function MorePanel() {
   if (!area) return null
   return (
     <div ref={ref} className="more-list">
-      {area.more.items.map(item => {
+      {area.more.items.filter(item => !(item.action === 'keyboard-help' && isTouch())).map(item => {
         const Section = MORE_SECTIONS[item.id]
         return (
           <div key={item.id} id={`more-${item.id}`} className="more-item">

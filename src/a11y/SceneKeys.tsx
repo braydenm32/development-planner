@@ -4,6 +4,7 @@
 // screen reader, named with what it shows (./summary.ts).
 
 import { useEffect } from 'react'
+import { withKey } from '../phone/words'
 import { shortcutAllowed } from '../nav/keys'
 import { useCamera } from '../phone/cameraStore'
 import { SCENE_HELP_ID, sceneKeyStep } from './scene'
@@ -36,12 +37,12 @@ export function TurnButtons({ className }: { className?: string }) {
   const turn = (dir: 1 | -1) => useCamera.getState().nudge({ turn: dir })
   return (
     <div className={className ? `zoom-buttons ${className}` : 'zoom-buttons'} role="group" aria-label="Turn">
-      <button type="button" onClick={() => turn(-1)} aria-label="Turn left (←)" title="Turn the view left 15° (←)">
+      <button type="button" onClick={() => turn(-1)} aria-label={withKey('Turn left', '←')} title="Turn the view left 15° (←)">
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M12.5 11a5 5 0 0 0-8.6-4.6M3.5 3v3.6h3.6" />
         </svg>
       </button>
-      <button type="button" onClick={() => turn(1)} aria-label="Turn right (→)" title="Turn the view right 15° (→)">
+      <button type="button" onClick={() => turn(1)} aria-label={withKey('Turn right', '→')} title="Turn the view right 15° (→)">
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3.5 11a5 5 0 0 1 8.6-4.6M12.5 3v3.6H8.9" />
         </svg>

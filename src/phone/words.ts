@@ -16,6 +16,9 @@ const RULES: [RegExp, string][] = [
   // Whole sentences that are only about keys.
   [/\s*Press [A-Z] to [^.]*\./g, ''],
   [/\s*\[ and \] change the brush size; Esc stops\./g, ''],
+  [/\s*With the plan in focus, the arrow keys [^.]*\./g, ''],
+  // The plan's Select hint: no Delete key or right button under a finger; the selection's panel deletes.
+  [/ Delete removes; right-tap for more\./g, ' Its panel has Delete.'],
   [/[;,] or double-tap or press Esc to stop\b/g, ''],
   [/ Esc stops\./g, ''],
   // Site features: on a phone the panel is the sheet underneath, and Done ends tracing.
@@ -33,6 +36,9 @@ export function touchWords(text: string): string {
 
 /** Whether the main pointer is a finger (a phone or a tablet at any width). */
 export const isTouch = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
+
+/** A control's spoken name with its key ("Zoom out (−)"), or the name alone where there is no keyboard to press. */
+export const withKey = (name: string, key: string, touch = isTouch()): string => (touch ? name : `${name} (${key})`)
 
 /** The hint as written for a mouse, or reworded where the screen is touched. */
 export const forTouch = (text: string, touch = isTouch()): string => (touch ? touchWords(text) : text)

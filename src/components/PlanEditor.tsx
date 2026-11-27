@@ -86,6 +86,7 @@ import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
 import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
 import { useTouchCanvas } from '../phone/device'
+import { forTouch } from '../phone/words'
 import { boundsOf, clampToBounds, clearOfSheet, DOUBLE_TAP_ZOOM, isDoubleTap, panBy, PHONE_FIT, pinchView, TAP_SLOP, TOUCH_PICK_PX, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
 import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan } from '../plan/viewMemory'
 import { centreWithBlockStill, draggedPlacement } from '../plan/placement'
@@ -2945,7 +2946,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <span className="muted">
             {viewOnly
               ? (readHint ?? VIEW_HINT[touch?.phone ? 'phone' : 'desk'])
-              : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (rectRoom.hint ?? sk.hint ?? HINTS[tool])))}
+              : forTouch(sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (rectRoom.hint ?? sk.hint ?? HINTS[tool])))}
           </span>
         )}
       </div>

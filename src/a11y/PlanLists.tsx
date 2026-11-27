@@ -13,6 +13,7 @@ import { focusPlan } from '../plan/planFocus'
 import { OPENING_TOOLS, usePlan, type Selection } from '../plan/store'
 import { focusSoon } from '../nav/useModal'
 import { selectOnPlan } from '../shell/useSite'
+import { forTouch } from '../phone/words'
 import { announce } from './announce'
 import { focusLost, rowFocusAfter } from './rowFocus'
 import './a11y.css'
@@ -290,14 +291,14 @@ export function WallsDoorsBody({ plan }: { plan: Plan }) {
     <>
       {levels.length > 1 && <Select label="Level" value={level} options={[...levels].reverse().map(l => ({ id: l.id, label: l.name }))} onChange={id => usePlan.getState().setActiveLevel(id)} />}
       <h3>Walls ({walls.length})</h3>
-      <PickRows rows={walls} level={level} label="Walls" empty="No walls on this level yet. Draw them with the Wall tool (W), or add one by typing below." />
+      <PickRows rows={walls} level={level} label="Walls" empty={forTouch('No walls on this level yet. Draw them with the Wall tool (W), or add one by typing below.')} />
       <AddWall plan={plan} level={level} rows={walls} />
       <h3>Doors and windows ({openings.length})</h3>
       <PickRows rows={openings} level={level} label="Doors and windows" empty="No doors or windows on this level yet." />
       <AddOpening plan={plan} level={level} walls={walls} />
       <h3>Stairs ({stairs.length})</h3>
-      <PickRows rows={stairs} level={level} label="Stairs" empty="No stairs on this level. The Stair tool (S) draws one." />
-      <p className="muted small">Picking a row shows it on the plan and opens its details beside the plan, where it is changed or deleted. With the plan in focus, the arrow keys move what is picked 10 mm (Shift: 100 mm).</p>
+      <PickRows rows={stairs} level={level} label="Stairs" empty={forTouch('No stairs on this level. The Stair tool (S) draws one.')} />
+      <p className="muted small">{forTouch('Picking a row shows it on the plan and opens its details beside the plan, where it is changed or deleted. With the plan in focus, the arrow keys move what is picked 10 mm (Shift: 100 mm).')}</p>
     </>
   )
 }
