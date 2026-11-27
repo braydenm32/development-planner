@@ -8,7 +8,7 @@ import type { Terrain } from '../lib/terrain'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import { deleteLevelWithReview } from '../plan/editActions'
 import { planarFaces, roomShape } from '../plan/geometry'
-import { levelSummaries } from '../plan/keyNumbers'
+import { levelSummaries, roomsTotal as roomsTotalOf } from '../plan/keyNumbers'
 import { groundedLevels, levelFloorWords } from '../plan/levelMenu'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { addLevelAbove, addLevelAt, addLevelBelow, setLevelRL, updateLevel } from '../plan/ops'
@@ -20,6 +20,11 @@ import { LevelFloorType } from './FloorTypeFields'
 import { CeilingLineUp } from './RoofLineFields'
 import { FragmentRow } from './PlanSections'
 import './levels.css'
+
+/** The highest a ceiling can be typed (m). */
+const MAX_CEILING = 8
+/** How far above or below the block's ground a floor can be put (m). */
+const RL_REACH = 30
 
 /** Add a level (one undoable step) and draw on it. */
 function addAndPick(add: (p: Plan) => { plan: Plan; id: string }) {
@@ -41,6 +46,14 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
   const grounded = useMemo(() => groundedLevels(plan, survey, terrain?.grid), [plan, survey, terrain])
   // "Add level beside at RL…": the RL being typed, or null while it's closed.
   const [besideAt, setBesideAt] = useState<number | null>(null)
+  // A floor has to be within reach of the block's ground: a slip of the finger (RL 99999) is said, not built.
+  const rlCheck = (v: number) => {
+    const g = terrain?.stats
+    if (!g) return null
+    if (v > g.maxRL + RL_REACH) return `Max ${(g.maxRL + RL_REACH).toFixed(2)}: ${RL_REACH} m above the block’s highest ground`
+    if (v < g.minRL - RL_REACH) return `Min ${(g.minRL - RL_REACH).toFixed(2)}: ${RL_REACH} m below the block’s lowest ground`
+    return null
+  }
   return (
     <>
       <ul className="levels">
@@ -64,16 +77,17 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
           return (
             <div key={l.id} className="tool-options">
               <TextField label="Name" value={l.name} onCommit={name => st.commit(p => updateLevel(p, l.id, { name }))} />
-              <Num label="Floor RL" unit="RL" value={rl} onCommit={v => st.commit(p => setLevelRL(p, l.id, v))} />
+              <Num label="Floor RL" unit="RL" value={rl} check={rlCheck} onCommit={v => st.commit(p => setLevelRL(p, l.id, v))} />
               {below && (
                 <Num
                   label={`Step up from ${below.name}`}
                   unit="mm"
                   value={rl - floorRL(plan, below.id)}
+                  check={step => rlCheck(floorRL(plan, below.id) + step)}
                   onCommit={step => st.commit(p => setLevelRL(p, l.id, floorRL(p, below.id) + step))}
                 />
               )}
-              <Num label="Ceiling height" unit="mm" value={l.height} min={1.8} onCommit={height => st.commit(p => updateLevel(p, l.id, { height }))} />
+              <Num label="Ceiling height" unit="mm" value={l.height} min={1.8} max={MAX_CEILING} onCommit={height => st.commit(p => updateLevel(p, l.id, { height }))} />
               <CeilingLineUp plan={plan} levelId={l.id} />
               <LevelFloorType key={l.id} plan={plan} level={l.id} onGround={grounded.has(l.id)} />
               <div className="row floor-from-contour">
@@ -111,7 +125,7 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
       </div>
       {besideAt !== null && (
         <div className="tool-options add-level-at">
-          <Num label="New level’s floor" unit="RL" value={besideAt} onCommit={setBesideAt} />
+          <Num label="New level’s floor" unit="RL" value={besideAt} check={rlCheck} onCommit={setBesideAt} />
           <div className="row">
             <button
               className="primary"
@@ -161,7 +175,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
       {[...summary].reverse().map(s => {
         const open = !folded.has(s.level.id)
         const faces = planarFaces(plan.walls.filter(w => w.level === s.level.id))
-        const roomsTotal = s.rooms.reduce((t, r) => t + (r.area ?? 0), 0)
+        const roomsTotal = roomsTotalOf(s.rooms)
         const on = (type: Selection['type'], id: string) => selection?.type === type && selection.id === id
         return (
           <section key={s.level.id} className={`area-summary level-fold${open ? ' open' : ''}`}>
@@ -186,7 +200,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
                           onClick={() => showOnPlan(s.level.id, { type: 'room', id: r.room.id }, roomShape(r.room, faces)?.inner ?? [r.room.at])}
                         >
                           <span>{r.room.name}</span>
-                          <span className="muted">{r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`}</span>
+                          <span className="muted">{r.sameAs ? `Same space as ${r.sameAs.name}` : r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`}</span>
                         </button>
                       </li>
                     ))}
@@ -207,6 +221,9 @@ export function AreasBody({ plan }: { plan: Plan }) {
                   </ul>
                 ) : (
                   <p className="muted small">No rooms or areas on this level yet.</p>
+                )}
+                {s.rooms.some(r => r.sameAs) && (
+                  <p className="notice small">Two room labels are in one space, so it’s counted once. Draw the wall between them, or delete one label.</p>
                 )}
                 <dl className="stats">
                   {s.rooms.length > 0 && <FragmentRow label="Rooms total" value={`${roomsTotal.toFixed(2)} m²`} strong />}

@@ -67,9 +67,9 @@ export function FurnitureSelection({ item: f, del }: { item: Furniture; del: Rea
     <section className="selection">
       <h2>{item?.name ?? 'Furniture'}</h2>
       <TextField label="Name" value={furnitureName(f)} onCommit={label => st.commit(p => updateFurniture(p, f.id, { label: label === item?.name ? undefined : label }))} />
-      <Num label="Width" unit="mm" value={f.width} min={0.05} onCommit={width => size({ width })} />
-      <Num label="Depth" unit="mm" value={f.depth} min={0.05} onCommit={depth => size({ depth })} />
-      <Num label="Height" unit="mm" value={f.height} min={0.02} onCommit={height => size({ height })} />
+      <Num label="Width" unit="mm" value={f.width} min={0.05} max={10} onCommit={width => size({ width })} />
+      <Num label="Depth" unit="mm" value={f.depth} min={0.05} max={10} onCommit={depth => size({ depth })} />
+      <Num label="Height" unit="mm" value={f.height} min={0.02} max={5} onCommit={height => size({ height })} />
       <Num label="Turned (anticlockwise)" unit="°" value={f.rotation} onCommit={turn} />
       <div className="row">
         <button className="secondary" onClick={() => turn(f.rotation + 90)} title="Turn a quarter turn anticlockwise (Q)">

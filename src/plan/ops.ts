@@ -3,9 +3,10 @@ import {
   FLOOR_STRUCTURE,
   floorRL,
   houseWalls,
+  isRetaining,
   newId,
   sortedLevels,
-  wallDir,
+  WALL_PRESETS,
   wallLength,
   type Area,
   type AreaKind,
@@ -21,48 +22,72 @@ import {
   type WallKind,
 } from './model'
 import { furnitureCorners, resized } from './furniture'
+import { closestOnSegment, planarFaces } from './geometry'
+import { wallClear } from './openingFit'
+import { followTees, insideHouse, resizeWall, shiftJoint, type WallEnd } from './wallJoins'
 import { defaultGables, simplifyRing } from './roof'
 import type { RoomTypeId } from './roomTypes'
 import { followLevels, linkStairs, stairLayout } from './stairs'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
-const TOL = 1e-3
-const same = (a: Vec2, b: Vec2) => Math.abs(a[0] - b[0]) <= TOL && Math.abs(a[1] - b[1]) <= TOL
+/** A new wall wholly on top of one already there (same level, both house walls or both retaining) adds nothing. */
+export function wallAlreadyThere(plan: Plan, level: string, a: Vec2, b: Vec2, kind: WallKind): boolean {
+  const on = (p: Vec2, w: Wall) => closestOnSegment(p, w.a, w.b).dist <= 1e-3
+  return plan.walls.some(w => w.level === level && isRetaining(w) === (kind === 'retaining') && wallLength(w) > 0.01 && on(a, w) && on(b, w))
+}
 
+/**
+ * The wall type a new wall gets: the tool's, except that a wall drawn wholly inside the house
+ * with an outside-wall type is an inside wall, at the internal preset's thickness.
+ */
+export function wallStyleAt(plan: Plan, level: string, a: Vec2, b: Vec2, style: { kind: WallKind; thickness: number }): { kind: WallKind; thickness: number } {
+  if (style.kind !== 'external' || !insideHouse(plan.walls, level, a, b)) return style
+  return { kind: 'internal', thickness: presetThickness('internal') }
+}
+
+/** The usual thickness of a kind of wall: its first preset's. */
+export const presetThickness = (kind: WallKind): number => WALL_PRESETS.find(p => p.kind === kind)!.thickness
+
+/**
+ * Change a wall's kind. Its thickness follows to the new kind's usual one (`usual`: the Wall
+ * tool's, when it's set to that kind; otherwise the kind's first preset), unless it was typed: a
+ * thickness that isn't one of the old kind's presets is the person's own and stays.
+ */
+export function setWallKind(plan: Plan, id: string, kind: WallKind, usual = presetThickness(kind)): Plan {
+  const w = plan.walls.find(x => x.id === id)
+  if (!w || w.kind === kind) return plan
+  const preset = WALL_PRESETS.some(p => p.kind === w.kind && Math.abs(p.thickness - w.thickness) < 1e-9)
+  return updateWall(plan, id, { kind, ...(preset ? { thickness: usual } : {}) })
+}
+
+/** Add a wall. One with no length, or wholly on top of a wall already there, changes nothing. */
 export function addWall(plan: Plan, level: string, a: Vec2, b: Vec2, style: { kind: WallKind; thickness: number }): Plan {
   if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.01) return plan
+  if (wallAlreadyThere(plan, level, a, b, style.kind)) return plan
   const wall: Wall = { id: newId('wall'), level, a: [a[0], a[1]], b: [b[0], b[1]], ...style }
   return { ...plan, walls: [...plan.walls, wall] }
 }
 
-/** Move every wall end on the level that sits at `from`, so joined walls stay joined. */
+/** Move every wall end on the level that sits at `from`, so joined walls stay joined; walls butting into one that moves follow it. */
 export function moveJoint(plan: Plan, level: string, from: Vec2, to: Vec2): Plan {
-  const walls = plan.walls.map(w => {
-    if (w.level !== level) return w
-    const a = same(w.a, from) ? to : w.a
-    const b = same(w.b, from) ? to : w.b
-    return a === w.a && b === w.b ? w : { ...w, a: [a[0], a[1]] as Vec2, b: [b[0], b[1]] as Vec2 }
-  })
-  return { ...plan, walls }
+  return followTees(plan, shiftJoint(plan, level, from, to))
 }
 
-/** Shift a whole wall; walls joined at its ends stretch to follow. */
+/** Shift a whole wall; walls joined at its ends stretch to follow, and so do walls that butt into it. */
 export function moveWall(plan: Plan, id: string, delta: Vec2, start: Plan): Plan {
   const w0 = start.walls.find(w => w.id === id)
   if (!w0) return plan
   const a: Vec2 = [w0.a[0] + delta[0], w0.a[1] + delta[1]]
   const b: Vec2 = [w0.b[0] + delta[0], w0.b[1] + delta[1]]
-  let next = moveJoint(start, w0.level, w0.a, a)
-  next = moveJoint(next, w0.level, w0.b, b)
-  return next
+  return followTees(start, shiftJoint(shiftJoint(start, w0.level, w0.a, a), w0.level, w0.b, b))
 }
 
-/** Change a wall's length by moving its end point (and anything joined there). */
-export function setWallLength(plan: Plan, id: string, length: number): Plan {
-  const w = plan.walls.find(x => x.id === id)
-  if (!w || length < 0.05) return plan
-  const d = wallDir(w)
-  return moveJoint(plan, w.level, w.b, [w.a[0] + d[0] * length, w.a[1] + d[1] * length])
+/**
+ * Change a wall's length from one end (the one that disturbs less of the plan, unless given). The
+ * walls joined at that end slide with it, so the plan stays square (see resizeWall).
+ */
+export function setWallLength(plan: Plan, id: string, length: number, end?: WallEnd): Plan {
+  return resizeWall(plan, id, length, end)
 }
 
 export function updateWall(plan: Plan, id: string, patch: Partial<Wall>): Plan {
@@ -70,14 +95,15 @@ export function updateWall(plan: Plan, id: string, patch: Partial<Wall>): Plan {
 }
 
 export function addOpening(plan: Plan, wall: Wall, kind: OpeningKind, offset: number, d: OpeningDefaults): Plan {
-  const len = wallLength(wall)
-  const width = Math.min(d.width, len - 0.05)
+  // Inside the wall's clear run, so it doesn't cut into a wall that turns off the end.
+  const run = wallClear(plan.walls, wall)
+  const width = Math.min(d.width, run.to - run.from)
   if (width < 0.3) return plan
   const o: Opening = {
     id: newId(kind),
     wall: wall.id,
     kind,
-    offset: Math.min(Math.max(offset, width / 2), len - width / 2),
+    offset: Math.min(Math.max(offset, run.from + width / 2), run.to - width / 2),
     width,
     height: d.height,
     sill: kind === 'window' ? d.sill : 0,
@@ -211,7 +237,7 @@ export function deleteSelection(plan: Plan, sel: Selection): Plan {
   }
 }
 
-/** Add a level above the top one, copying the top level's external walls as a start. */
+/** Add a level above the top one, copying the top level's outside walls as a start. */
 export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
   const top = sortedLevels(plan).at(-1)!
   const level: Level = {
@@ -220,8 +246,12 @@ export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
     elevation: Math.round((top.elevation + top.height + FLOOR_STRUCTURE) * 1000) / 1000,
     height: top.height,
   }
-  const copied = plan.walls
-    .filter(w => w.level === top.id && w.kind === 'external')
+  // A wall marked external but standing inside the house (drawn before inside walls were told apart)
+  // isn't an outside wall: it's left out, as long as the walls that remain still close round a floor.
+  const external = plan.walls.filter(w => w.level === top.id && w.kind === 'external')
+  const outside = external.filter(w => !insideHouse(plan.walls.filter(x => x.id !== w.id), top.id, w.a, w.b))
+  const encloses = planarFaces(outside).some(f => f.area > 0)
+  const copied = (encloses ? outside : external)
     .map(w => ({ ...w, id: newId('wall'), level: level.id }))
   // A stair on the old top level that climbs a storey now arrives on the new floor.
   return { plan: linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }), id: level.id }

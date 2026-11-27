@@ -3,11 +3,11 @@
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
 import { RetainEdges } from './RetainEdges'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_CROSS_FALL, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
-import type { Terrain } from '../lib/terrain'
+import { bearingName, type Terrain } from '../lib/terrain'
 import { driveEndPoints, driveLevelsOf, garageRL, streetRL } from '../plan/driveway'
 import {
   AREA_KINDS,
@@ -33,6 +33,7 @@ import {
   type Wall,
 } from '../plan/model'
 import {
+  setWallKind,
   setWallLength,
   updateArea,
   updateOpening,
@@ -50,7 +51,10 @@ import { piersGroundNote } from '../plan/platforms'
 import { onNaturalGround } from '../plan/floorTypes'
 import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
-import { earthAgainstWall, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { earthAgainstWall, roomArea, roofAboveGround, sameSpaceAs, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
+import { openingClear, wallClear } from '../plan/openingFit'
+import { showMovingEnd } from '../plan/movingEnd'
+import { MIN_WALL, stillerEnd, wallLengthProblem, type WallEnd } from '../plan/wallJoins'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
@@ -81,6 +85,23 @@ const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'skillion', label: 'Skillion (single slope)' },
   { id: 'flat', label: 'Flat' },
 ]
+
+// The most a number box takes, so a slip (an extra nought, metres for mm) is said and not built.
+/** Longest wall (m). */
+const MAX_WALL = 200
+/** Thickest wall (m). */
+const MAX_THICKNESS = 1
+/** The biggest door, window or garage door the tools draw (m). */
+const MAX_OPENING = { width: 12, height: 6, sill: 5 }
+/** Steepest roof (°), and its widest eaves (m). */
+const MAX_PITCH = 75
+const MAX_OVERHANG = 5
+/** Widest stair, deepest tread and the most one stair climbs (m). */
+const MAX_STAIR_WIDTH = 3
+const MAX_GOING = 0.6
+const MAX_STAIR_RISE = 20
+
+const mm = (m: number) => Math.round(m * 1000)
 
 /** The stair panel's "Goes up to" choice for a top typed in by hand, not joined to a level. */
 const CUSTOM_TOP = '__custom'
@@ -141,7 +162,7 @@ export function WallOptions() {
           <option value={-1}>Custom</option>
         </select>
       </label>
-      <Num label="Thickness" unit="mm" value={wallStyle.thickness} min={0.05} onCommit={t => st.setWallStyle({ ...wallStyle, thickness: t })} />
+      <Num label="Thickness" unit="mm" value={wallStyle.thickness} min={0.05} max={MAX_THICKNESS} onCommit={t => st.setWallStyle({ ...wallStyle, thickness: t })} />
       <Select
         label="Kind"
         value={wallStyle.kind}
@@ -154,6 +175,7 @@ export function WallOptions() {
           st.setWallStyle({ kind, thickness })
         }}
       />
+      {wallStyle.kind === 'external' && <p className="muted small">A wall drawn wholly inside the house is an internal wall (110 mm stud), whatever the type here.</p>}
       <p className="muted small">A retaining preset or kind picks the Retaining wall tool (T), which asks once which side a wall holds back and how high.</p>
     </div>
   )
@@ -164,10 +186,10 @@ export function OpeningOptions({ kind: tool }: { kind: OpeningKind }) {
   const st = usePlan.getState()
   return (
     <div className="tool-options">
-      <Num label="Width" unit="mm" value={openingDefaults[tool].width} min={0.3} onCommit={width => st.setOpeningDefaults(tool, { ...openingDefaults[tool], width })} />
-      <Num label="Height" unit="mm" value={openingDefaults[tool].height} min={0.3} onCommit={height => st.setOpeningDefaults(tool, { ...openingDefaults[tool], height })} />
+      <Num label="Width" unit="mm" value={openingDefaults[tool].width} min={0.3} max={MAX_OPENING.width} onCommit={width => st.setOpeningDefaults(tool, { ...openingDefaults[tool], width })} />
+      <Num label="Height" unit="mm" value={openingDefaults[tool].height} min={0.3} max={MAX_OPENING.height} onCommit={height => st.setOpeningDefaults(tool, { ...openingDefaults[tool], height })} />
       {tool === 'window' && (
-        <Num label="Sill height" unit="mm" value={openingDefaults.window.sill} min={0} onCommit={sill => st.setOpeningDefaults('window', { ...openingDefaults.window, sill })} />
+        <Num label="Sill height" unit="mm" value={openingDefaults.window.sill} min={0} max={MAX_OPENING.sill} onCommit={sill => st.setOpeningDefaults('window', { ...openingDefaults.window, sill })} />
       )}
       {tool === 'door' && (
         <p className="muted small">
@@ -251,8 +273,8 @@ export function RoofOptions() {
     <div className="tool-options">
       <RoofModeSwitch />
       <Select label="Type" value={roofDefaults.type} options={ROOF_TYPES} onChange={type => st.setRoofDefaults({ ...roofDefaults, type })} />
-      <Num label="Pitch" unit="°" value={roofDefaults.pitch} min={1} onCommit={pitch => st.setRoofDefaults({ ...roofDefaults, pitch: Math.min(pitch, 75) })} />
-      <Num label="Overhang" unit="mm" value={roofDefaults.overhang} min={0} onCommit={overhang => st.setRoofDefaults({ ...roofDefaults, overhang })} />
+      <Num label="Pitch" unit="°" value={roofDefaults.pitch} min={1} max={MAX_PITCH} onCommit={pitch => st.setRoofDefaults({ ...roofDefaults, pitch })} />
+      <Num label="Overhang" unit="mm" value={roofDefaults.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => st.setRoofDefaults({ ...roofDefaults, overhang })} />
     </div>
   )
 }
@@ -263,7 +285,7 @@ export function StairOptions() {
   return (
     <div className="tool-options">
       <Select label="Shape" value={stairDefaults.shape} options={STAIR_SHAPES} onChange={shape => st.setStairDefaults({ ...stairDefaults, shape })} />
-      <Num label="Width" unit="mm" value={stairDefaults.width} min={0.6} onCommit={width => st.setStairDefaults({ ...stairDefaults, width })} />
+      <Num label="Width" unit="mm" value={stairDefaults.width} min={0.6} max={MAX_STAIR_WIDTH} onCommit={width => st.setStairDefaults({ ...stairDefaults, width })} />
       {stairDefaults.shape !== 'straight' && (
         <Select
           label="Turns"
@@ -415,9 +437,15 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <h2>{w.kind === 'internal' ? 'Internal wall' : 'External wall'}</h2>
         <WallsHere wall={w} plan={plan} />
         <WallFacts plan={plan} wall={w} groundAt={groundAt} />
-        <Num label="Length (centreline)" unit="mm" value={wallLength(w)} min={0.05} onCommit={len => st.commit(p => setWallLength(p, w.id, len))} />
-        <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
-        <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />
+        <WallLength key={w.id} plan={plan} wall={w} />
+        <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} max={MAX_THICKNESS} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
+        <Select
+          label="Kind"
+          value={w.kind}
+          options={WALL_KINDS}
+          // The Wall tool's own thickness for that kind, when it's set to it: the type the house is being drawn in.
+          onChange={kind => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined))}
+        />
         <div className="row">{del}</div>
       </section>
     )
@@ -428,6 +456,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const w = o && plan.walls.find(x => x.id === o.wall)
     if (!o || !w) return null
     const set = (patch: Partial<typeof o>) => st.commit(p => updateOpening(p, o.id, patch))
+    // What it has to fit in: the wall's clear run between the walls that turn off its ends, and the wall's height.
+    const run = wallClear(plan.walls, w)
+    const high = wallTopRL(plan, w) - floorRL(plan, w.level)
+    const nib = run.from > 0.0005 || run.to < wallLength(w) - 0.0005
+    const head = o.sill + o.height
     return (
       <section className="selection">
         <h2>{OPENING_NAMES[o.kind]}</h2>
@@ -440,14 +473,55 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             <option value="opening">Opening (no door)</option>
           </select>
         </label>
-        <Num label="Width" unit="mm" value={o.width} min={0.3} onCommit={width => set({ width })} />
-        <Num label="Height" unit="mm" value={o.height} min={0.3} onCommit={height => set({ height })} />
-        {o.kind === 'window' && <Num label="Sill height" unit="mm" value={o.sill} min={0} onCommit={sill => set({ sill })} />}
+        <Num
+          label="Width"
+          unit="mm"
+          value={o.width}
+          min={0.3}
+          check={v => (v > run.to - run.from + 1e-9 ? `Max ${mm(run.to - run.from)} mm, the widest that fits ${nib ? 'between the corners of its wall' : 'its wall'}` : null)}
+          onCommit={width => set({ width })}
+        />
+        <Num
+          label="Height"
+          unit="mm"
+          value={o.height}
+          min={0.3}
+          check={v => (v + o.sill > high + 1e-9 ? `Max ${mm(high - o.sill)} mm: the wall is ${mm(high)} mm high${o.sill > 0 ? ` and the sill is at ${mm(o.sill)}` : ''}` : null)}
+          onCommit={height => set({ height })}
+        />
+        {o.kind === 'window' && (
+          <Num
+            label="Sill height"
+            unit="mm"
+            value={o.sill}
+            min={0}
+            check={v => (v + o.height > high + 1e-9 ? `Max ${mm(Math.max(0, high - o.height))} mm, or its head is above the ${mm(high)} mm wall` : null)}
+            onCommit={sill => set({ sill })}
+          />
+        )}
+        {!openingClear(plan.walls, w, o) && (
+          <p className="notice small">
+            {o.width > run.to - run.from + 0.0005
+              ? `It’s wider than the ${mm(run.to - run.from)} mm that fits ${nib ? 'between the corners of its wall' : 'in its wall'}. Make it narrower.`
+              : 'It runs into the wall at the corner. Move it clear of the corner, or make it narrower.'}
+          </p>
+        )}
+        {head > high + 0.0005 && (
+          <p className="notice small">
+            Its head is {mm(head)} mm above the floor, higher than the {mm(high)} mm wall. Lower it or make it shorter.
+          </p>
+        )}
         <Num
           label="From wall start to near edge"
           unit="mm"
           value={o.offset - o.width / 2}
-          min={0}
+          check={v =>
+            v < run.from - 1e-9
+              ? `Min ${mm(run.from)} mm${run.from > 0.0005 ? ', clear of the wall at that corner' : ''}`
+              : v > run.to - o.width + 1e-9
+                ? `Max ${mm(run.to - o.width)} mm, to stay ${run.to < wallLength(w) - 0.0005 ? 'clear of the wall at the far corner' : 'in its wall'}`
+                : null
+          }
           onCommit={edge => set({ offset: edge + o.width / 2 })}
         />
         {o.kind === 'door' && (
@@ -469,6 +543,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const r = plan.rooms.find(x => x.id === selection.id)
     if (!r) return null
     const area = roomArea(plan, r)
+    const shared = sameSpaceAs(plan, r)
     return (
       <section className="selection">
         <h2>Room</h2>
@@ -476,6 +551,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <span>Area</span>
           <b>{area === null ? 'not enclosed' : `${area.toFixed(2)} m²`}</b>
         </div>
+        {shared && (
+          <p className="notice small">
+            Same space as {shared.name}: no wall divides them, so this is the area of both together and it’s counted once in Rooms total. Draw the wall between them, or delete one label.
+          </p>
+        )}
         <RoomName room={r} />
         <RoomTypeField room={r} />
         <RoomFloorType key={r.id} plan={plan} room={r} />
@@ -510,8 +590,8 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       <section className="selection">
         <h2>Roof</h2>
         <Select<RoofType> label="Type" value={r.type} options={ROOF_TYPES} onChange={type => set({ type })} />
-        {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} onCommit={pitch => set({ pitch: Math.min(pitch, 75) })} />}
-        <Num label="Overhang" unit="mm" value={r.overhang} min={0} onCommit={overhang => set({ overhang })} />
+        {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} max={MAX_PITCH} onCommit={pitch => set({ pitch })} />}
+        <Num label="Overhang" unit="mm" value={r.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => set({ overhang })} />
         <RoofLineFields plan={plan} roof={r} />
         {r.type === 'gable' && <p className="muted small">Click the G and H markers on the plan to choose which ends are gables (G) and which are hipped (H).</p>}
         {r.type === 'skillion' && <p className="muted small">Click a marker on the plan to choose the low side. The roof rises away from it.</p>}
@@ -560,7 +640,6 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const joined = typeof s.toLevel === 'string' ? s.toLevel : CUSTOM_TOP
     const goesTo = [...ups.map(l => ({ id: l.id, label: l.name })), { id: CUSTOM_TOP, label: 'Custom top RL' }]
     const typedTop = (t: number) => {
-      if (t <= bottom + 0.1) return
       // Typing the joined floor's own level keeps it joined; any other top is the person's own.
       const keep = typeof s.toLevel === 'string' && Math.abs(floorRL(plan, s.toLevel) - t) < 0.0005
       set({ rise: t - bottom, ...(keep ? {} : { toLevel: null }) })
@@ -594,11 +673,35 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             onChange={turn => set({ turn })}
           />
         )}
-        <Num label="Width" unit="mm" value={s.width} min={0.5} onCommit={width => set({ width })} />
-        <Num label="Tread depth (going)" unit="mm" value={s.going} min={0.15} onCommit={going => set({ going })} />
+        <Num label="Width" unit="mm" value={s.width} min={0.5} max={MAX_STAIR_WIDTH} onCommit={width => set({ width })} />
+        <Num label="Tread depth (going)" unit="mm" value={s.going} min={0.15} max={MAX_GOING} onCommit={going => set({ going })} />
         <Select label="Goes up to" value={joined} options={goesTo} onChange={id => set({ toLevel: id === CUSTOM_TOP ? null : id })} />
-        <Num label="Bottom" unit="RL" value={bottom} onCommit={b => b < top - 0.1 && set({ base: b - floorRL(plan, s.level), rise: top - b })} />
-        <Num label="Top" unit="RL" value={top} onCommit={typedTop} />
+        <Num
+          label="Bottom"
+          unit="RL"
+          value={bottom}
+          check={b =>
+            b > top - 0.1 - 1e-9
+              ? `Must be at least 100 mm below the top, RL ${top.toFixed(2)}`
+              : b < top - MAX_STAIR_RISE - 1e-9
+                ? `Min ${(top - MAX_STAIR_RISE).toFixed(2)}: a stair climbs ${MAX_STAIR_RISE} m at most`
+                : null
+          }
+          onCommit={b => set({ base: b - floorRL(plan, s.level), rise: top - b })}
+        />
+        <Num
+          label="Top"
+          unit="RL"
+          value={top}
+          check={t =>
+            t < bottom + 0.1 - 1e-9
+              ? `Must be at least 100 mm above the bottom, RL ${bottom.toFixed(2)}`
+              : t > bottom + MAX_STAIR_RISE + 1e-9
+                ? `Max ${(bottom + MAX_STAIR_RISE).toFixed(2)}: a stair climbs ${MAX_STAIR_RISE} m at most`
+                : null
+          }
+          onCommit={typedTop}
+        />
         {stairMeetsNoFloor(plan, s) && (
           <p className="notice small">Its top (RL {top.toFixed(2)}) meets no floor. Pick the level it goes up to, or add a level above.</p>
         )}
@@ -659,6 +762,59 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       <p className="muted small">Drag the corner handles to reshape it.</p>
       <div className="row">{del}</div>
     </section>
+  )
+}
+
+/** Which way a wall's end lies from its middle, by the compass: "East end". */
+function endName(plan: Plan, w: Wall, end: WallEnd): string {
+  const [from, to] = end === 'b' ? [w.a, w.b] : [w.b, w.a]
+  // The plan's x axis is turned anticlockwise from east by the placement's rotation.
+  const t = (plan.placement.rotation * Math.PI) / 180
+  const dx = to[0] - from[0]
+  const dy = to[1] - from[1]
+  const e = dx * Math.cos(t) - dy * Math.sin(t)
+  const n = dx * Math.sin(t) + dy * Math.cos(t)
+  const name = bearingName(((Math.atan2(e, n) * 180) / Math.PI + 360) % 360)
+  return `${name[0].toUpperCase()}${name.slice(1)} end`
+}
+
+/**
+ * A house wall's length, and the end that moves when it's typed. The walls joined at that end
+ * slide with it so the plan stays square; a length that would cut off a door or window, or squeeze
+ * a wall out, stays in the box in red with the nearest length that works.
+ */
+function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
+  // The end that disturbs less of the plan, until the person picks one.
+  const [picked, setPicked] = useState<WallEnd | null>(null)
+  const end = picked ?? stillerEnd(plan, w.id)
+  // While the length is being typed (or the end chosen), the plan marks the end that will move.
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    showMovingEnd(focused ? { wall: w.id, end } : null)
+    return () => showMovingEnd(null)
+  }, [focused, w.id, end])
+  return (
+    <div style={{ display: 'contents' }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
+      <Num
+        label="Length (centreline)"
+        unit="mm"
+        value={wallLength(w)}
+        min={MIN_WALL}
+        max={MAX_WALL}
+        check={len => wallLengthProblem(plan, w.id, len, end)}
+        onCommit={len => usePlan.getState().commit(p => setWallLength(p, w.id, len, end))}
+      />
+      <Select<WallEnd>
+        label="End that moves"
+        value={end}
+        options={[
+          { id: 'b', label: endName(plan, w, 'b') },
+          { id: 'a', label: endName(plan, w, 'a') },
+        ]}
+        onChange={setPicked}
+      />
+      <p className="muted small">The walls joined at that end slide with it, so the plan stays square.</p>
+    </div>
   )
 }
 

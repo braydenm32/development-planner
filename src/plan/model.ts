@@ -557,20 +557,6 @@ export function fromSite(p: Vec2, pl: Placement, origin: Vec2): Vec2 {
   return [x * c + y * s, -x * s + y * c]
 }
 
-/** Keep openings inside their wall after the wall changes length. */
-export function clampOpenings(plan: Plan): Plan {
-  const walls = new Map(plan.walls.map(w => [w.id, w]))
-  const openings = plan.openings.flatMap(o => {
-    const w = walls.get(o.wall)
-    if (!w) return []
-    const len = wallLength(w)
-    if (o.width >= len) return []
-    const offset = Math.min(Math.max(o.offset, o.width / 2), len - o.width / 2)
-    return offset === o.offset ? [o] : [{ ...o, offset }]
-  })
-  return { ...plan, openings }
-}
-
 export function levelById(plan: Plan, id: string): Level | undefined {
   return plan.levels.find(l => l.id === id)
 }

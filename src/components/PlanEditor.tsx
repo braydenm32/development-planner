@@ -3,7 +3,7 @@ import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { buildingOutline, closestOnSegment, planarFaces, roomShape, wallPolygons } from '../plan/geometry'
+import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, wallPolygons, type Face } from '../plan/geometry'
 import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
 import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
@@ -35,6 +35,8 @@ import {
   addWall,
   moveJoint,
   moveWall,
+  wallAlreadyThere,
+  wallStyleAt,
   newStair,
   houseBounds,
   planBounds,
@@ -69,6 +71,7 @@ import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
 import { useWallFocus } from '../plan/wallFocus'
+import { useMovingEnd } from '../plan/movingEnd'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
@@ -294,6 +297,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const onRetainingTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'retaining-walls')
   const onCutFillTab = useRouter(s => s.route.kind === 'app' && s.route.area === 'earthworks' && s.route.tab === 'cut-fill')
   const wallHover = useWallFocus(s => s.hover)
+  const movingEnd = useMovingEnd(s => s.at)
   const wallChanged = useWallFocus(s => s.changed)
   const wallZoom = useWallFocus(s => s.zoom)
   const retainingThickness = useRetaining(s => s.thickness)
@@ -774,7 +778,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const closes = chain.length > 1 && Math.hypot(p[0] - first[0], p[1] - first[1]) < 0.002
     const end: Vec2 = closes ? first : p
     chainStart.current ??= { plan: usePlan.getState().plan!, level }
-    commit(pl => addWall(pl, level, last, end, wallStyle))
+    const now = usePlan.getState().plan!
+    if (wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
+      // Nothing is added, and the run carries on from here.
+      notify('There’s already a wall there, so no new one was drawn.')
+    } else {
+      // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
+      const style = wallStyleAt(now, level, last, end, wallStyle)
+      commit(pl => addWall(pl, level, last, end, style))
+      notify(style === wallStyle ? null : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.`)
+    }
     // Walls that close round a space make a room: its floor type, or a retaining wall, is asked
     // about when the run ends (finishChain).
     if (closes) finishChain()
@@ -1863,7 +1876,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // Labels that would pile up hide the lower of each pair; a phone zoomed out drops the small numbers (C20).
   useLabelDeclutter(svgRef, !!touch?.phone && k < PHONE_LABELS_K)
   const selWall = !group && selection?.type === 'wall' ? walls.find(w => w.id === selection.id) : undefined
-  const roomShapes = plan.rooms.filter(r => r.level === level).map(r => ({ room: r, shape: roomShape(r, faces) }))
+  // A label in a space another label already names says so, in place of the same area twice.
+  const firstIn = new Map<Face, string>()
+  const roomShapes = plan.rooms
+    .filter(r => r.level === level)
+    .map(r => {
+      const face = faceAround(r.at, faces)
+      const sameAs = face ? firstIn.get(face) : undefined
+      if (face && sameAs === undefined) firstIn.set(face, r.name)
+      return { room: r, shape: roomShape(r, faces), sameAs }
+    })
 
   const dimLabel = (a: Vec2, b: Vec2, offset: number, text: string, key: string, cls = 'dim', minPx = 36) => {
     const d: Vec2 = [b[0] - a[0], b[1] - a[1]]
@@ -2370,7 +2392,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         })}
 
         {/* Room labels */}
-        {roomShapes.map(({ room, shape }) => {
+        {roomShapes.map(({ room, shape, sameAs }) => {
           const [x, y] = S(room.at)
           const sel = isSel('room', room.id)
           return (
@@ -2378,8 +2400,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
               <text className="room-name" x={x} y={y - 7} textAnchor="middle">
                 {room.name}
               </text>
-              <text className={`room-area${shape ? '' : ' open'}`} x={x} y={y + 9} textAnchor="middle">
-                {shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed'}
+              <text className={`room-area${shape && sameAs === undefined ? '' : ' open'}`} x={x} y={y + 9} textAnchor="middle">
+                {sameAs !== undefined ? `same space as ${sameAs}` : shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed'}
               </text>
               {roomFloorNote(plan, room) && (
                 <text className="room-area" x={x} y={y + 23} textAnchor="middle">
@@ -2473,6 +2495,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           !viewOnly &&
           tool === 'select' &&
           [selWall.a, selWall.b].map((p, i) => <circle key={i} className="handle" cx={S(p)[0]} cy={S(p)[1]} r={6} />)}
+        {/* The end that moves when the selected wall's length is typed, while that box has focus */}
+        {selWall && movingEnd?.wall === selWall.id && <circle className="moving-end" cx={S(selWall[movingEnd.end])[0]} cy={S(selWall[movingEnd.end])[1]} r={12} />}
 
         {site.over}
         {flow.over}

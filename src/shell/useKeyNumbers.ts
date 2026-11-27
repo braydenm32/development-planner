@@ -7,7 +7,7 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
+import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roomsTotal, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
 import { earthworksOf, floorRL, isRetaining, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
@@ -100,7 +100,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       id: s.level.id,
       name: s.level.name,
       area: s.gross.area,
-      roomsTotal: s.rooms.reduce((t, r) => t + (r.area ?? 0), 0),
+      roomsTotal: roomsTotal(s.rooms),
       rooms: s.rooms.length,
     }))
     const total = levels.reduce((t, l) => t + l.area, 0)

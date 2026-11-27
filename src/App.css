@@ -605,6 +605,15 @@ button.secondary:hover {
   cursor: move;
 }
 
+/* The end of a wall that moves when its length is typed. */
+.moving-end {
+  fill: color-mix(in srgb, var(--accent) 18%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
 .chain {
   fill: none;
   stroke: var(--accent);
