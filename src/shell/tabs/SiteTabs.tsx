@@ -58,7 +58,7 @@ function LayerGuesses() {
   const id = useProjects().currentId
   const seen = useLayersSeen(s => s.seen.includes(layersKey(id, project.fileName)))
   const route = useRouter(s => s.route)
-  const n = guessCount(layers, project.roles)
+  const n = guessCount(layers, project)
   if (seen || n === 0) return null
   return (
     <p className="layer-guesses">

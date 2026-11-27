@@ -4,7 +4,8 @@
 // brings new guesses.
 
 import { create } from 'zustand'
-import type { LayerInfo, LayerRole } from '../lib/survey'
+import type { SavedProject } from '../lib/storage'
+import type { LayerInfo } from '../lib/survey'
 
 const KEY = 'layers-seen-v1'
 /** Enough projects to remember; the oldest drop off. */
@@ -36,7 +37,13 @@ export function markLayersSeen(key: string) {
   }
 }
 
-/** How many layers the import gave a use to by guessing from their names: every one not ignored. */
-export function guessCount(layers: LayerInfo[], roles: Record<string, LayerRole>): number {
-  return layers.filter(l => (roles[l.name] ?? 'ignore') !== 'ignore').length
+/** A sketch block, or one made from the state's elevation model: the app wrote its layers itself, so there is no survey file to check. */
+export const madeBlock = (p: Pick<SavedProject, 'sketch' | 'dem'>): boolean => !!p.sketch || !!p.dem
+
+/**
+ * How many layers the import gave a use to by guessing from their names: every one not ignored.
+ * None on a block the app made, where nothing was guessed.
+ */
+export function guessCount(layers: LayerInfo[], project: Pick<SavedProject, 'roles' | 'sketch' | 'dem'>): number {
+  return madeBlock(project) ? 0 : layers.filter(l => (project.roles[l.name] ?? 'ignore') !== 'ignore').length
 }

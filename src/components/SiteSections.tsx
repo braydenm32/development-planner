@@ -7,6 +7,7 @@ import { FEATURE_ROLES, ROLE_LABELS, SURVEY_ROLES } from '../lib/survey'
 import type { ViewSettings } from '../lib/storage'
 import { bearingName, type SiteStats } from '../lib/terrain'
 import { foundText } from '../safety/readBack'
+import { gradeText } from '../lib/drape'
 
 function describeLayer(l: LayerInfo): string {
   const parts: string[] = []
@@ -20,6 +21,15 @@ function describeLayer(l: LayerInfo): string {
 }
 
 const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })
+
+/** Under this slope (%) a block reads as level: "0% (1 in 10,000)" says nothing a person can use. */
+const LEVEL_PCT = 0.5
+
+/** A block with no fall to speak of: nothing is its low side. */
+export const isLevel = (stats: Pick<SiteStats, 'maxSlopePct'>): boolean => stats.maxSlopePct < 0.05
+
+/** "1 in 25.0 (4%)", as every grade is written (gradeText), or "Level" under half a percent. */
+export const slopeText = (pct: number): string => (pct < LEVEL_PCT ? 'Level' : gradeText(pct / 100))
 
 /** Site area, perimeter, RL range, fall and slope; `children` are more rows after which way it falls (Site › Block's street side). */
 export function SiteFacts({ stats, children }: { stats: SiteStats; children?: ReactNode }) {
@@ -36,13 +46,11 @@ export function SiteFacts({ stats, children }: { stats: SiteStats; children?: Re
       <dt>Total fall</dt>
       <dd>{fmt(stats.maxRL - stats.minRL)} m</dd>
       <dt>Average slope</dt>
-      <dd>
-        {fmt(stats.meanSlopePct, 0)}% (1 in {fmt(100 / Math.max(stats.meanSlopePct, 0.01), 1)})
-      </dd>
+      <dd>{slopeText(stats.meanSlopePct)}</dd>
       <dt>Steepest</dt>
-      <dd>{fmt(stats.maxSlopePct, 0)}%</dd>
+      <dd>{stats.maxSlopePct < LEVEL_PCT ? 'Level' : `${fmt(stats.maxSlopePct, 0)}%`}</dd>
       <dt>Falls towards</dt>
-      <dd>{stats.maxSlopePct < 0.05 ? 'Level (no fall)' : `${bearingName(stats.fallBearing)} (${fmt(stats.fallBearing, 0)}°)`}</dd>
+      <dd>{isLevel(stats) ? 'Level (no fall)' : `${bearingName(stats.fallBearing)} (${fmt(stats.fallBearing, 0)}°)`}</dd>
       {children}
     </dl>
   )

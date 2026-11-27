@@ -23,6 +23,9 @@ import { TreeRemoval } from '../../checks/TreeRemoval'
 import { useMap } from '../../map/store'
 import { navigate } from '../../nav/router'
 import { usePlan } from '../../plan/store'
+import { compassOf, edgeBearings } from '../../plan/streetSide'
+import { useProjects } from '../../projects/session'
+import { setSketchStreet } from '../../start/sketchStreet'
 import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
@@ -387,6 +390,7 @@ function MapFact({ what }: { what: 'fsr' | 'height' }) {
 /** The lot's facts the survey doesn't hold, as the last group: open while the street side isn't set. */
 function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: CheckSettings; council: Council | null; pathway: Pathway; open?: boolean; onToggle: (open: boolean) => void }) {
   const needsFront = s.frontEdge === undefined
+  const sketch = useProjects().opened?.survey?.sketch
   const da = pathway === 'da' && !!council
   const missing = [needsFront, da && !!council?.fsr && s.lepFsr === undefined, da && !!council?.height && s.lepHeight === undefined].filter(Boolean).length
   const shown = open ?? needsFront
@@ -414,7 +418,12 @@ function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: 
             label={s.battleAxe ? 'Faces the lot in front' : 'Faces the street'}
             value={s.frontEdge ?? -1}
             options={edgeOptions}
-            onChange={v => setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })}
+            onChange={v => {
+              // On a sketch block the street is part of the sketch: the same setting as Site › Block's, through its review.
+              const facing = v < 0 ? null : edgeBearings(m.edges.map(e => e.a))[v]
+              if (sketch) return facing !== null && facing !== undefined ? setSketchStreet(sketch, compassOf(facing)) : undefined
+              setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })
+            }}
           />
           <p className="muted small">
             The same as the street side in{' '}

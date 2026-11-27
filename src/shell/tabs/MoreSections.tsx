@@ -16,7 +16,7 @@ import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
 import { useEffect } from 'react'
 import { useProjects } from '../../projects/session'
-import { layersKey, markLayersSeen } from '../../site/layersSeen'
+import { layersKey, madeBlock, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { useShell } from '../context'
@@ -31,6 +31,13 @@ export function SurveyLayersSection() {
   const id = useProjects().currentId
   // Shown means seen: Site › Block's "guesses" badge goes.
   useEffect(() => markLayersSeen(layersKey(id, project.fileName)), [id, project.fileName])
+  // A block the app made has no survey file: its own layers aren't the person's to sort out.
+  if (madeBlock(project))
+    return (
+      <p className="muted small">
+        {project.sketch ? 'This block is a sketch' : 'This block’s levels come from the state’s elevation model'}, so there is no survey file and no layers to check. When you add the survey, its layers are listed here.
+      </p>
+    )
   return <SurveyLayers layers={layers} roles={project.roles} onRoleChange={onRoleChange} survey={survey} />
 }
 

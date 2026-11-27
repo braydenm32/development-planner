@@ -7,16 +7,28 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { streetBearingOf, streetSideOf, withStreetSide } from '../plan/streetSide'
 import { usePlan } from '../plan/store'
+import { useProjects } from '../projects/session'
+import { isLevel } from '../components/SiteSections'
+import { setSketchStreet } from '../start/sketchStreet'
 import { bearingWord, streetBearing, STREET_SIDES, type StreetSide } from './camera'
 import { goToStreetSide, STREET_SIDE_ID, streetSideLabel } from './streetSideWords'
 
-/** Site › Block's street side: a choice beside "Falls towards", as a row of the facts. */
+/**
+ * Site › Block's street side: a choice beside "Falls towards", as a row of the facts. On a sketch
+ * block the street is part of the sketch (its width runs along the street and its fall goes back
+ * from it), so this is the same setting as Change size › Street: picking another side re-lays the
+ * sketch through the same review, and the two can't disagree.
+ */
 export function StreetSideField({ survey, terrain }: { survey: Survey; terrain: Terrain }) {
   const plan = usePlan(s => s.plan)
-  const side = streetSideOf(plan, survey.boundary)
+  const sketch = useProjects().opened?.survey?.sketch
+  const side = sketch ? sketch.street : streetSideOf(plan, survey.boundary)
   const low = bearingWord(streetBearing(survey.boundary, terrain.stats.fallBearing, 'auto'))
   const pick = (s: StreetSide) => {
-    if (plan && s !== side) usePlan.getState().commit(p => withStreetSide(p, survey.boundary, s))
+    if (s === side) return
+    if (sketch) {
+      if (s !== 'auto') setSketchStreet(sketch, s)
+    } else if (plan) usePlan.getState().commit(p => withStreetSide(p, survey.boundary, s))
   }
   return (
     <>
@@ -26,10 +38,16 @@ export function StreetSideField({ survey, terrain }: { survey: Survey; terrain: 
         </label>
       </dt>
       <dd>
-        <select id="street-side-pick" className="street-side-pick" value={side} onChange={e => pick(e.target.value as StreetSide)}>
-          {STREET_SIDES.map(s => (
+        <select
+          id="street-side-pick"
+          className="street-side-pick"
+          value={side}
+          title={sketch ? 'Part of the sketch: picking another side turns the block, after a review.' : undefined}
+          onChange={e => pick(e.target.value as StreetSide)}
+        >
+          {STREET_SIDES.filter(s => !sketch || s !== 'auto').map(s => (
             <option key={s} value={s}>
-              {streetSideLabel(s, low)}
+              {streetSideLabel(s, low, isLevel(terrain.stats))}
             </option>
           ))}
         </select>

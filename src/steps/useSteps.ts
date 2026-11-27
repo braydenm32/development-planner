@@ -62,7 +62,7 @@ export function useSteps(d: Loaded): Step[] {
         slopePct: terrain.stats.meanSlopePct,
         sketch: sketch ? (sketch.rough ? 'rough' : 'sized') : null,
         streetSet: frontEdgeOf(plan, survey.boundary) !== undefined,
-        layerGuesses: seen ? 0 : guessCount(d.layers, d.project.roles),
+        layerGuesses: seen ? 0 : guessCount(d.layers, d.project),
         mapPlaced: !!place,
       },
       numbers: {
