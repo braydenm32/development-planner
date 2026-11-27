@@ -9,7 +9,7 @@ import { AREAS } from '../../nav/menu'
 import { readsTheHouse } from '../../nav/route'
 import { usePlan } from '../../plan/store'
 import { useSiteStore } from '../../site/store'
-import { canEdit, readMode, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
+import { canEdit, isPhoneLayout, PHONE_QUERY, readMode, TOUCH_MAX_W, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
 import { READS, ViewLock } from '../ViewLock'
 import { house, loadBlock, words } from './block'
 
@@ -17,6 +17,34 @@ function memory(init: Record<string, string> = {}) {
   const m = new Map(Object.entries(init))
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m }
 }
+
+// PH-09: width and pointer decide together who gets the phone's layout.
+describe('who gets the phone’s layout', () => {
+  it('is any narrow window, and a touch screen up to a tablet held upright', () => {
+    // Phones, upright and sideways.
+    expect(isPhoneLayout(390, true)).toBe(true)
+    expect(isPhoneLayout(360, true)).toBe(true)
+    expect(isPhoneLayout(844, true)).toBe(true)
+    expect(isPhoneLayout(932, true)).toBe(true)
+    // An iPad upright (810 px) is a fair call for the phone's layout.
+    expect(isPhoneLayout(810, true)).toBe(true)
+    // A narrow window on a computer.
+    expect(isPhoneLayout(700, false)).toBe(true)
+  })
+
+  it('gives a tablet on its side the computer’s layout, and a computer always', () => {
+    expect(isPhoneLayout(1080, true)).toBe(false)
+    expect(isPhoneLayout(1194, true)).toBe(false)
+    expect(isPhoneLayout(1366, true)).toBe(false)
+    expect(isPhoneLayout(1024, false)).toBe(false)
+    expect(isPhoneLayout(761, false)).toBe(false)
+  })
+
+  it('asks the browser the same thing', () => {
+    expect(PHONE_QUERY).toBe(`(max-width: 760px), (pointer: coarse) and (max-width: ${TOUCH_MAX_W}px)`)
+    expect(TOUCH_MAX_W).toBe(1079)
+  })
+})
 
 describe('the View / Edit switch', () => {
   afterEach(() => vi.unstubAllGlobals())

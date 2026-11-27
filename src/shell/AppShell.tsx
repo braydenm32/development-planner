@@ -53,7 +53,8 @@ import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
 import { useCamera } from '../phone/cameraStore'
 import { PresetBar, ViewEditSwitch } from '../phone/CanvasBits'
-import { canEdit, TouchCanvas, usePhone, usePhoneMode } from '../phone/device'
+import { canEdit, TouchCanvas, usePhone, usePhoneMode, useSideways } from '../phone/device'
+import { usePeekSize, type PeekSize } from '../phone/peekSize'
 import { useNativeFeel } from '../phone/native'
 import { PeekSheet } from '../phone/PeekSheet'
 import { inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows } from '../phone/reach'
@@ -441,9 +442,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   // While the tab asks about a wall, the tool's own card steps aside.
   const toolCard = rail && hasToolCard(tool) && TAB_TOOL[tabKey] !== tool && !inTab
   const inspector = !report && inspectorShows(canvasKind, !!loaded, !!selection, inTab)
-  // A phone's numbers sit at the bottom of the canvas when nothing else is there; slim while editing or turned sideways.
-  const peek = peekShows({ phone, loaded: !!loaded, canvas: canvasKind, inspector, panel: showPanel, toolCard: !!toolCard, overview })
-  const slim = canvasKind === 'plan' && editing
+  // A phone's numbers sit at the bottom of the canvas when nothing else is there: one line while
+  // editing or turned sideways, and otherwise the line or the card as it was last pulled (PH-04).
+  // Showing people full screen shows the house alone: no cost on screen while presenting.
+  const peek = peekShows({ phone, loaded: !!loaded, canvas: canvasKind, inspector, panel: showPanel, toolCard: !!toolCard, overview }) && !presenting
+  const peekSize = usePeekSize(s => s.size)
+  const sideways = useSideways()
+  const oneLine = (canvasKind === 'plan' && editing) || sideways
+  const slim = oneLine || peekSize === 'line'
   // View on a phone locks the panels that change the plan, with a way to Edit.
   const locked = panelLocked(phone, editing, tabKey)
 
@@ -461,11 +467,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print' && !steps
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
+    // Turned sideways, a phone's panel and selection dock at the right (phone.css): the plan fits beside them.
+    const side = phone && sideways && !report && (showPanel || toolCard || inspector) ? Math.min(360, (typeof window === 'undefined' ? 800 : window.innerWidth) * 0.46) : 0
+    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: (presenting ? 0 : 60) + side, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
     const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
     return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps])
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
@@ -576,6 +584,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           run={run}
           phone={phone}
           peek={peek ? (slim ? 'slim' : 'full') : null}
+          onPeekSize={oneLine ? undefined : usePeekSize.getState().setSize}
           onPeekHeight={setPeekH}
         />
       ) : (
@@ -583,7 +592,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       )}
       <main
         className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px` }}
+        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px' }}
       >
         <TouchCanvas.Provider value={touch}>
           <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0 }}>
@@ -692,6 +701,7 @@ function NumbersHost({
   run,
   phone,
   peek,
+  onPeekSize,
   onPeekHeight,
 }: {
   d: Loaded
@@ -705,6 +715,8 @@ function NumbersHost({
   /** A phone: the numbers sit in a sheet at the bottom of the canvas instead of the strip. */
   phone: boolean
   peek: 'full' | 'slim' | null
+  /** The sheet pulled to its line or its card; left out where it has to stay one line. */
+  onPeekSize?: (size: PeekSize) => void
   onPeekHeight: (h: number) => void
 }) {
   const numbers = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
@@ -745,6 +757,7 @@ function NumbersHost({
             title="Key numbers"
             slim={peek === 'slim'}
             onOpen={() => setOverview(true)}
+            onSize={onPeekSize}
             onHeight={onPeekHeight}
             checks={siteChecks}
             verdict={drawn ? verdict : undefined}

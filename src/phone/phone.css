@@ -246,9 +246,6 @@ body:has(.app-shell.phone) {
   top: calc(env(safe-area-inset-top) + var(--gap));
 }
 
-.app-shell.phone.presenting .peek-sheet {
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-}
 
 /* What floats over the canvas keeps clear of the peek sheet. */
 .app-shell.phone .shell-main {
@@ -460,15 +457,35 @@ body:has(.app-shell.phone) {
   display: none;
 }
 
+/* The line shows the numbers that fit whole, most wanted first (floor, checks, estimate): one
+   that doesn't fit wraps to a second row, out of sight, rather than being cut mid-number (PH-21). */
 .app-shell.phone .peek-sheet.slim .peek-line {
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  min-height: 40px;
+  column-gap: 12px;
+  height: 40px;
+  padding-right: 22px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   white-space: nowrap;
+}
+
+.app-shell.phone .peek-sheet .peek-line > span,
+.app-shell.phone .peek-sheet .peek-line > .peek-dot {
+  flex: none;
+}
+
+.app-shell.phone .peek-sheet .peek-line > span {
+  line-height: 40px;
+}
+
+.app-shell.phone .peek-sheet .peek-line > .ic:last-child {
+  position: absolute;
+  top: 12px;
+  right: 0;
 }
 
 .peek-line b {
@@ -515,9 +532,31 @@ body:has(.app-shell.phone) {
   color: #ffffff;
 }
 
-/* Under the switch on the plan, under the presets in 3D. */
+/* Under the switch on the plan, under the presets in 3D. The buttons take the height that is
+   free, above the compass and the Key (and the sun's card, and the section's heading), and go on
+   into a second column beside the first when it runs short, so none sits under the key numbers
+   or under a card (PH-06). The column only takes taps on its buttons. */
 .app-shell.phone .canvas-controls {
   top: calc(var(--gap) + 58px);
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, 44px);
+  grid-auto-columns: 44px;
+  align-content: start;
+  direction: rtl;
+  height: calc(100% - 58px - 52px - 3 * var(--gap) - var(--peek-h, 0px) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
+  min-height: 44px;
+  pointer-events: none;
+}
+
+.app-shell.phone .canvas-controls > * {
+  direction: ltr;
+  pointer-events: auto;
+}
+
+/* The Show menu's list drops over the key numbers rather than under them. */
+.app-shell.phone .preset-bar:has(.show-pop) {
+  z-index: 7;
 }
 
 .app-shell.phone .shell-main .level-chip.phone-level {
@@ -854,24 +893,69 @@ body:has(.app-shell.phone) {
   }
 
   .app-shell.phone .peek-sheet .peek-line {
+    position: relative;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
-    min-height: 36px;
+    column-gap: 16px;
+    height: 36px;
+    padding-right: 24px;
     overflow: hidden;
     color: var(--muted);
     font-size: 14px;
     white-space: nowrap;
   }
 
-  .app-shell.phone .float-col,
-  .app-shell.phone .inspector,
-  .app-shell.phone .overview-sheet {
-    max-height: 70%;
+  .app-shell.phone .peek-sheet .peek-line > span {
+    line-height: 36px;
+  }
+
+  .app-shell.phone .peek-sheet .peek-line > .ic:last-child {
+    top: 10px;
   }
 
   .app-shell.phone .overview-sheet {
     max-height: calc(100% - var(--bottom-h) - 8px);
+  }
+
+  /* A panel or the selection docks at the side, full height: there is width to spare and no height,
+     so the plan keeps most of the screen instead of a 70 px band above a bottom sheet (PH-10). */
+  .app-shell.phone .shell-main:is(.has-col, .has-inspector):not(.report) {
+    --side: min(360px, 46vw);
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report),
+  .app-shell.phone .has-col .float-col.tall:not(.report),
+  .app-shell.phone .inspector {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: var(--side, min(360px, 46vw));
+    max-height: none;
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report) .float-card,
+  .app-shell.phone .inspector {
+    border-radius: 14px 0 0 14px;
+    box-shadow: -8px 0 28px -10px rgba(0, 0, 0, 0.25);
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report) .tab-panel {
+    flex: 1;
+  }
+
+  /* No handle to pull: the sheet is as tall as it gets, and its header's button puts it away. */
+  .app-shell.phone .has-col .float-col:not(.report) .tab-panel::before,
+  .app-shell.phone .inspector::before,
+  .app-shell.phone .has-col .float-col:not(.report) .sheet-grab,
+  .app-shell.phone .inspector .sheet-grab {
+    display: none;
+  }
+
+  /* What sits at the plan's right edge moves in beside the sheet. */
+  .app-shell.phone .shell-main:is(.has-col, .has-inspector):not(.report) :is(.view-edit, .canvas-controls, .plan-compass, .compass) {
+    right: calc(var(--gap) + var(--side));
   }
 }
 
@@ -982,12 +1066,17 @@ body:has(.app-shell.phone) {
     padding: 0 4px;
   }
 
-  .app-shell.phone .canvas-controls {
+  /* With a sheet at the side there's no room for the row: the buttons keep their column under View / Edit. */
+  .app-shell.phone .shell-main:not(.has-col, .has-inspector) .canvas-controls,
+  .app-shell.phone .shell-main.report .canvas-controls {
     top: var(--gap);
+    display: inline-flex;
     flex-direction: row;
+    direction: ltr;
+    height: auto;
   }
 
-  .app-shell.phone .canvas-plan .canvas-controls {
+  .app-shell.phone .canvas-plan:not(.has-col, .has-inspector) .canvas-controls {
     right: calc(var(--gap) + 168px);
   }
 
@@ -1040,4 +1129,38 @@ body:has(.app-shell.phone) {
 
 .app-shell.phone .view-lock-note.elsewhere {
   display: flex;
+}
+
+/* ---- A tablet on its side: the computer's layout under a finger (src/phone/device.ts, PH-09) ---- */
+
+/* Its small controls grow towards 44 px; the panels' own fields keep the sizes their sheets give them. */
+@media (pointer: coarse) {
+  .app-shell:not(.phone) .undo-redo button,
+  .app-shell:not(.phone) .icon-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .app-shell:not(.phone) .search-button,
+  .app-shell:not(.phone) .project-button,
+  .app-shell:not(.phone) .steps-button,
+  .app-shell:not(.phone) .canvas-controls button,
+  .app-shell:not(.phone) .top-bar .cl-chip {
+    height: 42px;
+  }
+
+  .app-shell:not(.phone) .view-switch button {
+    height: 36px;
+  }
+
+  .app-shell:not(.phone) .chip,
+  .app-shell:not(.phone) .chips-cue .scroll-arrow,
+  .app-shell:not(.phone) .overview-button {
+    height: 34px;
+  }
+
+  .app-shell:not(.phone) .cue-item,
+  .app-shell:not(.phone) .menu-item {
+    min-height: 44px;
+  }
 }
