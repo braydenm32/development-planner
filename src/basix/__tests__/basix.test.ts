@@ -5,7 +5,7 @@ import { normalizePlan, type Opening, type Plan } from '../../plan/model'
 import { addRoof } from '../../plan/ops'
 import { levelOutlines } from '../../plan/roof'
 import { basixOf } from '../model'
-import { BASIX_LINKS, basixCsv, basixFacts, basixFileName, checklistRows, compassOf, facadeOf, floorAreas, livingOrientations, readyCount, windowAreaByFacade, windowFacings } from '../basix'
+import { BASIX_LINKS, basixCsv, basixFacts, basixFileName, checklistRows, compassOf, facadeOf, floorAreas, glassDoorFacings, livingOrientations, onOutsideWall, readyCount, windowAreaByFacade, windowFacings } from '../basix'
 
 const win = (id: string, wall: string, offset: number, width = 1.2, height = 1.2): Opening => ({ id, wall, kind: 'window', offset, width, height, sill: 0.9, flipHinge: false, flipSwing: false })
 
@@ -46,6 +46,58 @@ describe('which way a window faces', () => {
     expect(windowFacings(turned)[0].facade).toBe('N')
     const back: Plan = { ...plan, placement: { ...plan.placement, rotation: 180 } }
     expect(windowFacings(back)[0].facade).toBe('W')
+  })
+})
+
+describe('glass doors in the glazing', () => {
+  /** The garage floor's entry door (hinged, in the north outside wall), made another kind or ticked. */
+  const withEntry = (patch: Partial<Opening>): Plan => {
+    const p = garageFloor()
+    return { ...p, openings: p.openings.map(o => (o.id === 'entry' ? { ...o, ...patch } : o)) }
+  }
+
+  it('counts a sliding, bifold or double door in an outside wall by default, and a hinged one only when ticked', () => {
+    expect(glassDoorFacings(garageFloor())).toEqual([])
+    for (const style of ['sliding', 'bifold', 'double'] as const) {
+      const f = glassDoorFacings(withEntry({ style }))
+      expect(f).toHaveLength(1)
+      expect(f[0].facade).toBe('N')
+      expect(f[0].area).toBeCloseTo(0.92 * 2.04, 9)
+    }
+    // Ticked on, a hinged door counts; ticked off, a slider doesn't.
+    expect(glassDoorFacings(withEntry({ glazed: true }))).toHaveLength(1)
+    expect(glassDoorFacings(withEntry({ style: 'sliding', glazed: false }))).toEqual([])
+  })
+
+  it('never counts a door inside the house, ticked or not', () => {
+    const p = garageFloor()
+    const inside: Plan = { ...p, openings: p.openings.map(o => (o.id === 'office_door' ? { ...o, style: 'sliding', glazed: true } : o)) }
+    expect(onOutsideWall(inside, 'office_door')).toBe(false)
+    expect(onOutsideWall(inside, 'entry')).toBe(true)
+    expect(glassDoorFacings(inside)).toEqual([])
+  })
+
+  it('adds windows and glass doors into one total the facades and the ratio agree with', () => {
+    const plan = withEntry({ style: 'sliding', width: 2.1, height: 2.1 })
+    const f = basixFacts(plan)
+    expect(f.windowTotal).toBeCloseTo(2.16, 9)
+    expect(f.doorTotal).toBeCloseTo(4.41, 9)
+    expect(f.glassTotal).toBeCloseTo(6.57, 9)
+    expect(f.glass.N + f.glass.E + f.glass.S + f.glass.W).toBeCloseTo(f.glassTotal, 9)
+    expect(f.glass.N).toBeCloseTo(4.41, 9)
+    expect(f.glazingRatio).toBeCloseTo(f.glassTotal / f.floor.conditioned, 9)
+    const row = checklistRows(f, basixOf(plan)).find(r => r.id === 'glazing')!
+    expect(row.value).toMatch(/North 4\.4 m², East 2\.2 m²/)
+    expect(row.value).toMatch(/6\.6 m² in all \(windows 2\.2 m², glass doors 4\.4 m²\)/)
+    // A living area looking out through only a glass door looks that way.
+    const living: Plan = { ...plan, rooms: plan.rooms.map(r => (r.id === 'r2' ? { ...r, name: 'Living' } : r)) }
+    expect(livingOrientations(living)[0].main).toBe('N')
+  })
+
+  it('opens a door saved before the tick with the default for its kind', () => {
+    const old = withEntry({ style: 'bifold' })
+    expect('glazed' in old.openings.find(o => o.id === 'entry')!).toBe(false)
+    expect(basixFacts(normalizePlan(old)).doorTotal).toBeCloseTo(0.92 * 2.04, 9)
   })
 })
 
@@ -124,7 +176,7 @@ describe('the checklist', () => {
     expect(lines).toHaveLength(3 + 10 + BASIX_LINKS.length)
     expect(csv).toContain('https://www.planningportal.nsw.gov.au/BASIX-standards')
     // Commas inside a cell are quoted.
-    expect(lines[4]).toMatch(/^Window area by facade,"North/)
+    expect(lines[4]).toMatch(/^Glass area by facade,"North/)
   })
 
   it('loads an old plan with no answers', () => {

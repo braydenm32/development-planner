@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { doorWindowSchedule } from '../../export/schedule'
 import { DOOR_DEFAULT, normalizePlan, WINDOW_DEFAULT, type Opening } from '../model'
-import { DOOR_STYLES, openingName, openingStyle, setOpeningStyle, styleSize, styleSymbol, WINDOW_STYLES } from '../openingStyles'
+import { DOOR_STYLES, isGlassDoor, openingName, openingStyle, setOpeningStyle, styleSize, styleSymbol, WINDOW_STYLES } from '../openingStyles'
 import { addOpening } from '../ops'
 import { usePlan } from '../store'
 import { applyToolDefaults, currentToolDefaults, toolDefaultsRecord } from '../toolDefaults'
@@ -120,5 +120,27 @@ describe('the tools', () => {
     const back = applyToolDefaults(cur, JSON.parse(JSON.stringify(saved)))
     expect(back.openingDefaults.door).toEqual({ width: 2.1, height: 2.1, sill: 0, style: 'sliding' })
     expect(back.openingDefaults.window).toEqual(WINDOW_DEFAULT)
+  })
+})
+
+describe('glass doors', () => {
+  it('are sliding, bifold and double doors unless ticked otherwise; hinged and garage doors only when ticked', () => {
+    expect(isGlassDoor(door())).toBe(false)
+    expect(isGlassDoor(door({ style: 'hinged' }))).toBe(false)
+    expect(isGlassDoor(door({ style: 'sliding' }))).toBe(true)
+    expect(isGlassDoor(door({ style: 'bifold' }))).toBe(true)
+    expect(isGlassDoor(door({ style: 'double' }))).toBe(true)
+    expect(isGlassDoor(door({ style: 'sliding', glazed: false }))).toBe(false)
+    expect(isGlassDoor(door({ glazed: true }))).toBe(true)
+    expect(isGlassDoor(door({ kind: 'garage' }))).toBe(false)
+    expect(isGlassDoor(door({ kind: 'garage', glazed: true }))).toBe(true)
+    // Windows count as windows, and a plain opening has no glass.
+    expect(isGlassDoor(door({ kind: 'window', glazed: true }))).toBe(false)
+    expect(isGlassDoor(door({ kind: 'opening', glazed: true }))).toBe(false)
+  })
+  it('keep the tick when the kind changes', () => {
+    const p = { ...garageFloor(), openings: [door({ glazed: false })] }
+    const slid = setOpeningStyle(p, 'd', 'sliding')
+    expect(isGlassDoor(slid.openings[0])).toBe(false)
   })
 })

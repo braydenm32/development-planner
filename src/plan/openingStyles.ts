@@ -47,6 +47,15 @@ export function openingStyle(o: Pick<Opening, 'kind' | 'style'>): OpeningStyle |
   return found?.id ?? (o.kind === 'door' ? 'hinged' : undefined)
 }
 
+/** Door kinds that are glass unless the person says otherwise: sliders, stackers, bifolds and French doors. */
+const GLASS_DOOR_STYLES: OpeningStyle[] = ['sliding', 'bifold', 'double']
+
+/** A door or garage door is glass (its own tick, else by its kind): it counts towards the glazing in an outside wall. */
+export function isGlassDoor(o: Pick<Opening, 'kind' | 'style' | 'glazed'>): boolean {
+  if (o.kind !== 'door' && o.kind !== 'garage') return false
+  return o.glazed ?? (o.kind === 'door' && GLASS_DOOR_STYLES.includes(openingStyle(o)!))
+}
+
 const infoOf = (o: Pick<Opening, 'kind' | 'style'>): StyleInfo | undefined => {
   const id = openingStyle(o)
   return stylesFor(o.kind).find(s => s.id === id)

@@ -63,21 +63,30 @@ describe('what moves the ground', () => {
     expect(evaluateEarthworks(prep).cut).toBeGreaterThan(0)
   })
 
-  it('says a driveway built to its levels is what reaches the boundary, and pins it there', () => {
+  it('leaves a driveway built to its levels out of the earthworks rows: one beside a side boundary passes', () => {
+    // The drive runs to the west boundary, its batters within 1 m of it: this row used to fail on the drive alone.
     const plan = withDrive(base(), true)
-    const { ms, r } = run(plan)
+    const { ms, earth, r } = run(plan)
+    const alone = run(base())
     const works = r('hc-works-boundary')
-    expect(works.status).toBe('fail')
-    expect(ms.earth!.closestWorks!).toBeLessThan(0.3)
-    expect(ms.earth!.closestAt!.source).toMatchObject({ kind: 'driveway', areaId: 'drv' })
-    expect(works.value).toMatch(/from the west side boundary/)
-    expect(works.note).toMatch(/driveway “Drive”/)
-    // The pin is at the spot, with the boundary edge and the gap to it, and the driveway pointed out.
-    const t = targetOf(works, ms)!
-    expect(t.at).toEqual(ms.earth!.closestAt!.at)
-    expect(t.lines).toHaveLength(1)
-    expect(t.gaps[0][1]).toEqual(ms.earth!.closestAt!.boundary)
-    expect(t.plan).toEqual({ kind: 'areas', ids: ['drv'] })
+    expect(works.status).toBe('pass')
+    expect(works.status).toBe(alone.r('hc-works-boundary').status)
+    expect(works.note).toMatch(/Drives aren’t counted here/)
+    expect(ms.drivesLeftOut).toBe(true)
+    // The rows measure the rest exactly as without the drive...
+    expect(ms.earth?.closestWorks ?? null).toBe(alone.ms.earth?.closestWorks ?? null)
+    for (const id of ['hc-cut', 'hc-fill', 'hc-retaining']) {
+      expect(r(id).status).toBe(alone.r(id).status)
+      expect(r(id).note).toMatch(/Drives aren’t counted here/)
+    }
+    // ...while the drive is still graded in the cut and fill the volumes, 3D and the drive's own rows read.
+    const none = earthFrom(s.terrain.grid, s.survey.boundary, earthInputs(base(), s.survey))
+    expect(earth.result.cut + earth.result.fill).toBeGreaterThan(none.result.cut + none.result.fill + 0.5)
+    expect(earth.platforms.some(p => p.id === 'drv')).toBe(true)
+    expect(ms.drives[0]?.built).toBe(true)
+    // A plan with no drive says nothing about drives.
+    expect(alone.ms.drivesLeftOut).toBeUndefined()
+    expect(alone.r('hc-works-boundary').note ?? '').not.toMatch(/Drives/)
   })
 
   it('leaves a driveway without levels, short of the house, out: it follows the ground', () => {
@@ -87,18 +96,33 @@ describe('what moves the ground', () => {
     expect(run(short).r('hc-works-boundary').status).toBe('pass')
   })
 
-  it('grades a driveway that runs up to the garage, left alone, to meet the garage slab (DB-13)', () => {
-    const { ms, r } = run(withDrive(base(), false))
-    expect(r('hc-works-boundary').status).toBe('fail')
-    expect(ms.earth!.closestAt!.source).toMatchObject({ kind: 'driveway', areaId: 'drv' })
+  it('grades a driveway that runs up to the garage to meet its slab (DB-13), and the boundary row still leaves it out', () => {
+    const { ms, earth, r } = run(withDrive(base(), false))
+    expect(earth.platforms.some(p => p.id === 'drv')).toBe(true)
+    expect(r('hc-works-boundary').status).toBe('pass')
+    expect(ms.drivesLeftOut).toBe(true)
   })
 
-  it('lists every part of the design within 1 m of the boundary, closest first', () => {
+  it('still fails a row the house’s own pad breaks when a drive is there too, and names the pad', () => {
     const { ms, r } = run(withSplit(withDrive(base(), true)))
+    const works = r('hc-works-boundary')
+    expect(works.status).toBe('fail')
+    expect(r('hc-fill').status).toBe('fail')
     const near = ms.earth!.nearBoundary
-    expect(near.map(x => x.source.kind)).toEqual(expect.arrayContaining(['driveway', 'pad']))
+    expect(near.length).toBeGreaterThan(0)
+    expect(near.map(x => x.source.kind)).not.toContain('driveway')
     expect(near.map(x => x.d)).toEqual([...near.map(x => x.d)].sort((a, b) => a - b))
-    expect(r('hc-works-boundary').note).toMatch(/Within 1 m of a boundary: .*driveway “Drive”.*Upper split floor's slab pad/s)
+    expect(ms.earth!.closestAt!.source).toMatchObject({ kind: 'pad' })
+    expect(works.note).toMatch(/Upper split floor's slab pad/)
+    expect(works.note).toMatch(/Drives aren’t counted here/)
+    // The pin is at the pad's spot, with the boundary edge and the gap to it.
+    const t = targetOf(works, ms)!
+    expect(t.at).toEqual(ms.earth!.closestAt!.at)
+    expect(t.gaps[0][1]).toEqual(ms.earth!.closestAt!.boundary)
+    // The same numbers as the pad alone.
+    const alone = run(withSplit(base())).ms.earth!
+    expect(ms.earth!.closestWorks).toBeCloseTo(alone.closestWorks!, 6)
+    expect(ms.earth!.fillOutside).toBeCloseTo(alone.fillOutside, 6)
   })
 
   it('counts fill under a split level’s own slab as under the house, not outside it', () => {
@@ -123,9 +147,7 @@ describe('what moves the ground', () => {
 })
 
 describe('where to fix it', () => {
-  it('sends a row whose worst spot is a driveway’s to Earthworks › Driveway', () => {
-    const { r } = run(withDrive(base(), true))
-    expect(fixOf(r('hc-works-boundary'))?.where).toBe('Earthworks › Driveway')
+  it('sends a row whose worst spot is a pad’s to Earthworks › Cut & fill', () => {
     expect(fixOf(run(withSplit(base())).r('hc-fill'))?.where).toBe('Earthworks › Cut & fill')
   })
 })

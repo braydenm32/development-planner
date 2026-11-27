@@ -36,7 +36,7 @@ export function drapePolygon(grid: Heightfield, poly: Vec2[], lift: number): num
 export const DRIVE_RUN = 3
 /** Steeper than 1 in 4 along a driveway is hard to drive on. */
 export const MAX_DRIVE_GRADE = 0.25
-/** More than about 1 in 16 across a driveway is too much tilt to drive or park on (src/checks/crossing.ts has the source). */
+/** More than about 1 in 16 across a driveway is more tilt than is comfortable to drive or park on: a warning, not a fail (src/checks/crossing.ts has the source). */
 export const MAX_CROSS_FALL = 1 / 16
 
 export interface DriveGrade {
@@ -243,5 +243,5 @@ export function gradeText(g: number): string {
 /** Whether the steepest stretch along the drive is drivable, and the tilt across it. */
 export function driveVerdict(g: DriveGrade): string {
   if (g.steepest > MAX_DRIVE_GRADE) return 'Too steep: over 1 in 4'
-  return g.crossFall > MAX_CROSS_FALL + 1e-6 ? 'Tilts too much: over 1 in 16 across' : 'OK to drive'
+  return g.crossFall > MAX_CROSS_FALL + 1e-6 ? 'Worth checking: tilts over 1 in 16 across' : 'OK to drive'
 }
