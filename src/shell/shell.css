@@ -438,6 +438,11 @@ body:has(.app-shell) {
 }
 
 /* No hover on a phone: a tap would leave the tip hanging. */
+/* Put away with Esc (src/shell/tips.ts), until the pointer or the focus moves on. */
+.app-shell button[data-tip][data-tip-off]::after {
+  display: none;
+}
+
 .app-shell.phone button[data-tip]::after {
   display: none;
 }

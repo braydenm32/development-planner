@@ -37,6 +37,7 @@ import { SunCard } from '../sun/SunCard'
 import { runAction } from './actions'
 import { CanvasControls, Inspector, ToolCard, ToolRail } from './CanvasChrome'
 import { hasToolCard } from './toolCard'
+import { useTipDismiss } from './tips'
 import { CommandPalette, type Choice } from './CommandPalette'
 import { ShellContext, type ShellData } from './context'
 import { AreaNav, TabBar } from './Nav'
@@ -97,6 +98,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const route = useRouter(s => s.route)
   const plan = usePlan(s => s.plan)
   const phone = usePhone()
+  useTipDismiss()
   const [palette, setPalette] = useState(false)
   const [menu, setMenu] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null })
   const [toast, setToast] = useState<{ text: string; n: number } | null>(null)
