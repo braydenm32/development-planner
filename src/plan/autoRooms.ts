@@ -216,6 +216,17 @@ export function rectangleWalls(plan: Plan, level: string, a: Vec2, c: Vec2, styl
   return next
 }
 
+/**
+ * A key pressed while Rectangle room is out, for the size being typed: what's typed after it, or
+ * null when it isn't one of the size's keys. A digit or point adds itself; x (or *, ×) adds the
+ * one "by" after a number, and is otherwise kept by the tool and ignored, never a shortcut.
+ */
+export function rectSizeKey(key: string, typed: string): string | null {
+  if (/^[0-9.]$/.test(key)) return (typed + key).slice(0, 15)
+  if (key === 'x' || key === 'X' || key === '*' || key === '×') return typed && !/[x×*]/i.test(typed) ? (typed + key.toLowerCase()).slice(0, 15) : typed
+  return null
+}
+
 /** The far corner of a rectangle typed as "4000 x 3000" (mm, width then depth), from a corner towards a point; null until both are typed. */
 export function typedRectangle(typed: string, from: Vec2, toward: Vec2, widthAlong: 0 | 1 = 0): Vec2 | null {
   const m = /^\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*$/i.exec(typed)

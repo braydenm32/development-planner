@@ -10,7 +10,7 @@ import { MORE_SECTIONS, TAB_PANELS } from '../../shell/sections'
 import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
-import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, unknownHash, type AppRoute, type Route } from '../route'
+import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageOf, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, unknownHash, type AppRoute, type Route } from '../route'
 import { buildIndex, featureLabel, projectItems, search, specOnly, stem, thingItems, withoutCloud, type SearchItem } from '../search'
 import { LEADS, MORE_WORDS, NOT_HERE } from '../searchWords'
 import { forgetTabs, openingTab, rememberTab } from '../../shell/lastTab'
@@ -487,6 +487,19 @@ describe('routes', () => {
     expect(resumeRoute('#/design/checks?view=plan')).toMatchObject({ area: 'approvals', tab: 'checks' })
     // A More that the area doesn't have lands on its first tab.
     expect(parseHash('#/approvals/more')).toEqual({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan' })
+  })
+
+  it('open the Levels tab from its name, #/design/levels, as well as #/design/floors (final check 6)', () => {
+    expect(parseHash('#/design/levels')).toEqual({ kind: 'app', area: 'design', tab: 'floors', view: 'plan' })
+    expect(parseHash('#/design/levels?view=3d&level=L2')).toMatchObject({ area: 'design', tab: 'floors', view: '3d', level: 'L2' })
+    expect(unknownHash('#/design/levels')).toBe(false)
+    expect(formatHash(parseHash('#/design/levels')!)).toMatch(/^#\/design\/floors\?/)
+  })
+
+  it('tell pages apart by area and tab, not by what is selected or which level shows', () => {
+    expect(pageOf(parseHash('#/design/plan?view=plan&sel=w1')!)).toBe(pageOf(parseHash('#/design/plan?view=3d&level=L2')!))
+    expect(pageOf(parseHash('#/design/plan')!)).not.toBe(pageOf(parseHash('#/design/roofs')!))
+    expect(pageOf(PROJECTS)).toBe('#/projects')
   })
 
   it('land a first visit, or an old saved mode, somewhere sensible', () => {

@@ -16,7 +16,7 @@ const fine = () => typeof window !== 'undefined' && !!window.matchMedia?.('(hove
 
 export function Card({ place, n, children, label }: { place: { left: number; top: number }; n: number; children: ReactNode; label?: string }) {
   return (
-    <div className="cm-card" role="dialog" aria-label={label ?? `Comment ${n}`} style={{ ['--cm-left' as string]: `${place.left}px`, ['--cm-top' as string]: `${place.top}px` }}>
+    <div className="cm-card" role="dialog" aria-label={label ?? `Comment ${n}`} data-owns-keys style={{ ['--cm-left' as string]: `${place.left}px`, ['--cm-top' as string]: `${place.top}px` }}>
       <button type="button" className="icon-button cm-close" onClick={() => commentActions.openCard(null)} aria-label="Close">
         <Icon name="x" size={15} />
       </button>
@@ -95,6 +95,7 @@ export function ComposeCard({ place }: { place: { left: number; top: number } })
     <form
       className="cm-card cm-compose"
       aria-label="Add a comment"
+      data-owns-keys
       style={{ ['--cm-left' as string]: `${place.left}px`, ['--cm-top' as string]: `${place.top}px` }}
       onSubmit={e => {
         e.preventDefault()

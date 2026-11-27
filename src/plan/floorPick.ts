@@ -26,3 +26,13 @@ export function nextOnFloor(stack: Selection[], picked: (s: Selection) => boolea
   if (!stack.length) return null
   return stack[(stack.findIndex(picked) + 1) % stack.length]
 }
+
+/**
+ * What a right-click on the plan opens the menu for: what's under the pointer (`hit`) as a left
+ * click picks it, so on a floor (nothing, or only a slab or roof, under it) the room whose floor
+ * it is. Something on that floor already picked stays the one, so its menu opens.
+ */
+export function menuPick(hit: Selection | null, stack: Selection[], picked: (s: Selection) => boolean): Selection | null {
+  if (hit && hit.type !== 'area' && hit.type !== 'roof') return hit
+  return stack.find(picked) ?? stack[0] ?? hit
+}

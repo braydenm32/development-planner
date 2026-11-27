@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { TOOLS } from '../../components/tools'
 import { allPlaces } from '../../nav/menu'
+import { planHelp } from '../../a11y/summary'
 import { SHORTCUTS } from '../shortcuts'
 
 describe('the keyboard shortcuts list', () => {
@@ -28,5 +29,13 @@ describe('the keyboard shortcuts list', () => {
     for (const t of TOOLS) expect(letters, t.label).toContain(t.key)
     for (const k of [...letters, 'X', 'B']) expect(hint, k).toMatch(new RegExp(`\\b${k} [a-z]`))
     expect(hint).toContain('A outdoor area')
+  })
+
+  // AX-02, final check 7: the canvas has no keyboard drawing; its description and this list say where the keyboard's way is.
+  it('says where to add walls, doors and furniture without a mouse, as the plan’s own description does', () => {
+    expect(rows.find(r => /^Without a mouse/.test(r.what))?.what).toMatch(/Design › Walls & doors.*Design › Furniture/)
+    expect(planHelp(true)).toMatch(/add them by typing in Design, Walls and doors, and furniture in Design, Furniture/)
+    // A plan that only reads (Approvals, Share, a phone's View) adds nothing.
+    expect(planHelp(false)).not.toMatch(/add them/)
   })
 })

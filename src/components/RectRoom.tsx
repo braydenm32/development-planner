@@ -1,11 +1,11 @@
 // The Wall tool's Rectangle room, kept out of PlanEditor itself (as the sketch layer and the
 // section lines are): drag from one corner to the opposite one, or click each, and four walls
-// and their room are drawn as one undo step. After the first corner, a typed "4000x3000" and
-// Enter sets the size exactly. PlanEditor hands it presses, clicks and keys, and renders `over`.
+// and their room are drawn as one undo step. A typed "4000x3000" (before or after the first
+// corner) and Enter or a click sets the size exactly. PlanEditor hands it presses, clicks and keys, and renders `over`.
 
 import { useState, type ReactNode } from 'react'
 import type { Vec2 } from '../lib/geom'
-import { MIN_RECT_SIDE, rectangleWalls, roomsMadeNote, typedRectangle } from '../plan/autoRooms'
+import { MIN_RECT_SIDE, rectangleWalls, rectSizeKey, roomsMadeNote, typedRectangle } from '../plan/autoRooms'
 import type { Plan } from '../plan/model'
 import type { SnapResult } from '../plan/snap'
 import { usePlan, type Tool } from '../plan/store'
@@ -34,6 +34,7 @@ export interface RectRoomArgs {
 const HINT = {
   start: 'Drag from one corner of the room to the opposite one, or click each: four walls and their room in one go. ' + FREE_KEY + ' turns off snapping.',
   next: 'Click the opposite corner, or type width x depth in mm (4000x3000) and press Enter. Esc starts again.',
+  typedFirst: 'Click where the room’s first corner goes: the size you typed runs from there towards the pointer. Esc clears it.',
   // A finger pans, so on a phone it's two taps.
   phoneStart: 'Tap one corner of the room, then the opposite one: four walls and their room in one go.',
   phoneNext: 'Tap the opposite corner.',
@@ -119,14 +120,28 @@ export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, p
     if (viewOnly || e.ctrlKey || e.metaKey || e.altKey) return false
     // The plan's own keys then pick the Wall tool.
     if (e.key.toLowerCase() === 'w') setWallMode(e.shiftKey ? 'rect' : 'line')
-    if (!active || !from || pressed) return false
-    if (/^[0-9.]$/.test(e.key) || ((e.key === 'x' || e.key === 'X' || e.key === '*' || e.key === '×') && typed && !/[x×*]/i.test(typed))) {
-      set({ typed: (typed + e.key.toLowerCase()).slice(0, 15) })
+    if (!active || pressed) return false
+    // While the tool is out the size's keys are its own, before the first corner too: the size typed
+    // waits for the click, and x is never a shortcut here (it once jumped to Design › Sections).
+    const next = rectSizeKey(e.key, typed)
+    if (next !== null) {
+      if (next !== typed) set({ typed: next })
       return true
     }
     if (e.key === 'Backspace' && typed) {
       set({ typed: typed.slice(0, -1) })
       return true
+    }
+    if (!from) {
+      if (e.key === 'Enter' && typed) {
+        usePlan.getState().notify('Now click where the room’s first corner goes: the size you typed runs from there towards the pointer.')
+        return true
+      }
+      if (e.key === 'Escape' && typed) {
+        set({ typed: '' })
+        return true
+      }
+      return false
     }
     if (e.key === 'Enter' && typed) {
       const far = farCorner(cursor?.p ?? [from[0] + 1, from[1] + 1])
@@ -172,10 +187,10 @@ export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, p
     )
   })()
   // The size being typed shows before it's complete, too.
-  const typing = active && from && typed && !far && cursor ? tag(cursor.p, [`${typed.replace(/[x*]/, ' × ')}▌ mm`, 'width x depth, then Enter']) : null
+  const typing = active && typed && !far && cursor ? tag(cursor.p, [`${typed.replace(/[x*]/, ' × ')}▌ mm`, from ? 'width x depth, then Enter' : 'now click the first corner']) : null
 
   // With a finger there's no pointer to follow: the corner tapped shows until the second tap.
   const corner = active && from && !far ? <circle className="chain" cx={S(from)[0]} cy={S(from)[1]} r={5} /> : null
 
-  return { active, down, up, click, key: onKey, over: over ?? typing ?? corner, hint: active ? (phone ? (from ? HINT.phoneNext : HINT.phoneStart) : from ? HINT.next : HINT.start) : null }
+  return { active, down, up, click, key: onKey, over: over ?? typing ?? corner, hint: active ? (phone ? (from ? HINT.phoneNext : HINT.phoneStart) : from ? HINT.next : typed ? HINT.typedFirst : HINT.start) : null }
 }

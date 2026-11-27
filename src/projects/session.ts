@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { SavedProject, ViewSettings } from '../lib/storage'
 import { normalizePlan, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
+import { textEntry } from '../nav/keys'
 import type { PrintPrefs } from '../print/prefs'
 import { legacySource, migrateLegacy } from './legacy'
 import { askToKeep, isKept, localFlags } from './keep'
@@ -185,17 +186,37 @@ usePlan.subscribe((state, prev) => {
   timer = setTimeout(() => void flushPlan(), 400)
 })
 
+/**
+ * Leaving the page (closing or reloading it, or hiding its tab): a box being typed in keeps its
+ * value first, as it would on losing focus (src/components/fields.tsx), so what was typed is
+ * saved too; then the plan edit waiting goes now, without its 400 ms wait, with the undo history
+ * beside it. Returns the box, so focus can go back to it when the tab shows again.
+ */
+export function leavePage(active: Element | null = typeof document === 'undefined' ? null : document.activeElement): HTMLElement | null {
+  const box = active && textEntry(active) ? (active as HTMLElement) : null
+  box?.blur()
+  void flushPlan()
+  void store.flush()
+  return box
+}
+
 if (typeof window !== 'undefined') {
-  const now = () => {
-    void flushPlan()
-    void store.flush()
-  }
+  let typingIn: HTMLElement | null = null
   window.addEventListener('pagehide', () => {
-    now()
+    leavePage()
     void finishDelete()
   })
+  // By pagehide a reload has already taken focus out of the box without the box hearing it, so
+  // what was typed is kept a step earlier. Listened for only while typing: a beforeunload
+  // listener can keep a page out of the browser's back/forward cache.
+  const beforeLeaving = () => void leavePage()
+  document.addEventListener('focusin', e => textEntry(e.target) && window.addEventListener('beforeunload', beforeLeaving))
+  document.addEventListener('focusout', e => textEntry(e.target) && window.removeEventListener('beforeunload', beforeLeaving))
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') now()
+    if (document.visibilityState === 'hidden') typingIn = leavePage()
+    // Back to the tab: back in the box, as the browser would have left it.
+    else if (typingIn?.isConnected) typingIn.focus({ preventScroll: true })
+    if (document.visibilityState !== 'hidden') typingIn = null
   })
 }
 

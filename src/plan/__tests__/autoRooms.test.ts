@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Vec2 } from '../../lib/geom'
-import { closesFirstOutline, labelSpot, nextRoomName, rectangleWalls, roomsForNewSpaces, roomsMadeNote, typedRectangle } from '../autoRooms'
+import { closesFirstOutline, labelSpot, nextRoomName, rectangleWalls, rectSizeKey, roomsForNewSpaces, roomsMadeNote, typedRectangle } from '../autoRooms'
 import { faceAround, planarFaces } from '../geometry'
 import { emptyPlan, normalizePlan, type Plan } from '../model'
 import { addLevelAbove, addWall, deleteSelection, moveJoint, moveWall } from '../ops'
@@ -259,5 +259,20 @@ describe('the first outline', () => {
     expect(closesFirstOutline(blank(), open)).toBe(false)
     expect(closesFirstOutline(open, closed)).toBe(true)
     expect(closesFirstOutline(closed, rectangleWalls(closed, L, [10, 0], [14, 4], EXT))).toBe(false)
+  })
+})
+
+describe('typing a Rectangle room’s size (final check 5)', () => {
+  it('keeps every key of 5000x4000, typed before the first corner or after, and x is never a shortcut', () => {
+    let typed = ''
+    for (const k of '5000x4000') typed = rectSizeKey(k, typed) ?? 'NOT KEPT'
+    expect(typed).toBe('5000x4000')
+    // An x with no number before it, or a second one, is kept by the tool and changes nothing.
+    expect(rectSizeKey('x', '')).toBe('')
+    expect(rectSizeKey('X', '5000x40')).toBe('5000x40')
+    expect(rectSizeKey('×', '4.5')).toBe('4.5×')
+    // Other keys go on to the plan (W, Delete, Esc…).
+    expect(rectSizeKey('w', '5000')).toBeNull()
+    expect(rectSizeKey('Delete', '')).toBeNull()
   })
 })

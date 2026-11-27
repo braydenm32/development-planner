@@ -1838,10 +1838,11 @@ export const HOMES: Home[] = [
       { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension', 'angle', 'degrees', 'polar', 'metres'], features: ['kbd-typed-length', 'kbd-typed-angle'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter. 3000<45 sets the angle too, 4.5m is metres, and @3000,-500 is across and up from the last corner.' },
       {
         id: 'kbd-square',
-        label: 'Keep a wall square, or turn snapping off',
+        // Both keys, each with its job, so Shift never reads as the one that turns snapping off.
+        label: 'Keep a wall square (Shift), or turn snapping off (Alt or Option)',
         keywords: ['shift', 'ortho', 'straight', 'alt', 'option', 'snap', 'free', 'angle lock'],
         features: ['kbd-shift-square'],
-        shortcut: 'shift',
+        shortcut: 'shift / alt',
         hint: 'While drawing, hold Shift to keep the wall square to the house. Hold Alt (Option on a Mac) to turn snapping off for that move.',
       },
       {

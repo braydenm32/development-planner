@@ -7,7 +7,7 @@ import { SiteView, type HoverInfo } from './components/SiteView'
 import { useBuiltSite } from './lib/builtSite'
 import { CUT_RGB, FILL_RGB, RAMP_CSS, REFERENCE_POINT, rgbCss, SPOT_LEVEL } from './lib/colors'
 import { MORE } from './nav/menu'
-import { canvasOf, formatHash, NEW_PROJECT, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
+import { canvasOf, formatHash, NEW_PROJECT, pageOf, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
 import { hasAppHistory, navigate, startRouter, useRouter } from './nav/router'
 import { upBearing } from './lib/orientation'
 import { loadView, saveView, type ViewSettings } from './lib/storage'
@@ -32,7 +32,7 @@ import { connectHost, openFile, setOpenSite } from './safety/flows'
 import { ColumnsSheet } from './formats/ColumnsSheet'
 import { SafetyLayer } from './safety/SafetyLayer'
 import { sayFileError } from './safety/surveyor'
-import { pickFile, showToast } from './safety/store'
+import { dismissToast, pickFile, showToast } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
@@ -85,9 +85,19 @@ export default function App() {
   }, [nowhere])
   // An address that names no page here still opens somewhere sensible; say so once (LF-31).
   const lost = useRouter(s => s.lost)
+  // The note is about the page it landed on: going on to another page takes it away.
+  const lostNote = useRef<{ id: number; at: string } | null>(null)
+  const onPage = pageOf(route)
   useEffect(() => {
-    if (lost) showToast({ text: 'That page isn’t here. This is the nearest one.' })
+    if (lost) lostNote.current = { id: showToast({ text: 'That page isn’t here. This is the nearest one.' }), at: pageOf(useRouter.getState().route) }
   }, [lost])
+  useEffect(() => {
+    const note = lostNote.current
+    if (note && note.at !== onPage) {
+      dismissToast(note.id)
+      lostNote.current = null
+    }
+  }, [onPage])
 
   // Each project remembers the area, tab, view and level it was last on.
   const place = route.kind === 'app' ? formatHash({ ...route, sel: undefined }) : null

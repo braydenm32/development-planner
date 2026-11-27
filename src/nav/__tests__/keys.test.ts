@@ -2,7 +2,7 @@
 // shortcuts setting.
 
 import { afterEach, describe, expect, it } from 'vitest'
-import { nameWithKey, setSingleKeys, shortcutAllowed, singleKeysOn, textEntry, type KeyScene, type KeyTarget } from '../keys'
+import { nameWithKey, setSingleKeys, shortcutAllowed, shortcutText, singleKeysOn, textEntry, type KeyScene, type KeyTarget } from '../keys'
 
 const CALM: KeyScene = { overlay: false, tabbing: false, singleKeys: true }
 
@@ -35,6 +35,16 @@ describe('what counts as typing', () => {
 })
 
 describe('may a shortcut fire?', () => {
+  it('keeps plain keys inside a panel beside the plan that owns them (Check everything), even one only clicked', () => {
+    const panel = el('ASIDE', { inside: ['[data-owns-keys]'] })
+    const itsButton = el('BUTTON', { inside: ['button', '[data-owns-keys]'] })
+    for (const k of ['Delete', 'Backspace', 'w', 'x', '5', 'Escape', 'ArrowLeft']) {
+      expect(shortcutAllowed(key(k, panel), CALM)).toBe(false)
+      expect(shortcutAllowed(key(k, itsButton), CALM)).toBe(false)
+    }
+    // Undo and search still work from there.
+    expect(shortcutAllowed(key('z', panel, true), CALM)).toBe(true)
+  })
   it('fires single keys from the page and the plan', () => {
     expect(shortcutAllowed(key('w', body), CALM)).toBe(true)
     expect(shortcutAllowed(key('Delete', null), CALM)).toBe(true)
@@ -117,5 +127,13 @@ describe('a button’s spoken name with its key (AX-22)', () => {
 
   it('leaves the key out on a phone, which has none', () => {
     expect(nameWithKey('Undo: move wall', 'mod+Z', true, false)).toBe('Undo: move wall')
+  })
+})
+
+describe('a shortcut as people read it', () => {
+  it('shows two keys for two jobs, each named (Ctrl+K’s Shift keeps square, Alt or Option turns snapping off)', () => {
+    expect(shortcutText('shift / alt', false)).toBe('Shift / Alt')
+    expect(shortcutText('shift / alt', true)).toBe('⇧ / ⌥')
+    expect(shortcutText('mod+shift+Z', false)).toBe('Ctrl+Shift+Z')
   })
 })

@@ -70,7 +70,7 @@ import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } fro
 import { LevelMenu } from './LevelMenu'
 import { askName } from './nameFocus'
 import { closesFirstOutline, nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
-import { floorStack, nextOnFloor } from '../plan/floorPick'
+import { floorStack, menuPick, nextOnFloor } from '../plan/floorPick'
 import { useWallMode } from '../plan/wallMode'
 import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
@@ -1806,7 +1806,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     if (e.button === 2 && moved <= 4 && d?.type === 'pan' && !site.active && !flow.active && !sections.active && !brush.active) {
       const at = W(sx, sy)
       const hit = tool === 'select' ? pickAt(at, sx, sy) : null
-      openPlanMenu(hit ? { type: hit.type, id: hit.item.id } : null, [sx, sy], at)
+      // On a floor, the room a left click would pick (src/plan/floorPick.ts).
+      const pick = tool === 'select' ? menuPick(hit && { type: hit.type, id: hit.item.id }, floorStack(plan, level, faces, roofs, at, 6 / v.k), u => isSel(u.type, u.id)) : null
+      openPlanMenu(pick, [sx, sy], at)
       return
     }
     // A press and drag with a tool that draws click by click moved the plan: say how the tool draws.
@@ -2096,6 +2098,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           else setAreaPts([...areaPts, end])
           return
         }
+      }
+      // Before the first point a typed length has nothing to run from: the tool keeps the digits (0
+      // isn't Fit while it's out) and says to click first. Rectangle room keeps its own (RectRoom.tsx).
+      if (!drawnFrom && /^[0-9.]$/.test(e.key) && (tool === 'wall' || tool === 'retaining' || tool === 'area' || (tool === 'roof' && roofMode === 'outline'))) {
+        e.preventDefault()
+        st.notify(tool === 'area' || tool === 'roof' ? 'Click the first corner, then type each side’s length.' : 'Click where the wall starts, then type its length.')
+        return
       }
       if (e.key === 'Escape') {
         if (chain.length) finishChain()
