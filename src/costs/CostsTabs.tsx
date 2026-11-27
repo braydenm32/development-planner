@@ -3,7 +3,7 @@
 // and notes. Everything reads the one estimate (src/costs/estimate.ts) worked
 // out from the design's own quantities.
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Icon } from '../nav/icons'
 import { areaById, MORE, type NumberId } from '../nav/menu'
 import { navigate, useRouter } from '../nav/router'
@@ -138,36 +138,55 @@ function EstimateBody({ d }: { d: Loaded }) {
       <WhoBuilds />
       <div className="ce-list">
         <MaterialsFold d={d} />
-        {e.groups.map(g => {
-          const on = open.includes(g.id)
-          return (
-            <div key={g.id} className={`ce-grp${on ? ' open' : ''}${g.id === 'gov' ? ' gov' : ''}`}>
-              <button className="ce-gh" aria-expanded={on} onClick={() => useCosts.getState().toggleGroup(g.id)}>
-                <Icon name="chevR" size={14} />
-                <span className="ce-gl">{g.label}</span>
-                {g.quoted ? <span className="ce-qchip">{g.quoted} {g.id === 'gov' ? 'from council' : 'quoted'}</span> : <span />}
-                <span className="ce-amt tnum">{money(g.total)}</span>
-              </button>
-              {on && (
-                <div className="ce-lines">
-                  {g.id === 'gov' && <p className="muted small ce-gov-note">Rough figures from the NSW scales and the council’s plan. Open a line to put in the council’s own figure.</p>}
-                  {ob && (
-                    <div className="ce-colhead" aria-hidden="true">
-                      <span />
-                      <span>Quantity</span>
-                      <span>Materials</span>
-                      <span>Labour</span>
-                    </div>
-                  )}
-                  {g.lines.map(l => (
-                    <Line key={l.id} l={l} ob={ob} on={opened === l.id} />
-                  ))}
-                </div>
-              )}
+        {/* A table to a screen reader (item, quantity, rate, amount), with the look of a folded list (AX-24). */}
+        <div role="table" aria-label="Estimate" className="ce-table">
+          <div role="rowgroup" className="ce-sr">
+            <div role="row">
+              <span role="columnheader">Item</span>
+              <span role="columnheader">Quantity</span>
+              <span role="columnheader">{ob ? 'Materials and fees' : 'Rate'}</span>
+              <span role="columnheader">{ob ? 'Labour' : 'Amount'}</span>
             </div>
-          )
-        })}
-        <Summary e={e} />
+          </div>
+          {e.groups.map(g => {
+            const on = open.includes(g.id)
+            return (
+              <div key={g.id} role="rowgroup" className={`ce-grp${on ? ' open' : ''}${g.id === 'gov' ? ' gov' : ''}`}>
+                <div role="row" className="ce-gh" onClick={() => useCosts.getState().toggleGroup(g.id)}>
+                  <span role="rowheader" className="ce-gl">
+                    <button className="ce-fold" aria-expanded={on}>
+                      <Icon name="chevR" size={14} />
+                      {g.label}
+                    </button>
+                    {g.quoted > 0 && (
+                      <span className="ce-qchip">
+                        {g.quoted} {g.id === 'gov' ? 'from council' : 'quoted'}
+                      </span>
+                    )}
+                  </span>
+                  <Tail ob={ob}>{money(g.total)}</Tail>
+                </div>
+                {on && (
+                  <div role="none" className="ce-lines">
+                    {g.id === 'gov' && <Wide className="muted small ce-gov-note">Rough figures from the NSW scales and the council’s plan. Open a line to put in the council’s own figure.</Wide>}
+                    {ob && (
+                      <div className="ce-colhead" aria-hidden="true">
+                        <span />
+                        <span>Quantity</span>
+                        <span>Materials</span>
+                        <span>Labour</span>
+                      </div>
+                    )}
+                    {g.lines.map(l => (
+                      <Line key={l.id} l={l} ob={ob} on={opened === l.id} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          <Summary e={e} />
+        </div>
         <BridgeTable e={e} />
       </div>
       <div className="ce-foot">
@@ -180,53 +199,77 @@ function EstimateBody({ d }: { d: Loaded }) {
   )
 }
 
+/** A row's cells after its name: the amount under the money columns, and nothing under the others, so each lines up with its header. */
+function Tail({ ob, children }: { ob: boolean; children: ReactNode }) {
+  return (
+    <>
+      <span role="cell" className="ce-fill" aria-colspan={ob ? undefined : 2} />
+      <span role="cell" className="ce-amt tnum" aria-colspan={ob ? 2 : undefined}>
+        {children}
+      </span>
+    </>
+  )
+}
+
+/** A row that is one cell across the table: a note, or a line's quote form. */
+function Wide({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div role="row" className={className}>
+      <div role="cell" aria-colspan={4}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Under the groups, always unfolded: what they come to, the builder's margin, the contingency and
  * the total, so the two biggest additions aren't hidden in a group of their own.
  */
 function Summary({ e }: { e: Estimate }) {
   const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
+  const ob = e.who === 'owner'
   return (
-    <div className="ce-sum tnum" role="group" aria-label="Total">
-      <div className="ce-sum-row">
-        <span>Subtotal</span>
-        <span>{money(e.subtotal)}</span>
+    <div className="ce-sum tnum" role="rowgroup">
+      <div className="ce-sum-row" role="row">
+        <span role="rowheader">Subtotal</span>
+        <Tail ob={ob}>{money(e.subtotal)}</Tail>
       </div>
       {e.who === 'builder' ? (
-        <div className="ce-sum-row" onMouseEnter={() => useCosts.setState({ hover: null })}>
-          <span>
+        <div className="ce-sum-row" role="row" onMouseEnter={() => useCosts.setState({ hover: null })}>
+          <span role="rowheader">
             Builder’s margin {pct(e.margin.share)}
             <small>Overheads and profit, on the building work</small>
           </span>
-          <span>+{money(e.margin.amount)}</span>
+          <Tail ob={ob}>+{money(e.margin.amount)}</Tail>
         </div>
       ) : (
-        <div className="ce-sum-row muted">
-          <span>
+        <div className="ce-sum-row muted" role="row">
+          <span role="rowheader">
             No builder’s margin
             <small>You build it, as owner-builder</small>
           </span>
-          <span>$0</span>
+          <Tail ob={ob}>$0</Tail>
         </div>
       )}
-      <div className="ce-sum-row">
-        <span>
+      <div className="ce-sum-row" role="row">
+        <span role="rowheader">
           Contingency {pct(e.contingency.share)}
           <small>For what can’t be seen yet, on everything above</small>
         </span>
-        <span>+{money(e.contingency.amount)}</span>
+        <Tail ob={ob}>+{money(e.contingency.amount)}</Tail>
       </div>
-      <div className="ce-sum-row total">
-        <span>Total</span>
-        <span>{e.ready ? money(e.total) : '—'}</span>
+      <div className="ce-sum-row total" role="row">
+        <span role="rowheader">Total</span>
+        <Tail ob={ob}>{e.ready ? money(e.total) : '—'}</Tail>
       </div>
-      <p className="muted small">
+      <Wide className="muted small ce-sum-note">
         Change the margin or contingency in{' '}
         <button className="link" onClick={() => go(MORE, 'cost-rates')}>
           More › Rates
         </button>
         .
-      </p>
+      </Wide>
     </div>
   )
 }
@@ -294,40 +337,54 @@ function Line({ l, ob, on }: { l: CostLine; ob: boolean; on: boolean }) {
     if (useCosts.getState().hover?.line === l.id) useCosts.setState({ hover: null })
   }
   const toggle = () => useCosts.setState(s => ({ opened: s.opened?.line === l.id ? null : pointedOf(l) }))
-  const qty = qtyText(l)
-  const cells = (
+  const what = (
     <>
-      <span className="ce-what">
-        {l.label}
-        <small>{l.quote ? `${l.group === 'gov' ? 'Your figure' : 'Quote'} · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
-      </span>
-      <span className="ce-qty tnum">{qty}</span>
-      {ob ? (
-        <>
-          <span className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>{money(l.materials)}</span>
-          <span className="ce-amt tnum muted">{money(l.labour)}</span>
-        </>
-      ) : (
-        <>
-          <span className="ce-rate tnum">{l.rate === null || l.unit === 'item' ? '' : rateText(l.rate, l.unit)}</span>
-          <span className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
-            {money(l.amount)}
-            {l.quote && <s>{money(l.estimate)}</s>}
-          </span>
-        </>
-      )}
+      {l.label}
+      <small>{l.quote ? `${l.group === 'gov' ? 'Your figure' : 'Quote'} · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
     </>
   )
+  // The line's name opens it (a quote, where its quantity comes from); a click anywhere on the row does too.
   return (
-    <div className={`ce-ln${on ? ' on' : ''}${l.missing ? ' missing' : ''}`} onMouseEnter={point} onMouseLeave={unpoint}>
-      {l.computed ? (
-        <div className="ce-ln-main">{cells}</div>
-      ) : (
-        <button className="ce-ln-main" aria-expanded={on} onClick={toggle} onFocus={point} onBlur={unpoint} title={on ? undefined : l.group === 'gov' ? 'Put in the council’s own figure' : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
-          {cells}
-        </button>
+    <div role="none" className={`ce-ln${on ? ' on' : ''}${l.missing ? ' missing' : ''}`} onMouseEnter={point} onMouseLeave={unpoint}>
+      <div role="row" className="ce-ln-main" onClick={l.computed ? undefined : toggle}>
+        <span role="rowheader" className="ce-what">
+          {l.computed ? (
+            what
+          ) : (
+            <button className="ce-fold" aria-expanded={on} onFocus={point} onBlur={unpoint} title={on ? undefined : l.group === 'gov' ? 'Put in the council’s own figure' : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
+              {what}
+            </button>
+          )}
+        </span>
+        <span role="cell" className="ce-qty tnum">
+          {qtyText(l)}
+        </span>
+        {ob ? (
+          <>
+            <span role="cell" className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
+              {money(l.materials)}
+            </span>
+            <span role="cell" className="ce-amt tnum muted">
+              {money(l.labour)}
+            </span>
+          </>
+        ) : (
+          <>
+            <span role="cell" className="ce-rate tnum">
+              {l.rate === null || l.unit === 'item' ? '' : rateText(l.rate, l.unit)}
+            </span>
+            <span role="cell" className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
+              {money(l.amount)}
+              {l.quote && <s>{money(l.estimate)}</s>}
+            </span>
+          </>
+        )}
+      </div>
+      {on && (
+        <Wide>
+          <QuoteForm l={l} onDone={() => useCosts.setState({ opened: null })} />
+        </Wide>
       )}
-      {on && <QuoteForm l={l} onDone={() => useCosts.setState({ opened: null })} />}
     </div>
   )
 }
