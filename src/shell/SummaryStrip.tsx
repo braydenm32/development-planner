@@ -127,6 +127,9 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                     {here && <span className="chip-label">of {m2(n.floorArea)}</span>}
                   </Chip>
                 )}
+                {/* The two answers people look for come straight after the floor, so they are the last to go behind "+2" (HO-12). */}
+                {checks && !share && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
+                {cost && !shown.cost && <CostChip cost={cost} route={route} readOnly={readOnly} />}
                 <Chip id="ffl" label={n.floors.length > 1 ? 'Floor levels (FFL)' : 'Floor level (FFL)'} shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title={n.floors.length > 1 ? n.floors.map(f => `${f.name}: RL ${f.rl.toFixed(2)}`).join('\n') : 'The ground floor’s level'}>
                   <b>{floorsText(n.floors, n.ffl)}</b>
                 </Chip>
@@ -194,8 +197,6 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                       <i className="dot" /> Earth slopes (batters) cross {n.batters}
                     </button>
                   ))}
-                {checks && !share && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
-                {cost && !shown.cost && <CostChip cost={cost} route={route} readOnly={readOnly} />}
                 {siteChecks > 0 &&
                   !share &&
                   (readOnly ? (

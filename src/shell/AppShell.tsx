@@ -295,9 +295,10 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
           ))}
         </div>
       )}
-      <UndoRedo />
+      {/* View on a phone changes nothing (only Costs' prices can change there): the tabs get Undo and Redo's room (PH-34). */}
+      {!(phone && mode === 'view' && route.kind === 'app' && route.area !== 'costs') && <UndoRedo />}
       {route.kind === 'app' && !phone && <StepsButton />}
-      <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
+      <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
         <Icon name="search" size={16} />
         <span className="desk-only">Search</span>
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
@@ -360,7 +361,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
 function StepsButton() {
   const open = useStepsPanel(s => s.open)
   return (
-    <button className={`steps-button${open ? ' on' : ''}`} onClick={toggleSteps} aria-pressed={open}>
+    <button className={`steps-button${open ? ' on' : ''}`} onClick={toggleSteps} aria-pressed={open} aria-label="Check everything" title="Check everything">
       <Icon name="steps" size={16} />
       <span>Check everything</span>
     </button>
