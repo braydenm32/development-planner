@@ -8,6 +8,7 @@ import { FoldingContext, foldKey, isUnfolded } from '../components/folding'
 import { LocalSaveChip } from '../cloud/LocalSave'
 import { saveNow } from '../cloud/saveState'
 import { SyncChip } from '../cloud/SyncChip'
+import { OfflineChip } from '../offline/OfflineChip'
 import { useCloud } from '../cloud/state'
 import { Panel } from '../components/Panel'
 import { CanvasFrame, type Insets } from '../components/canvasFrame'
@@ -339,6 +340,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <span className="desk-only">Search</span>
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
       </button>
+      <OfflineChip />
       <SyncChip />
       {route.kind === 'app' && <LocalSaveChip onDownload={() => run('save-project')} />}
       <ProjectMenu open={menu.open} focusItem={menu.focus} onOpenChange={open => setMenu({ open, focus: null })} run={run} />

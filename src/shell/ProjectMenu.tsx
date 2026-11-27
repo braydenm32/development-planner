@@ -5,6 +5,7 @@ import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { CloudMenuItem } from '../cloud/CloudCard'
 import { LocalSaveLine } from '../cloud/LocalSave'
 import { TextField } from '../components/fields'
+import { InstallItem } from '../offline/InstallItem'
 import { Icon } from '../nav/icons'
 import { useModal } from '../nav/useModal'
 import { HOMES, type ActionId } from '../nav/menu'
@@ -115,6 +116,7 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
                 </div>
               )
             if (item.id === 'save-state') return <LocalSaveLine key={item.id} />
+            if (item.id === 'install-app') return <InstallItem key={item.id} onRun={() => onOpenChange(false)} />
             if (item.id === 'cloud')
               return (
                 <CloudMenuItem

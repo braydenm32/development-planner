@@ -1140,6 +1140,15 @@ export const HOMES: Home[] = [
         hint: 'While you’re signed in, the chip at the top right says Saved, Saving… or Offline. Tap it for what happened, and Sync now.',
       },
       {
+        // src/offline: the app opens and works with no connection once it has been opened here.
+        id: 'offline-chip',
+        label: 'Working offline',
+        icon: 'cloudOff',
+        keywords: ['offline', 'no internet', 'no connection', 'no signal', 'no wifi', 'without internet', 'on site', 'airplane mode', 'flight mode', 'app', 'new version', 'update', 'reload'],
+        features: ['offline-app', 'offline-indicator', 'offline-update-notice', 'needs-connection'],
+        hint: 'Once you’ve opened Contour & Gable here, it opens and works with no connection: drawing, checks, costs, 3D, the PDF and saving on this device. The top bar says Offline meanwhile; sign-in, cloud saves, share links, comments and the NSW map wait for the connection.',
+      },
+      {
         id: 'undo-toast',
         label: 'Undo a replaced survey or plan',
         icon: 'undo',
@@ -1184,6 +1193,15 @@ export const HOMES: Home[] = [
         features: ['cloud-sign-in', 'cloud-email-sign-in', 'cloud-create-account', 'cloud-recovery-code', 'cloud-add-passkey', 'cloud-email-address', 'cloud-sign-out', 'cloud-delete-account', 'cloud-space', 'create-account-terms-line'],
         action: 'cloud',
         run: 'now',
+      },
+      {
+        // Only where the browser offers it (src/offline/InstallItem.tsx).
+        id: 'install-app',
+        label: 'Install Contour & Gable',
+        icon: 'download',
+        keywords: ['install', 'app', 'install app', 'home screen', 'add to home screen', 'desktop app', 'phone app', 'shortcut', 'icon', 'offline', 'pwa'],
+        features: ['install-app'],
+        hint: 'Where your browser offers it (Chrome or Edge), the project menu has Install Contour & Gable. On an iPhone or iPad, tap Share, then Add to Home Screen. Once opened, it works offline too.',
       },
       { id: 'project-name', label: 'Project name', icon: 'pencil', keywords: ['title', 'rename'], features: ['project-name'] },
       // The survey's file name, with Replace… beside it (the review keeps the plan).

@@ -277,6 +277,7 @@ describe('the menu', () => {
       'Open an example',
       'Where it’s saved',
       'Sign in and cloud saves',
+      'Install Contour & Gable',
       'Project name',
       'Survey file name',
       'Download a backup (project file)',

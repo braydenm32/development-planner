@@ -2,6 +2,8 @@
 // DP (the cadastre). Site › Map and the start screen's "start from the address" both use it.
 
 import { useEffect, useRef, useState } from 'react'
+import { NeedsConnection } from '../offline/NeedsConnection'
+import { useOnline } from '../offline/state'
 import { lotById, lotsOfProperty, MapServiceError, parseLotDp, searchAddress, type AddressHit, type Lot } from './services'
 
 /** The lots of an address, each keeping the address it was found by (for the DA pack's title blocks). */
@@ -13,12 +15,13 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const ctrl = useRef<AbortController | null>(null)
+  const online = useOnline()
 
   // Addresses as you type, a moment after you stop.
   const q = text.trim()
   // An address picked from the list is in the box now; it isn't searched for again.
   const [chosen, setChosen] = useState<string | null>(null)
-  const typing = q.length >= 4 && !parseLotDp(q) && text !== chosen
+  const typing = online && q.length >= 4 && !parseLotDp(q) && text !== chosen
   useEffect(() => {
     if (!typing) return
     const c = new AbortController()
@@ -71,6 +74,7 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
 
   return (
     <div className="map-search">
+      <NeedsConnection>Finding a lot uses the NSW map services.</NeedsConnection>
       <form
         className="row"
         onSubmit={e => {
@@ -87,7 +91,7 @@ export function LotSearch({ onLots }: { onLots: (lots: Lot[]) => void }) {
           autoComplete="off"
           enterKeyHint="search"
         />
-        <button className="secondary" type="submit" disabled={busy || !text.trim()}>
+        <button className="secondary" type="submit" disabled={busy || !text.trim() || !online}>
           {busy ? 'Finding…' : 'Find'}
         </button>
       </form>

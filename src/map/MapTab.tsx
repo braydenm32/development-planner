@@ -13,6 +13,8 @@ import { setCheckSettings, setCouncil } from '../checks/settings'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { navigate, useRouter } from '../nav/router'
+import { NeedsConnection } from '../offline/NeedsConnection'
+import { useOnline } from '../offline/state'
 import { usePlan } from '../plan/store'
 import { useShell } from '../shell/context'
 import { gridToMga } from './fit'
@@ -42,6 +44,7 @@ export function MapTab() {
   const [picked, setPicked] = useState<Lot | null>(null)
   const [moving, setMoving] = useState(!place)
   const [trouble, setTrouble] = useState(false)
+  const online = useOnline()
   const canvas = useCanvasHost()
   const sketch = isSketch(project)
 
@@ -76,7 +79,8 @@ export function MapTab() {
             Find your block to see it on the aerial photo and read its zone and hazards from the NSW planning maps. What you type, and where the block is, go to NSW Government map services; nothing else leaves this browser.
           </p>
           <LotSearch onLots={show} />
-          {trouble && (
+          {/* Offline, the search above says why already. */}
+          {trouble && online && (
             <p className="notice small map-trouble" role="alert">
               The map isn’t loading: this browser can’t reach the NSW map service just now. Check the connection, or try again in a minute.
               {sketch && (
@@ -154,6 +158,7 @@ function Placed({ place, outline, view, onView, onMove, fromLot }: { place: MapP
         </button>
       </div>
       <MapPicker view={view} onView={onView} lots={[place.lot]} selected={place.lot.id} onPick={() => {}} outline={surveyLonLat} height={260} />
+      <NeedsConnection>The aerial photo and Read again wait for it. What the planning maps said is kept with the project.</NeedsConnection>
       {fromLot && !stale ? (
         // The block was made from this lot, so there's no fit to judge or nudge.
         <p className="muted small">The block’s boundary is the lot’s own lines from the NSW cadastre, and its ground the state’s elevation model.</p>
@@ -238,6 +243,7 @@ const yesNo = (hits: { name: string; middle: boolean }[], none: string) =>
 
 function Planning({ place }: { place: MapPlace }) {
   const reading = useMap(s => s.reading)
+  const online = useOnline()
   const error = useMap(s => s.error)
   const plan = usePlan(s => s.plan)
   const settings = checkSettingsOf(plan?.checks)
@@ -250,7 +256,7 @@ function Planning({ place }: { place: MapPlace }) {
     <section className="map-planning" aria-labelledby="map-planning-head">
       <div className="map-placed-head">
         <h3 id="map-planning-head">What the planning maps say</h3>
-        <button className="link" onClick={() => void refreshPlanning()} disabled={reading}>
+        <button className="link" onClick={() => void refreshPlanning()} disabled={reading || !online}>
           {reading ? 'Reading…' : 'Read again'}
         </button>
       </div>
