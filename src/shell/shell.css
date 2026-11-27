@@ -476,7 +476,7 @@ body:has(.app-shell) {
    its tick (the whole of it is in its tip and its popover), Search to its icon, and the project's
    name shortens; under that the tabs that don't fit are listed under the "+3". */
 @media (max-width: 1799px) {
-  .app-shell:not(.phone) .top-bar .ls-chip .ls-label {
+  .app-shell:not(.phone) .top-bar .ls-chip.quiet .ls-label {
     display: none;
   }
 }
@@ -494,8 +494,9 @@ body:has(.app-shell) {
 }
 
 @media (max-width: 1499px) {
-  .app-shell:not(.phone) .top-bar .ls-chip .ls-at,
-  .app-shell:not(.phone) .top-bar .cl-chip-label {
+  /* Only while all is well: a problem with saving keeps its words. */
+  .app-shell:not(.phone) .top-bar .ls-chip.quiet .ls-at,
+  .app-shell:not(.phone) .top-bar .cl-chip.quiet .cl-chip-label {
     display: none;
   }
 

@@ -56,6 +56,8 @@ export function TabBar({ route, go }: { route: AppRoute; go: Go }) {
           onClick={e => {
             link.onClick(e)
             close()
+            // The keyboard carries on from the tab just opened, now in the bar.
+            if (e.defaultPrevented) requestAnimationFrame(() => document.querySelector<HTMLElement>('.tab-bar .tab.on')?.focus())
           }}
         >
           {t.label}
