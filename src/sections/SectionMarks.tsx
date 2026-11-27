@@ -9,6 +9,7 @@ import { navigate, useRouter } from '../nav/router'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { showToast } from '../safety/store'
+import { FREE_KEY } from '../pointer/snapping'
 import { addSection, MIN_SECTION, sectionsOf, snapEnd } from './lines'
 import { Mark, Preview } from './MarkSvg'
 import { showDrawing, startSectionLine, stopSectionLine, useSections } from './store'
@@ -111,7 +112,7 @@ export function useSectionMarks({ plan, S, k, viewOnly }: SectionMarksArgs) {
     return false
   }
 
-  const hint = !active ? null : drawing?.a ? 'Click where the section ends. It keeps square to the house; Shift draws it at any angle. Esc stops.' : 'Click where the section starts, then where it ends. Esc stops.'
+  const hint = !active ? null : drawing?.a ? `Click where the section ends. It keeps square to the house; ${FREE_KEY} draws it at any angle. Esc stops.` : 'Click where the section starts, then where it ends. Esc stops.'
 
   let over: ReactNode = null
   if (visible) {

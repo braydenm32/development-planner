@@ -10,6 +10,7 @@ import type { Plan } from '../plan/model'
 import type { SnapResult } from '../plan/snap'
 import { usePlan, type Tool } from '../plan/store'
 import { setWallMode, useWallMode } from '../plan/wallMode'
+import { FREE_KEY, snapFree } from '../pointer/snapping'
 
 export interface RectRoomArgs {
   level: string
@@ -31,7 +32,7 @@ export interface RectRoomArgs {
 }
 
 const HINT = {
-  start: 'Drag from one corner of the room to the opposite one, or click each: four walls and their room in one go. Shift turns off snapping.',
+  start: 'Drag from one corner of the room to the opposite one, or click each: four walls and their room in one go. ' + FREE_KEY + ' turns off snapping.',
   next: 'Click the opposite corner, or type width x depth in mm (4000x3000) and press Enter. Esc starts again.',
   // A finger pans, so on a phone it's two taps.
   phoneStart: 'Tap one corner of the room, then the opposite one: four walls and their room in one go.',
@@ -83,9 +84,9 @@ export function useRectRoom({ level, tool, S, snapAt, cursor, viewOnly, phone, p
   }
 
   /** A mouse press where a rectangle can start: it's a drag to the opposite corner, or a click that puts the first one down. */
-  const down = (world: Vec2, e: { button: number; pointerType: string; shiftKey: boolean }): boolean => {
+  const down = (world: Vec2, e: { button: number; pointerType: string; altKey: boolean }): boolean => {
     if (!active || from || e.button !== 0 || e.pointerType === 'touch') return false
-    set({ from: snapAt(world, { free: e.shiftKey }).p, pressed: true })
+    set({ from: snapAt(world, { free: snapFree(e) }).p, pressed: true })
     return true
   }
 

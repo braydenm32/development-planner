@@ -89,8 +89,8 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   window.addEventListener('pointerdown', () => (tabbing = false), true)
 }
 
-/** Whether the keyboard, not the pointer, last moved the focus (src/nav/arrowKeys.ts asks). */
-export const tabbingNow = () => tabbing
+/** Whether the keyboard, not the pointer, last moved the focus: arrow keys walk a group (src/nav/arrowKeys.ts) and a button reached that way keeps Space for itself (src/pointer/spacePan.ts). */
+export const tabbingNow = (): boolean => tabbing
 
 const SINGLE_KEYS = 'single-key-shortcuts-v1'
 let singleKeys: boolean | null = null

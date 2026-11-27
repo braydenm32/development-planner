@@ -39,6 +39,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['arrows'], what: 'Move the plan when nothing is picked (Shift: further); in the 3D view, turn and tilt it' },
       { keys: ['0'], what: 'Fit the house' },
       { keys: ['shift+0'], what: 'Fit the block' },
+      { keys: ['Space+drag'], what: 'Move the plan, whatever is under the pointer (two fingers on a trackpad move it too)' },
       { keys: ['PageUp', 'PageDown'], what: 'Draw on the level above or below' },
       { keys: ['Tab'], what: 'From the top of the page: skip to the panel, the plan tools, the plan or the selection. The tool rail is one stop; arrows move along it' },
       { keys: ['mod+K'], what: 'Search everything' },
@@ -50,6 +51,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
     rows: [
       { keys: ['mod+click'], what: 'Add to or take from the selection' },
       { keys: ['shift+drag'], what: 'Box around empty ground: pick what is inside' },
+      { keys: ['right-click'], what: 'A menu of what can be done with what is under the pointer' },
       { keys: ['mod+A'], what: 'Pick everything on this floor' },
       { keys: ['Esc'], what: 'End what you are drawing; press it again to go back to Select, and once more to clear the selection' },
     ],
@@ -74,10 +76,11 @@ export const SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'Drawing and typing',
     rows: [
-      { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter' },
+      { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter (3000<45 sets the angle too; 4.5m is metres)' },
       { keys: ['0–9', 'X'], what: 'Rectangle room, after its first corner: type width x depth in mm (4000x3000), then Enter' },
       { keys: ['Enter'], what: 'Close an outdoor area or roof outline' },
-      { keys: ['shift+drag'], what: 'While dragging an item, turn snapping off' },
+      { keys: ['Shift'], what: 'While drawing, keep the wall or line square to the house' },
+      { keys: ['Alt'], what: 'While drawing or dragging, turn snapping off (Option on a Mac)' },
       { keys: ['Enter'], what: 'In a number box, keep the value and stay in the box (a bare number is mm; 0.9 or 9m is metres)' },
       { keys: ['Esc'], what: 'In a number box, put the old value back and leave the box' },
     ],

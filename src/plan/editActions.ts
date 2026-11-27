@@ -65,6 +65,9 @@ let clipboard: Clip | null = null
 let copiedOn: string | null = null
 let pastes = 0
 
+/** Whether there is something copied to paste (the plan's right-click menu offers Paste only then). */
+export const hasCopied = (): boolean => clipboard !== null
+
 /** Empty the clipboard (tests, and a new project). */
 export function forgetCopied() {
   clipboard = null

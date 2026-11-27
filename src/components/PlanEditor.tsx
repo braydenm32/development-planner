@@ -116,6 +116,15 @@ import { DrivewayArrows } from './DrivewayArrows'
 import { costsUndoKey } from '../costs/store'
 import { KEY_PAN, PLAN_CANVAS } from '../a11y/planCanvas'
 import { PlanWords } from '../a11y/PlanWords'
+import { usePlanPointer } from '../pointer/usePlanPointer'
+import { openPlanMenu } from '../pointer/planMenuStore'
+import { SnapKey } from '../pointer/PlanGrid'
+import { FREE_KEY, snapFree } from '../pointer/snapping'
+import { typedKey, typedLabel, typedPoint } from '../pointer/typedEntry'
+import { wheelPan } from '../pointer/wheel'
+import { dragHint, isDragHint } from '../pointer/dragHint'
+import { faceGuides } from '../pointer/faceSnap'
+import { openingGapDims } from '../pointer/openingGaps'
 import './editing.css'
 
 interface View {
@@ -185,8 +194,8 @@ const VIEW_HINT = {
 }
 
 const HINTS: Record<Tool, string> = {
-  select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag to pan.',
-  wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to turn off snapping. For a whole room in one go, Shift+W.',
+  select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes; right-click for more. Drag empty space to pan.',
+  wall: `Click to start a wall, click again for each corner. Type a length in mm and press Enter (3000<45 sets the angle too). Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to keep it square, ${FREE_KEY} to turn off snapping. For a whole room in one go, Shift+W.`,
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
@@ -195,10 +204,10 @@ const HINTS: Record<Tool, string> = {
   room: 'Click inside a room to name it. A space the walls close round with no room yet gets one.',
   area: 'Click the corners of a slab, driveway, deck or garden. Type a length in mm and press Enter for an exact side. Click the first point or press Enter to close it.',
   roof: 'Click inside the walls to roof that building. Select a roof to set its type, pitch and gable ends.',
-  stair: 'Click where the stair starts, then click the direction it goes up. Hold Shift for any angle.',
+  stair: `Click where the stair starts, then click the direction it goes up. Hold ${FREE_KEY} for any angle.`,
   furniture:
-    'Pick a piece from the list and click to place it, or drag it from the list. Its back snaps flush to a nearby wall. Q turns it 90° (Shift+Q the other way), or drag its round handle. Hold Shift to turn off snapping.',
-  measure: 'Click a point, then another to read the distance and height; keep clicking for a chain. Double-click or Enter finishes. Shift turns off snapping. Esc ends the tool.',
+    `Pick a piece from the list and click to place it, or drag it from the list. Its back snaps flush to a nearby wall. Q turns it 90° (Shift+Q the other way), or drag its round handle. Hold ${FREE_KEY} to turn off snapping.`,
+  measure: `Click a point, then another to read the distance and height; keep clicking for a chain. It snaps to wall faces and corners. Double-click or Enter finishes. Shift keeps it square, ${FREE_KEY} turns off snapping. Esc ends the tool.`,
   sketch: 'Click to sketch. Sketch lines change nothing; everything snaps to them.',
   note: 'Click the plan to add a note; click a note to change or delete it. Esc finishes.',
   move: 'Drag to move the house on the block. Type exact distances to the boundary, rotation and floor level in Earthworks › Place.',
@@ -428,6 +437,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const ground = useMemo(() => (showGround && !noFloor ? groundOverlay(terrain.grid, survey.boundary, floorRL) : null), [showGround, noFloor, terrain, survey, floorRL])
   const furniture = useMemo(() => plan.furniture.filter(f => f.level === level), [plan.furniture, level])
   const wallOutlines = useMemo(() => [...polys.values()], [polys])
+  // What Measure and Sketch snap to besides: the faces of the walls and their corners (src/pointer/faceSnap.ts).
+  const faceSnaps = useMemo(() => faceGuides(wallOutlines, guides), [wallOutlines, guides])
   const selFurniture = !group && selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
 
   // Setbacks: how far the house is from each side of the block, while moving the house and wherever they're switched on.
@@ -752,7 +763,20 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     touch: !!touch?.phone,
   })
   // The Measure and Note tools: the ruler and the plan's text notes.
-  const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, guides, viewOnly, size })
+  const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, guides, viewOnly, size, snapAt: (raw, o) => snapHere(raw, o).p })
+  // Habits from other planners (src/pointer): Space to pan, the right-click menu, a length typed on its label, the grid.
+  const habits = usePlanPointer({
+    plan,
+    svg: svgRef,
+    S,
+    W,
+    k: v.k,
+    size,
+    edits: !viewOnly,
+    lengths: tool === 'select' && !viewOnly && !guarded && !site.active && !flow.active && !sections.active && !brush.active,
+    cursor,
+    snaps: dragKind ? ['joint', 'areaVertex', 'roofVertex', 'furniture', 'sketch'].includes(dragKind) : ['wall', 'retaining', 'area', 'roof', 'stair', 'furniture', 'sketch'].includes(tool),
+  })
   const path = (pts: Vec2[], close = true) =>
     pts.length ? `M${pts.map(p => S(p).map(n => n.toFixed(1)).join(' ')).join('L')}${close ? 'Z' : ''}` : ''
   const tol = 10 / v.k
@@ -791,11 +815,15 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     askAfterChain()
   }
 
-  /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it (square to the nearest step unless Shift is held). */
+  /**
+   * Where the side being drawn from `a` ends: at the pointer, or where what's typed puts it (src/pointer/typedEntry.ts).
+   * A plain length runs square to the nearest step (snap.ts typedLengthEnd) unless snapping is held off; a typed angle or offset is exact.
+   */
   function typedEnd(a: Vec2, toward: Vec2): Vec2 | null {
-    const l = Math.hypot(toward[0] - a[0], toward[1] - a[1])
-    if (!typed) return l > 1e-6 ? toward : null
-    return typedLengthEnd(a, toward, parseFloat(typed) / 1000, cursor?.kind === 'free')
+    if (!typed) return Math.hypot(toward[0] - a[0], toward[1] - a[1]) > 1e-6 ? toward : null
+    const p = typedPoint(a, toward, typed)
+    if (!p || typed.includes('<') || typed.startsWith('@')) return p
+    return typedLengthEnd(a, toward, Math.hypot(p[0] - a[0], p[1] - a[1]), cursor?.kind === 'free')
   }
 
   const placeWallPoint = (p: Vec2) => {
@@ -910,7 +938,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     undoToastFor(`${name} is built over these walls, so the roof is on ${name}, which is showing now.`, () => usePlan.getState().setActiveLevel(level))
   }
 
-  /** Direction from the stair's start towards the cursor: square to the house unless Shift is held. */
+  /** Direction from the stair's start towards the cursor: square to the house unless snapping is off. */
   const stairAngle = (from: Vec2, to: Vec2, free: boolean): number | null => {
     const dx = to[0] - from[0]
     const dy = to[1] - from[1]
@@ -1132,8 +1160,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const floorNext = useRef<Selection | null>(null)
   const lastFloorPress = useRef(0)
 
-  /** What every drawing tool snaps a point to: the walls it can see and the sketch layer. */
-  const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) => snap(raw, { walls: snapWalls, guides, tol, ...o })
+  /**
+   * What every drawing tool snaps a point to: the walls it can see and the sketch layer; for Measure and
+   * Sketch, wall faces too. Shift (kept in `shift` as the pointer moves) holds the line square.
+   */
+  const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) =>
+    snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' ? faceSnaps : guides, tol, ortho: shift.current, ...o })
 
   const startPointer = (e: ReactPointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -1152,7 +1184,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       drag.current = { type: 'pan', sx, sy, start: v }
       return
     }
-    if (e.button === 1 || e.button === 2 || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
+    if (e.button === 1 || e.button === 2 || habits.space.grab() || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
       return
@@ -1183,6 +1215,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
 
+    // A press on a wall's length types it, there (src/pointer/useDimLabels.tsx).
+    if (habits.dimPress(e)) return
     // Ctrl/⌘ and a click adds an item to the group, or takes it out.
     const mod = modKey(e)
     if (mod || e.shiftKey) {
@@ -1429,10 +1463,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const world = W(sx, sy)
     setPointer(world)
     const d = drag.current
-    const free = e.shiftKey
+    // Alt (or the Key's Snapping switch, off) turns snapping off; Shift keeps a line square (src/pointer/snapping.ts).
+    const free = snapFree(e)
+    shift.current = e.shiftKey
     if (askingStreet && frame && !viewOnly && !d) hoverStreetEdge(streetEdgeAt(sx, sy))
     flow.move(world, sx, sy, { dragging: !!d || dragKind !== null || brush.active, pointerType: e.pointerType, buttons: e.buttons })
-    sections.move(world, e.shiftKey)
+    sections.move(world, free)
     brush.move(world)
     if (d?.type === 'brush') return
 
@@ -1468,14 +1504,14 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     if (d?.type === 'group') {
-      // Shift is snapping off here too: free, or in 10 mm steps.
+      // Snapping off here too: free, or in 10 mm steps.
       const raw: Vec2 = [world[0] - d.startWorld[0], world[1] - d.startWorld[1]]
       const delta: Vec2 = free ? raw : [Math.round(raw[0] * 100) / 100, Math.round(raw[1] * 100) / 100]
       preview(() => translateSelection(d.start, d.sels, delta))
       return
     }
     if (d?.type === 'joint') {
-      const s = snap(world, { walls: walls.filter(w => !d.exclude.has(w.id)), anchor: d.anchor, tol, free, guides })
+      const s = snap(world, { walls: walls.filter(w => !d.exclude.has(w.id)), anchor: d.anchor, tol, free, guides, ortho: e.shiftKey })
       setCursor(s)
       preview(() => moveJoint(usePlan.getState().gestureStart!, d.level, d.from, s.p))
       return
@@ -1568,14 +1604,14 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     } else if (tool === 'area' || tool === 'roof') {
       setCursor(snapHere(world, { anchor: areaPts.at(-1) ?? null, points: areaPts, free }))
     } else if (tool === 'stair') {
-      // once the start is down, 'free' vs 'angle' records whether Shift is held
+      // once the start is down, 'free' vs 'angle' records whether snapping is off
       setCursor(stairStart ? { p: world, kind: free ? 'free' : 'angle', guides: [] } : snapHere(world, { free }))
     } else if (isOpeningTool(tool)) {
       const h = nearestWall(world)
       setHoverOpening(h ? { ...h, key: draftKey } : null)
       setCursor(null)
     } else if (tool === 'furniture') {
-      // 'free' records that Shift is held
+      // 'free' records that snapping is off
       setCursor({ p: world, kind: free ? 'free' : 'grid', guides: [] })
     } else {
       setCursor({ p: world, kind: 'free', guides: [] })
@@ -1650,7 +1686,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const [sx, sy] = local(e)
       const dragged = !!downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) > 4
       downAt.current = null
-      rectRoom.up(W(sx, sy), dragged, e.shiftKey)
+      rectRoom.up(W(sx, sy), dragged, snapFree(e))
       return
     }
     if (d?.type === 'box') {
@@ -1693,6 +1729,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const moved = downAt.current ? Math.hypot(sx - downAt.current.x, sy - downAt.current.y) : 0
     downAt.current = null
     if ((d?.type === 'pan' || d?.type === 'move') && moved > 4) settle()
+    // Space and drag only ever pans: nothing is clicked, even if Space lifted first.
+    if (habits.space.release()) return
     if (d?.type === 'wall' && d.cycle && e.button === 0) {
       // A click on a selected wall with others under it: the next one in the stack.
       const next = nextInStack(d.cycle, d.id)
@@ -1702,33 +1740,48 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       return
     }
+    // A right-click that didn't move: the menu for what's under it (a right-drag pans).
+    if (e.button === 2 && moved <= 4 && d?.type === 'pan' && !site.active && !flow.active && !sections.active && !brush.active) {
+      const at = W(sx, sy)
+      const hit = tool === 'select' ? pickAt(at, sx, sy) : null
+      openPlanMenu(hit ? { type: hit.type, id: hit.item.id } : null, [sx, sy], at)
+      return
+    }
+    // A press and drag with a tool that draws click by click moved the plan: say how the tool draws.
+    if (e.button === 0 && moved > 4 && d?.type === 'pan' && !site.active && !flow.active && !sections.active && !brush.active) {
+      const say = dragHint(tool, { started: chain.length > 0 || areaPts.length > 0 || !!stairStart || sk.drawing || mn.drawing, roofOutline: roofMode === 'outline' })
+      if (say) notify(say)
+    }
     if (e.button !== 0 || moved > 4 || (d && d.type !== 'pan')) return
 
     const world = W(sx, sy)
+    const free = snapFree(e)
+    shift.current = e.shiftKey
+    if (isDragHint(notice)) notify(null)
     if (flow.click(world)) return
-    if (sections.click(world, e.shiftKey)) return
+    if (sections.click(world, free)) return
     if (brush.click(world)) return
     if (site.active) {
-      site.click(world, e.shiftKey)
+      site.click(world, free)
       return
     }
     site.deselect()
-    if (mn.click(world, e.shiftKey)) return
-    if (sk.click(world, e.shiftKey)) return
-    if (rectRoom.click(world, e.shiftKey)) return
+    if (mn.click(world, free)) return
+    if (sk.click(world, free)) return
+    if (rectRoom.click(world, free)) return
     if (tool === 'select' && floorNext.current) {
       // A click on the floor of what's already picked: the next thing under it (the room, a slab, the roof).
       select(floorNext.current)
       return
     }
     if (tool === 'wall') {
-      const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free: e.shiftKey })
+      const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free })
       placeWallPoint(s.p)
     } else if (tool === 'retaining') {
-      const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free: e.shiftKey })
+      const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free })
       placeRetainingPoint(s.p)
     } else if (tool === 'area') {
-      const s = snapHere(world, { anchor: areaPts.at(-1) ?? null, points: areaPts, free: e.shiftKey })
+      const s = snapHere(world, { anchor: areaPts.at(-1) ?? null, points: areaPts, free })
       if (areaPts.length >= 3 && near(s.p, areaPts[0])) closeArea(areaPts)
       else setAreaPts([...areaPts, s.p])
     } else if (tool === 'roof' && roofMode === 'building') {
@@ -1754,16 +1807,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       notify(null)
     } else if (tool === 'roof') {
       // Draw roof outline: every click is a corner.
-      const s = snapHere(world, { anchor: areaPts.at(-1) ?? null, points: areaPts, free: e.shiftKey })
+      const s = snapHere(world, { anchor: areaPts.at(-1) ?? null, points: areaPts, free })
       if (areaPts.length >= 3 && near(s.p, areaPts[0])) closeRoof(areaPts)
       else setAreaPts([...areaPts, s.p])
     } else if (tool === 'stair') {
-      const s = snapHere(world, { free: e.shiftKey })
+      const s = snapHere(world, { free })
       if (!stairStart) {
         updateDraft(() => ({ stairStart: s.p }))
         return
       }
-      const angle = stairAngle(stairStart, world, e.shiftKey)
+      const angle = stairAngle(stairStart, world, free)
       if (angle === null) return
       const st = newStair(plan, level, stairStart, angle, stairDefaults)
       commit(p => addStair(p, st))
@@ -1783,7 +1836,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     } else if (tool === 'furniture') {
       const f = newFurniture(furnitureDefaults.kind, level, world, furnitureDefaults.rotation)
       if (!f) return
-      const fit = fitFurniture(f, world, walls, { tol: furnTol, free: e.shiftKey })
+      const fit = fitFurniture(f, world, walls, { tol: furnTol, free })
       const placed = { ...f, at: fit.at, rotation: fit.rotation }
       commit(p => addFurniture(p, placed))
       select({ type: 'furniture', id: placed.id })
@@ -1837,8 +1890,18 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const el = svgRef.current
     if (!el) return
     let timer: ReturnType<typeof setTimeout> | undefined
+    let pannedAt = -Infinity
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      // Two fingers on a trackpad move the plan; a wheel, or a pinch, zooms (src/pointer/wheel.ts).
+      const by = wheelPan(e, e.timeStamp - pannedAt)
+      if (by) {
+        pannedAt = e.timeStamp
+        setView(prev => panBy(prev && prev.token === vRef.current.token ? prev : vRef.current, rhoRef.current, by))
+        clearTimeout(timer)
+        timer = setTimeout(settle, WHEEL_SETTLE_MS)
+        return
+      }
       const factor = wheelZoom(e.deltaY, e.deltaMode, el.clientHeight)
       if (factor === 1) return
       setView(prev => {
@@ -1929,7 +1992,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         zoomPlan(1)
         return
       }
-      if (e.key === '-' || e.key === '_') {
+      // (A minus sign in an angle being typed, 3000<-30, is part of it.)
+      if ((e.key === '-' || e.key === '_') && typedKey(typed, e.key) === null) {
         e.preventDefault()
         zoomPlan(-1)
         return
@@ -1949,14 +2013,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
       const drawnFrom = tool === 'wall' || tool === 'retaining' ? chain.at(-1) : tool === 'area' || tool === 'roof' ? areaPts.at(-1) : undefined
       if (drawnFrom) {
-        if (/^[0-9.]$/.test(e.key)) {
-          setTyped(s => (s + e.key).slice(0, 7))
+        // A length, and with it an angle (3000<45) or metres (4.5m): src/pointer/typedEntry.ts.
+        const next = typedKey(typed, e.key)
+        if (next !== null) {
+          e.preventDefault()
+          setTyped(() => next)
           return
         }
         if (e.key === 'Backspace' && typed) {
           setTyped(s => s.slice(0, -1))
           return
         }
+        // Mid-number, a stray letter is a slip of the finger, never a change of tool or a fit.
+        if (typed && e.key.length === 1) return
         if (e.key === 'Enter' && typed) {
           const end = typedEnd(drawnFrom, cursor?.p ?? drawnFrom)
           if (!end) return
@@ -2105,7 +2174,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const drawingTag = (a: Vec2, b: Vec2, before: Vec2[]) => {
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
     const angle = ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 360) % 360
-    const lines = [typed ? `${typed}▌ mm` : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`]
+    const lines = [typed ? typedLabel(typed) : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`]
     if (before.length > 1) lines.push(`Total ${fmtMm(polylineLength(before) + len)} mm`)
     return tag(b, lines)
   }
@@ -2114,13 +2183,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const openingHover = (w: Wall, at: number, kind: Opening['kind']) => {
     const { width } = openingDefaults[kind]
     const offset = Math.min(Math.max(at, width / 2), wallLength(w) - width / 2)
-    const start = pointOnWall(w, offset - width / 2)
-    const end = pointOnWall(w, offset + width / 2)
     return (
       <g>
         {openingSymbol({ id: 'hover', wall: w.id, kind, offset, ...openingDefaults[kind], flipHinge: false, flipSwing: false }, w, true)}
-        {liveDim(w.a, start, 0, 'hover-from-a')}
-        {liveDim(end, w.b, 0, 'hover-to-b')}
+        {openingGapDims(walls, w, { offset, width }, liveDim, 'hover')}
       </g>
     )
   }
@@ -2547,6 +2613,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           />
         )}
 
+        {habits.under}
         {/* Sketch lines: thin and dashed, under everything built */}
         {sk.under}
 
@@ -2571,6 +2638,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           return w ? openingSymbol(o, w) : null
         })}
         {hoverOpening && isOpeningTool(tool) && openingHover(hoverOpening.wall, hoverOpening.offset, tool)}
+        {/* The selected door or window: how far it is from each corner of its wall, as its card's two boxes say */}
+        {!group &&
+          selection?.type === 'opening' &&
+          plan.openings.filter(o => o.id === selection.id).map(o => {
+            const w = walls.find(x => x.id === o.wall)
+            return w ? <g key={`gaps-${o.id}`}>{openingGapDims(walls, w, o, liveDim, 'sel')}</g> : null
+          })}
 
         {/* Wall lengths */}
         {walls.map(w => {
@@ -2582,7 +2656,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           const inside = faces.some(f => f.area > 0 && pointInPolygon(probe[0], probe[1], f.pts))
           // Lengths are in mm (the scale bar says so); the selected wall's says it too.
           const text = isSel('wall', w.id) ? `${fmtMm(wallLength(w))} mm` : fmtMm(wallLength(w))
-          return dimLabel(w.a, w.b, w.kind === 'external' && inside ? -off : off, text, `dim-${w.id}`)
+          return habits.dimLabel(w, dimLabel(w.a, w.b, w.kind === 'external' && inside ? -off : off, text, `dim-${w.id}`))
         })}
 
         {/* Room labels */}
@@ -2735,8 +2809,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             dragKind === 'furniture') && (
           <SnapMarker p={S(cursor.p)} kind={cursor.kind} />
         )}
+        {habits.over}
       </svg>
       {comments.pins}
+      {habits.html}
 
       <div className="plan-compass" title="North">
         <div className="needle" style={{ ['--az' as string]: `${northDeg}deg` }}>
@@ -2766,6 +2842,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
             {comments.key}
             {(!!plan.sketch?.length || tool === 'sketch') && <SketchKey on={sketchShown} onChange={setSketchShown} plan={plan} />}
             <ShadowsKey />
+            {!viewOnly && <SnapKey k={k} />}
           </GroundKey>
         </KeyChip>
       </div>

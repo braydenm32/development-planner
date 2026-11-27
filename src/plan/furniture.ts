@@ -146,7 +146,7 @@ export interface FurnitureFit {
 export interface FitOptions {
   /** How close (m) an edge must come to a wall face to snap to it. */
   tol: number
-  /** No snapping at all (Shift held). */
+  /** No snapping at all (Alt held, or snapping switched off). */
   free?: boolean
 }
 

@@ -25,8 +25,10 @@ export interface SnapContext {
   anchor?: Vec2 | null
   /** Snap distance in metres (a few screen pixels). */
   tol: number
-  /** Turn snapping off (Shift held). */
+  /** Turn snapping off (Alt held, or the Snapping switch off). */
   free?: boolean
+  /** Keep the line from `anchor` square to the house, however far off the pointer is (Shift held). */
+  ortho?: boolean
   /** The sketch layer: its points snap as wall ends do, and its lines as walls do. */
   guides?: Guides
 }
@@ -36,7 +38,7 @@ const round = (v: number, step: number) => Math.round(v / step) * step
 /**
  * Where a typed length from `a` ends, towards the pointer at `toward`. The direction keeps to the
  * nearest 0/45/90° step, the same steps the pointer snaps to, so a hand slightly off square doesn't
- * skew the wall; `free` (Shift held) follows the pointer exactly.
+ * skew the wall; `free` (snapping held off: Alt, or the Key's switch) follows the pointer exactly.
  */
 export function typedLengthEnd(a: Vec2, toward: Vec2, len: number, free: boolean): Vec2 | null {
   const dx = toward[0] - a[0]
@@ -51,6 +53,8 @@ export function typedLengthEnd(a: Vec2, toward: Vec2, len: number, free: boolean
 }
 
 export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
+  // Square wins over free: Shift is asked for on purpose, and still means a straight line with snapping off.
+  if (ctx.ortho && ctx.anchor) return square(raw, ctx.anchor, ctx)
   if (ctx.free) return { p: [round(raw[0], 0.001), round(raw[1], 0.001)], kind: 'free', guides: [] }
 
   const points: Vec2[] = [...ctx.walls.flatMap(w => [w.a, w.b]), ...(ctx.points ?? []), ...(ctx.guides?.points ?? [])]
@@ -83,13 +87,9 @@ export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
         const dir: Vec2 = [Math.cos(snapped), Math.sin(snapped)]
         const along = dx * dir[0] + dy * dir[1]
         let p: Vec2 = [a[0] + dir[0] * along, a[1] + dir[1] * along]
-        // Stop on a wall the line crosses near the cursor.
-        for (const [wa, wb] of lines) {
-          const hit = rayHitsSegment(a, dir, wa, wb)
-          if (hit !== null && Math.abs(hit - along) < ctx.tol && hit > 1e-6) {
-            return { p: [a[0] + dir[0] * hit, a[1] + dir[1] * hit], kind: 'wall', guides: [] }
-          }
-        }
+        // Stop on a wall the line crosses near the cursor: the nearest crossing, so a wall's face can be told from its centreline.
+        const stop = nearestCrossing(a, dir, along, lines, ctx.tol)
+        if (stop !== null) return { p: [a[0] + dir[0] * stop, a[1] + dir[1] * stop], kind: 'wall', guides: [] }
         // Line up with another point (same x or y), when the line is horizontal or vertical.
         const guides: [Vec2, Vec2][] = []
         if (Math.abs(dir[1]) < 1e-9 || Math.abs(dir[0]) < 1e-9) {
@@ -152,6 +152,68 @@ export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
 
   // 5. A 50 mm grid
   return { p: [round(raw[0], 0.05), round(raw[1], 0.05)], kind: 'grid', guides: [] }
+}
+
+/** How far along the ray from `a` the line crossing nearest the cursor (at `along`) is, within `tol` of it; or null. */
+function nearestCrossing(a: Vec2, dir: Vec2, along: number, lines: [Vec2, Vec2][], tol: number): number | null {
+  let best: number | null = null
+  let bestD = tol
+  for (const [wa, wb] of lines) {
+    const hit = rayHitsSegment(a, dir, wa, wb)
+    if (hit === null || hit <= 1e-6) continue
+    const d = Math.abs(hit - along)
+    if (d < bestD) {
+      bestD = d
+      best = hit
+    }
+  }
+  return best
+}
+
+/**
+ * Shift held: the line from the anchor stays along the house's x or y, whichever the pointer is
+ * nearer. Along it, it still ends on a point or a wall it meets, or in line with another point;
+ * with snapping off (`free`) it ends where the pointer is.
+ */
+function square(raw: Vec2, a: Vec2, ctx: SnapContext): SnapResult {
+  const dx = raw[0] - a[0]
+  const dy = raw[1] - a[1]
+  const axis = Math.abs(dx) >= Math.abs(dy) ? 0 : 1
+  const dir: Vec2 = axis === 0 ? [dx < 0 ? -1 : 1, 0] : [0, dy < 0 ? -1 : 1]
+  const along = Math.abs(axis === 0 ? dx : dy)
+  const at = (l: number): Vec2 => [a[0] + dir[0] * l, a[1] + dir[1] * l]
+  if (ctx.free) return { p: at(round(along, 0.001)), kind: 'angle', guides: [] }
+  const points: Vec2[] = [...ctx.walls.flatMap(w => [w.a, w.b]), ...(ctx.points ?? []), ...(ctx.guides?.points ?? [])]
+  const lines: [Vec2, Vec2][] = [...ctx.walls.map(w => [w.a, w.b] as [Vec2, Vec2]), ...(ctx.guides?.segs ?? [])]
+  // A point that is on the line already (the start of the run, a wall's end).
+  let end: Vec2 | null = null
+  let endD = ctx.tol
+  for (const q of points) {
+    if (Math.abs(q[1 - axis] - a[1 - axis]) > 1e-6) continue
+    const d = Math.abs((q[axis] - a[axis]) * dir[axis] - along)
+    if (d < endD && (q[axis] - a[axis]) * dir[axis] > 1e-6) {
+      endD = d
+      end = q
+    }
+  }
+  if (end) return { p: [end[0], end[1]], kind: 'end', guides: [] }
+  const stop = nearestCrossing(a, dir, along, lines, ctx.tol)
+  if (stop !== null) return { p: at(stop), kind: 'wall', guides: [] }
+  // In line with another point, across the line.
+  let align: Vec2 | null = null
+  let alignD = ctx.tol
+  for (const q of points) {
+    const d = Math.abs((q[axis] - a[axis]) * dir[axis] - along)
+    if (d < alignD) {
+      alignD = d
+      align = q
+    }
+  }
+  if (align) {
+    const p: Vec2 = axis === 0 ? [align[0], a[1]] : [a[0], align[1]]
+    return { p, kind: 'align', guides: [[align, p]] }
+  }
+  return { p: at(round(along, 0.01)), kind: 'angle', guides: [] }
 }
 
 /** Distance along the ray a + t*dir to segment pq, or null. */

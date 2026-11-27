@@ -45,7 +45,7 @@ export const sectionName = (s: Pick<SectionLine, 'label'>) => `Section ${s.label
 
 /**
  * Snap the end of a line being drawn so it runs square to the house (or at 45°) when it is
- * within a few degrees of that; `free` (Shift) leaves it where it is.
+ * within a few degrees of that; `free` (Alt, or snapping switched off) leaves it where it is.
  */
 export function snapEnd(a: Vec2, p: Vec2, free: boolean): Vec2 {
   if (free) return p

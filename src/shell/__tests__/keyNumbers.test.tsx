@@ -678,6 +678,8 @@ describe('the panels', () => {
     Object.assign(usePlan.getInitialState(), usePlan.getState())
     const inspector = words(renderToStaticMarkup(<SelectionPanel plan={plan} survey={survey} terrain={terrain} earth={earth} />))
     expect(inspector).toMatch(/^Room Area 101\.79 m²/)
+    // And its clear size, wall face to wall face (DB-35).
+    expect(inspector).toContain('Inside size 11700 × 8700 mm')
     const Rooms = TAB_PANELS['design/rooms']
     const rooms = words(
       renderToStaticMarkup(
@@ -686,7 +688,8 @@ describe('the panels', () => {
         </ShellContext.Provider>,
       ),
     )
-    expect(rooms).toContain('Living 101.79 m²')
+    // The list gives the clear size ahead of the area.
+    expect(rooms).toContain('Living 11700 × 8700 · 101.79 m²')
   })
 
   it("show a retaining wall's own panel in Earthworks › Retaining walls when it is selected, and the list otherwise", () => {
