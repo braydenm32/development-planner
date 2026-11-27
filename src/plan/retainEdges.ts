@@ -4,9 +4,9 @@
 // and print count them like any other, and each can be moved or deleted on its own.
 
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
-import { levelBuildsAs } from './floorTypes'
+import { levelBuildsAs, levelOnPad } from './floorTypes'
 import { buildingOutline, offsetPolygon, planarFaces } from './geometry'
-import { areaKind, isRetaining, newId, sortedLevels, type Plan, type Wall } from './model'
+import { areaKind, floorRL, isRetaining, newId, sortedLevels, type Plan, type Wall } from './model'
 
 /** How thick the walls it adds are (m). */
 export const EDGE_WALL_THICKNESS = 0.2
@@ -37,21 +37,28 @@ function hasWall(plan: Plan, w: Pick<Wall, 'level' | 'a' | 'b'>): boolean {
   return plan.walls.some(x => isRetaining(x) && x.level === w.level && ((near(x.a, w.a) && near(x.b, w.b)) || (near(x.a, w.b) && near(x.b, w.a))))
 }
 
+/** Floors closer in level than this meet without a step that needs a wall (m). */
+const SAME_LEVEL = 0.15
+
 /**
  * The house's outline on each level built on the ground (not framed over another), with the
- * walls its edges need. An edge shared with another such level's outline is left out: it's the
- * step between two parts of the house, inside the house.
+ * walls its edges need. An edge shared with another such level's outline is inside the house:
+ * left out where the two floors are level with each other (or the other one is lower, whose own
+ * edge is the one that counts), and kept where the other is a higher slab on the ground, since
+ * that edge is the step between the two pads and holds the upper one's ground.
  */
 export function houseEdgeWalls(plan: Plan): Pick<Wall, 'level' | 'a' | 'b' | 'thickness' | 'kind'>[] {
   const levels = sortedLevels(plan).filter(l => levelBuildsAs(plan, l.id) !== 'framed')
   const outlines = new Map(levels.map(l => [l.id, buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines]))
   const out: Pick<Wall, 'level' | 'a' | 'b' | 'thickness' | 'kind'>[] = []
   for (const l of levels) {
-    const others = levels.filter(o => o.id !== l.id).flatMap(o => outlines.get(o.id) ?? [])
+    const others = levels.filter(o => o.id !== l.id)
     for (const ring of outlines.get(l.id) ?? []) {
       for (const w of edgeWalls(ring, l.id)) {
         const mid: Vec2 = [(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2]
-        if (others.some(r => pointInPolygon(mid[0], mid[1], r))) continue
+        const beside = others.filter(o => (outlines.get(o.id) ?? []).some(r => pointInPolygon(mid[0], mid[1], r)))
+        const step = levelOnPad(plan, l.id) && beside.length > 0 && beside.every(o => levelOnPad(plan, o.id) && floorRL(plan, o.id) - floorRL(plan, l.id) >= SAME_LEVEL)
+        if (beside.length && !step) continue
         out.push(w)
       }
     }

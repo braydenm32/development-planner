@@ -116,6 +116,9 @@ export const IMPLIED_RULE: SuggestRule = {
   why: f => `${Kind(f.kind)} slopes are set to Retaining wall, so this ${f.kind} edge is a ${wallText(f.wall)} wall someone has to build`,
 }
 
+/** The step between two of the house's pads, as an implied wall's one line. */
+export const stepWhy = (height: number) => `Two parts of the house sit on the ground at different levels here, so the step between them is a ${wallText(height)} wall (or a deepened slab edge) someone has to build`
+
 // The implied walls come before every suggestion: they're already in the design.
 const RANK: Record<RuleId, number> = { implied: -1, ...(Object.fromEntries(SUGGEST_RULES.map((r, i) => [r.id, i])) as Record<Exclude<RuleId, 'implied'>, number>) }
 export const ruleOf = (id: RuleId) => (id === 'implied' ? IMPLIED_RULE : SUGGEST_RULES[RANK[id]])
@@ -144,6 +147,8 @@ export interface WallSuggestion {
   why: string
   /** Needs a professional engineer's certificate (needsEngineer). */
   engineer: boolean
+  /** An implied wall that is the step between two of the house's pads (a split level), whatever the slopes are set to. */
+  step?: true
 }
 
 /** A suggestion already turned down: a point on its line and its direction (degrees, 0 to 180), in the survey's local frame. */

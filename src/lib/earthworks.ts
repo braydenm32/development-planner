@@ -49,6 +49,13 @@ export interface Platform {
   softer?: boolean
   /** Stays at its level when the platforms are raised or lowered to balance cut and fill. */
   fixed?: boolean
+  /**
+   * One of the building's own pads. Inside a pad's own footprint no other pad's level ground or
+   * batters count: where two pads at different levels meet, each stops at the line between them and
+   * the step is a retained edge (a dropped edge beam or a retaining wall), not a batter dug out from
+   * under the upper slab.
+   */
+  pad?: boolean
 }
 
 /**
@@ -82,6 +89,8 @@ export interface PreparedEarthworks {
   opts: EarthworksOptions
   /** Some platforms give way to others. */
   anySoft: boolean
+  /** For each node a building pad is level at, that pad's index in `platforms` (see padOwners); -1 elsewhere. Null with fewer than two pads. */
+  padAt: Int16Array | null
 }
 
 export interface PreparedPlatform {
@@ -90,6 +99,8 @@ export interface PreparedPlatform {
   fill: boolean
   cut: boolean
   dist: Float32Array
+  /** A building pad (Platform.pad): the nodes inside its own footprint, before the margin. */
+  core: Uint8Array | null
   soft: boolean
   fixed: boolean
   /** 0 for a firm platform, 1 for a soft one, 2 for one softer still: each gives way to a lower rank where it is level. */
@@ -377,6 +388,7 @@ export function prepareEarthworks(
       fill: pf.fill,
       cut: pf.cut !== false,
       dist,
+      core: pf.pad ? mask : null,
       soft: !!pf.soft,
       fixed: pf.ramp ? !pf.ramp.followA && !pf.ramp.followB : !!pf.fixed,
       rank: pf.softer ? SOFTEST : pf.soft ? 1 : 0,
@@ -387,7 +399,7 @@ export function prepareEarthworks(
     }
     return out
   })
-  const prep: PreparedEarthworks = { natural, inside, edgeNear, platforms: prepared, opts, anySoft: prepared.some(p => p.rank > 0) }
+  const prep: PreparedEarthworks = { natural, inside, edgeNear, platforms: prepared, opts, anySoft: prepared.some(p => p.rank > 0), padAt: padOwners(prepared) }
   // Ramps last: an end without a level follows the finished ground the other platforms make.
   platforms.forEach((pf, n) => {
     const r = pf.ramp
@@ -411,6 +423,24 @@ export function prepareEarthworks(
     }
   })
   return prep
+}
+
+/**
+ * Which building pad each node belongs to, when there are two or more: the pad whose own footprint
+ * it is in, else the first pad whose level margin reaches it. -1 where no pad is level.
+ */
+function padOwners(platforms: PreparedPlatform[]): Int16Array | null {
+  if (platforms.filter(p => p.core).length < 2) return null
+  const out = new Int16Array(platforms[0].dist.length).fill(-1)
+  platforms.forEach((p, n) => {
+    if (!p.core) return
+    for (let k = 0; k < out.length; k++) if (p.core[k] && out[k] < 0) out[k] = n
+  })
+  platforms.forEach((p, n) => {
+    if (!p.core) return
+    for (let k = 0; k < out.length; k++) if (out[k] < 0 && p.dist[k] === 0) out[k] = n
+  })
+  return out
 }
 
 /**
@@ -477,24 +507,55 @@ function designAt(prep: PreparedEarthworks, k: number, shift: number, noRamps = 
   if (prep.anySoft) for (const p of prep.platforms) if (p.dist[k] === 0 && !(noRamps && p.isRamp)) firmest = Math.min(firmest, p.rank)
   let cutBy = -1
   let fillBy = -1
+  // Where one building pad is level the other pads stop at its edge: the step between them is
+  // retained. Past their level ground, where a lower pad's cut batter would dig under a higher
+  // pad's fill batter, the two meet in a valley along the higher one's batter.
+  const owner = prep.padAt ? prep.padAt[k] : -1
+  let padCut = Infinity
+  let padFill = -Infinity
+  let padCutBy = -1
+  let padFillBy = -1
   for (let n = 0; n < prep.platforms.length; n++) {
     const p = prep.platforms[n]
     const d = p.dist[k]
     if (d === Infinity || p.rank > firmest || (firmest === SOFTEST && p.rank < SOFTEST) || (noRamps && p.isRamp)) continue
+    const pad = prep.padAt !== null && p.core !== null
+    if (pad && owner >= 0 && owner !== n) continue
     const level = p.levels && p.follow ? p.levels[k] + shift * p.follow[k] : p.fixed ? p.level : p.level + shift
     if (p.cut) {
       const c = d === 0 ? level : level + d / cutBatter
-      if (c < cut) {
+      if (pad) {
+        if (c < padCut) {
+          padCut = c
+          padCutBy = n
+        }
+      } else if (c < cut) {
         cut = c
         cutBy = n
       }
     }
     if (p.fill) {
       const f = d === 0 ? level : level - d / fillBatter
-      if (f > fill) {
+      if (pad) {
+        if (f > padFill) {
+          padFill = f
+          padFillBy = n
+        }
+      } else if (f > fill) {
         fill = f
         fillBy = n
       }
+    }
+  }
+  if (padCutBy >= 0 || padFillBy >= 0) {
+    if (padFill > padCut) padCut = padFill
+    if (padCut < cut) {
+      cut = padCut
+      cutBy = padCutBy
+    }
+    if (padFill > fill) {
+      fill = padFill
+      fillBy = padFillBy
     }
   }
   const z = Math.min(Math.max(g, fill), cut)
@@ -532,7 +593,7 @@ function volumes(prep: PreparedEarthworks, shift: number): { cut: number; fill: 
  */
 export function volumesWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): { cut: number; fill: number } {
   const platforms = prep.platforms.filter(p => !drop(p))
-  return volumes({ ...prep, platforms, anySoft: platforms.some(p => p.rank > 0) }, 0)
+  return volumes({ ...prep, platforms, anySoft: platforms.some(p => p.rank > 0), padAt: padOwners(platforms) }, 0)
 }
 
 export function evaluateEarthworks(prep: PreparedEarthworks, shift = 0): EarthworksResult {

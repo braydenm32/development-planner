@@ -21,7 +21,7 @@ import {
   type Plan,
   type SectionLine,
 } from '../plan/model'
-import { pierOutlines } from '../plan/platforms'
+import { earthworksPlatforms, padSteps, pierOutlines } from '../plan/platforms'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { roofGeometry, type RoofMesh } from '../plan/roof'
@@ -185,6 +185,9 @@ function groundRuns(f: Heightfield, a: Vec2, b: Vec2, inside: [number, number][]
   )
 }
 
+/** How thick the retained step between two of the house's pads is drawn (m). */
+const STEP_WALL = 0.2
+
 /** What a section line cuts through. */
 export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionDrawing {
   const { plan, survey } = input
@@ -291,6 +294,24 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
       const near = prof.samples.reduce((p, q) => (Math.abs(q.s - along) < Math.abs(p.s - along) ? q : p))
       retaining.push({ s0, s1, z0: Math.min(near.left, near.right) - 0.3, z1: topAt(w, near) })
     }
+  }
+
+  // The step between two of the house's pads (a split level's slab beside a lower one) is a
+  // retained edge: drawn as a wall from under the lower pad to the upper one, unless a retaining
+  // wall is drawn there already.
+  for (const st of padSteps(earthworksPlatforms(plan, survey.origin))) {
+    const ux = sb[0] - sa[0]
+    const uy = sb[1] - sa[1]
+    const vx = st.b[0] - st.a[0]
+    const vy = st.b[1] - st.a[1]
+    const den = ux * vy - uy * vx
+    if (Math.abs(den) < 1e-9) continue
+    const t = ((st.a[0] - sa[0]) * vy - (st.a[1] - sa[1]) * vx) / den
+    const u = ((st.a[0] - sa[0]) * uy - (st.a[1] - sa[1]) * ux) / den
+    if (t < 0 || t > 1 || u < 0 || u > 1) continue
+    const s = t * len
+    if (retaining.some(r => s > r.s0 - STEP_WALL * 3 && s < r.s1 + STEP_WALL * 3)) continue
+    retaining.push({ s0: s - STEP_WALL / 2, s1: s + STEP_WALL / 2, z0: st.low - 0.3, z1: st.high })
   }
 
   // Roofs: the cut through each, from the top of its walls.

@@ -8,10 +8,11 @@ import type { PreparedPlatform } from '../lib/earthworks'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { fromSite, newId, sortedLevels, type Plan, type Wall } from '../plan/model'
-import { BENCH_PREFIX, isPadId, isPiersId } from '../plan/platforms'
+import { BENCH_PREFIX, isPadId, isPiersId, padSteps } from '../plan/platforms'
 import type { Earth } from '../plan/useEarthworks'
 import { GRADE_CELL } from './model'
-import { lineDir, segmentsOf, suggestWalls, type WallSuggestion } from './suggest'
+import { needsEngineer } from '../checks/engineer'
+import { lineDir, segmentsOf, stepWhy, suggestWalls, type WallSuggestion } from './suggest'
 
 /** Thickness of a suggested wall: concrete block, as the retaining wall offer uses (m). */
 export const SUGGESTED_THICKNESS = 0.2
@@ -53,7 +54,8 @@ export function planWallSuggestions(plan: Plan, survey: Pick<Survey, 'origin' | 
   const hit = cache.get(earth)
   if (hit && hit.key === key) return hit.value
   const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
-  const value = suggestWalls({ ...inputs(survey, earth), counted, trees: zones, dismissed, house })
+  // The steps between the house's own pads come first: they're in the design whatever the slopes are.
+  const value = [...stepWalls(earth), ...suggestWalls({ ...inputs(survey, earth), counted, trees: zones, dismissed, house })]
   cache.set(earth, { key, value })
   return value
 }
@@ -83,6 +85,62 @@ export function planImpliedWalls(survey: Pick<Survey, 'boundary'>, earth: Earth 
   const house = earth.platforms.filter(p => isPadId(p.id) || isPiersId(p.id)).flatMap(p => p.include)
   const value = suggestWalls({ ...inputs(survey, earth), counted: [], trees: [], impliedOnly: true, house })
   impliedCache.set(earth, value)
+  return value
+}
+
+const stepCache = new WeakMap<Earth, WallSuggestion[]>()
+
+/** A drawn retaining wall within this of a step's line, running the same way, is the wall that holds it (m). */
+const STEP_HELD = 0.6
+
+/**
+ * The steps between the house's own pads (a split level's slab beside a lower one) as implied
+ * walls: the earthworks stop each pad at the line between them, so the step is a wall (or a
+ * deepened slab edge) someone has to build, whatever the slopes are set to. A step with a
+ * retaining wall already drawn along it is that wall's, and isn't listed again.
+ */
+export function stepWalls(earth: Earth | null): WallSuggestion[] {
+  if (!earth) return []
+  const hit = stepCache.get(earth)
+  if (hit) return hit
+  const r3 = (p: Vec2): Vec2 => [Math.round(p[0] * 1000) / 1000, Math.round(p[1] * 1000) / 1000]
+  const apart = (p: number, q: number) => {
+    const d = Math.abs(p - q) % 180
+    return Math.min(d, 180 - d)
+  }
+  const toLine = (p: Vec2, a: Vec2, b: Vec2) => {
+    const dx = b[0] - a[0]
+    const dy = b[1] - a[1]
+    const l2 = dx * dx + dy * dy
+    const t = l2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2)) : 0
+    return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+  }
+  const value: WallSuggestion[] = []
+  for (const s of padSteps(earth.platforms)) {
+    const a = r3(s.a)
+    const b = r3(s.b)
+    const mid: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    const dir = lineDir(a, b)
+    if (earth.strips.some(w => apart(dir, lineDir(w.a, w.b)) < 25 && toLine(mid, w.a, w.b) < STEP_HELD)) continue
+    const height = s.high - s.low
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1])
+    value.push({
+      key: `step|${s.lowId}|${s.highId}|${Math.round(a[0])}|${Math.round(a[1])}|${Math.round(dir / 10)}`,
+      source: s.lowId,
+      kind: 'cut',
+      rule: 'implied',
+      path: [a, b],
+      a,
+      b,
+      level: s.low,
+      height,
+      face: length * height,
+      why: stepWhy(height),
+      engineer: needsEngineer(height),
+      step: true,
+    })
+  }
+  stepCache.set(earth, value)
   return value
 }
 

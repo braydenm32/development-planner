@@ -159,6 +159,12 @@ export interface Retain {
    * left that way (another selection, tool or tab, or the project opened again).
    */
   draft?: boolean
+  /**
+   * The level whose part of the house (and pad) the wall is beside, when that isn't the level it
+   * was drawn on: worked out from where the wall is when it's drawn, and changed in its panel.
+   * Missing (and in older plans) means the wall's own level.
+   */
+  pad?: string
 }
 
 /** Level ground beside a retaining wall when its width isn't set (m). */
@@ -388,6 +394,15 @@ export const WALL_KINDS: { id: WallKind; label: string }[] = [
 ]
 
 export const isRetaining = (w: Pick<Wall, 'kind'>) => w.kind === 'retaining'
+
+/**
+ * The level a retaining wall is beside: the one its 'pad' and its house are (Retain.pad), else the
+ * level it was drawn on. A site wall isn't on a storey, so this never depends on the level open.
+ */
+export function padLevelOf<W extends { level?: string; retain?: Pick<Retain, 'pad'> }>(plan: Pick<Plan, 'levels'>, w: W): W['level'] {
+  const id = w.retain?.pad
+  return id !== undefined && plan.levels.some(l => l.id === id) ? id : w.level
+}
 
 /** The walls that make up the house, leaving out retaining walls. */
 export const houseWalls = (walls: Wall[]) => walls.filter(w => !isRetaining(w))

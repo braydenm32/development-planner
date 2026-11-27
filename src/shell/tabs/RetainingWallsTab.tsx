@@ -15,9 +15,10 @@ import { RetainingTotals, RetainingToolOptions } from '../../components/PlanSect
 import { retainedText, useRetainingWalls } from '../../components/planNumbers'
 import { RetainingWallPanel } from '../../components/RetainingWallPanel'
 import { RetainEdges } from '../../components/RetainEdges'
+import { levelLabel } from '../../components/retainingWords'
 import { ENGINEER_TEXT, needsEngineer } from '../../checks/engineer'
 import { usePhone } from '../../phone/device'
-import { isRetaining, levelById } from '../../plan/model'
+import { isRetaining, levelById, padLevelOf } from '../../plan/model'
 import { usePlan } from '../../plan/store'
 import { hoverWall, zoomToWall } from '../../plan/wallFocus'
 import { retainingNames } from '../../plan/wallNames'
@@ -79,7 +80,7 @@ function Walls({ d }: { d: Loaded }) {
       <ul className="pick-list rw-list" onPointerLeave={() => hoverWall(null)}>
         {sorted.map(r => {
           const eng = needsEngineer(r.maxHeight)
-          const level = split ? levelById(d.plan, r.wall.level)?.name : undefined
+          const level = split ? levelById(d.plan, padLevelOf(d.plan, r.wall))?.name : undefined
           return (
             <li key={r.wall.id}>
               <button
@@ -95,7 +96,7 @@ function Walls({ d }: { d: Loaded }) {
                 <span className="rw-row-name">
                   {names.get(r.wall.id) ?? 'Retaining wall'}
                   <span className="muted">
-                    {level ? ` · ${level} level` : ''} · {r.length.toFixed(1)} m
+                    {level ? ` · ${levelLabel(level)}` : ''} · {r.length.toFixed(1)} m
                   </span>
                 </span>
                 <span className={eng ? 'warn-text' : 'muted'} title={`Holds back up to ${retainedText(r.maxHeight)}${eng ? `: an engineer is needed over ${ENGINEER_TEXT}` : ''}`}>

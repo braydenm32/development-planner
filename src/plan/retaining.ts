@@ -2,7 +2,8 @@ import { ENGINEER_TEXT } from '../checks/engineer'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
 import { buildingOutline, planarFaces } from './geometry'
-import { floorRL, isRetaining, levelById, sortedLevels, toSite, wallDir, wallLength, type Plan, type Retain, type Wall } from './model'
+import { levelBuildsAs } from './floorTypes'
+import { floorRL, isRetaining, levelById, padLevelOf, sortedLevels, toSite, wallDir, wallLength, type Plan, type Retain, type Wall } from './model'
 import { housePadRL, MIN_BENCH, sideRL } from './platforms'
 
 /** How far a retaining wall stands above the ground it holds back (m). */
@@ -163,7 +164,8 @@ export function retainingSolid(poly: Vec2[], p: RetainingProfile, bottom: number
  */
 export function houseCaps(p: RetainingProfile, plan: Plan): (number | null)[] {
   const w = p.wall
-  const own = w.level !== undefined && levelById(plan, w.level) ? w.level : undefined
+  const wl = padLevelOf(plan, w)
+  const own = wl !== undefined && levelById(plan, wl) ? wl : undefined
   const ownRings = own !== undefined ? houseRings(plan, own) : []
   const rings = ownRings.length ? ownRings : houseRings(plan)
   if (!rings.length) return p.samples.map(() => null)
@@ -194,7 +196,7 @@ export function retainingProfiles(plan: Plan, origin: Vec2, ground: Heightfield)
   const rings = new Map<string, Vec2[][]>()
   const ringsOf = (level: string) => rings.get(level) ?? rings.set(level, houseRings(plan, level)).get(level)!
   return plan.walls
-    .filter(w => isRetaining(w) && wallLength(w) > 1e-3 && !insideHouse(w, plan, ringsOf(w.level)))
+    .filter(w => isRetaining(w) && wallLength(w) > 1e-3 && !insideHouse(w, plan, ringsOf(padLevelOf(plan, w))))
     .map(w => retainingProfile(w, plan, origin, ground))
 }
 
@@ -211,6 +213,43 @@ export function houseRings(plan: Plan, level?: string): Vec2[][] {
   if (own.length) return own
   const ground = sortedLevels(plan)[0]
   return ground ? outline(ground.id) : []
+}
+
+/** The levels built on the ground that have an outline: the parts of the house a retaining wall can be beside, lowest first. */
+export function padLevels(plan: Plan): string[] {
+  return sortedLevels(plan)
+    .filter(l => levelBuildsAs(plan, l.id) !== 'framed' && plan.walls.some(w => w.level === l.id && !isRetaining(w)))
+    .map(l => l.id)
+    .filter(id => buildingOutline(planarFaces(plan.walls.filter(w => w.level === id && !isRetaining(w)))).outlines.length > 0)
+}
+
+/** Parts of the house about as near as each other (m): then the wall's own level is kept. */
+const NEAR_TIE = 0.05
+
+/**
+ * The level whose part of the house a retaining wall is nearest: the one it sits beside, whatever
+ * level was open when it was drawn. Its own level when that is as near as any (or nothing is built
+ * on the ground yet); with a tie between others, the lower.
+ */
+export function nearestPadLevel(plan: Plan, w: Pick<Wall, 'a' | 'b' | 'level'>): string {
+  const levels = padLevels(plan)
+  if (!levels.length) return w.level
+  const far = (id: string) => {
+    const rings = buildingOutline(planarFaces(plan.walls.filter(x => x.level === id && !isRetaining(x)))).outlines
+    let best = Infinity
+    for (let i = 0; i <= 8; i++) {
+      const p: Vec2 = [w.a[0] + ((w.b[0] - w.a[0]) * i) / 8, w.a[1] + ((w.b[1] - w.a[1]) * i) / 8]
+      for (const r of rings) {
+        if (pointInPolygon(p[0], p[1], r)) best = 0
+        else for (let k = 0; k < r.length; k++) best = Math.min(best, segDist(p, r[k], r[(k + 1) % r.length]))
+      }
+    }
+    return best
+  }
+  const dist = new Map(levels.map(id => [id, far(id)]))
+  const min = Math.min(...dist.values())
+  if (dist.has(w.level) && dist.get(w.level)! <= min + NEAR_TIE) return w.level
+  return levels.find(id => dist.get(id)! <= min + NEAR_TIE) ?? w.level
 }
 
 /** How far into the house a wall's face has to reach before the house counts as being on that side (m). */
@@ -230,7 +269,7 @@ function segDist(p: Vec2, a: Vec2, b: Vec2): number {
  * True when a retaining wall stands wholly inside the house, clear of its outside walls: there is
  * no earth there for it to hold back. A wall along the house's own wall line isn't inside.
  */
-export function insideHouse(w: Pick<Wall, 'a' | 'b'> & { level?: string }, plan: Plan, rings = houseRings(plan, w.level)): boolean {
+export function insideHouse(w: Pick<Wall, 'a' | 'b'> & { level?: string; retain?: Retain }, plan: Plan, rings = houseRings(plan, padLevelOf(plan, w))): boolean {
   if (!rings.length) return false
   for (let i = 0; i <= 6; i++) {
     const f = i / 6
@@ -249,7 +288,7 @@ export const INSIDE_HOUSE_NOTE = 'This wall is inside the house, so there is no 
  * How far the house is from one face of the wall, looking square off it from points along it,
  * or null when it isn't within HOUSE_REACH on that side.
  */
-export function houseGap(w: Pick<Wall, 'a' | 'b' | 'thickness'> & { level?: string }, plan: Plan, side: Side, rings = houseRings(plan, w.level)): number | null {
+export function houseGap(w: Pick<Wall, 'a' | 'b' | 'thickness'> & { level?: string; retain?: Retain }, plan: Plan, side: Side, rings = houseRings(plan, padLevelOf(plan, w))): number | null {
   const len = wallLength(w)
   if (len < 1e-3 || !rings.length) return null
   const d = wallDir(w)
@@ -289,13 +328,16 @@ const mm = (v: number) => Math.round(v * 1000) / 1000
  * What a new retaining wall holds, before it's asked: the side whose natural ground is higher (or `high`).
  * When the house is on the other side, that side is cut to the house pad out to the house; when the
  * house is on the earth side and its pad stands above the open side, the wall holds up the pad,
- * levelled out to the house. The house and its pad are the wall's own level's.
+ * levelled out to the house. The house and its pad are those of the level the wall is beside: for
+ * a new wall the nearest part of the house on the ground (nearestPadLevel), whatever level was open
+ * when it was drawn; a wall that already holds something keeps the one it has.
  */
 export function retainDefaults(w: Wall, plan: Plan, origin: Vec2, natural: Heightfield, high?: Side): Retain {
   const prof = retainingProfile({ ...w, retain: undefined }, plan, origin, natural)
-  const rings = houseRings(plan, w.level)
+  const wl = w.retain ? padLevelOf(plan, w) : nearestPadLevel(plan, w)
+  const rings = houseRings(plan, wl)
   const gap = { left: houseGap(w, plan, 'left', rings), right: houseGap(w, plan, 'right', rings) }
-  const pad = housePadRL(plan, w.level)
+  const pad = housePadRL(plan, wl)
   if (!high) {
     if (prof.high) high = prof.high
     else {
@@ -308,6 +350,7 @@ export function retainDefaults(w: Wall, plan: Plan, origin: Vec2, natural: Heigh
   }
   const low = otherSide(high)
   const r: Retain = { high }
+  if (wl !== w.level) r.pad = wl
   const lowGap = gap[low]
   const highGap = gap[high]
   if (lowGap !== null && pad < highestOn(prof, high) - 0.05) {
@@ -330,7 +373,7 @@ export function retainDefaults(w: Wall, plan: Plan, origin: Vec2, natural: Heigh
  * pad's own height. The answer is kept as `askedHeight`, so the panel shows what was typed.
  */
 export function levelsForHeight(r: Retain, plan: Plan, prof: RetainingProfile, h: number): Retain {
-  const wl = prof.wall.level
+  const wl = padLevelOf(plan, { level: prof.wall.level, retain: r })
   const low = otherSide(r.high)
   const base = r.lowLevel !== undefined ? sideRL(plan, r.lowLevel, wl) : lowestOn(prof, low)
   const level = mm(base + h)
@@ -348,7 +391,7 @@ export function heightNote(r: Retain | undefined, prof: RetainingProfile, plan: 
   if (!r || asked === undefined || Math.abs(prof.maxHeight - asked) < 0.03) return null
   const got = prof.maxHeight.toFixed(2)
   const low = otherSide(r.high)
-  const wl = prof.wall.level
+  const wl = padLevelOf(plan, { level: prof.wall.level, retain: r })
   const pad = housePadRL(plan, wl)
   const set = r.highLevel !== undefined ? sideRL(plan, r.highLevel, wl) : null
   const off = set !== null ? prof.samples.filter(x => Math.abs(x[r.high] - set) > 0.03) : []
@@ -412,7 +455,8 @@ export function retainingSection(w: Wall, plan: Plan, origin: Vec2, natural: Hei
   const sign = high === 'left' ? 1 : -1
   const n: Vec2 = [-d[1] * sign, d[0] * sign]
   const c: Vec2 = [w.a[0] + d[0] * at.s, w.a[1] + d[1] * at.s]
-  const rings = houseRings(plan, w.level)
+  const wl = padLevelOf(plan, w)
+  const rings = houseRings(plan, wl)
   const xs: number[] = []
   const nat: number[] = []
   const fin: number[] = []
@@ -438,5 +482,5 @@ export function retainingSection(w: Wall, plan: Plan, origin: Vec2, natural: Hei
     }
   }
   if (start !== null) house.push([start, reach])
-  return { xs, natural: nat, finished: fin, top: topAt(w, at), half: w.thickness / 2, house, pad: housePadRL(plan, w.level), floor: floorRL(plan, levelById(plan, w.level) ? w.level : undefined), at: at.s }
+  return { xs, natural: nat, finished: fin, top: topAt(w, at), half: w.thickness / 2, house, pad: housePadRL(plan, wl), floor: floorRL(plan, levelById(plan, wl) ? wl : undefined), at: at.s }
 }
