@@ -162,6 +162,14 @@ Parts key together so they sit square but lift off to look inside: the lowest fl
 2. The TIN is sampled onto a regular grid (0.25 m on a typical house block) with two light smoothing passes, which removes the flat "terraces" a contour-only TIN produces.
 3. The grid is trimmed exactly to the lot boundary and closed with side walls and a base, giving a watertight solid that later becomes the printable terrain base.
 
+## Working offline
+
+Once Contour & Gable has been opened in a browser, it opens and works with no connection: drawing, the checks, costs, 3D, PDF plans, exports, 3D print files and saving on this device. The top bar says **Offline** meanwhile; sign-in, cloud saves, share links, comments and the NSW map say they need a connection, and come back when it does. Where the browser offers it (Chrome, Edge), **Project menu › Install Contour & Gable** adds it as an app; on an iPhone or iPad use **Share › Add to Home Screen**.
+
+How it works: a hand-written service worker (`src/offline/sw.ts`, built as `sw.js` by `scripts/offlinePlugin.ts` with the list of every built file) keeps each version's files in a cache of its own. The page loads from the network first, so a deploy is picked up straight away, and from the cache when offline; the Worker API and other sites are never touched. A new version installs in the background and the app shows **A new version is ready · Reload**; it takes over only when someone chooses Reload, after their work is saved. It is built for both deployments (GitHub Pages under `/development-planner/`, Cloudflare at `/`) and never runs in `npm run dev` or the tests.
+
+**Kill switch**: if the service worker ever misbehaves on the live site, set `SERVICE_WORKER_OFF = true` in `src/offline/killSwitch.ts` and push to main. That build's `sw.js` deletes the app's caches and unregisters itself the next time a browser checks for an update (each page load, and hourly), and the app stops registering one; open pages carry on and nothing reloads by itself. Set it back to `false` to turn offline working on again.
+
 ## Development
 
 ```sh

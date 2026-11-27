@@ -12,6 +12,8 @@ import { isShareHash, readShareHash, shareKey } from './share-links/address'
 import { INCOMPLETE_LINK } from './share-links/load'
 import { SharedView, Trouble } from './share-links/SharedView'
 import { ErrorBoundary } from './shell/ErrorBoundary'
+import { OfflineLayer } from './offline/OfflineLayer'
+import { startOffline } from './offline/register'
 
 // A share link (#/view/<token>) opens the shared view on its own: no projects, no sign-in.
 const shared = readShareHash(location.hash)
@@ -29,6 +31,9 @@ const across = (e: Event) => {
 }
 window.addEventListener('hashchange', across)
 window.addEventListener('popstate', across)
+
+// Working offline: the service worker, in a built app only (src/offline).
+startOffline()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -55,6 +60,7 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary variant="float">
       <GuideLayer example={!shared && !brokenLink} />
       <TermTip />
+      <OfflineLayer />
     </ErrorBoundary>
   </StrictMode>,
 )
