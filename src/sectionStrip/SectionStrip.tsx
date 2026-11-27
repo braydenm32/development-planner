@@ -20,7 +20,7 @@ import { floorRL, levelById, sortedLevels, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, stairsOnLevel, stripFrame, topRL, type StripFrame } from './geometry'
-import { FOLDED_H, MAX_H, MIN_H, PHONE_H, setStripHeight, setStripOpen, useStrip, type Cut } from './store'
+import { FOLDED_H, MAX_H, MIN_H, phoneHeight, setStripHeight, setStripOpen, useStrip, type Cut } from './store'
 import '../sections/sections.css'
 import './strip.css'
 
@@ -83,7 +83,7 @@ export function SectionStrip(props: SectionStripProps) {
   const left = Math.max(0, coverL - from)
   const open = useStrip(s => s.open)
   const stored = useStrip(s => s.height)
-  const height = !open ? FOLDED_H : phone ? PHONE_H : stored
+  const height = !open ? FOLDED_H : phone ? phoneHeight() : stored
   const level = usePlan(s => s.activeLevel)
   const frame: StripFrame = stripFrame(cut, S, k)
   const oriented = frame.cut
@@ -348,7 +348,7 @@ export function SectionStrip(props: SectionStripProps) {
         )}
         {!frame.linedUp && (
           <p className="sstrip-tilt" style={{ left: bandX + 150 }}>
-            The cut runs at an angle on the plan, so the section is centred under it.{' '}
+            The section line runs at an angle on the plan, so the section is centred under it.{' '}
             <button type="button" className="link" onClick={onLineUp}>
               Turn the plan to line them up
             </button>
@@ -405,7 +405,7 @@ export function SectionStrip(props: SectionStripProps) {
         <span className="grow" />
         {open && editable && <span className="muted hint">Click a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
         {!alongHouse && (
-          <button type="button" className="plain small" onClick={onReset} title="Put the cut back through the middle of the house, along it">
+          <button type="button" className="plain small" onClick={onReset} title="Put the section line back through the middle of the house, along it">
             Along the house
           </button>
         )}

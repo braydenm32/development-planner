@@ -381,6 +381,3 @@ body:has(.app-shell:not(.phone) .toast):has(.sstrip) .sf-toast {
   bottom: calc(136px + var(--section-strip-h, 0px));
 }
 
-body:has(.app-shell.phone .sstrip) .sf-toast {
-  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom) + var(--section-strip-h, 0px));
-}

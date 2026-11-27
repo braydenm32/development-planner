@@ -2,7 +2,7 @@
 // sections and the design flow are): the cut line across the plan, with its ends and middle to
 // drag, and the strip under the plan. PlanEditor renders `over` in its drawing and `html` beside it.
 
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -11,7 +11,9 @@ import type { Earth } from '../plan/useEarthworks'
 import { snapEnd } from '../sections/lines'
 import { bearingToLineUp, defaultCut } from './geometry'
 import { SectionStrip } from './SectionStrip'
-import { setCut, useStrip, type Cut } from './store'
+import { opensItself, setCut, setStripAuto, useStrip, type Cut } from './store'
+import { floorDrawn } from '../shell/drawn'
+import { usePlan } from '../plan/store'
 
 export interface SectionStripArgs {
   /** The strip shows here: Design or Earthworks, in the app's frame. */
@@ -50,6 +52,17 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
   const auto = useMemo(() => defaultCut(plan, boundary), [plan, boundary])
   const cut = stored ?? auto
   const drag = useRef<{ end: 'a' | 'b' | 'mid'; from: Vec2; start: Cut } | null>(null)
+
+  // Until the viewer folds or shows it themselves, the strip starts folded and opens once there is
+  // a house to cut through; never by itself on a phone. It waits for the drawing tool to be put
+  // down, so the plan doesn't shift under a wall half drawn.
+  const drawn = floorDrawn(plan)
+  const idle = usePlan(s => s.tool === 'select')
+  useLayoutEffect(() => {
+    if (!shows) return
+    const auto = opensItself(phone, drawn)
+    if (!auto || idle) setStripAuto(auto)
+  }, [shows, phone, drawn, idle])
 
   if (!shows) return { over: null, html: null }
 
@@ -102,13 +115,13 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
           const p = end === 'a' ? pa : pb
           return (
             <circle key={end} className="end" cx={p[0]} cy={p[1]} r={6} onPointerDown={e => down(e, end)} onPointerMove={e => move(e)} onPointerUp={up}>
-              <title>Drag to swing the section's cut (Shift for any angle)</title>
+              <title>Drag to swing the section line (Shift for any angle)</title>
             </circle>
           )
         })}
       {grab && (
         <rect className="mid" x={mid[0] - 6} y={mid[1] - 6} width={12} height={12} rx={2} transform={`rotate(45 ${mid[0]} ${mid[1]})`} onPointerDown={e => down(e, 'mid')} onPointerMove={e => move(e)} onPointerUp={up}>
-          <title>Drag to move the section's cut across the plan</title>
+          <title>Drag to move the section line across the plan</title>
         </rect>
       )}
     </g>
