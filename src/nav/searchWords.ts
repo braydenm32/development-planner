@@ -28,7 +28,6 @@ export const MORE_WORDS: Record<string, string[]> = {
   'kbd-copy': ['copy and paste'],
   'kbd-turn': ['rotate furniture', 'flip furniture'],
   'kbd-fields': ['metric', 'mm', 'metres or millimetres'],
-  materials: ['colour', 'colours', 'finishes', 'cladding colour'],
   'camera-street': ['walk around', 'look around', 'eye level'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
   'plan-overlays': ['grid', 'snapping'],
@@ -63,6 +62,10 @@ export const LEADS: Record<string, string> = {
   balcony: 'command:tool-area',
   curved: 'command:tool-sketch',
   rectangle: 'command:rect-room',
+  // How the house looks in 3D (CB-21); a price for a material is Costs › Materials.
+  colour: 'tab:design/finishes',
+  color: 'tab:design/finishes',
+  texture: 'tab:design/finishes',
 }
 
 export interface NotHere {
@@ -78,7 +81,7 @@ export interface NotHere {
 /** What other planners do that this one doesn't: search says so, instead of "Nothing matches". */
 export const NOT_HERE: NotHere[] = [
   { id: 'imperial', words: ['feet', 'foot', 'inches', 'inch', 'imperial', 'ft', 'yards'], label: 'Feet and inches', says: 'Not in this planner: it works in metres and millimetres only.' },
-  { id: 'render', words: ['render', 'rendering', 'photorealistic', 'realistic', 'texture', 'textures', 'wallpaper', 'paint'], label: 'Rendered pictures and textures', says: 'Not in this planner: the 3D view shows shape, levels and shadows in plain colours.' },
+  { id: 'render', words: ['rendering', 'photorealistic', 'realistic', 'photo-real', 'wallpaper'], label: 'Photo-real pictures', says: 'Not in this planner: no photo-real pictures. Design › Finishes sets the cladding, roof, colours and floors in the 3D view.' },
   { id: 'walk', words: ['walk', 'walkthrough', 'walk-through', 'first person', 'vr', 'virtual tour', 'fly through'], label: 'Walking through the house', says: 'Not in this planner: the 3D view orbits the outside, with Street view for eye level.' },
   { id: 'mirror', words: ['mirror', 'flip', 'reflect'], label: 'Mirror or flip the plan', says: 'Not in this planner: turn the house under Earthworks › Place, or turn furniture with Q.' },
   { id: 'skylight', words: ['skylight', 'roof window', 'dormer'], label: 'Skylights and dormers', says: 'Not in this planner: roofs are hip, gable or skillion, with no openings in them.' },

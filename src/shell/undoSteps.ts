@@ -158,6 +158,7 @@ export function namePlanStep(a: Plan, b: Plan): StepName {
   if (differ(a.da, b.da)) return { what: 'change DA pack revision', area: 'approvals', tab: 'da-pack' }
   if (differ(a.location, b.location)) return { what: 'change where the block is', area: 'site', tab: 'sun' }
   if (differ(a.sketchNames, b.sketchNames)) return { what: 'name sketch colour', ...DESIGN }
+  if (differ(a.finishes, b.finishes)) return { what: 'change finishes', area: 'design', tab: 'finishes' }
   if (differ(a.name, b.name)) return { what: 'rename project', ...DESIGN }
   return { what: 'change to the plan', ...DESIGN }
 }

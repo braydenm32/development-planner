@@ -80,6 +80,7 @@ const ICONS = {
   note: '<path d="M4.5 4.5h15v11h-6l-3.5 4v-4h-5.5z"/><path d="M8 9h8M8 12h5"/>',
   map: '<path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',
+  swatch: '<rect x="3.5" y="3.5" width="7" height="17" rx="1.5"/><path d="m10.5 7.5 4-3.2 4.6 5.6-8.6 7"/><path d="M10.5 20.5H20v-7h-5"/><circle cx="7" cy="16.5" r="1" fill="currentColor" stroke="none"/>',
 }
 
 export type IconName = keyof typeof ICONS

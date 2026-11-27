@@ -56,6 +56,7 @@ import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
 import { useCamera } from '../phone/cameraStore'
 import { PresetBar, ViewEditSwitch } from '../phone/CanvasBits'
+import { FinishesButton } from '../finishes/FinishesPanel'
 import { canEdit, TouchCanvas, usePhone, usePhoneMode, useSideways } from '../phone/device'
 import { usePeekSize, type PeekSize } from '../phone/peekSize'
 import { useNativeFeel } from '../phone/native'
@@ -659,6 +660,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
               presenting={presenting}
               setPresenting={setPresenting}
               show={{ view: loaded.view, set: patch => loaded.changeView({ ...loaded.view, ...patch }), levels: sortedLevels(loaded.plan) }}
+              // Approvals and Share show the finishes but leave changing them to Design.
+              extra={reads ? undefined : <FinishesButton phone={phone} />}
             />
           )}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
