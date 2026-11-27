@@ -32,6 +32,9 @@ export interface Source {
   asAt: string
 }
 
+/** A row that waits for the street side: Checks puts the question in the row (and under Lot facts). */
+export const NEED_FRONT = 'Pick the side that faces the street (or the lot in front), and this can be checked.'
+
 export interface CheckResult {
   /** Stable id: `rule` or `rule:item` (for example a tree). */
   id: string

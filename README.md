@@ -95,7 +95,7 @@ Stairs can be straight, L shaped or U shaped with a landing halfway. The number 
 Rooms on the lowest level sit on a slab by default; set a room to **piers** to raise it on posts with a subfloor gap instead. Areas can be:
 
 - **Concrete slabs**, with their own top level, for patios, landings and paths.
-- **Driveways**, which follow the finished ground. **Earthworks › Driveway** shows the steepest grade.
+- **Driveways**, which run from the garage slab out to the street (one that stops short of the house follows the ground). **Earthworks › Driveway** shows the direction as an arrow on the plan, with Swap ends, then the levels, the grade and the crossing checks.
 - **Decks**, raised on posts.
 - **Garden or lawn**, which follows the ground.
 

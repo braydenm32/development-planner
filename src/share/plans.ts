@@ -14,7 +14,6 @@ import {
   isRetaining,
   pointOnWall,
   sortedLevels,
-  toSite,
   wallDir,
   wallLength,
   type AreaKind,
@@ -420,7 +419,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
         rows.push([`${name}Driveway grade`, `${gradeText(design.grade.average)}${design.tooSteep ? `, ${driveVerdict(design.grade).toLowerCase()}` : ''}`])
         continue
       }
-      const g = input.ground ? drivewayGrade(input.ground, a.pts.map(p => toSite(p, plan.placement, survey.origin))) : null
+      // Along the drive's one direction, garage end to street end, as its panel measures it.
+      const g = input.ground && ends ? drivewayGrade(input.ground, ends.poly, undefined, ends.along) : null
       if (!g) continue
       rows.push([`${name}Average grade along the drive`, gradeText(g.average)])
       rows.push([`${name}Steepest ${DRIVE_RUN} m along the drive`, gradeText(g.steepest)])

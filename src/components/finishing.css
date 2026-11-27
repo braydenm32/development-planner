@@ -43,6 +43,41 @@ h4.drive-ground {
   color: var(--muted);
 }
 
+.drive-direction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* The direction arrow on the plan (DrivewayArrows.tsx): garage end to street end. */
+.drive-arrows {
+  pointer-events: none;
+}
+
+.drive-arrows path {
+  fill: none;
+  stroke: #24486b;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.drive-arrows circle {
+  fill: #24486b;
+}
+
+.drive-arrows text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #24486b;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
 .drive-grade {
   display: flex;
   flex-wrap: wrap;

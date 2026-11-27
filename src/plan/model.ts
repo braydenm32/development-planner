@@ -206,7 +206,7 @@ export interface Room {
 
 /**
  * slab: flat concrete at a set level, with the ground levelled under it.
- * driveway: concrete that follows the finished ground.
+ * driveway: concrete that slopes from its garage end to its street end, on the finished ground or to its own levels.
  * deck: a framed deck on posts.
  * garden: an outline on the ground (lawn, garden bed), with no structure.
  */
@@ -222,8 +222,20 @@ export interface Area {
   kind?: AreaKind
   /** Top of a slab or deck above the level's floor (m); missing means 0. */
   top?: number
-  /** Driveways: the levels it is built to at each end. Missing follows the ground. */
+  /**
+   * Driveways: the levels it is built to at each end. A missing street end follows the ground; a
+   * missing garage end meets the garage's slab where the drive runs up to the house, and follows
+   * the ground otherwise (see driveLevelsOf in ./driveway).
+   */
   drive?: DriveLevels
+  /**
+   * Driveways: its garage and street ends are the other way round from the ones the app works out
+   * (Earthworks › Driveway › Swap ends). Missing means as worked out: from the garage door or the
+   * house edge it touches, out towards the street (see driveEndPoints in ./driveway).
+   */
+  swapEnds?: boolean
+  /** Driveways: it runs across the way the app worked out, a quarter turn round (Earthworks › Driveway › Turn it). Missing means as worked out. */
+  turned?: boolean
   /** Driveways: the street levels its footpath crossing is checked against. Missing until one is given. */
   crossing?: CrossingFacts
 }
@@ -243,8 +255,8 @@ export interface CrossingFacts {
 export type DriveLevelSource = 'kerb' | 'spot' | 'typed'
 
 /**
- * A driveway's own levels, at its street end and its garage end. An end without one follows the
- * ground there, as a driveway without levels does.
+ * A driveway's own levels, at its street end and its garage end. A street end without one follows
+ * the ground there; so does a garage end that isn't at the house.
  */
 export interface DriveLevels {
   /** The street end: an RL, and where it was read from. */
@@ -407,7 +419,7 @@ export const DEFAULT_EARTHWORKS: Earthworks = { margin: 0.5, cutBatter: 2, fillB
 
 export const AREA_KINDS: { id: AreaKind; label: string }[] = [
   { id: 'slab', label: 'Concrete slab' },
-  { id: 'driveway', label: 'Driveway (follows the ground)' },
+  { id: 'driveway', label: 'Driveway (slopes, garage to street)' },
   { id: 'deck', label: 'Deck on posts' },
   { id: 'garden', label: 'Garden or lawn' },
 ]

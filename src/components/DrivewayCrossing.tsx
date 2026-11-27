@@ -24,6 +24,7 @@ import { useProjects } from '../projects/session'
 import { navigate } from '../nav/router'
 import { CheckRow } from '../shell/tabs/ChecksTab'
 import { Num } from './fields'
+import { StreetSidePick } from './StreetSidePick'
 import '../checks/checks.css'
 import './finishing.css'
 
@@ -57,14 +58,14 @@ function useDriveCrossing({ plan, area, survey, terrain, earth }: Props): DriveC
 }
 
 export function DrivewayCrossing(props: Props) {
-  const { plan, area, survey } = props
+  const { plan, area, survey, terrain } = props
   const d = useDriveCrossing(props)
   // Say why rather than leave the panel silent: the checks skip it too.
   if (!d)
     return (
       <div className="drive-levels drive-crossing">
         <h4>Street crossing</h4>
-        <p className="muted small">The app can’t find this drive’s two ends from its outline, so its footpath crossing isn’t checked. Redraw it as a long shape from the garage to the street.</p>
+        <p className="muted small">The app can’t find this drive’s two ends from its outline, so its footpath crossing isn’t checked. Redraw it from the garage out to the street.</p>
       </div>
     )
   const facts = area.crossing ?? {}
@@ -81,6 +82,9 @@ export function DrivewayCrossing(props: Props) {
       <h4>Street crossing</h4>
       {d.line.why === 'battle-axe' ? (
         <p className="muted small">On a battle-axe lot the drive meets the street at the end of the access handle, which the survey leaves out, so its crossing isn’t checked here.</p>
+      ) : d.line.why === 'no-street-side' ? (
+        // No guessing which side the drive runs to: Stormwater and the checks wait for the same answer.
+        <StreetSidePick survey={survey} terrain={terrain} why="The footpath crossing, scraping and turning in are checked where the drive meets the street, so they wait for the street side. Stormwater and the setbacks use the same one." />
       ) : d.line.why ? (
         <p className="muted small">The drive doesn’t run out to the street side of the block. Draw it to the boundary to check the footpath crossing.</p>
       ) : (
@@ -212,10 +216,11 @@ const CROSSING_SHARE = 0.36
 
 /** A grade for the chart: "8% · 1 in 12" with room, "8%" with a little, nothing with none. */
 function gradeLabel(g: number, room: number): string | null {
+  // One format everywhere: 1 in N to one decimal, as the rows and Levels write it.
   if (room < 30) return null
   if (g < 0.0005) return 'level'
   const pct = `${(g * 100).toFixed(g < 0.1 ? 1 : 0).replace(/\.0$/, '')}%`
-  return room >= 84 ? `${pct} · 1 in ${(1 / g).toFixed(g > 0.1 ? 1 : 0)}` : pct
+  return room >= 84 ? `${pct} · 1 in ${(1 / g).toFixed(1)}` : pct
 }
 
 /**
@@ -297,7 +302,7 @@ function ProfileChart({ d, rows }: { d: DriveCrossing; rows: { id: string; statu
         )}
       </svg>
       <figcaption className="muted small">
-        Down the drive’s centreline{p ? `, then ${fallText(p.footpathFall)} across the footpath and down the kerb’s layback to the gutter` : ''}. Not to scale: heights stretched{p ? ' and the footpath drawn wider' : ''}.
+        Down the middle of the drive from the garage end{p ? `, then ${fallText(p.footpathFall)} across the footpath and down the kerb ramp (the layback) to the gutter` : ''}. Not to scale: heights stretched{p ? ' and the footpath drawn wider' : ''}.
         {!p && !d.line.why && ' The footpath and gutter join it once there’s a kerb level.'}
       </figcaption>
     </figure>
