@@ -58,6 +58,11 @@ export interface DesignQuantities {
   slabUnder: Counted & { names: string[]; areas: string[] }
   /** Rooms with a floor finish: every enclosed room except garages and carports (room areas, inside the walls). */
   finishes: Counted
+  /**
+   * Spaces the walls enclose with no room in them yet (their areas, inside the walls): they have a
+   * floor to finish all the same. Missing in quantities made before it was counted.
+   */
+  unroomed?: Counted
   /** Rooms with a fit-out of their own, by kind, with their names. */
   wet: Record<WetRoom, Counted & { names: string[] }>
   /** The outside walls: the outline's perimeter times each level's height, less the openings in them (m, m²). */
@@ -210,6 +215,23 @@ export function designQuantities(
       }
     }
 
+  // A space nobody has put a room in is still floor: without it, a house with two rooms labelled
+  // had floor finishes for those two alone.
+  const unroomed = counted()
+  for (const s of summaries) {
+    const faces = planarFaces(plan.walls.filter(w => w.level === s.level.id))
+    const taken = new Set(s.rooms.map(r => faceAround(r.room.at, faces)))
+    for (const f of faces) {
+      if (f.area <= 0 || taken.has(f)) continue
+      const inner = offsetPolygon(
+        f.pts,
+        f.thickness.map(t => t / 2),
+      )
+      unroomed.count++
+      unroomed.area += Math.abs(signedArea(inner))
+    }
+  }
+
   // The outside walls and the openings in them, level by level.
   const walls = { perimeter: 0, gross: 0, openings: 0, net: 0, ids: [] as string[] }
   const windows = counted()
@@ -292,6 +314,7 @@ export function designQuantities(
     upper,
     slabUnder,
     finishes,
+    unroomed,
     wet,
     walls,
     windows,

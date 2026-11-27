@@ -4,7 +4,7 @@
 import { CAVEAT_LINE } from '../legal/caveat'
 import { areaById } from '../nav/menu'
 import type { CostLine, Estimate } from './estimate'
-import type { Unit } from './rates'
+import { CHOICES, FINISH_GUIDE_SOURCE, finishGuide, NOT_COUNTED, type Unit } from './rates'
 
 const commas = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
@@ -64,6 +64,60 @@ export const incompleteText = (missing: string[]) => (missing.length ? `Incomple
 /** Before there are outside walls, in place of a total. */
 export const NO_TOTAL = 'Draw the house’s outside walls to start the estimate.'
 
+const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
+
+/** The finish picked, as the choices name it: "Mid". */
+export const finishName = (e: Pick<Estimate, 'finish'>) => CHOICES.finish.options.find(o => o.id === e.finish)?.label ?? 'Mid'
+
+/** The cross-check for a complete estimate, in a sentence: where it sits against the guide and what to make of it. */
+export function crossCheckText(e: Estimate): string {
+  if (e.against === null || e.housePerM2 === null) return ''
+  const g = finishGuide(e.finish)
+  const house = `${money(e.housePerM2)} per m² for the house itself`
+  const band = `${money(g.low)} to ${money(g.high)}`
+  const guide = `RLB’s 2026 guide for one-off houses in Sydney at a ${finishName(e).toLowerCase()} finish`
+  const owner = e.who === 'owner' ? ' The guide has a builder’s margin in it.' : ''
+  if (e.against === 'under')
+    return `Treat the estimate as a floor, not a budget. It prices what’s drawn at rough trade rates: ${house}, against ${band} in ${guide}. Project-home builders often land nearer the estimate.${owner}`
+  if (e.against === 'over') return `The estimate comes to ${house}, over ${guide} (${band}). Check the rates and quotes for anything unusual.${owner}`
+  return `The estimate comes to ${house}, within ${guide} (${band}).${owner}`
+}
+
+export interface BridgeStep {
+  label: string
+  /** What the step stands for, in a line. */
+  note: string
+  /** Whole dollars. */
+  amount: number
+}
+
+/**
+ * The bridge from an estimate up to the low end of the guide over it, as rows that add up by
+ * hand: the estimate, each thing between, and the guide's low end. Each is rounded to the dollar
+ * as the screen writes it, and the biggest row between takes up the odd dollar the rounding
+ * leaves, so the column adds exactly. Null where there is no bridge.
+ */
+export function bridgeSteps(e: Estimate): { steps: BridgeStep[]; to: BridgeStep } | null {
+  const b = e.bridge
+  if (!b) return null
+  const steps: BridgeStep[] = [{ label: 'The estimate, from the quantities', note: '', amount: Math.round(e.total) }]
+  for (const r of b.rows) {
+    const amount = Math.round(r.amount)
+    if (r.id === 'margin') steps.push({ label: 'The builder’s margin the guide has in it', note: 'You build it yourself, so the estimate leaves it out.', amount })
+    else if (r.id === 'house')
+      steps.push({
+        label: 'Not counted in the house itself',
+        note: `${money(b.perM2)} per m² × ${e.floorArea.toFixed(2)} m²: mostly a one-off builder’s prices over the rough trade rates here, and things with no line yet (${NOT_COUNTED.join(', ')}).`,
+        amount,
+      })
+    else steps.push({ label: `Contingency ${pct(e.contingency.share)} on ${b.rows.length > 2 ? 'those' : 'that'}`, note: '', amount })
+  }
+  const to = Math.round(b.to)
+  const biggest = steps.slice(1).reduce((a, x) => (x.amount > a.amount ? x : a))
+  biggest.amount += to - steps.reduce((t, x) => t + x.amount, 0)
+  return { steps, to: { label: `Custom-built at a ${finishName(e).toLowerCase()} finish, low end`, note: FINISH_GUIDE_SOURCE, amount: to } }
+}
+
 /** The estimate as a CSV file: every line, each group's total, then the totals. Amounts are whole dollars, GST included. */
 export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   const ob = e.who === 'owner'
@@ -103,6 +157,18 @@ export function estimateCsv(e: Estimate, name: string, asAt: string): string {
   }
   if (e.perM2 !== null) rows.push(total(`Per m² of floor (${e.floorArea.toFixed(2)} m²)`, e.perM2))
   if (e.housePerM2 !== null) rows.push(total('House only, per m² of floor (no site works, outside works, fees or contingency)', e.housePerM2))
+  // The cross-check and the bridge to it, as the screen has them.
+  if (e.against !== null && e.guide) {
+    rows.push(blank)
+    rows.push(total(`Cross-check: custom-built at a ${finishName(e).toLowerCase()} finish, low`, e.guide.low))
+    rows.push(total(`Cross-check: custom-built at a ${finishName(e).toLowerCase()} finish, high`, e.guide.high))
+    rows.push(['', crossCheckText(e)])
+    const bridge = bridgeSteps(e)
+    if (bridge) {
+      rows.push(['', 'What’s not in the quantities yet'])
+      for (const x of [...bridge.steps, bridge.to]) rows.push(['', x.label, x === bridge.to ? '' : x.note, '', '', '', '', '', '', String(x.amount), ...(ob ? ['', ''] : [])])
+    }
+  }
   if (ob) {
     rows.push(total('Materials and fees', e.materials))
     rows.push(total('Labour, if you hire trades', e.labour))

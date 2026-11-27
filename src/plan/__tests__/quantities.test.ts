@@ -7,7 +7,7 @@ import type { Area, Opening, Plan, Roof, Wall } from '../model'
 import { estimate } from '../../costs/estimate'
 import { emptyCosts } from '../../costs/model'
 import { designQuantities, isGarageRoom, openingArea, wetRoomOf } from '../quantities'
-import { splitLevels } from './fixtures'
+import { garageFloor, splitLevels } from './fixtures'
 import type { RetainingProfile } from '../retaining'
 
 const G = 'ground'
@@ -237,6 +237,21 @@ describe('designQuantities with more drawn', () => {
     expect(q.retaining.sleeper).toMatchObject({ count: 2, ids: ['rw1', 'rw2'], length: 9, maxHeight: 1.4 })
     expect(q.retaining.sleeper.area).toBeCloseTo(9.3, 9)
     expect(q.retaining.block).toMatchObject({ count: 1, ids: ['rw3'], length: 4, area: 4.4, maxHeight: 1.2 })
+  })
+})
+
+describe('spaces with no room in them', () => {
+  it('are counted, with their area inside the walls, so their floor is priced once a room or not (DB-15)', () => {
+    const plan = garageFloor()
+    const all = designQuantities(plan, null, [])
+    expect(all.unroomed).toMatchObject({ count: 0, area: 0 })
+    // Take the Study's label away: its space is still there.
+    const bare = designQuantities({ ...plan, rooms: plan.rooms.filter(r => r.id !== 'r4') }, null, [])
+    expect(bare.unroomed!.count).toBe(1)
+    expect(bare.unroomed!.area).toBeGreaterThan(5)
+    expect(bare.finishes.ids).toEqual(['r2', 'r3'])
+    // The rooms' floor and the spare space's come to what they did with every room labelled.
+    expect(bare.finishes.area + bare.unroomed!.area).toBeCloseTo(all.finishes.area, 6)
   })
 })
 

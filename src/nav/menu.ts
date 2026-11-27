@@ -809,8 +809,8 @@ export const AREAS: Area[] = [
         icon: 'costs',
         subtitle: 'What the design would cost to build, from its own quantities.',
         shows: ['cost'],
-        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete', 'margin', 'subtotal', 'DA fee', 'council fees', 'long service levy', 'section 7.12', 'contributions', 'preliminaries', 'all in', 'house only'],
-        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv', 'cost-summary', 'cost-gov-fees', 'cost-materials-fold'],
+        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete', 'margin', 'subtotal', 'DA fee', 'council fees', 'long service levy', 'section 7.12', 'contributions', 'preliminaries', 'all in', 'house only', 'cross-check', 'custom built', 'not in the quantities', 'floor not a budget', 'no bathroom', 'no kitchen'],
+        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-bridge', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv', 'cost-summary', 'cost-gov-fees', 'cost-materials-fold'],
       },
       {
         id: 'materials',

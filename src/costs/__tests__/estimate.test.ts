@@ -10,7 +10,7 @@ import { FinishGuide } from '../CostsTabs'
 import type { DesignQuantities } from '../../plan/quantities'
 import { CHOICE_LINES, choiceDeltas, estimate, rateFor, type Estimate } from '../estimate'
 import { CAVEAT_LINE } from '../../legal/caveat'
-import { atName, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText } from '../format'
+import { atName, bridgeSteps, crossCheckText, dateText, delta, estimateCsv, incompleteText, money, parseMoney, qtyText, rateText, shortMoney } from '../format'
 import { costsSummary, emptyCosts, normalizeCosts, type CostsData } from '../model'
 import { CHOICES, CONTINGENCY, FINISH_GUIDES, FINISH_LEVELS, finishGuide, MARGIN, RANGE, rateInfo, STARTING_RATES, type RateId } from '../rates'
 import { daFee, longServiceLevy, type FeeContext } from '../govFees'
@@ -205,7 +205,7 @@ describe('the estimate, built by a builder', () => {
     expect(line(bare, 'floor-slab')).toMatchObject({ qty: 0, missing: 'No floor enclosed by walls yet' })
     expect(line(bare, 'cut').missing).toMatch(/^Nothing levelled yet/)
     expect(line(bare, 'windows').missing).toBe('No windows drawn yet')
-    expect(line(bare, 'floor-finishes').missing).toBe('No rooms named yet')
+    expect(line(bare, 'floor-finishes').missing).toBe('No rooms yet')
   })
 
   it('brings fill in when there is more fill than cut', () => {
@@ -404,8 +404,23 @@ describe('the CSV', () => {
     expect(rows).toContain(`,Likely low (−20%),,,,,,,,${Math.round(e.low)}`)
     expect(rows).toContain(`,Per m² of floor (100.00 m²),,,,,,,,${Math.round(e.perM2!)}`)
     expect(rows).toContain(`,"House only, per m² of floor (no site works, outside works, fees or contingency)",,,,,,,,${Math.round(e.housePerM2!)}`)
-    // header, the groups' lines and totals, the subtotal and summary between blanks, five totals, a blank, the footer and caveat, and the last line ending
-    expect(rows.length).toBe(1 + (e.lines.length - 2) + e.groups.length + 1 + 1 + 2 + 1 + 5 + 1 + 1 + 1 + 1)
+    // header, the groups' lines and totals, the subtotal and summary between blanks, five totals, the cross-check (a blank, its low and
+    // high, its sentence) and the bridge (its heading, three steps and what they come to), a blank, the footer and caveat, and the last line ending
+    expect(rows.length).toBe(1 + (e.lines.length - 2) + e.groups.length + 1 + 1 + 2 + 1 + 5 + 4 + 5 + 1 + 1 + 1 + 1)
+  })
+
+  it('carries the cross-check and the bridge to it, as the screen does (LF-32)', () => {
+    const b = bridgeSteps(e)!
+    expect(rows).toContain(`,"Cross-check: custom-built at a mid finish, low",,,,,,,,${Math.round(e.guide!.low)}`)
+    expect(rows).toContain(`,"Cross-check: custom-built at a mid finish, high",,,,,,,,${Math.round(e.guide!.high)}`)
+    expect(rows.some(r => r.startsWith(',"Treat the estimate as a floor, not a budget.'))).toBe(true)
+    const at = rows.indexOf(',What’s not in the quantities yet')
+    expect(at).toBeGreaterThan(0)
+    expect(rows[at + 1]).toBe(`,"The estimate, from the quantities",,,,,,,,${b.steps[0].amount}`)
+    expect(rows[at + 4]).toBe(`,"Custom-built at a mid finish, low end",,,,,,,,${b.to.amount}`)
+    // An estimate still missing things has no comparison on the screen, so none here.
+    const gappy = estimateCsv(estimate({ ...quantities(), windows: none() }, emptyCosts()), 'House', 'November 2026')
+    expect(gappy).not.toContain('Cross-check')
   })
 
   it('quotes fields with commas and quote marks, and shows a quote beside its estimate', () => {
@@ -436,6 +451,15 @@ describe('how costs read', () => {
     expect(delta(2218)).toBe('+$2,218')
     expect(delta(-3812.2)).toBe('−$3,812')
     expect(delta(0.2)).toBe('+$0')
+  })
+
+  it('rounds a total quoted at a glance to three figures, as the strips and the Overview write it (LD-27, AX-35)', () => {
+    expect(shortMoney(560_837)).toBe('$561k')
+    expect(shortMoney(1_058_766)).toBe('$1.06M')
+    expect(shortMoney(999_499)).toBe('$999k')
+    expect(shortMoney(999_500)).toBe('$1M')
+    expect(shortMoney(8450)).toBe('$8,450')
+    expect(shortMoney(-25_400)).toBe('−$25k')
   })
 
   it('writes rates and quantities as the lines show them', () => {
@@ -524,6 +548,119 @@ describe('a project’s costs', () => {
   })
 })
 
+describe('a house with no bathroom or no kitchen (HO-07)', () => {
+  const noRoom = (id: 'kitchen' | 'bathroom') => ({ ...quantities().wet, [id]: named() })
+
+  it('is flagged as incomplete, as a missing roof is, and isn’t compared with the guide', () => {
+    const e = estimate({ ...quantities(), wet: noRoom('bathroom') }, emptyCosts())
+    expect(e.missing).toEqual(['bathroom'])
+    expect(incompleteText(e.missing)).toBe('Incomplete: no bathroom')
+    expect(e.against).toBeNull()
+    expect(e.bridge).toBeNull()
+    expect(estimate({ ...quantities(), wet: noRoom('kitchen') }, emptyCosts()).missing).toEqual(['kitchen'])
+    expect(estimate({ ...quantities(), wet: { kitchen: named(), bathroom: named(), laundry: named(), toilet: named() } }, emptyCosts()).missing).toEqual(['bathroom', 'kitchen'])
+  })
+
+  it('says only "no rooms" before there are any, and nothing for a garage on its own', () => {
+    const bare = estimate({ ...quantities(), finishes: none(), wet: { kitchen: named(), bathroom: named(), laundry: named(), toilet: named() } }, emptyCosts())
+    expect(bare.missing).toEqual(['rooms'])
+  })
+})
+
+describe('floor finishes', () => {
+  it('count the spaces nobody has put a room in yet, which have a floor all the same (DB-15)', () => {
+    const e = estimate({ ...quantities(), unroomed: { count: 2, area: 15, ids: [] } }, emptyCosts())
+    const l = line(e, 'floor-finishes')
+    expect(l.qty).toBe(95)
+    expect(l.from).toBe('Rooms, except a garage, and 2 spaces with no room yet')
+    expect(l.estimate).toBeCloseTo(95 * R('floor-finishes'), 6)
+    // No rooms at all, but the walls enclose floor: it is priced, and the estimate still says there are no rooms.
+    const bare = estimate({ ...quantities(), finishes: none(), wet: { kitchen: named(), bathroom: named(), laundry: named(), toilet: named() }, unroomed: { count: 1, area: 80, ids: [] } }, emptyCosts())
+    expect(line(bare, 'floor-finishes')).toMatchObject({ qty: 80, from: '1 space with no room yet', missing: null })
+    expect(bare.missing).toEqual(['rooms'])
+  })
+
+  it('are the rooms alone where every space has one, and in quantities made before spaces were counted', () => {
+    expect(line(estimate(quantities(), emptyCosts()), 'floor-finishes')).toMatchObject({ qty: 80, from: 'Rooms, except a garage' })
+    expect(line(estimate({ ...quantities(), unroomed: none() }, emptyCosts()), 'floor-finishes').qty).toBe(80)
+  })
+})
+
+describe('the cross-check and the bridge to it (HO-08, DB-15)', () => {
+  const g = finishGuide('mid')
+  const sum = (e: Estimate) => e.total + e.bridge!.rows.reduce((t, r) => t + r.amount, 0)
+
+  it('says where a complete estimate sits against the guide for its finish', () => {
+    const e = estimate(quantities(), emptyCosts())
+    expect(e.housePerM2!).toBeLessThan(g.low)
+    expect(e.against).toBe('under')
+    // A quote that lifts the house into the guide's range, and one that takes it over.
+    const lifted = (amount: number) => estimate(quantities(), { ...emptyCosts(), quotes: { frame: quote(amount) } })
+    expect(lifted(250_000).against).toBe('in')
+    expect(lifted(250_000).bridge).toBeNull()
+    expect(lifted(600_000).against).toBe('over')
+    expect(lifted(600_000).bridge).toBeNull()
+  })
+
+  it('bridges an estimate under the guide up to its low end, in rows that add up', () => {
+    const e = estimate(quantities(), emptyCosts())
+    const b = e.bridge!
+    expect(b.rows.map(r => r.id)).toEqual(['house', 'contingency'])
+    // What the lines don't count in the house: the guide's low end less the house as priced, per m² of floor.
+    expect(b.perM2).toBeCloseTo(g.low - e.housePerM2!, 6)
+    expect(b.rows[0].amount).toBeCloseTo((g.low - e.housePerM2!) * 100, 6)
+    expect(b.rows[1].amount).toBeCloseTo(b.rows[0].amount * CONTINGENCY, 6)
+    expect(sum(e)).toBeCloseTo(e.guide!.low, 6)
+    expect(b.to).toBe(e.guide!.low)
+  })
+
+  it('puts the builder’s margin first for an owner-builder, whose estimate leaves out what the guide has in it', () => {
+    const data: CostsData = { ...emptyCosts(), who: 'owner' }
+    const e = estimate(quantities(), data)
+    const b = e.bridge!
+    expect(b.rows.map(r => r.id)).toEqual(['margin', 'house', 'contingency'])
+    const house = e.housePerM2! * 100
+    expect(b.rows[0].amount).toBeCloseTo(house * MARGIN, 6)
+    expect(b.rows[1].amount).toBeCloseTo(g.low * 100 - house * (1 + MARGIN), 6)
+    expect(sum(e)).toBeCloseTo(e.guide!.low, 6)
+    // The same house, built by a builder, has the same guide over the house: only the margin moves between the rows.
+    const built = estimate(quantities(), emptyCosts())
+    expect(b.rows[1].amount).toBeCloseTo(built.bridge!.rows[0].amount, 6)
+  })
+
+  it('changes with the contingency the project sets', () => {
+    const e = estimate(quantities(), { ...emptyCosts(), contingency: 0.25 })
+    expect(e.bridge!.rows.at(-1)!.amount).toBeCloseTo(e.bridge!.rows[0].amount * 0.25, 6)
+    expect(sum(e)).toBeCloseTo(e.guide!.low, 6)
+  })
+
+  it('reads as whole dollars that add up by hand, each named', () => {
+    const e = estimate(quantities(), emptyCosts())
+    const b = bridgeSteps(e)!
+    expect(b.steps.map(x => x.label)).toEqual(['The estimate, from the quantities', 'Not counted in the house itself', 'Contingency 10% on that'])
+    expect(b.steps.every(x => Number.isInteger(x.amount))).toBe(true)
+    // They add to the guide's low end exactly, as it is written everywhere else; no row is more than the odd dollar off.
+    expect(b.to.amount).toBe(b.steps.reduce((t, x) => t + x.amount, 0))
+    expect(b.to.amount).toBe(Math.round(e.guide!.low))
+    e.bridge!.rows.forEach((r, i) => expect(Math.abs(b.steps[i + 1].amount - r.amount)).toBeLessThan(2.5))
+    expect(b.to.label).toBe('Custom-built at a mid finish, low end')
+    expect(b.steps[1].note).toContain(`${money(g.low - e.housePerM2!)} per m² × 100.00 m²`)
+    expect(b.steps[1].note).toContain('heating and cooling')
+    expect(bridgeSteps(estimate(quantities(), { ...emptyCosts(), quotes: { frame: quote(250_000) } }))).toBeNull()
+  })
+
+  it('puts it in a sentence: a floor, not a budget, when under; where it sits otherwise', () => {
+    const e = estimate(quantities(), emptyCosts())
+    expect(crossCheckText(e)).toBe(
+      `Treat the estimate as a floor, not a budget. It prices what’s drawn at rough trade rates: ${money(e.housePerM2!)} per m² for the house itself, against $4,600 to $6,500 in RLB’s 2026 guide for one-off houses in Sydney at a mid finish. Project-home builders often land nearer the estimate.`,
+    )
+    expect(crossCheckText(estimate(quantities(), { ...emptyCosts(), who: 'owner' }))).toMatch(/The guide has a builder’s margin in it\.$/)
+    expect(crossCheckText(estimate(quantities(), { ...emptyCosts(), quotes: { frame: quote(250_000) } }))).toMatch(/within RLB’s 2026 guide .* \(\$4,600 to \$6,500\)\.$/)
+    expect(crossCheckText(estimate(quantities(), { ...emptyCosts(), quotes: { frame: quote(600_000) } }))).toMatch(/over RLB’s 2026 guide .* Check the rates and quotes for anything unusual\.$/)
+    expect(crossCheckText(estimate({ ...quantities(), windows: none() }, emptyCosts()))).toBe('')
+  })
+})
+
 describe('the house against the finish guide', () => {
   const guide = (e: Estimate) => renderToStaticMarkup(createElement(FinishGuide, { e }))
 
@@ -531,6 +668,21 @@ describe('the house against the finish guide', () => {
     const e = estimate(quantities(), emptyCosts())
     expect(e.missing).toEqual([])
     expect(guide(e)).toMatch(/ce-guide-tag (in|under|over)/)
+  })
+
+  it('is one cross-check under the headline, not a second total beside it (HO-08)', () => {
+    const e = estimate(quantities(), emptyCosts())
+    const html = guide(e)
+    expect(html).toContain('aria-label="Cross-check"')
+    expect(html).toContain(`Custom-built at a mid finish <b>${shortMoney(e.guide!.low)} to ${shortMoney(e.guide!.high)}</b>`)
+    expect(html).toContain('<span class="ce-guide-tag under">The estimate is under it</span>')
+    expect(html).toContain('<b>Treat the estimate as a floor, not a budget.</b>')
+    expect(html).toContain('What’s not in the quantities yet')
+    expect(html).not.toContain('From quantities')
+    // Within the guide there is nothing to bridge.
+    const within = guide(estimate(quantities(), { ...emptyCosts(), quotes: { frame: quote(250_000) } }))
+    expect(within).toContain('The estimate is within it')
+    expect(within).not.toContain('What’s not in the quantities yet')
   })
 
   it("holds back the comparison while the estimate is missing things, so cheap doesn't read as good news", () => {

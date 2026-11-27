@@ -137,6 +137,16 @@ div.ce-guide {
   line-height: 1.45;
 }
 
+.ce-guide-k {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ce-why b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .ce-guide-tag {
   padding: 1px 7px;
   border-radius: 999px;
@@ -327,6 +337,64 @@ div.ce-guide {
 
 .ce-sum .muted.small {
   margin: 6px 0 0;
+}
+
+/* Under the total: the sum from the estimate up to the cross-check's low end. */
+.ce-bridge {
+  width: calc(100% - 66px);
+  margin: 2px 20px 16px 46px;
+  border-top: 1px solid var(--line);
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ce-bridge:focus {
+  outline: none;
+}
+
+.ce-bridge:focus-visible caption {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ce-bridge caption {
+  padding: 12px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ce-bridge small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.ce-bridge th,
+.ce-bridge td {
+  padding: 5px 0;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.ce-bridge th {
+  padding-right: 12px;
+  text-align: left;
+}
+
+.ce-bridge td {
+  min-width: 92px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ce-bridge tfoot th,
+.ce-bridge tfoot td {
+  padding-top: 9px;
+  border-top: 1px solid var(--text);
+  font-weight: 600;
 }
 
 .ce-qchip {
@@ -916,6 +984,16 @@ button.ce-ln-main {
 .app-shell.phone .ce-sum {
   padding: 10px 16px 14px;
   font-size: 15px;
+}
+
+.app-shell.phone .ce-bridge {
+  width: calc(100% - 32px);
+  margin: 2px 16px 16px;
+  font-size: 15px;
+}
+
+.app-shell.phone .ce-bridge small {
+  font-size: 13.5px;
 }
 
 .app-shell.phone .ce-who-says,

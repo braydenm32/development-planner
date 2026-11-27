@@ -200,7 +200,10 @@ export function choiceRate(group: Exclude<ChoiceGroup, 'finish'>, id: string): R
   return (opts.find(o => o.id === id) ?? opts[0]).rate!
 }
 
-export const finishFactor = (id: string) => FINISH_LEVELS[(id in FINISH_LEVELS ? id : 'mid') as FinishLevel]
+/** The finish level a choice names; mid when it isn't one of them. */
+export const finishLevel = (id: string): FinishLevel => (id in FINISH_LEVELS ? id : 'mid') as FinishLevel
+
+export const finishFactor = (id: string) => FINISH_LEVELS[finishLevel(id)]
 
 /**
  * Rough guides to what a house costs to build per m² of floor at each finish level, GST
@@ -219,6 +222,12 @@ export const finishGuide = (id: string) => FINISH_GUIDES[(id in FINISH_GUIDES ? 
 
 /** Where the finish guides come from, in a line. */
 export const FINISH_GUIDE_SOURCE = 'RLB Riders Digest Sydney 2026: custom-built houses $2,500 to $7,600 per m² before GST, with the builder’s margin, without site works, fees or land. Split into thirds for Basic, Mid and High, GST added.'
+
+/**
+ * What a one-off builder prices in the house itself that no line here counts yet, named in the
+ * bridge from the estimate to the guide. There is no rate for any of them, so no figure each.
+ */
+export const NOT_COUNTED = ['heating and cooling', 'balustrades and handrails', 'window coverings', 'built-in joinery beyond the kitchen and wardrobes']
 
 /** What a guide is compared with: the house itself, so not site works, outside works or fees. */
 export const HOUSE_GROUPS: GroupId[] = ['prelims', 'floor', 'frame', 'roof', 'walls', 'openings', 'fitout', 'services']
