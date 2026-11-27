@@ -3,7 +3,9 @@
 // wait in the plan's question list instead, off the drawing (src/flow/QuestionTray.tsx). Its button picks the tool it talks about; the link opens that
 // step of the guide; × hides it for good, and Hide tips hides them all.
 
+import { useState } from 'react'
 import { Icon } from '../nav/icons'
+import { StarterSheet } from '../starters/StarterCards'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { hideAllHints, hideHint, nextHint, TIPS, useHintPrefs } from './hints'
@@ -12,6 +14,8 @@ import { openGuide } from './store'
 export function PlanHints({ plan, level, phone }: { plan: Plan; level: string; phone: boolean }) {
   const prefs = useHintPrefs()
   const tool = usePlan(s => s.tool)
+  // An empty block's other way in: a starter house to change (src/starters).
+  const [starters, setStarters] = useState(false)
   const id = nextHint(plan, level, prefs)
   if (id !== 'walls') return null
   const tip = TIPS[id]
@@ -28,6 +32,9 @@ export function PlanHints({ plan, level, phone }: { plan: Plan; level: string; p
             {tip.button}
           </button>
         )}
+        <button type="button" className="plan-hint-link" onClick={() => setStarters(true)}>
+          Or start from a house
+        </button>
         <button type="button" className="plan-hint-link" onClick={() => openGuide(tip.section)}>
           Getting started
         </button>
@@ -38,6 +45,7 @@ export function PlanHints({ plan, level, phone }: { plan: Plan; level: string; p
       <button type="button" className="plan-hint-x" aria-label="Hide this tip" title="Hide this tip" onClick={() => hideHint(id)}>
         <Icon name="x" size={14} />
       </button>
+      {starters && <StarterSheet onClose={() => setStarters(false)} />}
     </section>
   )
 }
