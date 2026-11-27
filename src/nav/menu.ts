@@ -48,6 +48,7 @@ export type ActionId =
   | 'zoom-in'
   | 'zoom-out'
   | 'north-up'
+  | 'dock-panels'
   | 'reset-camera'
   | 'camera-street'
   | 'camera-above'
@@ -527,6 +528,14 @@ export const AREAS: Area[] = [
       icon: 'sliders',
       subtitle: 'The house plan’s own file and tools you rarely need.',
       items: [
+        {
+          // First, where a first-time user sees it: tracing lives with Site › Features › Drawings (CB-27).
+          id: 'trace-plan',
+          label: 'Trace a plan picture',
+          icon: 'layers',
+          keywords: ['trace', 'trace a plan', 'tracing', 'background', 'background image', 'blueprint', 'underlay', 'floor plan picture', 'photo of a plan', 'scan', 'pdf plan', 'existing plan'],
+          features: ['design-trace-plan'],
+        },
         {
           id: 'plan-file',
           label: 'House plan file',
@@ -1515,6 +1524,16 @@ export const HOMES: Home[] = [
         hint: 'On a phone the plan opens in View: one finger pans, two pinch, a double tap zooms and a tap shows numbers. Tap Edit at the top to change things.',
       },
       { id: 'north-up', label: 'North up', icon: 'north', keywords: ['top of view', 'orientation', 'compass', 'square to the house'], features: ['top-of-view'], action: 'north-up', run: 'now' },
+      {
+        id: 'dock-panels',
+        label: 'Dock panels beside the plan',
+        icon: 'dock',
+        keywords: ['dock', 'docked panels', 'undock', 'float panels', 'floating panels', 'side panel', 'fixed panel', 'sidebar', 'layout', 'panel layout', 'panels cover the plan', 'panel in the way', 'more room for the drawing', 'panel width', 'wider panel', 'resize panel'],
+        features: ['dock-panels', 'dock-panel-width'],
+        action: 'dock-panels',
+        run: 'now',
+        hint: 'On a computer, the panels sit fixed beside the plan or the 3D view and the drawing takes the space left. The button at the top of a tab’s panel does the same. Drag the docked panel’s edge to make it wider.',
+      },
       {
         id: 'rect-room',
         label: 'Rectangle room',

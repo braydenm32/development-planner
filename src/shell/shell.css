@@ -1304,6 +1304,124 @@ button.chip:hover .chip-label {
   width: min(440px, calc(100% - 2 * var(--gap)));
 }
 
+/* ---- Docked panels (DB-21; AppShell's `docked`, a computer only) ----
+   The canvas is one column of a grid, with the tool rail and the tab's panel in columns on its left
+   and the selection's card and Check everything on its right. Whatever floats on the canvas is
+   placed in the canvas's column, so it keeps to it with nothing over the drawing; AppShell leaves
+   off the classes that would step things aside for floating panels. The columns' widths come from
+   AppShell (--dock-rail, --dock-panel, --dock-right, --dock-steps). */
+.app-shell:not(.phone) .shell-main.docked {
+  /* The columns beside the canvas, in px (--dock-panel itself is kept short of the canvas's 360 px with a % that only the grid can read). */
+  --dock-w: calc(var(--dock-rail, 0px) + var(--dock-panel-px, 0px) + var(--dock-right, 0px) + var(--dock-steps, 0px));
+  --row-room: calc(100vw - var(--nav-w) - var(--dock-w) - var(--free-left, 14px) - var(--free-right, 16px));
+  --foot-room: calc(100vw - var(--nav-w) - var(--dock-w) - var(--free-left, 14px) - 16px);
+  display: grid;
+  grid-template-columns: [rail] var(--dock-rail, 0px) [panel] var(--dock-panel, 0px) [canvas] minmax(0, 1fr) [right] var(--dock-right, 0px) [steps] var(--dock-steps, 0px);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.app-shell:not(.phone) .shell-main.docked > * {
+  grid-column: canvas;
+  grid-row: 1;
+}
+
+.app-shell:not(.phone) .shell-main.docked > .tool-rail {
+  grid-column: rail;
+  left: 8px;
+}
+
+.app-shell:not(.phone) .shell-main.docked > .float-col.docked-col {
+  grid-column: panel;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  right: 0;
+  gap: 0;
+  border-right: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.app-shell:not(.phone) .docked-col > .float-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell:not(.phone) .docked-col > .tool-card {
+  border-bottom: 1px solid var(--line);
+}
+
+.app-shell:not(.phone) .docked-col > .tab-panel {
+  flex: 1 1 auto;
+}
+
+.app-shell:not(.phone) .shell-main.docked.dock-insp > .inspector,
+.app-shell:not(.phone) .shell-main.docked > .steps-sheet {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  left: 0;
+  max-height: none;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell:not(.phone) .shell-main.docked.dock-insp > .inspector {
+  grid-column: right;
+}
+
+.app-shell:not(.phone) .shell-main.docked > .steps-sheet {
+  grid-column: steps;
+}
+
+/* The docked panel's edge, to drag wider or narrower (DockHandle.tsx). */
+.app-shell:not(.phone) .shell-main.docked > .dock-handle {
+  grid-column: panel;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -5px;
+  z-index: 7;
+  width: 10px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.dock-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 4px;
+  height: 36px;
+  margin-top: -18px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.dock-handle:hover::after,
+.dock-handle:focus-visible::after {
+  background: var(--accent);
+}
+
+.dock-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* The dock switch sits with the panel's hide arrow, at the right of its header. */
+.float-card > header > .panel-dock {
+  margin-left: auto;
+}
+
+.panel-dock.on {
+  color: var(--accent);
+}
+
 /* Fit block, Fit house, North up. */
 .canvas-controls {
   position: absolute;

@@ -22,6 +22,7 @@ import { toggleStrip } from '../sectionStrip/store'
 import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
+import { toggleDocked, useDock } from './dock'
 import { openSteps } from '../steps/store'
 import { setWallMode } from '../plan/wallMode'
 import { undoTarget } from './undoTarget'
@@ -149,6 +150,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'replace-survey':
       shell.replaceSurvey()
+      return true
+    case 'dock-panels':
+      toggleDocked()
+      c.toast(useDock.getState().docked ? 'Panels docked beside the plan. On a small window or a phone they still float.' : 'Panels float over the plan again.')
       return true
   }
 

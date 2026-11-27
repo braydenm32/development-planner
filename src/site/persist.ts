@@ -11,6 +11,7 @@
 
 import { delMany, get, getMany, keys, type UseStore } from 'idb-keyval'
 import { projectActions, projectsNow, registerRecordKind } from '../projects/session'
+import { historyCanRestore } from '../projects/undoHistory'
 import type { VectorPage } from './pdfVector'
 import {
   blobToDataUrl,
@@ -57,6 +58,8 @@ function apply(data: SiteData, files: SiteFiles) {
   } finally {
     applying = false
   }
+  // The saved undo steps go back behind what opened.
+  historyCanRestore('site')
 }
 
 /** Save the waiting edit now, if its project is still the one open (a save always goes to the open one). */

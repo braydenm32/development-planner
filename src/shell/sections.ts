@@ -60,6 +60,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   bearing: More.BearingSection,
   'survey-warnings': More.SurveyWarningsSection,
   'site-replace': More.ReplaceSurveySection,
+  'trace-plan': More.TracePlanSection,
   'plan-file': More.PlanFileSection,
   'wall-preset': More.WallPresetSection,
   'keyboard-shortcuts': More.KeyboardSection,

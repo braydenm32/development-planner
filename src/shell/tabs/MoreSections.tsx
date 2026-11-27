@@ -15,8 +15,10 @@ import { ExaggerationSlider, SurveyLayers, SurveyWarnings } from '../../componen
 import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
 import { useEffect } from 'react'
+import { navigate } from '../../nav/router'
 import { useProjects } from '../../projects/session'
 import { layersKey, madeBlock, markLayersSeen } from '../../site/layersSeen'
+import { DRAWINGS_ID } from '../../site/sync'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { useShell } from '../context'
@@ -88,6 +90,20 @@ export function ReplaceSurveySection() {
 }
 
 // Design
+
+/** Design › More › Trace a plan picture: a way in to Site › Features › Drawings, where tracing lives (CB-27). */
+export function TracePlanSection() {
+  return (
+    <>
+      <p className="muted small">Lay a photo, scan or PDF of a floor plan under the plan, line it up by two points, then draw the walls over it here in Design.</p>
+      <div className="row">
+        <button className="secondary" onClick={() => navigate({ kind: 'app', area: 'site', tab: 'features', view: 'plan' }, { focus: DRAWINGS_ID })}>
+          Add a plan picture…
+        </button>
+      </div>
+    </>
+  )
+}
 
 export function PlanFileSection() {
   const d = useLoaded()
