@@ -5,6 +5,7 @@ import { openExample } from '../example/open'
 import { saveFile } from '../lib/download'
 import { LegalFooter } from '../legal/LegalFooter'
 import '../legal/legal.css'
+import { focusSoon, useModal } from '../nav/useModal'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fileSafe } from '../print/export'
@@ -213,11 +214,19 @@ export function ProjectsHome(props: Props) {
   // light review), and the app goes to it. Undo is on the toast that follows.
   const openFile = (f: File) => act(() => openAnyFile(f, { into: 'new' }))
 
+  /** A card is about to leave the list: focus goes to the one that takes its place (else the page), not the page body. */
+  const focusAfter = (id: string) => {
+    const i = shown.findIndex(m => m.id === id)
+    const next = shown[i + 1] ?? shown[i - 1]
+    focusSoon(...(next ? [`[data-card="${next.id}"] button`] : []))
+  }
+
   // Archive, with Undo: it comes back, and opens again if it was the one open.
   const archiveOne = (m: ProjectMeta) =>
     act(async () => {
       const wasOpen = m.id === p.currentId
       await p.archive(m.id)
+      focusAfter(m.id)
       showToast({
         text: `Archived “${m.name}”.`,
         undo: async () => {
@@ -232,6 +241,7 @@ export function ProjectsHome(props: Props) {
     act(async () => {
       const undo = p.deleteSoon(m.id)
       setReview(null)
+      focusAfter(m.id)
       showToast({ text: `Deleted “${m.name}”.`, undo, settle: () => void p.finishDelete(m.id) })
     })
 
@@ -379,7 +389,7 @@ export function ProjectsHome(props: Props) {
         ) : (
           <ul className="ph-grid">
             {shown.map(m => (
-              <li key={m.id} className={`ph-card${m.id === p.currentId ? ' current' : ''}`}>
+              <li key={m.id} data-card={m.id} className={`ph-card${m.id === p.currentId ? ' current' : ''}`}>
                 {m.archived ? (
                   <div className="ph-thumb">
                     <Thumb t={m.thumbnail} />
@@ -465,6 +475,7 @@ export function ProjectsHome(props: Props) {
                           onClick={() =>
                             act(async () => {
                               await p.restore(m.id)
+                              focusAfter(m.id)
                               showToast({ text: `Restored “${m.name}” to your projects.`, undo: () => p.archive(m.id) })
                             })
                           }
@@ -540,20 +551,19 @@ function Menu({ children, onClose }: { children: ReactNode; onClose: () => void 
   useLayoutEffect(() => {
     close.current = onClose
   })
+  // Its ⋯ button, which gets focus back when the menu closes.
+  const trigger = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    trigger.current = ref.current?.parentElement?.querySelector<HTMLElement>('button') ?? null
+  }, [])
+  // Focus starts on the first item and Tab stays in the menu; Esc closes it (src/nav/useModal.ts).
+  useModal(ref, true, () => close.current(), { returnTo: trigger })
   useEffect(() => {
     const away = (e: PointerEvent) => {
       if (!ref.current?.parentElement?.contains(e.target as Node)) close.current()
     }
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close.current()
-    }
     document.addEventListener('pointerdown', away)
-    document.addEventListener('keydown', esc)
-    ref.current?.querySelector<HTMLButtonElement>('button')?.focus()
-    return () => {
-      document.removeEventListener('pointerdown', away)
-      document.removeEventListener('keydown', esc)
-    }
+    return () => document.removeEventListener('pointerdown', away)
   }, [])
   return (
     <div ref={ref} className="ph-menu" role="menu">
@@ -563,23 +573,17 @@ function Menu({ children, onClose }: { children: ReactNode; onClose: () => void 
 }
 
 function DeleteReview(p: { meta: ProjectMeta; lines: string[]; onDownload: () => void; onCancel: () => void; onDelete: () => void }) {
-  const keep = useRef<HTMLButtonElement>(null)
   const inCloud = useInCloud(p.meta.id)
   const cancel = useRef(p.onCancel)
   useLayoutEffect(() => {
     cancel.current = p.onCancel
   })
-  useEffect(() => {
-    keep.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cancel.current()
-    }
-    document.addEventListener('keydown', esc)
-    return () => document.removeEventListener('keydown', esc)
-  }, [])
+  const box = useRef<HTMLDivElement>(null)
+  // Focus starts on Keep it and Tab stays in the dialog; Esc keeps the project (src/nav/useModal.ts).
+  useModal(box, true, () => cancel.current())
   return (
     <div className="ph-scrim" onPointerDown={e => e.target === e.currentTarget && p.onCancel()}>
-      <div className="ph-dialog" role="dialog" aria-modal="true" aria-labelledby="ph-review-title">
+      <div ref={box} className="ph-dialog" role="dialog" aria-modal="true" aria-labelledby="ph-review-title">
         <h2 id="ph-review-title">Delete “{p.meta.name}” for good?</h2>
         <p>
           {inCloud ? 'This removes it from this browser and from the cloud, so from your other devices too.' : 'This removes it from this browser.'} Undo brings it back for a few
@@ -596,7 +600,7 @@ function DeleteReview(p: { meta: ProjectMeta; lines: string[]; onDownload: () =>
             <Icon name="download" size={16} /> Download project file
           </button>
           <span className="ph-grow" />
-          <button ref={keep} className="ph-btn ph-a-keep" onClick={p.onCancel}>
+          <button className="ph-btn ph-a-keep" onClick={p.onCancel} data-autofocus>
             Keep it
           </button>
           <button className="ph-btn danger ph-a-del" onClick={p.onDelete}>

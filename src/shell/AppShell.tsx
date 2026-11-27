@@ -24,6 +24,7 @@ import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
 import { canvasOf, carriesSelection, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { focusSoon } from '../nav/useModal'
 import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
@@ -179,9 +180,9 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        if (palette) closePalette(true)
         // Not over another sheet that is waiting for an answer.
         if (!palette && document.querySelector('[aria-modal="true"]')) return
+        if (palette) closePalette(true)
         else openPalette()
         return
       }
@@ -612,7 +613,16 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                       {!inTab && subtitle && <p className="muted">{subtitle}</p>}
                     </div>
                     {!(phone && report) && (
-                      <button className="icon-button" onClick={() => setPanelHidden(true)} aria-label={`Hide the ${tab.label} panel`} title="Hide the panel">
+                      <button
+                        className="icon-button panel-hide"
+                        onClick={() => {
+                          setPanelHidden(true)
+                          // The pill takes this button's place, and its focus.
+                          focusSoon('.panel-pill')
+                        }}
+                        aria-label={`Hide the ${tab.label} panel`}
+                        title="Hide the panel"
+                      >
                         <Icon name={phone ? 'chevD' : 'chevL'} size={16} />
                       </button>
                     )}
@@ -630,7 +640,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                   </div>
                 </section>
               ) : (
-                <button className="float-card panel-pill" onClick={() => setPanelHidden(false)}>
+                <button
+                  className="float-card panel-pill"
+                  onClick={() => {
+                    setPanelHidden(false)
+                    focusSoon('.tab-panel .panel-hide')
+                  }}
+                >
                   <Icon name={phone ? 'chevU' : 'chevR'} size={15} /> {tab.label}
                 </button>
               ))}

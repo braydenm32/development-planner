@@ -85,7 +85,7 @@ function SavePop({ wrap, look, onDownload, onClose }: { wrap: RefObject<HTMLDivE
     fn()
   }
   return (
-    <div ref={pop} className="cl-pop" role="dialog" aria-label="Where your work is saved">
+    <div ref={pop} className="cl-pop" role="dialog" aria-label="Where your work is saved" data-overlay>
       <div className={`cl-status ${look.tone}`}>
         <Icon name={look.icon} size={18} />
         <p>{look.detail}</p>

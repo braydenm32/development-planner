@@ -2,6 +2,7 @@
 // app in both layouts (and over the start screen and the Projects home).
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useModal } from '../nav/useModal'
 import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
 import { LayersSheet } from './LayersSheet'
@@ -22,34 +23,18 @@ export function BlockThumb({ t, label }: { t: ProjectThumbnail | null | undefine
 
 function ReviewSheet() {
   const review = useSafety(s => s.review)
-  const cancelRef = useRef<HTMLButtonElement>(null)
   const answer = useRef(review?.answer)
   useLayoutEffect(() => {
     answer.current = review?.answer
   })
-  const open = !!review
-  useEffect(() => {
-    if (!open) return
-    const opener = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      e.stopPropagation()
-      answer.current?.(null)
-    }
-    // Before the plan's own keys, so Esc here never clears a selection underneath.
-    window.addEventListener('keydown', esc, true)
-    return () => {
-      window.removeEventListener('keydown', esc, true)
-      opener?.focus?.()
-    }
-  }, [open])
+  const sheet = useRef<HTMLDivElement>(null)
+  // Focus starts on Cancel and Tab stays in the sheet; Esc cancels; focus goes back where it was (src/nav/useModal.ts).
+  useModal(sheet, !!review, () => answer.current?.(null))
   if (!review) return null
   const choice = review.choices?.find(c => c.id === review.choice)
   return (
     <div className="sf-scrim" onPointerDown={e => e.target === e.currentTarget && review.answer(null)}>
-      <div className={`sf-sheet sf-${review.kind}`} role="dialog" aria-modal="true" aria-labelledby="sf-title">
+      <div ref={sheet} className={`sf-sheet sf-${review.kind}`} role="dialog" aria-modal="true" aria-labelledby="sf-title">
         <div className="sf-grab" aria-hidden="true" />
         <header className="sf-head">
           <span className="sf-step">{review.replaces ? 'Review before it changes' : 'Check before it opens'}</span>
@@ -120,7 +105,7 @@ function ReviewSheet() {
           </div>
         </div>
         <footer className="sf-actions">
-          <button ref={cancelRef} className="sf-btn" onClick={() => review.answer(null)}>
+          <button className="sf-btn" onClick={() => review.answer(null)} data-autofocus>
             Cancel
           </button>
           <button className="sf-btn primary" onClick={() => review.answer(review.choice ?? 'ok')}>

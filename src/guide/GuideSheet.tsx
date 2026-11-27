@@ -2,7 +2,8 @@
 // A section at a time is what people come for (from a hint on the plan, or ⌘K), so it opens
 // scrolled to the one asked for, with the rest a short scroll away. Mounted once, on every screen.
 
-import { useEffect, useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useRef } from 'react'
+import { useModal } from '../nav/useModal'
 import { openExample } from '../example/open'
 import { Icon } from '../nav/icons'
 import { termTitle, TERMS } from './glossary'
@@ -22,21 +23,8 @@ function GuideSheet({ example }: { example: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const body = useRef<HTMLDivElement>(null)
 
-  // Esc closes it, before anything under it hears the key; focus goes back where it was.
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.stopPropagation()
-      closeGuide()
-    }
-    document.addEventListener('keydown', esc, true)
-    return () => {
-      document.removeEventListener('keydown', esc, true)
-      if (before?.isConnected) before.focus?.()
-    }
-  }, [])
+  // Tab stays in the sheet; Esc closes it, before anything under it hears the key; focus goes back where it was.
+  useModal(ref, true, closeGuide)
 
   // Open at the section (or word) asked for.
   useLayoutEffect(() => {

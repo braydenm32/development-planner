@@ -3,6 +3,7 @@
 // the one its home panel shows, from the same helper and in the same format (CALM 8).
 
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useModal } from '../nav/useModal'
 import { FragmentRow } from '../components/PlanSections'
 import { retainedText } from '../components/planNumbers'
 import { SiteFacts } from '../components/SiteSections'
@@ -57,12 +58,9 @@ function Group({ icon, title, to, action, children }: { icon: IconName; title: s
 
 export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false, verdict, cost, onSteps }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
-  // Focus the sheet so Escape and Tab work in it, and give focus back when it closes.
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    sheet.current?.focus()
-    return () => before?.focus?.()
-  }, [])
+  // Tab stays in the sheet, Esc closes it wherever focus is, and focus goes back when it closes (src/nav/useModal.ts).
+  useModal(sheet, true, onClose, { focus: 'none' })
+  useEffect(() => sheet.current?.focus(), [])
   // In a shared view the groups have nowhere to go.
   const at = (area: AppRoute['area'], tab: string, view: AppRoute['view'] = 'plan'): AppRoute | undefined => (readOnly ? undefined : { kind: 'app', area, tab, view })
   return (
@@ -72,14 +70,9 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
         ref={sheet}
         className="overview-sheet"
         role="dialog"
+        aria-modal="true"
         aria-label="Overview: every key number"
         tabIndex={-1}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            e.stopPropagation()
-            onClose()
-          }
-        }}
       >
         <div className="sheet-grab" aria-hidden="true" />
         <header>

@@ -5,6 +5,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { saveFile } from '../lib/download'
 import { Icon } from '../nav/icons'
+import { useModal } from '../nav/useModal'
 import { edited } from '../projects/format'
 import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
@@ -47,21 +48,8 @@ function Sheet({ title, children, closable = true, wide }: { title: string; chil
   useLayoutEffect(() => {
     close.current = canClose
   })
-  useEffect(() => {
-    const el = ref.current
-    const before = document.activeElement as HTMLElement | null
-    el?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.stopPropagation()
-      if (close.current) cloudActions.close()
-    }
-    document.addEventListener('keydown', esc, true)
-    return () => {
-      document.removeEventListener('keydown', esc, true)
-      if (before?.isConnected) before.focus?.()
-    }
-  }, [])
+  // Tab stays in the sheet; Esc closes it unless it's busy; focus goes back where it was (src/nav/useModal.ts).
+  useModal(ref, true, () => close.current && cloudActions.close())
   return (
     <div className="cloud-ui cl-scrim" onPointerDown={e => e.target === e.currentTarget && close.current && cloudActions.close()}>
       <div ref={ref} className={`cl-sheet${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
