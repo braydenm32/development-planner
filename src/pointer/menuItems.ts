@@ -9,6 +9,7 @@ import { copySelection } from '../plan/editing'
 import { normDeg } from '../plan/furniture'
 import { isRetaining, type Plan } from '../plan/model'
 import { setWallKind, updateFurniture, updateOpening, updateStair } from '../plan/ops'
+import { openingStyle } from '../plan/openingStyles'
 import { usePlan, type Selection, type Tool } from '../plan/store'
 import { editWallLength } from './dimStore'
 import { useSnapping } from './snapping'
@@ -81,17 +82,17 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
   } else if (s.type === 'opening') {
     const o = plan.openings.find(x => x.id === s.id)
     if (!o) return []
-    if (o.kind === 'door') {
-      own.push(
-        { id: 'flip-hinge', label: 'Flip hinge', run: () => st.commit(p => updateOpening(p, o.id, { flipHinge: !o.flipHinge })) },
-        { id: 'flip-swing', label: 'Flip swing', run: () => st.commit(p => updateOpening(p, o.id, { flipSwing: !o.flipSwing })) },
-      )
+    // As its card does: a sliding door has nothing to flip, and a pair of doors is hinged at both sides.
+    const style = openingStyle(o)
+    if (o.kind === 'door' && style !== 'sliding') {
+      if (style !== 'double') own.push({ id: 'flip-hinge', label: 'Flip hinge', run: () => st.commit(p => updateOpening(p, o.id, { flipHinge: !o.flipHinge })) })
+      own.push({ id: 'flip-swing', label: 'Flip swing', run: () => st.commit(p => updateOpening(p, o.id, { flipSwing: !o.flipSwing })) })
     }
   } else if (s.type === 'room') {
     own.push({ id: 'rename', label: 'Rename', run: () => askName(s.id) })
   } else if (s.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === s.id)
-    if (f) own.push({ id: 'turn', label: 'Turn 90°', keys: 'Q', run: () => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation + 90) })) })
+    if (f) own.push({ id: 'turn', label: 'Turn 90°', keys: 'Q', run: () => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation - 90) })) })
   } else if (s.type === 'stair') {
     const stair = plan.stairs.find(x => x.id === s.id)
     if (stair) own.push({ id: 'turn', label: 'Rotate 90°', run: () => st.commit(p => updateStair(p, stair.id, { angle: (stair.angle + 90) % 360 })) })

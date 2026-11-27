@@ -51,9 +51,10 @@ describe('the right-click menu (CB-09)', () => {
     expect(item([{ type: 'wall', id: 'hall_w' }], 'kind').label).toBe('Make it an external wall')
   })
 
-  it('offers a door its flips, and a window only Delete: they copy with their wall', () => {
-    expect(ids([{ type: 'opening', id: 'entry' }])).toEqual(['flip-hinge', 'flip-swing', 'delete'])
-    expect(ids([{ type: 'opening', id: 'office_window' }])).toEqual(['delete'])
+  it('offers a door its flips, and a door or window its own copy, cut and delete', () => {
+    const edit = ['duplicate', 'copy', 'cut', 'delete']
+    expect(ids([{ type: 'opening', id: 'entry' }])).toEqual(['flip-hinge', 'flip-swing', ...edit])
+    expect(ids([{ type: 'opening', id: 'office_window' }])).toEqual(edit)
   })
 
   it('offers a room Rename, and furniture a quarter turn', () => {
