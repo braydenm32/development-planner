@@ -951,7 +951,7 @@ export function DrivewayGrade({ plan, area: a, survey, terrain, earth }: { plan:
       <p className="muted small">
         {levelled
           ? 'The cut and fill grades the ground under the drive to its levels, level across. These are the natural ground’s grades along it and its tilt across it, before the works.'
-          : `This driveway follows the finished ground. Grades are along it from the garage end to the street end, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on, and so is a tilt across it of more than about 1 in 16 (6%). Give it a level under Levels and the cut and fill levels it across.`}
+          : `This driveway follows the finished ground. Grades are along it from the garage end to the street end, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on; a tilt across it of more than about 1 in 16 (6%) is worth checking with whoever designs the drive. Give it a level under Levels and the cut and fill levels it across.`}
       </p>
     </>
   )

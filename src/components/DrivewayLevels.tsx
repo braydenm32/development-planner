@@ -130,7 +130,7 @@ export function DrivewayLevels({ plan, area, survey, terrain, earth }: Props) {
             {rlText(design.street)} at the street to {rlText(design.garage)} at the garage, over {design.grade.length.toFixed(2)} m.
             {gradeText(design.grade.steepest) !== gradeText(design.grade.average) && ` Steepest ${DRIVE_RUN} m: ${gradeText(design.grade.steepest)}.`}
             {design.tooSteep && ' Steeper than 1 in 4 (25%) is hard to drive on: lower the garage, or lengthen the drive.'}
-            {bad && !design.tooSteep && ` It tilts ${gradeText(design.grade.crossFall)} across, more than about 1 in 16: see Tilt across the drive below.`}
+            {bad && !design.tooSteep && ` It tilts ${gradeText(design.grade.crossFall)} across, more than about 1 in 16: worth checking with whoever designs the drive. See Tilt across the drive below.`}
           </p>
         </>
       ) : (

@@ -569,7 +569,7 @@ describe('synthetic plane block: site panel, RL readouts, slope and fall', () =>
     expect(gradeText(g.steepest)).toBe('level (0%)')
     expect(`${(g.crossFall * 100).toFixed(0)}%`).toBe('13%')
     // A 13% tilt across is more than a car should drive or park on: it no longer reads "OK to drive" (DB-14).
-    expect(driveVerdict(g)).toBe('Tilts too much: over 1 in 16 across')
+    expect(driveVerdict(g)).toBe('Worth checking: tilts over 1 in 16 across')
   })
 
   it('a drive laid straight downhill reads the full plane gradient along it and no cross-fall', () => {

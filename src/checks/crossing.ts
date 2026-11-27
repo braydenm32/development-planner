@@ -335,12 +335,14 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
     out.push({
       id: id('drive-crossfall'),
       title: title('drive-crossfall'),
-      status: over ? 'fail' : 'pass',
+      // A warning, not a fail: the 1 in 16 figure is unverified and whoever designs the drive decides.
+      status: over ? 'warn' : 'pass',
       value: `${flat ? 'Level across' : `Tilts ${gradeText(line.crossFall)} sideways at most`}${line.built ? ', built to its levels' : ', on the ground it follows'}`,
       limit: `Up to about ${gradeText(MAX_CROSS_FALL)} across the drive; the council’s driveway drawing decides`,
       note: [
-        over && !line.built ? 'Too much tilt to drive or park on. This drive follows the ground, so it tilts as the ground does: give it a level at the street end or the garage end under Levels, and the cut and fill levels it across.' : null,
-        over && line.built ? 'Too much tilt to drive or park on. Part of the drive isn’t at its own levels: check the cut and fill round it.' : null,
+        over ? 'More tilt than is comfortable to drive or park on: worth checking with whoever designs the drive.' : null,
+        over && !line.built ? 'This drive follows the ground, so it tilts as the ground does: give it a level at the street end or the garage end under Levels, and the cut and fill levels it across.' : null,
+        over && line.built ? 'Part of the drive isn’t at its own levels: check the cut and fill round it.' : null,
         'Edge to edge, square to the drive’s direction, on the finished ground. Cross-fall is the engineer’s word for it.',
       ]
         .filter(Boolean)
