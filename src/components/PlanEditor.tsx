@@ -61,6 +61,7 @@ import { finishedContours, finishedShown, planContours, readFinishedPref, saveFi
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } from './GroundOverlay'
 import { LevelMenu } from './LevelMenu'
+import { askName } from './nameFocus'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
@@ -1621,6 +1622,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       commit(p => addRoom(p, level, world, `Room ${n}`))
       const created = usePlan.getState().plan!.rooms.at(-1)
       if (created) select({ type: 'room', id: created.id })
+      // What is typed next names it (a phone would only have its keyboard cover the plan).
+      if (created && !touch?.phone) askName(created.id)
       notify(null)
       // A new room asks its level's floor type once, or offers a retaining wall where it cuts or fills.
       if (created) roomMade(created.id)
@@ -1633,6 +1636,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     if (mn.dblclick() || sk.dblclick()) return
+    // A double-click on a room goes to its name.
+    if (tool === 'select' && selection?.type === 'room' && !group && !viewOnly) askName(selection.id)
     if (tool === 'wall' || tool === 'retaining') finishChain()
     if (tool === 'area') closeArea(areaPts)
     if (tool === 'roof') closeRoof(areaPts)

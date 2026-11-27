@@ -151,15 +151,25 @@ export function Num({ label, value, unit, onCommit, min, max, decimals }: NumPro
   )
 }
 
-export function TextField({ label, value, onCommit }: { label: string; value: string; onCommit: (v: string) => void }) {
+/** `selectOn`: when it changes to something other than 0, the box takes the cursor with its text selected. */
+export function TextField({ label, value, onCommit, selectOn = 0 }: { label: string; value: string; onCommit: (v: string) => void; selectOn?: number }) {
   const [editing, setEditing] = useState<string | null>(null)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!selectOn) return
+    input.current?.focus()
+    input.current?.select()
+  }, [selectOn])
   return (
     <label className="num">
       <span>
         <Termed text={label} />
       </span>
       <input
+        ref={input}
         className="text"
+        // Nothing typed yet: Undo here is the app's, not the box's own (src/nav/keys.ts).
+        data-settled={settled(editing, value)}
         value={editing ?? value}
         onChange={e => setEditing(e.target.value)}
         onBlur={() => {
@@ -167,8 +177,6 @@ export function TextField({ label, value, onCommit }: { label: string; value: st
           setEditing(null)
           if (t && t !== value) onCommit(t)
         }}
-        // Nothing typed yet: Undo here is the app's, not the box's own (src/nav/keys.ts).
-        data-settled={settled(editing, value)}
         onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
       />
     </label>

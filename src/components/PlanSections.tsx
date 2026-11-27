@@ -3,7 +3,7 @@
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
 import { RetainEdges } from './RetainEdges'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
@@ -27,6 +27,7 @@ import {
   type OpeningKind,
   type Plan,
   type RoofType,
+  type Room,
   type StairShape,
   type Wall,
 } from '../plan/model'
@@ -54,6 +55,7 @@ import { copySelected, deleteSelected, duplicateSelected } from '../plan/editAct
 import { selectionCounts } from '../plan/editing'
 import { shortcutText } from '../nav/keys'
 import { Num, Select, TextField } from './fields'
+import { nameAsked, useNameAsk } from './nameFocus'
 import { RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
@@ -288,6 +290,17 @@ interface SelectionProps {
 }
 
 /** Settings and numbers for the selected wall, opening, room, roof, stair, area or piece of furniture; a room leads with its area. */
+/** A room's name. The Room tool, or a double-click on the room, puts the cursor in it (src/components/nameFocus.ts). */
+function RoomName({ room }: { room: Room }) {
+  const ask = useNameAsk()
+  const n = ask.id === room.id ? ask.n : 0
+  // After the box has taken the cursor (its effect runs first), so picking the room again doesn't.
+  useEffect(() => {
+    if (n) nameAsked()
+  }, [n])
+  return <TextField label="Name" value={room.name} onCommit={name => usePlan.getState().commit(p => updateRoom(p, room.id, { name }))} selectOn={n} />
+}
+
 export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps) {
   const selection = usePlan(s => s.selection)
   const extra = usePlan(s => s.extra)
@@ -418,7 +431,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <span>Area</span>
           <b>{area === null ? 'not enclosed' : `${area.toFixed(2)} m²`}</b>
         </div>
-        <TextField label="Name" value={r.name} onCommit={name => st.commit(p => updateRoom(p, r.id, { name }))} />
+        <RoomName room={r} />
         <RoomFloorType key={r.id} plan={plan} room={r} />
         <RoomGround plan={plan} room={r} survey={survey} terrain={terrain} />
         <RoomSun plan={plan} room={r} survey={survey} terrain={terrain} earth={earth} />
