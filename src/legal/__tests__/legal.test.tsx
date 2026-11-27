@@ -9,6 +9,7 @@ import { Caveat } from '../Caveat'
 import { ACCURACY_TITLE, CAVEAT, CAVEAT_LINE, CONTACT_EMAIL, LAST_UPDATED } from '../caveat'
 import { LegalFooter } from '../LegalFooter'
 import { LegalPage } from '../LegalPage'
+import { startAtTop } from '../startAtTop'
 import { PAGE_TITLES } from '../titles'
 import { planSetPdf } from '../../share/plans'
 import { parseDxf } from '../../lib/dxf'
@@ -31,10 +32,26 @@ describe('routes to the pages', () => {
 })
 
 describe('the pages', () => {
+  it('the brand is a link into the app, for a page opened on its own', () => {
+    expect(html('terms')).toMatch(/<a class="lg-brand" href="#\/projects"/)
+  })
+
+  it('a new page starts at its top with focus on its heading', () => {
+    // The pages scroll inside .lg-page: a footer link used to open the next page at the same depth.
+    const scroller = { scrollTop: 1532 }
+    const focused: unknown[] = []
+    startAtTop(scroller, { focus: o => focused.push(o) })
+    expect(scroller.scrollTop).toBe(0)
+    // preventScroll: focusing the heading must not scroll it under the sticky header.
+    expect(focused).toEqual([{ preventScroll: true }])
+    // The heading can take that focus without being a tab stop.
+    expect(html('privacy')).toContain('<h1 tabindex="-1">')
+  })
+
   it('each has a heading, a way home and the contact address', () => {
     for (const page of PAGE_IDS) {
       const h = html(page)
-      expect(h).toContain(`<h1>${PAGE_TITLES[page].replace('?', '?')}</h1>`)
+      expect(h).toContain(`<h1 tabindex="-1">${PAGE_TITLES[page].replace('?', '?')}</h1>`)
       expect(h).toContain('Back')
       expect(h).toContain(`mailto:${CONTACT_EMAIL}`)
     }

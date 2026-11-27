@@ -72,6 +72,19 @@
   font-weight: 600;
 }
 
+/* The brand is the link into the app; it keeps the heading's look, not a text link's. */
+.lg-page a.lg-brand {
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: var(--lg-ink);
+  text-decoration: none;
+}
+
+.lg-page a.lg-brand:hover {
+  background: #f1f3f6;
+}
+
 .lg-tabs {
   display: flex;
   gap: 4px;

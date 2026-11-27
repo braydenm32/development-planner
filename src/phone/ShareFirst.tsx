@@ -2,7 +2,7 @@
 // phone's share sheet (or saved where it has none), and the 3D print after them.
 
 import { useState } from 'react'
-import { plansPdfFile, projectFile } from '../components/printFiles'
+import { pdfChoices, plansPdfFile, projectFile } from '../components/printFiles'
 import { Icon, type IconName } from '../nav/icons'
 import { navigate, useRouter } from '../nav/router'
 import { tabRoute } from '../nav/route'
@@ -28,7 +28,7 @@ export function ShareFirst({ d, only }: { d: Loaded; only?: ShareKind }) {
     try {
       const f =
         kind === 'pdf'
-          ? plansPdfFile({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: d.printPrefs.paper, pdfFurniture: d.printPrefs.pdfFurniture, pdfSketch: d.printPrefs.pdfSketch, leaveOut: d.printPrefs.leaveOut })
+          ? plansPdfFile({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, ...pdfChoices(d.printPrefs) })
           : await projectFile(d.project, d.plan)
       const r: Handed = await shareOrSave(f, title)
       if (r === 'saved') setSaid({ kind, text: `Saved ${f.name}` })

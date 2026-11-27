@@ -11,7 +11,8 @@ import { driveGround } from '../plan/driveway'
 import type { Earth } from '../plan/useEarthworks'
 import type { PrintModel, PrintSettings } from '../print/build'
 import { fileSafe, to3mf, toStlZip } from '../print/export'
-import { planSetPdf, type Paper, type PlanSetInput } from '../share/plans'
+import { planSetPdf, type FloorScale, type Paper, type PlanSetInput } from '../share/plans'
+import { showToast } from '../safety/store'
 import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
@@ -22,7 +23,7 @@ import { measure } from '../checks/measure'
 import { notChecked, runChecks } from '../checks/rules'
 import { checkTreesOf } from '../checks/siteTrees'
 import { daOf } from '../da/model'
-import { packDetails, useDaDetails } from '../da/details'
+import { daForProject, packDetails, useDaDetails } from '../da/details'
 import { projectsNow } from '../projects/session'
 import { daPackPdf } from '../da/pack'
 import { stormwaterSheet } from '../drainage/stormwater'
@@ -51,7 +52,7 @@ export function save3mf({ plan, settings, print }: DownloadProps): boolean {
 /** Save the print parts as a ZIP of STLs; false if they aren't ready. */
 export function saveStls({ plan, settings, print }: DownloadProps): boolean {
   if (!printReady(print) || !print.model) return false
-  saveFile(`${printBase(plan, settings)}-stl.zip`, toStlZip(print.model.parts), 'application/zip')
+  saveFile(`${printBase(plan, settings)}-stl.zip`, toStlZip(print.model.parts, settings.scale), 'application/zip')
   return true
 }
 
@@ -67,7 +68,21 @@ export interface PdfInput {
   pdfSketch?: boolean
   /** Pages left out of the plan set (not the DA pack), by key. */
   leaveOut?: readonly string[]
+  /** The scale of the floor and roof plans (missing: Auto). */
+  floorScale?: FloorScale
 }
+
+/** What the plan set and the DA pack take from the print choices kept in this browser (src/print/prefs.ts). */
+export const pdfChoices = (p: { paper: Paper; pdfFurniture: boolean; pdfSketch?: boolean; leaveOut?: readonly string[]; floorScale?: FloorScale }) => ({
+  paper: p.paper,
+  pdfFurniture: p.pdfFurniture,
+  pdfSketch: p.pdfSketch,
+  leaveOut: p.leaveOut,
+  floorScale: p.floorScale,
+})
+
+/** Say a file went to the browser's downloads, by name, so a click on Download is seen to have worked. */
+export const toastDownloaded = (name: string) => showToast({ text: `Downloaded ${name}` })
 
 /** A file to hand over: saved, or shared on a phone. */
 export interface OutFile {
@@ -76,10 +91,11 @@ export interface OutFile {
   type: string
 }
 
-/** Draw the plan set and save it as a PDF. Throws if the plans can't be drawn. */
-export function savePlansPdf(p: PdfInput) {
+/** Draw the plan set and save it as a PDF; returns the file's name. Throws if the plans can't be drawn. */
+export function savePlansPdf(p: PdfInput): string {
   const f = plansPdfFile(p)
   saveFile(f.name, f.data, f.type)
+  return f.name
 }
 
 /** What the plan set and the DA pack both draw from. */
@@ -99,6 +115,7 @@ function planSetInput(p: PdfInput): PlanSetInput {
     furniture: p.pdfFurniture,
     sketch: p.pdfSketch === true,
     leaveOut: p.leaveOut,
+    floorScale: p.floorScale,
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
@@ -130,7 +147,11 @@ export function daPackFile(p: PdfInput): OutFile {
   const sun = keptSunFacts({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() })
   const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun, dem: !!projectsNow().opened?.survey?.dem })
   const council = activeCouncil(measures.settings)
-  const checks = [...(planning ? mapChecks(planning, 'da') : []), ...(council ? runChecks(measures, 'da', council.id) : [])]
+  // A DA is checked against a council's rules. With no council switched on there are none, so the
+  // pack carries the checks the app does have, the Housing Code's (as Approvals › Checks lists
+  // them on the CDC route), and its controls sheet is named for them, not left empty.
+  const rules = council ? 'da' : 'cdc'
+  const checks = [...(planning ? mapChecks(planning, rules) : []), ...runChecks(measures, rules, council?.id ?? null)]
   const pdf = daPackPdf({
     ...base,
     earthworks: base.earthworks && e ? { ...base.earthworks, maxCut: e.maxCut, maxFill: e.maxFill } : base.earthworks,
@@ -140,15 +161,17 @@ export function daPackFile(p: PdfInput): OutFile {
     planning,
     council,
     checks,
-    notChecked: notChecked('da', council),
+    rules,
+    notChecked: notChecked(rules, council),
   })
   return { name: `${fileSafe(base.title)}-DA-pack.pdf`, data: pdf, type: 'application/pdf' }
 }
 
-/** Draw the DA pack and save it to this device. Throws if the plans can't be drawn. */
-export function saveDaPack(p: PdfInput) {
+/** Draw the DA pack and save it to this device; returns the file's name. Throws if the plans can't be drawn. */
+export function saveDaPack(p: PdfInput): string {
   const f = daPackFile(p)
   saveFile(f.name, f.data, f.type)
+  return f.name
 }
 
 /** Save the project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */
@@ -157,7 +180,7 @@ export async function saveProjectFile(project: SavedProject, plan: Plan) {
   saveFile(f.name, f.data, f.type)
 }
 
-/** The project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */
+/** The project file: the survey, the plan, the site features (with the drawings ticked to go in), the costs and the DA pack's site details. */
 export async function projectFile(project: SavedProject, plan: Plan): Promise<OutFile> {
-  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject(), useOptions.getState().rec, mapForProject()), type: 'application/json' }
+  return { name: `${fileSafe(projectTitle(plan))}.project.json`, data: projectFileText(project, plan, await siteForProject(), costsForProject(), useOptions.getState().rec, mapForProject(), daForProject()), type: 'application/json' }
 }

@@ -8,7 +8,7 @@ import { useBuiltSite } from './lib/builtSite'
 import { CUT_RGB, FILL_RGB, RAMP_CSS, REFERENCE_POINT, rgbCss, SPOT_LEVEL } from './lib/colors'
 import { MORE } from './nav/menu'
 import { canvasOf, formatHash, NEW_PROJECT, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
-import { navigate, startRouter, useRouter } from './nav/router'
+import { hasAppHistory, navigate, startRouter, useRouter } from './nav/router'
 import { upBearing } from './lib/orientation'
 import { loadView, saveView, type ViewSettings } from './lib/storage'
 import type { LayerRole } from './lib/survey'
@@ -194,10 +194,12 @@ export default function App() {
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))
 
   // About, Privacy, Terms and How accurate is this? need no project and no sign-in, so they show first.
+  const toApp = () => (openedId ? toProject() : toProjects())
   if (route.kind === 'page')
     return (
       <>
-        <LegalPage page={route.page} onBack={() => (history.length > 1 ? history.back() : openedId ? toProject() : toProjects())} />
+        {/* Back stays in the app: opened straight from a link (a PDF, an email, a new tab) it goes to the project or Projects. */}
+        <LegalPage page={route.page} onBack={() => (hasAppHistory() ? history.back() : toApp())} onHome={toApp} />
         <SafetyLayer />
       </>
     )

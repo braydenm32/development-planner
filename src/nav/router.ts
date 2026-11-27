@@ -26,12 +26,23 @@ function legacyMode(): string | null {
 
 const same = (a: Route, b: Route) => formatHash(a) === formatHash(b)
 
+/**
+ * Each history entry the app has shown says whether one of the app's own is behind it: false on
+ * the entry the tab opened the app at, true on every one after. So a Back control can tell "back
+ * within the app" from "back to whatever site this tab was on before" (history.length can't).
+ */
+const backMark = (): boolean | undefined => (history.state as { appBack?: boolean } | null)?.appBack
+const withMark = (appBack: boolean) => ({ ...(history.state as object | null), appBack })
+
+/** True when the browser's Back would stay in the app. */
+export const hasAppHistory = (): boolean => backMark() === true
+
 /** Go somewhere. `replace` updates the current history entry instead of adding one. */
 export function navigate(route: Route, opts: { replace?: boolean; focus?: string | null } = {}) {
   const hash = formatHash(route)
   if (location.hash !== hash) {
     if (opts.replace) history.replaceState(history.state, '', hash)
-    else history.pushState(history.state, '', hash)
+    else history.pushState(withMark(true), '', hash)
   }
   const cur = useRouter.getState()
   if (!same(cur.route, route) || opts.focus !== undefined) useRouter.setState({ route, focus: opts.focus ?? cur.focus })
@@ -39,6 +50,8 @@ export function navigate(route: Route, opts: { replace?: boolean; focus?: string
 
 /** Read the address now; a first visit or an old link gets a sensible route written into it. */
 function sync() {
+  // An entry made by a plain link or a typed address has no mark yet: it came after one of ours.
+  if (backMark() === undefined) history.replaceState(withMark(true), '')
   const parsed = parseHash(location.hash)
   if (parsed) {
     if (!same(parsed, useRouter.getState().route)) useRouter.setState({ route: parsed })
@@ -71,6 +84,8 @@ function dropLayoutSwitch() {
 /** Follow the address bar. Returns a function that stops it. */
 export function startRouter(): () => void {
   dropLayoutSwitch()
+  // The entry the app opens at (a reload keeps the mark it had).
+  if (backMark() === undefined) history.replaceState(withMark(false), '')
   sync()
   window.addEventListener('popstate', sync)
   window.addEventListener('hashchange', sync)

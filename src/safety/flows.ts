@@ -9,6 +9,7 @@ import { usePlan } from '../plan/store'
 import { freeName, nameFromFile, nameInProjectFile } from '../projects/ops'
 import { projectActions, projectsNow } from '../projects/session'
 import { parseProjectFile } from '../share/project'
+import { droppedWords } from '../share/readable'
 import { costsSummary } from '../costs/model'
 import { moveSiteData, siteDataOffBlock, useSiteStore } from '../site/store'
 import { isSketch, sketchAround, sketchSurvey, type SketchBlock } from '../start/sketch'
@@ -378,6 +379,8 @@ export async function openProjectText(text: string, fileName: string): Promise<v
       blockArea: blockAreaOf(parsed.survey),
       costs: parsed.costs ? costsSummary(parsed.costs) : null,
       current: before?.name ?? null,
+      dropped: droppedWords(parsed.dropped) || undefined,
+      daDetails: !!parsed.da,
     }),
   )
   if (!choice) return

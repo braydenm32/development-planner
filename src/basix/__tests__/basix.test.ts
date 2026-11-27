@@ -4,7 +4,7 @@ import { normalizePlan, type Opening, type Plan } from '../../plan/model'
 import { addRoof } from '../../plan/ops'
 import { levelOutlines } from '../../plan/roof'
 import { basixOf } from '../model'
-import { BASIX_LINKS, basixCsv, basixFacts, checklistRows, compassOf, facadeOf, floorAreas, livingOrientations, readyCount, windowAreaByFacade, windowFacings } from '../basix'
+import { BASIX_LINKS, basixCsv, basixFacts, basixFileName, checklistRows, compassOf, facadeOf, floorAreas, livingOrientations, readyCount, windowAreaByFacade, windowFacings } from '../basix'
 
 const win = (id: string, wall: string, offset: number, width = 1.2, height = 1.2): Opening => ({ id, wall, kind: 'window', offset, width, height, sill: 0.9, flipHinge: false, flipSwing: false })
 
@@ -105,6 +105,10 @@ describe('the checklist', () => {
     expect(rows.find(r => r.id === 'hot-water')!.value).toBe('Electric heat pump')
     expect(rows.find(r => r.id === 'pool')!.value).toBe('Yes, about 30,000 L')
     expect(rows.find(r => r.id === 'insulation')!.value).toBe('R4 ceiling')
+  })
+
+  it('names the CSV like every other download: the project name in lower case', () => {
+    expect(basixFileName('Example split-level house')).toBe('example-split-level-house-basix-checklist.csv')
   })
 
   it('downloads as a CSV that says what it is not, with the links', () => {

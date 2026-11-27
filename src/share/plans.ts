@@ -1,4 +1,5 @@
 import { pageKey } from './pages'
+import { houseOnSite } from './siteHouse'
 import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
@@ -80,7 +81,15 @@ export interface PlanSetInput {
   shadows?: ShadowDiagram | null
   /** Pages of the plan set left unticked in Share › Plans, by their keys (./pages.ts). The DA pack keeps every page. */
   leaveOut?: readonly string[]
+  /** The scale of the floor and roof plans: Auto (or missing) fits them, a number prints 1:that. */
+  floorScale?: FloorScale
 }
+
+/** The scale choices for the floor and roof plans in Share › Plans. */
+export type FloorScale = 'auto' | 50 | 100 | 200
+export const FLOOR_SCALES: readonly FloorScale[] = ['auto', 50, 100, 200]
+/** A saved choice read back: anything else is Auto. */
+export const floorScaleOf = (v: unknown): FloorScale => (v === 50 || v === 100 || v === 200 ? v : 'auto')
 
 const PAPER: Record<Paper, [number, number]> = { A3: [420, 297], A4: [297, 210] }
 const SCALES = [20, 50, 100, 200, 250, 500, 1000, 2000]
@@ -123,7 +132,8 @@ export interface View {
   k: number
 }
 
-function makeView(points: Vec2[], rho: number, area: { x: number; y: number; w: number; h: number }, prefer: number): View {
+/** Fits `points` in `area` at the first standard scale from `prefer` up that holds them; with `exact`, at 1:`prefer` whether they fit or not. */
+function makeView(points: Vec2[], rho: number, area: { x: number; y: number; w: number; h: number }, prefer: number, exact = false): View {
   const c = Math.cos(rho)
   const s = Math.sin(rho)
   const rot = (p: Vec2): Vec2 => [p[0] * c - p[1] * s, p[0] * s + p[1] * c]
@@ -134,7 +144,7 @@ function makeView(points: Vec2[], rho: number, area: { x: number; y: number; w: 
   const maxY = Math.max(...r.map(p => p[1]))
   const w = Math.max(maxX - minX, 1)
   const h = Math.max(maxY - minY, 1)
-  const scale = SCALES.find(sc => sc >= prefer && (w * 1000) / sc <= area.w * 0.9 && (h * 1000) / sc <= area.h * 0.9) ?? SCALES[SCALES.length - 1]
+  const scale = exact ? prefer : (SCALES.find(sc => sc >= prefer && (w * 1000) / sc <= area.w * 0.9 && (h * 1000) / sc <= area.h * 0.9) ?? SCALES[SCALES.length - 1])
   const k = 1000 / scale
   const mx = (minX + maxX) / 2
   const my = (minY + maxY) / 2
@@ -149,6 +159,95 @@ function makeView(points: Vec2[], rho: number, area: { x: number; y: number; w: 
     },
     angle: d => (Math.atan2(d[0] * s + d[1] * c, d[0] * c - d[1] * s) * 180) / Math.PI,
   }
+}
+
+/** A label's box on the paper (mm): [x0, y0, x1, y1]. */
+type Box = [number, number, number, number]
+
+/** The box a line of text takes as PdfPage.text places it; turned text gets the box around it. */
+function textBox(x: number, y: number, s: string, size: number, o: { font?: 'regular' | 'bold'; align?: 'left' | 'center' | 'right'; baseline?: 'alphabetic' | 'middle'; angle?: number } = {}): Box {
+  const w = textWidth(s, size, o.font)
+  const dx = o.align === 'center' ? -w / 2 : o.align === 'right' ? -w : 0
+  const dy = o.baseline === 'middle' ? -size * 0.35 : 0
+  const a = ((o.angle ?? 0) * Math.PI) / 180
+  const c = Math.cos(a)
+  const sn = Math.sin(a)
+  const xs: number[] = []
+  const ys: number[] = []
+  for (const [u, v] of [
+    [dx, dy - size * 0.2],
+    [dx + w, dy - size * 0.2],
+    [dx + w, dy + size * 0.75],
+    [dx, dy + size * 0.75],
+  ]) {
+    xs.push(x + u * c - v * sn)
+    ys.push(y + u * sn + v * c)
+  }
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+}
+
+/** Do two labels touch, or come within half a millimetre? */
+const overlaps = (a: Box, b: Box) => a[0] < b[2] + 0.5 && a[2] + 0.5 > b[0] && a[1] < b[3] + 0.5 && a[3] + 0.5 > b[1]
+
+/** Does the line from a to b, drawn `half` thick each side, run through the box? */
+function lineThroughBox(a: [number, number], b: [number, number], half: number, box: Box): boolean {
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  let t0 = 0
+  let t1 = 1
+  for (const [q, d] of [
+    [a[0] - (box[0] - half), -dx],
+    [box[2] + half - a[0], dx],
+    [a[1] - (box[1] - half), -dy],
+    [box[3] + half - a[1], dy],
+  ]) {
+    if (Math.abs(d) < 1e-12) {
+      if (q < 0) return false
+      continue
+    }
+    const t = q / d
+    if (d < 0) t0 = Math.max(t0, t)
+    else t1 = Math.min(t1, t)
+  }
+  return t0 <= t1
+}
+/** Is this box clear of every label already placed? */
+const clearOf = (taken: Box[], ...boxes: Box[]) => boxes.every(b => !taken.some(t => overlaps(t, b)))
+
+/**
+ * What a floor plan sheet has to fit: the level's walls and its stairs. Outdoor areas, retaining
+ * walls and sketch lines can reach across the block (they are on the site plan); on a floor plan
+ * they are drawn as far as the sheet goes. A level with no house on it fits whatever it has.
+ */
+function floorExtent(plan: Plan, level: string, furniture: boolean): Vec2[] {
+  const walls = houseWalls(plan.walls.filter(w => w.level === level))
+  const house = [...walls.flatMap(w => [w.a, w.b]), ...buildingOutline(planarFaces(walls)).outlines.flat(), ...plan.stairs.filter(x => x.level === level).flatMap(x => stairLayout(x).outline)]
+  if (house.length) return house
+  const rest = [
+    ...plan.areas.filter(a => a.level === level).flatMap(a => a.pts),
+    ...plan.walls.filter(w => w.level === level).flatMap(w => [w.a, w.b]),
+    ...(furniture ? plan.furniture.filter(f => f.level === level).flatMap(furnitureCorners) : []),
+  ]
+  return rest.length
+    ? rest
+    : [
+        [0, 0],
+        [5, 5],
+      ]
+}
+
+/**
+ * The one scale Auto prints every floor plan and the roof plan at, so the sheets lay over each
+ * other: the largest of 1:50, 1:100, 1:200 … that fits the biggest of them in the drawing area.
+ */
+export function autoFloorScale(plan: Plan, up: 'house' | number, area: SheetFrame['area'], furniture = true): number {
+  const rho = planTurn(up, plan.placement.rotation)
+  const scales = sortedLevels(plan)
+    .filter(l => [...plan.walls, ...plan.areas, ...plan.stairs].some(x => x.level === l.id))
+    .map(l => makeView(floorExtent(plan, l.id, furniture), rho, area, 50).scale)
+  const roofs = plan.roofs.map(r => roofGeometry(r)).filter(g => !g.error && g.outline.length >= 3)
+  if (roofs.length) scales.push(makeView(roofs.flatMap(g => g.outline), rho, area, 50).scale)
+  return Math.max(50, ...scales)
 }
 
 /** Where the drawings go on a sheet: the paper, its frame, and the strip the title block takes at the bottom. */
@@ -275,6 +374,16 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   const rho = planTurn(input.up, plan.placement.rotation)
   const levels = sortedLevels(plan)
   const outlineOf = (l: Level) => buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines
+  // The building on the block: every level on the ground, and the upper storeys (./siteHouse.ts).
+  const house = houseOnSite(plan)
+  // Every floor plan and the roof plan at one scale: the one picked, or the one that fits them all.
+  const floorScale = input.floorScale && input.floorScale !== 'auto' ? input.floorScale : autoFloorScale(plan, input.up, area, input.furniture !== false)
+  const areaBox: [number, number][] = [
+    [area.x, area.y],
+    [area.x + area.w, area.y],
+    [area.x + area.w, area.y + area.h],
+    [area.x, area.y + area.h],
+  ]
   const roofs = plan.roofs.map(r => ({ roof: r, g: roofGeometry(r) })).filter(x => !x.g.error && x.g.outline.length >= 3)
   const retaining = plan.walls.filter(isRetaining)
   const retainingPolys = wallPolygons(retaining)
@@ -307,16 +416,29 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
 
   // ---------------------------------------------------------------------------
 
-  /** A length written along a line, on its outside. */
-  function along(pg: PdfPage, view: View, a: Vec2, b: Vec2, text: string, offset: number, size: number, color: RGB = INK) {
+  /**
+   * A length written along a line, on its outside. With `taken` (the labels already on the sheet),
+   * it is left off where it would print over one (or where `blocked` says something else is drawn),
+   * and added to them where it is drawn. Says whether it drew.
+   */
+  function along(pg: PdfPage, view: View, a: Vec2, b: Vec2, text: string, offset: number, size: number, color: RGB = INK, taken?: Box[], blocked?: (b: Box) => boolean): boolean {
     const pa = view.P(a)
     const pb = view.P(b)
     const len = Math.hypot(pb[0] - pa[0], pb[1] - pa[1])
-    if (len < textWidth(text, size) + 2) return
+    if (len < textWidth(text, size) + 2) return false
     const ang = (Math.atan2(pb[1] - pa[1], pb[0] - pa[0]) * 180) / Math.PI
     const nx = -(pb[1] - pa[1]) / len
     const ny = (pb[0] - pa[0]) / len
-    pg.text((pa[0] + pb[0]) / 2 + nx * offset, (pa[1] + pb[1]) / 2 + ny * offset, text, { size, angle: upright(ang), align: 'center', baseline: 'middle', color })
+    const x = (pa[0] + pb[0]) / 2 + nx * offset
+    const y = (pa[1] + pb[1]) / 2 + ny * offset
+    const o = { size, angle: upright(ang), align: 'center', baseline: 'middle', color } as const
+    if (taken) {
+      const box = textBox(x, y, text, size, o)
+      if (!clearOf(taken, box) || blocked?.(box)) return false
+      taken.push(box)
+    }
+    pg.text(x, y, text, o)
+    return true
   }
 
   function ring(view: View, r: Vec2[]): [number, number][] {
@@ -327,9 +449,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   function siteSheet(pg: PdfPage): View {
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
-    const ground = levels[0]
-    const outlines = ground ? outlineOf(ground) : []
-    const view = makeView([...boundary, ...outlines.flat()], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat()], rho, area, 100)
     const features = input.site ? sheetFeatures(input.site.features, survey.boundary) : []
     const marks: SheetArgs = {
       pg,
@@ -343,28 +463,17 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
 
     drawFeatureAreas(marks, features)
 
-    // Outdoor areas on the ground level
-    for (const a of plan.areas.filter(x => x.level === ground?.id)) {
+    // Outdoor areas, whichever level they were drawn on: the floor plans show only what is near the house.
+    for (const a of plan.areas) {
       const kind = areaKind(a)
       pg.lineWidth(0.2).stroke(GREY).fill(AREA_FILL[kind]).shape([ring(view, a.pts)], 'both')
       const c = view.P(centroidOf(a.pts))
       pg.text(c[0], c[1], a.name, { size: 2.4, align: 'center', baseline: 'middle', color: GREY })
     }
 
+    houseOutline(pg, view, [0.8, 0.8, 0.8])
+    // Over the house, so a wall between two split levels still shows with what it holds back.
     retainingWalls(pg, view, retaining, true)
-
-    // The house: ground floor solid, upper floors and roofs dashed.
-    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
-    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
-    pg.dash([3, 1.2])
-    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
-    pg.dash()
-    if (outlines.length) {
-      const c = view.P(centroidOf(outlines[0]))
-      pg.text(c[0], c[1] + 1.5, 'House', { size: 3, font: 'bold', align: 'center' })
-      pg.text(c[0], c[1] - 3, `FFL RL ${floorRL(plan).toFixed(2)}`, { size: 2.6, align: 'center' })
-    }
 
     drawFeatureMarks(marks, features)
 
@@ -377,8 +486,9 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       along(pg, view, ccw ? p : q, ccw ? q : p, `${len.toFixed(2)} m`, -3, 2.6)
     })
 
-    // Setbacks: a dimension line from the house to each side, ticked at both ends (the plan draws the same ones).
-    for (const c of setbackDims(outlines, plan.placement, survey)) {
+    // Setbacks: a dimension line from the house to each side, ticked at both ends. From every level's
+    // outline, as Earthworks › Place and the checks measure them (the plan draws the same ones).
+    for (const c of setbackDims(house.rings, plan.placement, survey)) {
       const a = tf(c.from)
       const b = tf(c.to)
       const pa = view.P(a)
@@ -399,7 +509,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       ['Site area', `${input.siteArea.toFixed(0)} m²`],
       ['Building footprint (all floors)', `${footprint.toFixed(2)} m²`],
       ['Site coverage', `${((footprint / Math.max(input.siteArea, 1)) * 100).toFixed(1)}%`],
-      ['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`],
+      ...fflRows(),
     ]
     if (input.earthworks) rows.push(['Cut / fill', `${input.earthworks.cut.toFixed(1)} / ${input.earthworks.fill.toFixed(1)} m³`])
     if (profiles.length) {
@@ -552,19 +662,29 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     }
   }
 
-  /** The house's ground floor, filled, with its upper floors and roofs dashed. */
-  function houseOutline(pg: PdfPage, view: View, fill: RGB) {
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
-    pg.lineWidth(0.5).stroke(INK).fill(fill).shape(outlines.map(r => ring(view, r)), 'both')
+  /** The floor level of each level on the ground: one row for a house on one level, a row each for split levels. */
+  function fflRows(): [string, string][] {
+    if (house.ground.length < 2) return [['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`]]
+    return house.ground.map(g => [`${g.level.name} FFL`, `RL ${g.rl.toFixed(2)}`])
+  }
+
+  /**
+   * The house: every level on the ground filled, each named with its floor level (a split level
+   * beside the lowest is part of the footprint), and only the storeys over them, and the roofs, dashed.
+   */
+  function houseOutline(pg: PdfPage, view: View, fill: RGB, label = true) {
+    pg.lineWidth(0.5).stroke(INK).fill(fill)
+    for (const g of house.ground) pg.shape(g.rings.map(r => ring(view, r)), 'both')
     pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
+    for (const r of house.upper) pg.shape([ring(view, r)], 'stroke')
     pg.dash([3, 1.2])
     for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
     pg.dash()
-    if (outlines.length) {
-      const c = view.P(centroidOf(outlines[0]))
-      pg.text(c[0], c[1] + 1.5, 'House', { size: 3, font: 'bold', align: 'center' })
-      pg.text(c[0], c[1] - 3, `FFL RL ${floorRL(plan).toFixed(2)}`, { size: 2.6, align: 'center' })
+    if (!label) return
+    for (const g of house.ground) {
+      const c = view.P(centroidOf(g.rings[0]))
+      pg.text(c[0], c[1] + 1.5, house.ground.length > 1 ? g.level.name : 'House', { size: 3, font: 'bold', align: 'center' })
+      pg.text(c[0], c[1] - 3, `FFL RL ${g.rl.toFixed(2)}`, { size: 2.6, align: 'center' })
     }
   }
 
@@ -589,8 +709,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   function blockView(extra: Vec2[] = []) {
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
-    const view = makeView([...boundary, ...outlines.flat(), ...extra], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat(), ...extra], rho, area, 100)
     return { tf, boundary, view }
   }
 
@@ -613,8 +732,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       pg.restore()
     }
     const fc = drawContours(pg, view, tf)
-    retainingWalls(pg, view, retaining, true)
     houseOutline(pg, view, [0.93, 0.93, 0.93])
+    retainingWalls(pg, view, retaining, true)
     pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
 
     const e = input.earthworks!
@@ -626,7 +745,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     ]
     if (e.maxCut !== undefined) rows.push(['Deepest cut', `${e.maxCut.toFixed(2)} m`])
     if (e.maxFill !== undefined) rows.push(['Deepest fill', `${e.maxFill.toFixed(2)} m`])
-    rows.push(['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`])
+    rows.push(...fflRows())
     if (profiles.length) {
       rows.push(['Retaining walls', `${profiles.reduce((t, p) => t + p.length, 0).toFixed(1)} m`])
       rows.push(['Tallest retaining wall', `holds back ${mm(Math.max(...profiles.map(p => p.maxHeight)))} mm`])
@@ -710,9 +829,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   function shadowSheet(pg: PdfPage, d: ShadowDiagram): View {
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
     const cast = d.shadows.flatMap(x => x.shadow?.rings.flat() ?? []).map(tf)
-    const view = makeView([...boundary, ...outlines.flat(), ...cast], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat(), ...cast], rho, area, 100)
     const args = { pg, toPaper: (p: Vec2) => view.P(tf(p)) }
     const box: [number, number][] = [
       [area.x, area.y],
@@ -722,13 +840,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     ]
     pg.save().clip([box])
     drawShadows(args, d)
-    // The house over its shadows: ground floor solid, upper floors and roofs dashed.
-    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
-    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
-    pg.dash([3, 1.2])
-    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
-    pg.dash()
+    // The house over its shadows: the levels on the ground solid, upper storeys and roofs dashed.
+    houseOutline(pg, view, [0.8, 0.8, 0.8], false)
     pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
     drawShadowLabels(args, d)
     pg.restore()
@@ -737,7 +850,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   }
 
   /** Retaining walls, hatched, each labelled with how much it holds back. */
-  function retainingWalls(pg: PdfPage, view: View, walls: Wall[], heights: boolean) {
+  function retainingWalls(pg: PdfPage, view: View, walls: Wall[], heights: boolean, taken?: Box[]) {
     for (const w of walls) {
       const poly = retainingPolys.get(w.id)
       if (!poly) continue
@@ -749,7 +862,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       const d = wallDir(w)
       // On the high side, which is usually away from the house.
       const off = (w.thickness / 2 + 2 / view.k) * (prof?.high === 'right' ? -1 : 1)
-      along(pg, view, [w.a[0] - d[1] * off, w.a[1] + d[0] * off], [w.b[0] - d[1] * off, w.b[1] + d[0] * off], label, 0, 2.2, [0.42, 0.36, 0.28])
+      along(pg, view, [w.a[0] - d[1] * off, w.a[1] + d[0] * off], [w.b[0] - d[1] * off, w.b[1] + d[0] * off], label, 0, 2.2, [0.42, 0.36, 0.28], taken)
     }
   }
 
@@ -762,26 +875,52 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     const areas = plan.areas.filter(a => a.level === level.id)
     const stairs = plan.stairs.filter(s => s.level === level.id)
     const furniture = input.furniture === false ? [] : plan.furniture.filter(f => f.level === level.id)
-    const pts = [
-      ...outlines.flat(),
-      ...areas.flatMap(a => a.pts),
-      ...stairs.flatMap(s => stairLayout(s).outline),
-      ...levelRetaining.flatMap(w => [w.a, w.b]),
-      ...furniture.flatMap(furnitureCorners),
-    ]
-    if (!pts.length) pts.push([0, 0], [5, 5])
-    const view = makeView(pts, rho, area, 50)
+    const rooms = plan.rooms.filter(x => x.level === level.id)
+    // Fitted to the house, at the set's one floor plan scale (see floorExtent, autoFloorScale).
+    const view = makeView(floorExtent(plan, level.id, input.furniture !== false), rho, area, floorScale, true)
 
-    for (const a of areas) {
-      const kind = areaKind(a)
-      pg.lineWidth(0.18).stroke(GREY).fill(AREA_FILL[kind]).shape([ring(view, a.pts)], 'both')
-      const c = view.P(centroidOf(a.pts))
-      pg.text(c[0], c[1] + 1, a.name || AREA_LABEL[kind], { size: 2.6, align: 'center', color: GREY })
-      pg.text(c[0], c[1] - 2.6, `${Math.abs(signedArea(a.pts)).toFixed(2)} m²`, { size: 2.2, align: 'center', color: GREY })
+    // Labels are kept off each other where they can be. The ones that always print take their
+    // places first: the level note, the room names and the overall sizes. The rest (outdoor
+    // areas, retaining walls, wall lengths) move or are left off where they would print over one.
+    const gross = buildingOutline(faces).area
+    const levelNote = `${level.name}: FFL RL ${floorRL(plan, level.id).toFixed(2)}, ceiling ${mm(level.height)} mm, ${gross.toFixed(2)} m² to the outside of the walls`
+    const nb = textBox(area.x + 2, area.y + area.h - 2, levelNote, 2.8)
+    const taken: Box[] = [nb]
+    const roomLabels = rooms.map(r => {
+      const shape = roomShape(r, faces)
+      const p = view.P(r.at)
+      const note = roomFloorNote(plan, r)
+      const lines: { y: number; text: string; size: number; font?: 'bold'; color?: RGB }[] = [
+        { y: p[1] + 1, text: r.name, size: 3, font: 'bold' },
+        { y: p[1] - 2.8, text: shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed', size: 2.5, color: GREY },
+      ]
+      if (note) lines.push({ y: p[1] - 6, text: note === 'on piers' ? 'floor on piers' : note, size: 2.2, color: GREY })
+      for (const l of lines) taken.push(textBox(p[0], l.y, l.text, l.size, { font: l.font, align: 'center' }))
+      return { x: p[0], lines }
+    })
+    // Overall dimensions along the house's own axes.
+    const overall: [Vec2, Vec2, Vec2][] = []
+    if (outlines.length) {
+      const all = outlines.flat()
+      const minX = Math.min(...all.map(p => p[0]))
+      const maxX = Math.max(...all.map(p => p[0]))
+      const minY = Math.min(...all.map(p => p[1]))
+      const maxY = Math.max(...all.map(p => p[1]))
+      const gap = 9 / view.k
+      overall.push([[minX, minY - gap], [maxX, minY - gap], [0, 1]], [[maxX + gap, minY], [maxX + gap, maxY], [-1, 0]])
+      for (const [a, b, out] of overall) {
+        const t = dimensionLabel(view, a, b, out)
+        taken.push(textBox(t.x, t.y, t.text, 2.6, { align: 'center', baseline: 'middle', angle: t.angle }))
+      }
     }
 
+    // Whatever runs past the sheet (a lawn, a long driveway) stops at the drawing area's edge.
+    pg.save().clip([areaBox])
+
+    for (const a of areas) pg.lineWidth(0.18).stroke(GREY).fill(AREA_FILL[areaKind(a)]).shape([ring(view, a.pts)], 'both')
+
     // Rooms on piers (or another floor that leaves the ground natural) get a light tint so they read differently.
-    for (const r of plan.rooms.filter(x => x.level === level.id && onNaturalGround(plan, x))) {
+    for (const r of rooms.filter(x => onNaturalGround(plan, x))) {
       const shape = roomShape(r, faces)
       if (shape) pg.fill([0.95, 0.93, 0.88]).shape([ring(view, shape.inner)], 'fill')
     }
@@ -808,7 +947,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     // The sketch layer, only when it's ticked: thin dashed lines, and kept measurements with their lengths.
     if (input.sketch) sketchOnPlan(pg, view)
 
-    retainingWalls(pg, view, levelRetaining, false)
+    retainingWalls(pg, view, levelRetaining, false, taken)
 
     // Walls, with openings left open.
     const polys = wallPolygons(walls)
@@ -838,7 +977,20 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     // Where the sections cut, on every floor.
     drawSectionMarks(pg, view.P, sectionsOf(plan), area)
 
-    // Wall lengths: outside for external walls, on the left for internal ones.
+    for (const [a, b, out] of overall) dimension(pg, view, a, b, out)
+
+    // Outdoor areas: name and size in the middle, or the nearest clear spot of the part that shows.
+    for (const a of areas) {
+      const kind = areaKind(a)
+      const name = a.name || AREA_LABEL[kind]
+      const size = `${Math.abs(signedArea(a.pts)).toFixed(2)} m²`
+      const at = areaLabelSpot(ring(view, a.pts), q => [textBox(q[0], q[1] + 1, name, 2.6, { align: 'center' }), textBox(q[0], q[1] - 2.6, size, 2.2, { align: 'center' })], taken)
+      if (!at) continue
+      pg.text(at[0], at[1] + 1, name, { size: 2.6, align: 'center', color: GREY })
+      pg.text(at[0], at[1] - 2.6, size, { size: 2.2, align: 'center', color: GREY })
+    }
+
+    // Wall lengths: outside for external walls, on the left for internal ones; on the other side where that is taken.
     for (const w of walls) {
       const len = wallLength(w)
       if (len * view.k < 8) continue
@@ -847,40 +999,59 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       const mid = pointOnWall(w, len / 2)
       const probe: Vec2 = [mid[0] - d[1] * off, mid[1] + d[0] * off]
       const inside = faces.some(f => f.area > 0 && pointInPolygon(probe[0], probe[1], f.pts))
-      const sign = w.kind === 'external' && inside ? -1 : 1
-      const n: Vec2 = [-d[1] * off * sign, d[0] * off * sign]
-      along(pg, view, [w.a[0] + n[0], w.a[1] + n[1]], [w.b[0] + n[0], w.b[1] + n[1]], mm(len), 0, 2.2, GREY)
-    }
-
-    // Overall dimensions along the house's own axes.
-    if (outlines.length) {
-      const all = outlines.flat()
-      const minX = Math.min(...all.map(p => p[0]))
-      const maxX = Math.max(...all.map(p => p[0]))
-      const minY = Math.min(...all.map(p => p[1]))
-      const maxY = Math.max(...all.map(p => p[1]))
-      const gap = 9 / view.k
-      dimension(pg, view, [minX, minY - gap], [maxX, minY - gap], [0, 1])
-      dimension(pg, view, [maxX + gap, minY], [maxX + gap, maxY], [-1, 0])
+      const first = w.kind === 'external' && inside ? -1 : 1
+      // Not across another wall either (one that meets this wall part-way, a retaining wall beside it).
+      const others = [...walls, ...levelRetaining].filter(x => x !== w)
+      const blocked = (box: Box) => others.some(x => lineThroughBox(view.P(x.a), view.P(x.b), (x.thickness / 2) * view.k, box))
+      for (const sign of [first, -first]) {
+        const n: Vec2 = [-d[1] * off * sign, d[0] * off * sign]
+        if (along(pg, view, [w.a[0] + n[0], w.a[1] + n[1]], [w.b[0] + n[0], w.b[1] + n[1]], mm(len), 0, 2.2, GREY, taken, blocked)) break
+      }
     }
 
     // Room names and areas
-    for (const r of plan.rooms.filter(x => x.level === level.id)) {
-      const shape = roomShape(r, faces)
-      const p = view.P(r.at)
-      pg.text(p[0], p[1] + 1, r.name, { size: 3, font: 'bold', align: 'center' })
-      pg.text(p[0], p[1] - 2.8, shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed', { size: 2.5, align: 'center', color: GREY })
-      const note = roomFloorNote(plan, r)
-      if (note) pg.text(p[0], p[1] - 6, note === 'on piers' ? 'floor on piers' : note, { size: 2.2, align: 'center', color: GREY })
-    }
+    for (const r of roomLabels) for (const l of r.lines) pg.text(r.x, l.y, l.text, { size: l.size, font: l.font, align: 'center', color: l.color })
 
-    // Level note
-    const gross = buildingOutline(faces).area
-    pg.text(area.x + 2, area.y + area.h - 2, `${level.name}: FFL RL ${floorRL(plan, level.id).toFixed(2)}, ceiling ${mm(level.height)} mm, ${gross.toFixed(2)} m² to the outside of the walls`, {
-      size: 2.8,
-      color: GREY,
-    })
+    pg.restore()
+    // On white, so it reads over an outdoor area that runs under it.
+    pg.fill([1, 1, 1]).rect(nb[0] - 1, nb[1] - 0.6, nb[2] - nb[0] + 2, nb[3] - nb[1] + 1.2, 'fill')
+    pg.text(area.x + 2, area.y + area.h - 2, levelNote, { size: 2.8, color: GREY })
     return view
+  }
+
+  /**
+   * Where an outdoor area's label goes: its middle when that shows on the sheet and is clear of the
+   * labels already placed, or else the nearest clear spot inside the part of it that shows. Null when
+   * there is none. `ringMm` is the area on the paper; `boxes` gives the label's boxes at a spot.
+   */
+  function areaLabelSpot(ringMm: [number, number][], boxes: (q: [number, number]) => Box[], taken: Box[]): [number, number] | null {
+    const inSheet = (b: Box) => b[0] >= area.x && b[2] <= area.x + area.w && b[1] >= area.y && b[3] <= area.y + area.h
+    const ok = (q: [number, number]) => {
+      const bs = boxes(q)
+      return bs.every(inSheet) && clearOf(taken, ...bs)
+    }
+    const take = (q: [number, number]) => {
+      taken.push(...boxes(q))
+      return q
+    }
+    const c = centroidOf(ringMm)
+    if (ok(c)) return take(c)
+    const x0 = Math.max(area.x, Math.min(...ringMm.map(p => p[0])))
+    const x1 = Math.min(area.x + area.w, Math.max(...ringMm.map(p => p[0])))
+    const y0 = Math.max(area.y, Math.min(...ringMm.map(p => p[1])))
+    const y1 = Math.min(area.y + area.h, Math.max(...ringMm.map(p => p[1])))
+    const step = Math.max(4, Math.max(x1 - x0, y1 - y0) / 24)
+    let best: [number, number] | null = null
+    let bestD = Infinity
+    for (let x = x0 + step / 2; x < x1; x += step) {
+      for (let y = y0 + step / 2; y < y1; y += step) {
+        const d = Math.hypot(x - c[0], y - c[1])
+        if (d >= bestD || !pointInPolygon(x, y, ringMm) || !ok([x, y])) continue
+        best = [x, y]
+        bestD = d
+      }
+    }
+    return best ? take(best) : null
   }
 
   /** Sketch lines thin and dashed, and kept measurements as dimension lines with ticks and lengths. */
@@ -972,6 +1143,20 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     }
   }
 
+  /** Where a dimension's figure goes: beside the middle of the line, on the side away from the building. */
+  function dimensionLabel(view: View, a: Vec2, b: Vec2, out: Vec2): { x: number; y: number; text: string; angle: number } {
+    const pa = view.P(a)
+    const pb = view.P(b)
+    const o = view.P([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
+    const od = view.angle([-out[0], -out[1]]) * (Math.PI / 180)
+    return {
+      x: o[0] + Math.cos(od) * 2,
+      y: o[1] + Math.sin(od) * 2,
+      text: mm(Math.hypot(b[0] - a[0], b[1] - a[1])),
+      angle: upright((Math.atan2(pb[1] - pa[1], pb[0] - pa[0]) * 180) / Math.PI),
+    }
+  }
+
   /** A dimension line from a to b with ticks and its length, text on side `out`. */
   function dimension(pg: PdfPage, view: View, a: Vec2, b: Vec2, out: Vec2) {
     const pa = view.P(a)
@@ -982,22 +1167,15 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       const t = 1.2
       pg.line([p[0] - Math.cos(ang + Math.PI / 4) * t, p[1] - Math.sin(ang + Math.PI / 4) * t], [p[0] + Math.cos(ang + Math.PI / 4) * t, p[1] + Math.sin(ang + Math.PI / 4) * t])
     }
-    const len = Math.hypot(b[0] - a[0], b[1] - a[1])
-    const o = view.P([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
-    // The figure goes on the side away from the building.
-    const od = view.angle([-out[0], -out[1]]) * (Math.PI / 180)
-    pg.text(o[0] + Math.cos(od) * 2, o[1] + Math.sin(od) * 2, mm(len), {
-      size: 2.6,
-      align: 'center',
-      baseline: 'middle',
-      angle: upright((ang * 180) / Math.PI),
-    })
+    const t = dimensionLabel(view, a, b, out)
+    pg.text(t.x, t.y, t.text, { size: 2.6, align: 'center', baseline: 'middle', angle: t.angle })
   }
 
   // ---- Roof plan ----
   function roofSheet(pg: PdfPage): View {
     const pts = roofs.flatMap(r => r.g.outline)
-    const view = makeView(pts, rho, area, 50)
+    // At the floor plans' scale, so it lays over them.
+    const view = makeView(pts, rho, area, floorScale, true)
     pg.lineWidth(0.2).stroke(LIGHT).dash([1.5, 1])
     for (const l of levels) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
     pg.dash()

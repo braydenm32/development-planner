@@ -72,6 +72,7 @@ import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
+import { houseOutline } from './planNumbers'
 import { useWallFocus } from '../plan/wallFocus'
 import { useMovingEnd } from '../plan/movingEnd'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
@@ -81,6 +82,7 @@ import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
 import { useTouchCanvas } from '../phone/device'
 import { boundsOf, clampToBounds, DOUBLE_TAP_ZOOM, isDoubleTap, pinchView, TAP_SLOP, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
 import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan } from '../plan/viewMemory'
+import { centreWithBlockStill, draggedPlacement } from '../plan/placement'
 import { ZoomButtons } from './ZoomButtons'
 import { KeyChip, PhoneLevelChip } from '../phone/PlanChips'
 import { usePlanFlow } from '../flow/PlanFlow'
@@ -138,7 +140,7 @@ type Drag =
   | { type: 'opening'; id: string; wall: Wall }
   | { type: 'room'; id: string; offset: Vec2 }
   | { type: 'areaVertex'; id: string; index: number }
-  | { type: 'move'; startWorld: Vec2; startPlacement: Plan['placement'] }
+  | { type: 'move'; startWorld: Vec2; startPlacement: Plan['placement']; start: View }
   | { type: 'roofVertex'; id: string; index: number }
   | { type: 'stair'; id: string; offset: Vec2 }
   | { type: 'furniture'; item: Furniture; offset: Vec2 }
@@ -417,11 +419,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const wallOutlines = useMemo(() => [...polys.values()], [polys])
   const selFurniture = !group && selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
 
-  // Setbacks: how far the ground floor is from each side of the block, while moving the house and wherever they're switched on.
+  // Setbacks: how far the house is from each side of the block, while moving the house and wherever they're switched on.
+  // From every level's outline, as Earthworks › Place measures them: a split level can be the nearest.
   const setbacks = useMemo(() => {
-    const lowest = sortedLevels(plan)[0]
-    if ((tool !== 'move' && !showSetbacks) || !lowest) return []
-    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey, { over: true })
+    if (tool !== 'move' && !showSetbacks) return []
+    return setbackDims(houseOutline(plan).rings, plan.placement, survey, { over: true })
   }, [tool, showSetbacks, plan, survey])
 
   // Site boundary and contours in the house's frame.
@@ -565,6 +567,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   useEffect(() => {
     if (settled) saveView()
   }, [settled])
+  // The house moved without a drag (a typed distance, Centre on block, an undo) while the view is
+  // one the person set: the block stays where it is on screen and the house moves, as in a drag.
+  const sat = useRef({ at: plan.placement, view, key: viewKey, survey })
+  useLayoutEffect(() => {
+    const was = sat.current
+    sat.current = { at: plan.placement, view, key: viewKey, survey }
+    const to = plan.placement
+    if (was.view !== view || was.key !== viewKey || was.survey !== survey || !view || view.token !== fitToken) return
+    if (was.at.e === to.e && was.at.n === to.n && was.at.rotation === to.rotation) return
+    const [cx, cy] = centreWithBlockStill([view.cx, view.cy], was.at, to)
+    setView({ ...view, cx, cy })
+    settle()
+  }, [plan.placement, view, viewKey, survey, fitToken])
   // Leaving (Back, the 3D view) or the page going away keeps it too, so a wheel that hasn't
   // settled yet isn't lost.
   useEffect(() => {
@@ -1097,7 +1112,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
     if (tool === 'move') {
       beginGesture()
-      drag.current = { type: 'move', startWorld: world, startPlacement: plan.placement }
+      drag.current = { type: 'move', startWorld: world, startPlacement: plan.placement, start: v }
       return
     }
 
@@ -1465,14 +1480,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     }
     if (d?.type === 'move') {
       const pl = d.startPlacement
-      const dx = world[0] - d.startWorld[0]
-      const dy = world[1] - d.startWorld[1]
-      // Dragging moves the site under the house, so the house moves the other way on the site.
-      const t = (pl.rotation * Math.PI) / 180
-      const de = dx * Math.cos(t) - dy * Math.sin(t)
-      const dn = dx * Math.sin(t) + dy * Math.cos(t)
-      preview(p => ({ ...p, placement: { ...pl, e: Math.round((pl.e - de) * 100) / 100, n: Math.round((pl.n - dn) * 100) / 100 } }))
-      // keep the cursor anchored on the same point of the plan
+      // The house follows the pointer and the block stays where it is on screen. The view moves as
+      // the house does, so the pointer's travel is measured in the view the drag began in.
+      const to = draggedPlacement(pl, [world[0] - v.cx + d.start.cx - d.startWorld[0], world[1] - v.cy + d.start.cy - d.startWorld[1]])
+      const [cx, cy] = centreWithBlockStill([d.start.cx, d.start.cy], pl, to)
+      preview(p => ({ ...p, placement: to }))
+      setView({ ...d.start, cx, cy })
       return
     }
 
@@ -1600,7 +1613,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const sy = e.clientY - rect.top
     const moved = downAt.current ? Math.hypot(sx - downAt.current.x, sy - downAt.current.y) : 0
     downAt.current = null
-    if (d?.type === 'pan' && moved > 4) settle()
+    if ((d?.type === 'pan' || d?.type === 'move') && moved > 4) settle()
     if (d?.type === 'wall' && d.cycle && e.button === 0) {
       // A click on a selected wall with others under it: the next one in the stack.
       const next = nextInStack(d.cycle, d.id)
