@@ -44,16 +44,18 @@ interface NumProps {
   onCommit: (v: number) => void
   min?: number
   max?: number
+  /** Why a value in range still can't be used ("Must be above the bottom, RL 100.00"), or null: shown in red like the range. */
+  check?: (v: number) => string | null
   /** The value is already in the unit shown (no metres to mm), shown to at most this many decimals. */
   decimals?: number
 }
 
 /**
- * A number box that commits on Enter or when it loses focus. Shows mm for lengths, where "0.9" or
- * "0.9m" mean 900 mm. A value that can't be used stays in the box, in red with a reason, until it's
- * fixed or Esc puts the old one back.
+ * A number box that commits on Enter or when it loses focus. Shows mm for lengths, where a bare
+ * number is mm and "0.9" or "9m" are metres (said back as "= 900 mm" while typing). A value that
+ * can't be used stays in the box, in red with a reason, until it's fixed or Esc puts the old one back.
  */
-export function Num({ label, value, unit, onCommit, min, max, decimals }: NumProps) {
+export function Num({ label, value, unit, onCommit, min, max, check, decimals }: NumProps) {
   const exact = decimals !== undefined
   const shown = exact
     ? String(Number(value.toFixed(decimals)))
@@ -67,7 +69,7 @@ export function Num({ label, value, unit, onCommit, min, max, decimals }: NumPro
   const [focused, setFocused] = useState(false)
   const cancelled = useRef(false)
   const hintId = useId()
-  const reading = editing === null ? null : readNumber(editing, unit, exact, min, max)
+  const reading = editing === null ? null : readNumber(editing, unit, exact, min, max, check)
   // A box still being typed in only says what it will do; once it's left, a bad value is flagged.
   const bad = reading && !reading.ok && !focused
   const commit = () => {
@@ -77,8 +79,9 @@ export function Num({ label, value, unit, onCommit, min, max, decimals }: NumPro
       setEditing(null)
       return
     }
-    if (editing === null) return
-    const r = readNumber(editing, unit, exact, min, max)
+    // Left as it was shown: nothing to read, and a value already out of range isn't flagged for a visit.
+    if (editing === null || editing === shown) return setEditing(null)
+    const r = readNumber(editing, unit, exact, min, max, check)
     // Unusable: keep the text and the reason showing.
     if (!r.ok) return
     setEditing(null)

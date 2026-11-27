@@ -78,6 +78,19 @@ const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'flat', label: 'Flat' },
 ]
 
+// The most a number box takes, so a slip (an extra nought, metres for mm) is said and not built.
+/** Thickest wall (m). */
+const MAX_THICKNESS = 1
+/** The biggest door, window or garage door the tools draw (m). */
+const MAX_OPENING = { width: 12, height: 6, sill: 5 }
+/** Steepest roof (°), and its widest eaves (m). */
+const MAX_PITCH = 75
+const MAX_OVERHANG = 5
+/** Widest stair, deepest tread and the most one stair climbs (m). */
+const MAX_STAIR_WIDTH = 3
+const MAX_GOING = 0.6
+const MAX_STAIR_RISE = 20
+
 /** The stair panel's "Goes up to" choice for a top typed in by hand, not joined to a level. */
 const CUSTOM_TOP = '__custom'
 
@@ -136,7 +149,7 @@ export function WallOptions() {
           <option value={-1}>Custom</option>
         </select>
       </label>
-      <Num label="Thickness" unit="mm" value={wallStyle.thickness} min={0.05} onCommit={t => st.setWallStyle({ ...wallStyle, thickness: t })} />
+      <Num label="Thickness" unit="mm" value={wallStyle.thickness} min={0.05} max={MAX_THICKNESS} onCommit={t => st.setWallStyle({ ...wallStyle, thickness: t })} />
       <Select
         label="Kind"
         value={wallStyle.kind}
@@ -159,10 +172,10 @@ export function OpeningOptions({ kind: tool }: { kind: OpeningKind }) {
   const st = usePlan.getState()
   return (
     <div className="tool-options">
-      <Num label="Width" unit="mm" value={openingDefaults[tool].width} min={0.3} onCommit={width => st.setOpeningDefaults(tool, { ...openingDefaults[tool], width })} />
-      <Num label="Height" unit="mm" value={openingDefaults[tool].height} min={0.3} onCommit={height => st.setOpeningDefaults(tool, { ...openingDefaults[tool], height })} />
+      <Num label="Width" unit="mm" value={openingDefaults[tool].width} min={0.3} max={MAX_OPENING.width} onCommit={width => st.setOpeningDefaults(tool, { ...openingDefaults[tool], width })} />
+      <Num label="Height" unit="mm" value={openingDefaults[tool].height} min={0.3} max={MAX_OPENING.height} onCommit={height => st.setOpeningDefaults(tool, { ...openingDefaults[tool], height })} />
       {tool === 'window' && (
-        <Num label="Sill height" unit="mm" value={openingDefaults.window.sill} min={0} onCommit={sill => st.setOpeningDefaults('window', { ...openingDefaults.window, sill })} />
+        <Num label="Sill height" unit="mm" value={openingDefaults.window.sill} min={0} max={MAX_OPENING.sill} onCommit={sill => st.setOpeningDefaults('window', { ...openingDefaults.window, sill })} />
       )}
       {tool === 'door' && (
         <p className="muted small">
@@ -204,8 +217,8 @@ export function RoofOptions() {
     <div className="tool-options">
       <RoofModeSwitch />
       <Select label="Type" value={roofDefaults.type} options={ROOF_TYPES} onChange={type => st.setRoofDefaults({ ...roofDefaults, type })} />
-      <Num label="Pitch" unit="°" value={roofDefaults.pitch} min={1} onCommit={pitch => st.setRoofDefaults({ ...roofDefaults, pitch: Math.min(pitch, 75) })} />
-      <Num label="Overhang" unit="mm" value={roofDefaults.overhang} min={0} onCommit={overhang => st.setRoofDefaults({ ...roofDefaults, overhang })} />
+      <Num label="Pitch" unit="°" value={roofDefaults.pitch} min={1} max={MAX_PITCH} onCommit={pitch => st.setRoofDefaults({ ...roofDefaults, pitch })} />
+      <Num label="Overhang" unit="mm" value={roofDefaults.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => st.setRoofDefaults({ ...roofDefaults, overhang })} />
     </div>
   )
 }
@@ -216,7 +229,7 @@ export function StairOptions() {
   return (
     <div className="tool-options">
       <Select label="Shape" value={stairDefaults.shape} options={STAIR_SHAPES} onChange={shape => st.setStairDefaults({ ...stairDefaults, shape })} />
-      <Num label="Width" unit="mm" value={stairDefaults.width} min={0.6} onCommit={width => st.setStairDefaults({ ...stairDefaults, width })} />
+      <Num label="Width" unit="mm" value={stairDefaults.width} min={0.6} max={MAX_STAIR_WIDTH} onCommit={width => st.setStairDefaults({ ...stairDefaults, width })} />
       {stairDefaults.shape !== 'straight' && (
         <Select
           label="Turns"
@@ -451,8 +464,8 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       <section className="selection">
         <h2>Roof</h2>
         <Select<RoofType> label="Type" value={r.type} options={ROOF_TYPES} onChange={type => set({ type })} />
-        {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} onCommit={pitch => set({ pitch: Math.min(pitch, 75) })} />}
-        <Num label="Overhang" unit="mm" value={r.overhang} min={0} onCommit={overhang => set({ overhang })} />
+        {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} max={MAX_PITCH} onCommit={pitch => set({ pitch })} />}
+        <Num label="Overhang" unit="mm" value={r.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => set({ overhang })} />
         <RoofLineFields plan={plan} roof={r} />
         {r.type === 'gable' && <p className="muted small">Click the G and H markers on the plan to choose which ends are gables (G) and which are hipped (H).</p>}
         {r.type === 'skillion' && <p className="muted small">Click a marker on the plan to choose the low side. The roof rises away from it.</p>}
@@ -501,7 +514,6 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const joined = typeof s.toLevel === 'string' ? s.toLevel : CUSTOM_TOP
     const goesTo = [...ups.map(l => ({ id: l.id, label: l.name })), { id: CUSTOM_TOP, label: 'Custom top RL' }]
     const typedTop = (t: number) => {
-      if (t <= bottom + 0.1) return
       // Typing the joined floor's own level keeps it joined; any other top is the person's own.
       const keep = typeof s.toLevel === 'string' && Math.abs(floorRL(plan, s.toLevel) - t) < 0.0005
       set({ rise: t - bottom, ...(keep ? {} : { toLevel: null }) })
@@ -535,11 +547,35 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             onChange={turn => set({ turn })}
           />
         )}
-        <Num label="Width" unit="mm" value={s.width} min={0.5} onCommit={width => set({ width })} />
-        <Num label="Tread depth (going)" unit="mm" value={s.going} min={0.15} onCommit={going => set({ going })} />
+        <Num label="Width" unit="mm" value={s.width} min={0.5} max={MAX_STAIR_WIDTH} onCommit={width => set({ width })} />
+        <Num label="Tread depth (going)" unit="mm" value={s.going} min={0.15} max={MAX_GOING} onCommit={going => set({ going })} />
         <Select label="Goes up to" value={joined} options={goesTo} onChange={id => set({ toLevel: id === CUSTOM_TOP ? null : id })} />
-        <Num label="Bottom" unit="RL" value={bottom} onCommit={b => b < top - 0.1 && set({ base: b - floorRL(plan, s.level), rise: top - b })} />
-        <Num label="Top" unit="RL" value={top} onCommit={typedTop} />
+        <Num
+          label="Bottom"
+          unit="RL"
+          value={bottom}
+          check={b =>
+            b > top - 0.1 - 1e-9
+              ? `Must be at least 100 mm below the top, RL ${top.toFixed(2)}`
+              : b < top - MAX_STAIR_RISE - 1e-9
+                ? `Min ${(top - MAX_STAIR_RISE).toFixed(2)}: a stair climbs ${MAX_STAIR_RISE} m at most`
+                : null
+          }
+          onCommit={b => set({ base: b - floorRL(plan, s.level), rise: top - b })}
+        />
+        <Num
+          label="Top"
+          unit="RL"
+          value={top}
+          check={t =>
+            t < bottom + 0.1 - 1e-9
+              ? `Must be at least 100 mm above the bottom, RL ${bottom.toFixed(2)}`
+              : t > bottom + MAX_STAIR_RISE + 1e-9
+                ? `Max ${(bottom + MAX_STAIR_RISE).toFixed(2)}: a stair climbs ${MAX_STAIR_RISE} m at most`
+                : null
+          }
+          onCommit={typedTop}
+        />
         {stairMeetsNoFloor(plan, s) && (
           <p className="notice small">Its top (RL {top.toFixed(2)}) meets no floor. Pick the level it goes up to, or add a level above.</p>
         )}

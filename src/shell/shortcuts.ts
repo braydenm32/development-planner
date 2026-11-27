@@ -73,7 +73,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter' },
       { keys: ['Enter'], what: 'Close an area or roof outline' },
       { keys: ['shift+drag'], what: 'While dragging an item, turn snapping off' },
-      { keys: ['Enter'], what: 'In a number box, keep the value (0.9 or 0.9m means 900 mm)' },
+      { keys: ['Enter'], what: 'In a number box, keep the value (a bare number is mm; 0.9 or 9m is metres)' },
       { keys: ['Esc'], what: 'In a number box, put the old value back' },
     ],
   },

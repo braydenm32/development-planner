@@ -31,7 +31,18 @@ export function RoofLineFields({ plan, roof }: { plan: Plan; roof: Roof }) {
   return (
     <>
       <Select label="Match roofline with" value={key} options={options} onChange={k => k !== 'rl' && st.commit(p => matchRoofline(p, roof.id, k))} />
-      <Num label="Eaves" unit="RL" value={eaves} onCommit={z => st.commit(p => setEavesRL(p, roof.id, z))} />
+      <Num
+        label="Eaves"
+        unit="RL"
+        value={eaves}
+        check={z => {
+          // Eaves sit above the floor they roof, and within a few storeys of it.
+          const floor = floorRL(plan, roof.level)
+          if (z < floor + 0.0005) return `Must be above ${level?.name ?? 'its level'}’s floor, RL ${rl(floor)}`
+          return z > floor + 30 ? `Max ${rl(floor + 30)}: 30 m above ${level?.name ?? 'its level'}’s floor` : null
+        }}
+        onCommit={z => st.commit(p => setEavesRL(p, roof.id, z))}
+      />
       <p className="muted small">
         {key.startsWith('roof:')
           ? 'It follows that roof’s eaves and pitch, so the two read as one roofline.'
