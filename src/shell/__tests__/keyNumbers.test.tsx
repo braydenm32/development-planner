@@ -18,7 +18,7 @@ import { balancedRL, boundarySides, crossedBoundaries, ENGINEER_HEIGHT, levelSum
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { addLevelAbove } from '../../plan/ops'
 import { earthworksPlatforms, retainingStrips } from '../../plan/platforms'
-import { retainingProfiles } from '../../plan/retaining'
+import { needsEngineer, retainingProfiles } from '../../plan/retaining'
 import { usePlan } from '../../plan/store'
 import type { Earth } from '../../plan/useEarthworks'
 import { loadPrintPrefs } from '../../print/prefs'
@@ -340,7 +340,7 @@ describe('retaining walls', () => {
     expect(n.retaining!.length).toBeCloseTo(14, 9)
     expect(n.retaining!.maxHeight).toBe(walls[0].maxHeight)
     expect(n.retaining!.face).toBe(walls[0].faceArea)
-    expect(n.retaining!.engineer).toBe(walls[0].maxHeight >= ENGINEER_HEIGHT)
+    expect(n.retaining!.engineer).toBe(needsEngineer(walls[0].maxHeight))
     expect(words(strip(n))).toContain(`Retained ${walls[0].maxHeight.toFixed(2)} m`)
     expect(strip(n)).toContain(`Holds back up to ${retainedText(walls[0].maxHeight)}`)
   })
@@ -351,7 +351,7 @@ describe('retaining walls', () => {
     ffl: 63.2,
     floors: [],
     earth: null,
-    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight >= ENGINEER_HEIGHT },
+    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: needsEngineer(maxHeight) },
     roof: null,
     roofs: [],
     roofArea: 0,
@@ -360,11 +360,13 @@ describe('retaining walls', () => {
     placement: null,
   })
 
-  it('asks for an engineer from 600 mm, the figure the checks use', () => {
+  it('asks for an engineer over 600 mm, the figure the checks use', () => {
     expect(ENGINEER_HEIGHT).toBe(0.6)
     expect(words(strip(withWall(1.2)))).toContain('Retained 1.20 m Engineer > 600 mm')
     expect(words(strip(withWall(0.8)))).toContain('Retained 0.80 m Engineer > 600 mm')
-    expect(words(strip(withWall(0.6)))).toContain('Engineer')
+    // "Engineer > 600 mm" means over it: a wall at exactly 0.60 m isn't flagged (DB-23).
+    expect(words(strip(withWall(0.6)))).not.toContain('Engineer')
+    expect(words(strip(withWall(0.61)))).toContain('Engineer > 600 mm')
     expect(words(strip(withWall(0.5)))).not.toContain('Engineer')
   })
 })

@@ -9,7 +9,7 @@ import { fixOf, type FixLink } from '../checks/targets'
 import { WORD_OF, type Word } from '../checks/topics'
 import { NEED_FRONT } from '../checks/rules'
 import type { CheckResult } from '../checks/types'
-import { ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
+import { ENGINEER_SOURCE, ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
 import type { ImpliedTotals } from '../grading/implied'
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { AreaId, CanvasView } from '../nav/menu'
@@ -297,7 +297,7 @@ function groundStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
     const go = place('earthworks', 'retaining-walls', { view: 'plan', level: r.wall.level, sel: { type: 'wall', id: r.wall.id }, frame: wallPts(r.wall) })
     if (r.height < 0.05) items.push({ id: `flat:${r.wall.id}`, text: `${name} holds back nothing yet`, detail: 'Set its height, or which side the earth is on.', tone: 'todo', go })
     else if (needsEngineer(r.height))
-      items.push({ id: `eng:${r.wall.id}`, text: `${name}, ${r.height.toFixed(2)} m, needs an engineer`, detail: `Over ${ENGINEER_TEXT}: it needs a professional engineer’s certificate.`, tone: 'confirm', go })
+      items.push({ id: `eng:${r.wall.id}`, text: `${name}, ${r.height.toFixed(2)} m, needs an engineer`, detail: `Over ${ENGINEER_TEXT}: it needs a professional engineer’s certificate (${ENGINEER_SOURCE}).`, tone: 'confirm', go })
   }
   const started = !!e
   return { id: 'ground', title: STEP_TITLES.ground, headline: e ? (e.outOfBalance ? netText(e.net) : e.bedOnly ? `Slab bed only: ${netText(e.net)}` : 'Cut and fill balance') : 'Nothing to dig yet', items, started }

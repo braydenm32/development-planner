@@ -9,6 +9,7 @@ import {
   areaKind,
   DECK_DEPTH,
   FLOOR_STRUCTURE,
+  slabBedOf,
   floorRL,
   houseWalls,
   isRetaining,
@@ -139,7 +140,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         const holes = arriving.map(st => stairLayout(st).outline).filter(h => h.every(p => pointInPolygon(p[0], p[1], outline)))
         const g = prism(
           outline.map(site),
-          floorY - FLOOR_STRUCTURE,
+          // A slab on the ground goes down to its pad, when its bed is set deeper than the usual floor structure.
+          floorY - (levelBuildsAs(plan, level.id) !== 'framed' ? Math.max(FLOOR_STRUCTURE, slabBedOf(plan)) : FLOOR_STRUCTURE),
           floorY,
           holes.map(h => h.map(site)),
         )

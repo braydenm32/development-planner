@@ -5,9 +5,9 @@
 // is legal advice.
 
 import type { Vec2 } from '../lib/geom'
-import type { EarthNumbers, EarthSpot, Edge, Measures } from './measure'
+import type { EarthNumbers, EarthSpot, Edge, Measures, WallNumbers } from './measure'
 import { sourceWords } from './earthSources'
-import { needsEngineer } from './engineer'
+import { ENGINEER_SOURCE, ENGINEER_TEXT, needsEngineer } from './engineer'
 import { encroachment, isMajor, MINOR_ENCROACHMENT, treeTitles } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
 import {
@@ -514,16 +514,19 @@ function housingCode(ms: Measures): CheckResult[] {
     source: HC('cl 3.30'),
     ...fixAtSpot(e?.closestWorks !== null && (e?.closestWorks ?? Infinity) <= 1 ? e?.closestAt : null),
   })
-  const tall = ms.walls.filter(w => needsEngineer(w.height))
+  // Drawn walls, and the walls the earthworks imply (vertical edges, the step between two pads): the
+  // strip, the engineer note and Costs count those, so this row does too, and says they're implied.
+  const every = allWalls(ms)
+  const tall = every.filter(w => needsEngineer(w.height))
   out.push({
     id: 'hc-retaining',
     title: 'Retaining walls',
     status: tall.length ? 'warn' : 'pass',
-    value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
-    limit: 'Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold',
-    note: tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over 600 mm: allowed with an engineer’s certificate.` : undefined,
+    value: wallsValue(ms),
+    limit: `Over ${ENGINEER_TEXT} needs a professional engineer’s certificate; no taller than the cut or fill they hold`,
+    note: [tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over ${ENGINEER_TEXT}${impliedWords(tall)}: allowed with an engineer’s certificate.` : '', impliedNote(ms)].filter(Boolean).join(' ') || undefined,
     source: HC('cl 3.30'),
-    walls: tall.map(w => w.id),
+    walls: tall.filter(w => !w.implied).map(w => w.id),
   })
   if (ms.walls.length > 1) out.push(wallSpacing(ms))
 
@@ -593,6 +596,29 @@ function segGap(a: Vec2, b: Vec2, c: Vec2, d: Vec2): number {
  * (tiered down a slope, say). Walls that touch are one wall turning a corner, so they don't count.
  * Walls are named as Earthworks › Retaining walls lists them: Wall 1, Wall 2…
  */
+/** The drawn retaining walls with the implied ones: what the retaining wall rows measure. */
+const allWalls = (ms: Measures): WallNumbers[] => [...ms.walls, ...ms.implied]
+
+/** The retaining wall rows' value: the tallest, and how many are implied (not drawn yet). */
+function wallsValue(ms: Measures): string {
+  const every = allWalls(ms)
+  if (!every.length) return 'None'
+  const top = every.reduce((a, b) => (b.height > a.height ? b : a))
+  const n = ms.implied.length
+  return `Tallest holds back ${m(top.height)}${top.implied ? ' (implied)' : n ? `; ${n} more implied` : ''}`
+}
+
+/** ", 2 of them implied" after a count of walls, where some (or all) aren't drawn. */
+function impliedWords(walls: WallNumbers[]): string {
+  const n = walls.filter(w => w.implied).length
+  if (!n) return ''
+  return n === walls.length ? (n === 1 ? ' (implied)' : ' (all implied)') : ` (${n} implied)`
+}
+
+/** What an implied wall is, once, where a row counts any. */
+const impliedNote = (ms: Measures): string =>
+  ms.implied.length ? 'Implied walls aren’t drawn yet: the vertical edges of the cut and fill, or the step between two floor levels on the ground, that someone has to build. Earthworks › Retaining walls lists them.' : ''
+
 function wallSpacing(ms: Measures): CheckResult {
   const close: { i: number; j: number; gap: number }[] = []
   ms.walls.forEach((w, i) =>
@@ -909,23 +935,36 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   if (c.retaining) {
     const rw = c.retaining
     const near = rw.near !== undefined && rw.nearMax !== undefined ? { within: rw.near, max: rw.nearMax } : null
-    const bad = ms.walls.filter(w => w.height > (near && w.toBoundary <= near.within ? near.max : rw.max) + 1e-6)
-    const eng = rw.tall ? ms.walls.filter(w => w.height > rw.tall!.over) : []
+    const every = allWalls(ms)
+    const bad = every.filter(w => w.height > (near && w.toBoundary <= near.within ? near.max : rw.max) + 1e-6)
+    const eng = rw.tall ? every.filter(w => w.height > rw.tall!.over) : []
     const heights = near ? `${len(near.max)} within ${len(near.within)} of ${rw.nearWhat ?? 'a side or rear boundary'}, ${len(rw.max)} elsewhere` : `${len(rw.max)}`
     const many = bad.length > 1 ? 's are' : ' is'
+    // The app's own engineer flag (the strip, the wall list, Check everything) is the Housing Code's
+    // figure whatever the route: where this council's rule lets such a wall through, the row says so.
+    const flagged = every.filter(w => needsEngineer(w.height) && !bad.includes(w))
     out.push({
       id: 'da-retaining',
       title: 'Retaining walls',
       status: bad.length ? (rw.engineer ? 'warn' : 'fail') : 'pass',
-      value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
+      value: wallsValue(ms),
       limit: rw.engineer ? `Over ${heights}: designed by a professional engineer` : `${near ? heights : `Up to ${heights}`}${rw.tall ? `; over ${len(rw.tall.over)} ${rw.tall.limit}` : ''}`,
-      note: !bad.length
-        ? undefined
-        : rw.engineer
-          ? `${bad.length} wall${many} over these heights, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
-          : `${bad.length} wall${many} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
+      note:
+        [
+          !bad.length
+            ? ''
+            : rw.engineer
+              ? `${bad.length} wall${many} over these heights${impliedWords(bad)}, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
+              : `${bad.length} wall${many} over the limit${impliedWords(bad)}${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
+          flagged.length
+            ? `${flagged.length === 1 ? 'One wall holds' : `${flagged.length} walls hold`} back over ${ENGINEER_TEXT} and ${flagged.length === 1 ? 'is' : 'are'} within this council’s heights: the planner still flags ${flagged.length === 1 ? 'it' : 'them'} for an engineer, the ${ENGINEER_SOURCE} figure it uses everywhere.`
+            : '',
+          impliedNote(ms),
+        ]
+          .filter(Boolean)
+          .join(' ') || undefined,
       source: cite(c, rw.source),
-      walls: bad.map(w => w.id),
+      walls: bad.filter(w => !w.implied).map(w => w.id),
     })
   }
 
@@ -995,7 +1034,7 @@ const NEEDS: Record<string, Part[]> = {
 }
 
 /** A tree is measured against the house; retaining walls once there are some, house or not. */
-const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && ms.walls.length ? [] : (NEEDS[r.id] ?? []))
+const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && (ms.walls.length || ms.implied.length) ? [] : (NEEDS[r.id] ?? []))
 
 /**
  * A check can't pass on a design that's missing what it measures (an empty plan used to show

@@ -10,7 +10,7 @@ import { housePadRL, MIN_BENCH, sideRL } from './platforms'
 export const RETAINING_FREEBOARD = 0.1
 
 /**
- * Walls holding back this much or more need an engineer (m): the one figure the checks use too
+ * Walls holding back more than this need an engineer (m): the one figure the checks use too
  * (src/checks/engineer.ts), so the panel, the plan, the strip and the checks agree.
  */
 export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'

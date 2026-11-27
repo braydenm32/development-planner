@@ -5,6 +5,8 @@
 // The definitions are general (NSW, where the checks come from); the checks panel has the exact
 // clauses.
 
+import { ENGINEER_TEXT } from '../checks/engineer'
+
 export interface Term {
   id: string
   /** As the app writes it: "FFL". */
@@ -32,7 +34,7 @@ export const TERMS: Term[] = [
   { id: 'cut-fill', short: 'Cut and fill', says: 'Cut is earth dug away to make level ground for the house; fill is earth put back to build ground up. Both are measured in cubic metres (m³).', match: /\bcut and fill\b|\bcut · fill\b|\bcut\b|\bfill\b/i },
   { id: 'out-of-balance', short: 'Out of balance', says: 'When the cut and the fill are far from equal, so earth has to be trucked away or brought in. Raising or lowering the floor can balance them.', match: /out of balance/i },
   { id: 'batter', short: 'Batter', says: 'A slope of earth left at the edge of a cut or fill instead of a wall. 2:1 means 2 m across for every 1 m up or down: the bigger the number, the gentler the slope.', match: /\bbatters?\b/i },
-  { id: 'retaining-wall', short: 'Retaining wall', says: 'A wall that holds back ground that’s higher on one side. Taller ones (often over 1 m, or near a boundary) need an engineer.', match: /\bretaining walls?\b|\btallest wall\b/i },
+  { id: 'retaining-wall', short: 'Retaining wall', says: `A wall that holds back ground that’s higher on one side. One holding back over ${ENGINEER_TEXT} needs an engineer’s certificate under the NSW Housing Code; a council’s own rule can differ.`, match: /\bretaining walls?\b|\btallest wall\b/i },
   { id: 'setback', short: 'Setback', says: 'How far the house sits from a boundary. The rules set a least distance at the front, the sides and the rear.', match: /\bsetbacks?\b/i },
   { id: 'building-line', short: 'Building line', says: 'The line a house must sit behind, a set distance back from the front boundary. A lot’s width is measured along it.', match: /\bbuilding line\b/i },
   { id: 'battle-axe', short: 'Battle-axe lot', says: 'A block behind another, reached by a long, narrow driveway (the handle). Its setbacks are often worked out differently.', match: /\bbattle-axe\b/i },

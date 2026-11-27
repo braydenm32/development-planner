@@ -164,7 +164,7 @@ export function outOfBalance(plan: Plan, prep: PreparedEarthworks): boolean {
   return movesFloor(to, floorRL(plan)) && !slabBedOnly(to, floorRL(plan), slabBedOf(plan), prep.platforms.some(p => p.core !== null))
 }
 
-/** Retaining walls from this height (ground to ground) need an engineer: the app's one figure, from the checks. */
+/** Retaining walls holding back more than this (ground to ground) need an engineer: the app's one figure, from the checks. */
 export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
 
 /**

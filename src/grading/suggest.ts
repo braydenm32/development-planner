@@ -32,7 +32,7 @@ export const WIDE_BATTER = 3
 export const MIN_WALL_HEIGHT = 0.15
 /** Nor shorter than this (m). */
 export const MIN_WALL_LENGTH = 1
-/** From this, a retaining wall needs a professional engineer's certificate: the app's one figure (src/checks/engineer.ts) (m). */
+/** Over this, a retaining wall needs a professional engineer's certificate: the app's one figure (src/checks/engineer.ts) (m). */
 export const ENGINEER_OVER = ENGINEER_HEIGHT
 /** Levelled ground within this of the batter's level takes the batter in, rather than blocking it (m). */
 const ABSORB = 0.3
