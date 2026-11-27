@@ -592,8 +592,16 @@ function volumes(prep: PreparedEarthworks, shift: number): { cut: number; fill: 
  * without them. The difference from the whole is what those platforms add.
  */
 export function volumesWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): { cut: number; fill: number } {
+  return volumes(prepWithout(prep, drop), 0)
+}
+
+/**
+ * The prepared earthworks with the platforms `drop` picks left out, without preparing the rest
+ * again. Exact for platforms that give way to all the others (a driveway): the rest never read them.
+ */
+export function prepWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): PreparedEarthworks {
   const platforms = prep.platforms.filter(p => !drop(p))
-  return volumes({ ...prep, platforms, anySoft: platforms.some(p => p.rank > 0), padAt: padOwners(platforms) }, 0)
+  return { ...prep, platforms, anySoft: platforms.some(p => p.rank > 0), padAt: padOwners(platforms) }
 }
 
 export function evaluateEarthworks(prep: PreparedEarthworks, shift = 0): EarthworksResult {
