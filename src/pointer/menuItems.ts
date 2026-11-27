@@ -14,6 +14,7 @@ import { usePlan, type Selection, type Tool } from '../plan/store'
 import { editWallLength } from './dimStore'
 import { useSnapping } from './snapping'
 import { walkThrough } from '../walk/start'
+import { editWallFinishes } from '../finishes/model'
 
 export interface MenuItem {
   id: string
@@ -80,6 +81,8 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
       // As its card's Kind does: the Wall tool's own thickness for that kind, when it's set to it.
       own.push({ id: 'kind', label: `Make it an ${kind} wall`, run: () => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined)) })
     }
+    // Its own finish is set on its card; here it can go back to the house's, as the card's "Same as the house" does.
+    if (w.kind === 'external' && w.finish) own.push({ id: 'house-finish', label: 'Use the house finish', run: () => st.commit(p => editWallFinishes(p, [w.id], () => undefined)) })
   } else if (s.type === 'opening') {
     const o = plan.openings.find(x => x.id === s.id)
     if (!o) return []

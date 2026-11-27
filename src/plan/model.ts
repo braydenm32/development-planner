@@ -1,7 +1,7 @@
 import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
 import type { DaSettings } from '../da/model'
-import { normalizeFinishes, type Finishes } from '../finishes/model'
+import { normalizeFinishes, normalizeWallFinishList, type Finishes, type WallFinishes } from '../finishes/model'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
@@ -133,6 +133,8 @@ export interface Wall {
   kind: WallKind
   /** Retaining walls: what it holds back. Missing (as in older plans) means its height follows the ground. */
   retain?: Retain
+  /** Outside walls: its own finish in 3D (src/finishes), one or two. Missing follows the house's. */
+  finish?: WallFinishes
 }
 
 /** Finished ground on one side of a retaining wall: an RL, or the house pad (which follows the floor). */
@@ -515,6 +517,7 @@ export function normalizePlan(p: Plan): Plan {
     ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
     ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
     ...(p.finishes !== undefined ? { finishes: normalizeFinishes(p.finishes) } : {}),
+    ...(p.walls ? { walls: normalizeWallFinishList(p.walls) } : {}),
   })))
 }
 

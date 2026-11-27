@@ -57,6 +57,8 @@ const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} $
 
 const OPENING: Record<string, [string, string]> = { door: ['door', 'doors'], window: ['window', 'windows'], opening: ['opening', 'openings'], garage: ['garage door', 'garage doors'] }
 
+/** Leaves a wall's finish out when comparing the rest of it. */
+const noFinish = (k: string, v: unknown) => (k === 'finish' ? undefined : v)
 const DESIGN: Pick<StepName, 'area' | 'tab' | 'also'> = { area: 'design', tab: 'plan', also: ['earthworks'] }
 const PLACE: Pick<StepName, 'area' | 'tab' | 'also'> = { area: 'earthworks', tab: 'place', also: ['design'] }
 
@@ -129,6 +131,9 @@ export function namePlanStep(a: Plan, b: Plan): StepName {
     const moved = openings.changed.every(([x, y]) => x.offset !== y.offset && x.width === y.width && x.height === y.height)
     return { what: `${moved ? 'move' : 'change'} ${count(openings.changed.length, noun[0], noun[1])}`, ...DESIGN }
   }
+  // A wall's own finish (src/finishes), set on its card, and nothing else about it.
+  if (walls.changed.length && walls.changed.every(([x, y]) => differ(x.finish, y.finish) && JSON.stringify(x, noFinish) === JSON.stringify(y, noFinish)))
+    return { what: walls.changed.length === 1 ? 'change wall finish' : 'change wall finishes', ...DESIGN }
   if (walls.changed.length) {
     const moved = walls.changed.some(([x, y]) => differ(x.a, y.a) || differ(x.b, y.b))
     const ws = walls.changed.map(c => c[1])

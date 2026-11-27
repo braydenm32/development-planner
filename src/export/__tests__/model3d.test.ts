@@ -11,6 +11,7 @@ import { buildTerrain } from '../../lib/terrain'
 import { garageFloor } from '../../plan/__tests__/fixtures'
 import { normalizePlan } from '../../plan/model'
 import { buildModel, modelGlb, modelObj, modelParts } from '../model3d'
+import { editWallFinishes, withFinishes } from '../../finishes/model'
 
 // GLTFExporter reads its Blob with FileReader, which the browser has and node doesn't.
 beforeAll(() => {
@@ -141,6 +142,33 @@ describe('the 3D model as OBJ', () => {
     m.dispose()
     expect(vertices).toBe(expected)
     expect(f.mtl).toMatch(/newmtl Ground_floor_window_glass_\d+\nKd [\d. ]+\nKa 0 0 0\nKs [\d. ]+\nNs \d+\nd 0\.550/)
+  })
+})
+
+describe('the 3D model with a wall’s own finish', () => {
+  it('has a part for each finish in use, in its colour, with the brick base under weatherboard', async () => {
+    const own = editWallFinishes(withFinishes(plan, { walls: 'weatherboard' }), ['south', 'east'], () => ({ upper: { walls: 'weatherboard' }, lower: { walls: 'brick' }, at: 1 }))
+    const m = await buildModel({ plan: own, survey, terrain, earth: null })
+    const meshes: Record<string, THREE.Mesh> = {}
+    m.root.traverse(o => {
+      if ((o as THREE.Mesh).isMesh) meshes[o.name] = o as THREE.Mesh
+    })
+    expect(Object.keys(meshes)).toEqual(expect.arrayContaining([`${level} outside walls`, `${level} outside walls, brick, brick red`]))
+    const brick = meshes[`${level} outside walls, brick, brick red`]
+    const box = new THREE.Box3().setFromObject(brick)
+    // The brick part goes up 1 m from the floor, and its outside face is brick red.
+    expect(box.max.y - box.min.y).toBeCloseTo(1, 3)
+    const mat = (brick.material as THREE.MeshStandardMaterial[])[0]
+    expect(mat.color.getHexString()).toBe(new THREE.Color('#a0583f').getHexString())
+    expect(mat.map).not.toBeNull()
+    // From inside (the walk-through), the same walls keep the inside wall colour.
+    expect(brick.geometry.groups[1].count).toBeGreaterThan(0)
+    expect((brick.material as THREE.MeshStandardMaterial[])[1].color.getHexString()).toBe(new THREE.Color('#f1ede6').getHexString())
+    // The whole house's walls are just as big as without the base.
+    const all = new THREE.Box3()
+    for (const [name, mesh] of Object.entries(meshes)) if (name.startsWith(`${level} outside walls`)) all.expandByObject(mesh)
+    expect(all.getSize(new THREE.Vector3()).y).toBeCloseTo(2.7, 2)
+    m.dispose()
   })
 })
 

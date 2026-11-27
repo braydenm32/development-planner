@@ -157,6 +157,8 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
     for (const s of d.shapes) {
       if (s.kind === 'wall') {
         p.shape(s.pts.map(P), 'wall-face')
+        // Where two finishes meet (src/finishes): drawn before the openings, which cover it.
+        for (const [a, b] of s.splits ?? []) p.line([P(a), P(b)], 'detail')
         for (const o of s.openings) opening(p, o, rect(o.box), k)
       } else {
         for (const t of s.tris) p.shape(t.map(P), 'roof-face')

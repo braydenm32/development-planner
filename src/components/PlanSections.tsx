@@ -88,6 +88,7 @@ import './roofs-stairs.css'
 import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 import { forTouch } from '../phone/words'
 import { WalkFromHere } from '../walk/WalkPanel'
+import { WallFinishField } from '../finishes/WallFinishField'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -402,6 +403,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             <SketchColours value={shared} onChange={c => colourSketch(lines.map(x => x.id), c)} label="Colour of the selected sketch lines" />
           </div>
         )}
+        <WallFinishField plan={plan} walls={plan.walls.filter(w => all.some(x => x.type === 'wall' && x.id === w.id))} />
         <p className="muted small">Drag one to move them together, or use the arrow keys (Shift for bigger steps). Esc clears the selection.</p>
         <div className="row">
           <button className="secondary" onClick={() => copySelected()}>
@@ -458,6 +460,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           // The Wall tool's own thickness for that kind, when it's set to it: the type the house is being drawn in.
           onChange={kind => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined))}
         />
+        <WallFinishField plan={plan} walls={[w]} />
         <div className="row">{del}</div>
       </section>
     )

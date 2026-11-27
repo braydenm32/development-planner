@@ -23,13 +23,14 @@ import {
 import { compassWord, postStations, stations, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
 import { insideEdgeMid, roofEavesRL, wallTopAt, wallTopRL } from '../plan/roofline'
 import { openingStyle, type OpeningStyle } from '../plan/openingStyles'
+import { wallBands } from '../finishes/model'
 
 export type Side = 'north' | 'east' | 'south' | 'west'
 export const SIDES: Side[] = ['north', 'east', 'south', 'west']
 
 /** Something on an elevation, drawn far to near so the nearer hides what is behind it. */
 export type ElevationShape =
-  | { kind: 'wall'; depth: number; pts: Pt[]; openings: ElevationOpening[] }
+  | { kind: 'wall'; depth: number; pts: Pt[]; openings: ElevationOpening[]; splits?: [Pt, Pt][] }
   | { kind: 'roof'; depth: number; tris: Pt[][]; edges: [Pt, Pt][] }
 
 /** A door or window on a face: where it is, and what kind, so it's drawn with its own marks (paint.ts). */
@@ -205,6 +206,24 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
           const hinge = (o.flipHinge ? ub < ua : ua < ub) ? 'left' : 'right'
           openings.push({ kind: o.kind, box: { s0: Math.min(ua, ub), s1: Math.max(ua, ub), z0: rl + o.sill, z1: Math.min(rl + o.sill + o.height, z1) }, ...(style ? { style } : {}), hinge })
         }
+        // Where a wall along this face changes from one finish to another: a thin line, nothing more.
+        const splits: [Pt, Pt][] = []
+        const ends = [U(p), U(q)].sort((x, y) => x - y)
+        for (const w of walls) {
+          if (w.kind !== 'external') continue
+          const d = wallDir(w)
+          if (Math.abs(d[0] * e[1] - d[1] * e[0]) > 0.02) continue
+          const off = Math.abs((w.a[0] - p[0]) * n[0] + (w.a[1] - p[1]) * n[1] + w.thickness / 2)
+          if (off > 0.01) continue
+          const b = wallBands(plan.finishes, w.finish, wallTopRL(plan, w) - rl)
+          if (b.at === undefined) continue
+          // The wall's run on the face, out to the face's corners where it reaches them.
+          const snap = (u: number) => (Math.abs(u - ends[0]) <= w.thickness + 1e-3 ? ends[0] : Math.abs(u - ends[1]) <= w.thickness + 1e-3 ? ends[1] : u)
+          const [ua, ub] = [snap(U(w.a)), snap(U(w.b))].sort((x, y) => x - y)
+          const s0 = Math.max(ua, ends[0])
+          const s1 = Math.min(ub, ends[1])
+          if (s1 - s0 > 1e-3) splits.push([[s0, rl + b.at], [s1, rl + b.at]])
+        }
         shapes.push({
           kind: 'wall',
           depth: (D(p) + D(q)) / 2,
@@ -215,6 +234,7 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
             [U(p), top],
           ],
           openings,
+          ...(splits.length ? { splits } : {}),
         })
         // Piers under the face where the floor stands clear of the finished ground, and no lower floor is under it.
         for (const t of postStations(0, len)) {

@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { drapePolygon } from '../lib/drape'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
-import { buildingOutline, planarFaces, postGrid, sliceAlong, wallPieces, wallPolygons } from '../plan/geometry'
+import { buildingOutline, planarFaces, postGrid, sliceAlong, wallPolygons } from '../plan/geometry'
 import {
   areaKind,
   DECK_DEPTH,
@@ -30,8 +30,10 @@ import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { OpeningDetail3D } from './OpeningDetail3D'
 import { Floors3D } from '../finishes/Floors3D'
-import { useHouseMaterials } from '../finishes/materials'
-import { insideTest, metreUVs, splitInsideFaces } from '../finishes/surfaces'
+import { useHouseMaterials, useWallMaterials } from '../finishes/materials'
+import { insideTest, metreUVs } from '../finishes/surfaces'
+import { finishPieces, OutsideWalls } from '../finishes/wallFaces'
+import { band, houseUpper } from '../finishes/model'
 
 interface Props {
   plan: Plan
@@ -61,7 +63,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
   const geoms = useMemo(() => {
     const pl = plan.placement
     const site = (p: Vec2) => toSite(p, pl, origin)
-    const ext: THREE.BufferGeometry[] = []
+    // Outside walls by finish (src/finishes/wallFaces.ts): one mesh per finish in use.
+    const ext = new OutsideWalls(plan)
     const int: THREE.BufferGeometry[] = []
     const slabs: THREE.BufferGeometry[] = []
     const glass: THREE.BufferGeometry[] = []
@@ -111,12 +114,13 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
         const height = wallTopRL(plan, w) - floorRL(plan, level.id)
         // Pieces are measured along the centreline; mitred ends reach past 0 and len.
-        for (const piece of wallPieces(len, height, openings)) {
+        for (const piece of finishPieces(plan, w, len, height, openings)) {
           const s0 = piece.s0 <= 1e-6 ? -1e3 : piece.s0
           const s1 = piece.s1 >= len - 1e-6 ? 1e3 : piece.s1
           const part = sliceAlong(poly, w.a, d, s0, s1)
           const g = prism(part.map(site), floorY + piece.z0, floorY + piece.z1)
-          if (g) (w.kind === 'external' ? ext : int).push(g)
+          if (g && piece.band) ext.add(piece.band, g)
+          else if (g) int.push(g)
         }
         for (const o of openings.filter(x => x.kind === 'window')) {
           const n: Vec2 = [-d[1] * 0.01, d[0] * 0.01]
@@ -216,7 +220,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
           const g = new THREE.BufferGeometry()
           g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
           g.setIndex(rg.mesh.tris)
-          roofs.push(g.toNonIndexed())
+          // A gable end over a wall with its own finish is drawn in that finish.
+          roofs.push(ext.takeGables(r, rg.mesh, g.toNonIndexed()))
           g.dispose()
         }
       }
@@ -262,7 +267,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
     }
     return {
       // Finishes (src/finishes): UVs in metres, and the outside walls' room-facing faces apart.
-      ext: splitInsideFaces(metreUVs(merge(ext)), insideTest(plan, origin, refZ)),
+      ext: ext.build(insideTest(plan, origin, refZ)),
       int: metreUVs(merge(int)),
       slabs: merge(slabs),
       glass: merge(glass),
@@ -281,11 +286,15 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
 
   useEffect(
     () => () => {
-      for (const g of Object.values(geoms)) g?.dispose()
+      const { ext, ...rest } = geoms
+      ext.forEach(m => m.geometry.dispose())
+      for (const g of Object.values(rest)) g?.dispose()
     },
     [geoms],
   )
   const finish = useHouseMaterials(plan.finishes)
+  const houseKey = band(houseUpper(plan.finishes)).key
+  const wallMats = useWallMaterials(geoms.ext.map(m => m.key), finish, houseKey)
 
   return (
     <group>
@@ -329,9 +338,9 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
           <meshStandardMaterial color="#c9b79c" roughness={0.85} />
         </mesh>
       )}
-      {geoms.ext && (
-        <mesh name="outside walls" geometry={geoms.ext} material={finish.outsideWalls} castShadow receiveShadow />
-      )}
+      {geoms.ext.map(m => (
+        <mesh key={m.key} name={m.name} geometry={m.geometry} material={wallMats.get(m.key) ?? finish.outsideWalls} castShadow receiveShadow />
+      ))}
       {geoms.int && (
         <mesh name="inside walls" geometry={geoms.int} material={finish.insideWalls} castShadow receiveShadow />
       )}

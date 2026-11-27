@@ -83,3 +83,28 @@ export function useFloorMaterials(used: FloorFinish[]): Map<FloorFinish, THREE.M
   useEffect(() => () => dispose([...mats.values()]), [mats])
   return mats
 }
+
+/**
+ * The outside walls' materials by finish (WallMesh.key): the house's own finish keeps the
+ * house's pair, and each other finish in use gets its own outside material, sharing the house's
+ * room-side one. Remade only when the set of finishes in use (or the house's) changes.
+ */
+export function useWallMaterials(keys: string[], house: HouseMaterials, houseKey: string): Map<string, THREE.Material[]> {
+  const key = [...new Set(keys)].filter(k => k !== houseKey).sort().join(',')
+  const own = useMemo(
+    () =>
+      new Map(
+        (key ? key.split(',') : []).map(k => {
+          const [walls, colour] = k.split('|') as [WallFinish, string]
+          return [k, material(`finish-walls-${walls}`, colour, WALL_LOOK[walls] ?? WALL_LOOK.plain)] as const
+        }),
+      ),
+    [key],
+  )
+  useEffect(() => () => dispose([...own.values()]), [own])
+  return useMemo(() => {
+    const out = new Map<string, THREE.Material[]>([[houseKey, house.outsideWalls]])
+    for (const [k, m] of own) out.set(k, [m, house.outsideWalls[1]])
+    return out
+  }, [own, house, houseKey])
+}
