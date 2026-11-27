@@ -293,6 +293,11 @@
   right: calc(var(--steps-w, 340px) + 2 * var(--gap));
 }
 
+/* The view bar has stepped left: the foot of the plan has that much less room (shell.css). */
+.app-shell:not(.phone) .shell-main.has-steps {
+  --foot-right: calc(var(--steps-w, 340px) + var(--gap));
+}
+
 .app-shell:not(.phone) .has-steps .scalebar {
   right: calc(var(--steps-w, 340px) + 2 * var(--gap) + 2px);
 }
@@ -311,7 +316,7 @@
 }
 
 .app-shell:not(.phone) .has-steps.has-inspector .plan-compass {
-  right: calc(var(--steps-w, 340px) + 326px);
+  right: calc(var(--free-right, 684px) - 4px);
 }
 
 /* ---- The top bar's button ---- */
