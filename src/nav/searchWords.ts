@@ -62,7 +62,7 @@ export const LEADS: Record<string, string> = {
   trace: 'tab:site/features',
   balcony: 'command:tool-area',
   curved: 'command:tool-sketch',
-  rectangle: 'command:tool-wall',
+  rectangle: 'command:rect-room',
 }
 
 export interface NotHere {
