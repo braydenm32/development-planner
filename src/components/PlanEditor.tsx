@@ -52,7 +52,7 @@ import { roofGeometry, toggleGable } from '../plan/roof'
 import { moveRoofUp, roofCoveredBy, roofsOverLevel, roofTarget } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
 import { showToast } from '../safety/store'
-import { suggestedRoomName } from '../plan/roomTypes'
+import { setRoomType, suggestedRoomName } from '../plan/roomTypes'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
@@ -67,6 +67,9 @@ import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } from './GroundOverlay'
 import { LevelMenu } from './LevelMenu'
 import { askName } from './nameFocus'
+import { nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
+import { useWallMode } from '../plan/wallMode'
+import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
@@ -150,6 +153,8 @@ type Drag =
   /** A box on empty ground, from a corner, to pick what's inside (Shift or Ctrl/⌘ and drag). */
   | { type: 'box'; from: Vec2; fromPx: Pt; add: boolean }
   | { type: 'brush' }
+  /** A rectangle room being dragged out, corner to corner (src/components/RectRoom.tsx keeps the corners). */
+  | { type: 'rect' }
   /** A sketch line or kept measurement, or one of its points (src/sketch/useSketchLayer.tsx keeps which). */
   | { type: 'sketch' }
 
@@ -177,13 +182,13 @@ const VIEW_HINT = {
 
 const HINTS: Record<Tool, string> = {
   select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
-  wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Hold Shift to turn off snapping. For a retaining wall, use the Retaining wall tool (T).',
+  wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to turn off snapping. For a whole room in one go, Shift+W.',
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
   opening: 'Click on a wall to add an opening with no door, such as an archway.',
   garage: 'Click on a wall to add a garage door.',
-  room: 'Click inside an area enclosed by walls to name it as a room.',
+  room: 'Click inside a room to name it. A space the walls close round with no room yet gets one.',
   area: 'Click the corners of a slab, driveway, deck or garden. Type a length in mm and press Enter for an exact side. Click the first point or press Enter to close it.',
   roof: 'Click inside the walls to roof that building. Select a roof to set its type, pitch and gable ends.',
   stair: 'Click where the stair starts, then click the direction it goes up. Hold Shift for any angle.',
@@ -337,7 +342,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
-  const draftKey = `${tool}|${level}`
+  // (The Wall tool's two ways of drawing count as two tools here.)
+  const wallMode = useWallMode(s => s.mode)
+  const draftKey = `${tool === 'wall' ? `wall:${wallMode}` : tool}|${level}`
   const [draftState, setDraft] = useState<Draft>(emptyDraft(draftKey))
   const draft = draftState.key === draftKey ? draftState : emptyDraft(draftKey)
   const { chain, areaPts, typed, stairStart } = draft
@@ -803,7 +810,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
       const style = wallStyleAt(now, level, last, end, wallStyle)
       commit(pl => addWall(pl, level, last, end, style))
-      notify(style === wallStyle ? null : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.`)
+      // A wall that closed round a space made its room in the same step (src/plan/autoRooms.ts): say so.
+      const room = roomsMadeNote(now, usePlan.getState().plan!)
+      notify(style === wallStyle ? room : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.${room ? ` ${room}` : ''}`)
     }
     // Walls that close round a space make a room: its floor type, or a retaining wall, is asked
     // about when the run ends (finishChain).
@@ -1117,6 +1126,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     }
 
     if (tool === 'furniture' && (grabTurnHandle(sx, sy) || grabFurniture(world, true))) return
+
+    // The Rectangle room: a press and drag goes from one corner to the opposite one.
+    if (rectRoom.down(world, e)) {
+      drag.current = { type: 'rect' }
+      return
+    }
 
     if (tool !== 'select') {
       // Drawing tools act on click (pointer up); dragging pans.
@@ -1574,6 +1589,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       brush.up()
       return
     }
+    if (d?.type === 'rect') {
+      const [sx, sy] = local(e)
+      const dragged = !!downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) > 4
+      downAt.current = null
+      rectRoom.up(W(sx, sy), dragged, e.shiftKey)
+      return
+    }
     if (d?.type === 'box') {
       downAt.current = null
       const [sx, sy] = local(e)
@@ -1636,6 +1658,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     site.deselect()
     if (mn.click(world, e.shiftKey)) return
     if (sk.click(world, e.shiftKey)) return
+    if (rectRoom.click(world, e.shiftKey)) return
     if (tool === 'wall') {
       const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free: e.shiftKey })
       placeWallPoint(s.p)
@@ -1711,14 +1734,18 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       const existing = plan.rooms.find(r => r.level === level && pointInPolygon(r.at[0], r.at[1], shape.centre))
-      if (existing) {
-        select({ type: 'room', id: existing.id })
-        return
-      }
-      const n = plan.rooms.filter(r => r.level === level).length + 1
       // The type picked on the Room tool's card names the room; with none it's "Room 3" until one is picked.
       const type = usePlan.getState().roomTypeDefault
-      commit(p => (type ? addRoom(p, level, world, suggestedRoomName(p, type), type) : addRoom(p, level, world, `Room ${n}`)))
+      if (existing) {
+        // Rooms make themselves when walls close (src/plan/autoRooms.ts), so the Room tool mostly names
+        // them: one nobody has named yet takes the card's type, and what is typed next is its name.
+        if (type && stillToName(existing)) commit(p => setRoomType(p, existing.id, type))
+        select({ type: 'room', id: existing.id })
+        if (!touch?.phone) askName(existing.id)
+        notify(null)
+        return
+      }
+      commit(p => (type ? addRoom(p, level, world, suggestedRoomName(p, type), type) : addRoom(p, level, world, nextRoomName(p))))
       const created = usePlan.getState().plan!.rooms.at(-1)
       if (created) select({ type: 'room', id: created.id })
       // What is typed next names it (a phone would only have its keyboard cover the plan).
@@ -1779,6 +1806,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (site.key(e)) {
+        e.preventDefault()
+        return
+      }
+      if (rectRoom.key(e)) {
         e.preventDefault()
         return
       }
@@ -2095,6 +2126,25 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   // The sketch layer: drawing it with the Sketch tool, its lines under the walls, kept measurements over them.
   const sk = useSketchLayer({ plan, level, tool, shown: sketchShown, S, k, snapAt: snapHere, cursor, viewOnly, tag, dim: dimLabel })
+
+  // The Wall tool's Rectangle room: four walls and their room from two corners.
+  const rectRoom = useRectRoom({
+    level,
+    tool,
+    S,
+    snapAt: snapHere,
+    cursor,
+    viewOnly,
+    phone: !!touch?.phone,
+    path,
+    tag,
+    dim: liveDim,
+    // As after a run of walls: the first walls set the floor, and a closed space asks its floor type.
+    made: before => {
+      chainStart.current = { plan: before, level }
+      askAfterChain()
+    },
+  })
 
   // How far the piece being placed, or the selected piece, is from the walls around it.
   const measured = ghost?.item ?? selFurniture
@@ -2576,6 +2626,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {/* Drawing in progress */}
         {chain.length > 1 && <path className="chain" d={path(chain, false)} />}
         {previewWall}
+        {rectRoom.over}
         {outlinePreview}
         {stairPreview}
         {corners && (
@@ -2657,7 +2708,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <span className="muted">
             {viewOnly
               ? (readHint ?? VIEW_HINT[touch?.phone ? 'phone' : 'desk'])
-              : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (sk.hint ?? HINTS[tool])))}
+              : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (rectRoom.hint ?? sk.hint ?? HINTS[tool])))}
           </span>
         )}
       </div>

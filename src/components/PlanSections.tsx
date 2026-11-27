@@ -75,6 +75,7 @@ import { houseOutline, retainedText } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
+import { WallModeSwitch } from './WallModeSwitch'
 import { RoofLineFields } from './RoofLineFields'
 import { SketchColours, SketchOptions, SketchSelection } from '../sketch/SketchPanel'
 import { colourSketch } from '../sketch/actions'
@@ -145,6 +146,7 @@ export function WallOptions() {
   const st = usePlan.getState()
   return (
     <div className="tool-options">
+      <WallModeSwitch />
       <label className="num">
         <span>Wall type</span>
         <select
@@ -244,8 +246,8 @@ export function RoomOptions() {
       />
       <p className="muted small">
         {type
-          ? 'Click inside the walls to place it. The type names the room and tells the estimate, the sun and BASIX what it is.'
-          : 'Click inside the walls to place a room, then pick its type on its card. Or pick the type here first.'}
+          ? 'Click a room to make it this type. The type names the room and tells the estimate, the sun and BASIX what it is.'
+          : 'Click a room to name it, then pick its type on its card. Or pick the type here first, and click each room it fits.'}
       </p>
     </div>
   )

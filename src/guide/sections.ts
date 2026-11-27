@@ -32,6 +32,7 @@ export const SECTIONS: Section[] = [
       'Press W (or pick Wall on the tool rail), then click each corner of the outside walls.',
       'Click the first corner again to close the outline. Double-click, or press Esc, to stop without closing it.',
       'For an exact wall, type its length in mm and press Enter. Hold Shift to draw without snapping.',
+      'For a whole room in one go, press Shift+W and drag from one corner to the opposite one. Or click a corner, type 4000x3000 (width x depth in mm) and press Enter.',
       'With Select (V), drag a wall to move it, or its ends to reshape it. Delete removes what’s selected.',
     ],
   },
@@ -40,7 +41,8 @@ export const SECTIONS: Section[] = [
     title: 'Rooms',
     picture: 'rooms',
     steps: [
-      'Press R and click inside each space the walls close round, to name it as a room.',
+      'Each space the walls close round becomes a room by itself. Double-click it to type its name, and pick its type on its card.',
+      'Or press R, pick a type, and click each room to make it that type.',
       'Rooms give you the floor areas. Each one can sit on a slab or on piers.',
     ],
   },

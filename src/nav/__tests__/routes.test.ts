@@ -121,6 +121,7 @@ describe('features.json', () => {
       'new-roof-mode',
       // rooms from walls and the rectangle room (usability audit, wave 2)
       'rooms-from-walls',
+      'rectangle-room',
       'new-tool-settings-kept',
       'roof-click-inside',
       'setback-dimensions-plan',
@@ -297,6 +298,13 @@ describe('the menu', () => {
     expect(homeOf('site-features-project-file')?.entry.id).toBe('send')
     expect(homeOf('site-feature-layer-roles')?.entry.id).toBe('survey-layers')
     expect(homeOf('site-checks-chip')?.entry).toMatchObject({ id: 'site-checks', at: 'site/features' })
+  })
+
+  it('finds the Rectangle room by the words people look for it with, and runs it (CB-17)', () => {
+    const index = buildIndex(features)
+    for (const word of ['rectangle', 'draw a room', 'room shape']) expect(search(index, word)[0]?.entry, word).toMatchObject({ id: 'rect-room', action: 'rect-room', run: 'now', shortcut: 'shift+W' })
+    expect(homeOf('rectangle-room')?.entry.id).toBe('rect-room')
+    expect(homeOf('rooms-from-walls')?.entry.id).toBe('plan')
   })
 
   it('gives the sun its own Site tab, found by the words people use for it', () => {
