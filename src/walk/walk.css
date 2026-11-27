@@ -1,0 +1,124 @@
+/* Walk-through's panel and the pad for fingers, floating over the 3D view. */
+
+.walk-panel {
+  position: absolute;
+  z-index: 5;
+  /* Under the camera buttons along the top. */
+  top: calc(var(--gap, 14px) + 50px);
+  left: calc(var(--free-left, 0px) + var(--gap, 14px));
+  max-width: min(360px, calc(100% - var(--free-left, 0px) - 2 * var(--gap, 14px)));
+  padding: 10px 12px;
+  border: 1px solid var(--overlay-line, #dcdfe3);
+  border-radius: 6px;
+  background: var(--overlay, #fff);
+  box-shadow: 0 2px 10px rgba(20, 30, 40, 0.12);
+  color: var(--text);
+}
+
+/* The view's own hint (point at the ground, drag to orbit) is the panel's while walking. */
+.walk-panel ~ .readout {
+  display: none;
+}
+
+.walk-panel .walk-place {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.walk-panel .walk-hint {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.walk-panel .walk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.walk-panel .walk-actions button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.walk-panel .walk-actions button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.walk-pad {
+  position: absolute;
+  z-index: 5;
+  /* In the middle, clear of the view bar down the right and the 2D|3D switch at the left. */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--sheet-h, 0px) + 64px);
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(2, 48px);
+  gap: 6px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.walk-pad button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--overlay-line, #dcdfe3);
+  border-radius: 50%;
+  background: var(--overlay, #fff);
+  box-shadow: 0 1px 6px rgba(20, 30, 40, 0.16);
+  color: var(--text);
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.walk-pad button:active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.walk-pad .fwd {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.walk-pad .tl {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.walk-pad .tr {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.walk-pad .back {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* A phone: the panel takes the top's width, under the camera buttons, and its hint stays short. */
+.app-shell.phone .walk-panel {
+  left: 8px;
+  /* Clear of the view bar down the right. */
+  right: 62px;
+  max-width: none;
+  top: calc(var(--gap, 14px) + 48px);
+  padding: 8px 10px;
+}

@@ -21,6 +21,7 @@ import { focusLost } from '../a11y/rowFocus'
 import { PLAN_NAME_ID } from '../a11y/planCanvas'
 import { toolbarStep } from '../a11y/toolbar'
 import { useCamera } from '../phone/cameraStore'
+import { WalkButton } from '../walk/WalkPanel'
 import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
 import type { Loaded } from './useSite'
@@ -310,6 +311,7 @@ function ViewBar({ canvas, up, run }: ControlsProps) {
           <ZoomButtons onZoom={dir => useCamera.getState().nudge({ zoom: dir })} />
           <TurnButtons />
           <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
+          <WalkButton />
           <SunCtl />
         </>
       )}

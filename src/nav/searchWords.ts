@@ -28,6 +28,8 @@ export const MORE_WORDS: Record<string, string[]> = {
   'kbd-copy': ['copy and paste'],
   'kbd-turn': ['rotate furniture', 'flip furniture'],
   'kbd-fields': ['metric', 'mm', 'metres or millimetres'],
+  // Walk-through is here now (CB-20, HO-31, PH-35).
+  'cmd-walk-through': ['walk', 'vr', 'virtual tour', 'fly through', 'look inside', 'inside the house'],
   materials: ['colour', 'colours', 'finishes', 'cladding colour'],
   'camera-street': ['walk around', 'look around', 'eye level'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
@@ -79,7 +81,6 @@ export interface NotHere {
 export const NOT_HERE: NotHere[] = [
   { id: 'imperial', words: ['feet', 'foot', 'inches', 'inch', 'imperial', 'ft', 'yards'], label: 'Feet and inches', says: 'Not in this planner: it works in metres and millimetres only.' },
   { id: 'render', words: ['render', 'rendering', 'photorealistic', 'realistic', 'texture', 'textures', 'wallpaper', 'paint'], label: 'Rendered pictures and textures', says: 'Not in this planner: the 3D view shows shape, levels and shadows in plain colours.' },
-  { id: 'walk', words: ['walk', 'walkthrough', 'walk-through', 'first person', 'vr', 'virtual tour', 'fly through'], label: 'Walking through the house', says: 'Not in this planner: the 3D view orbits the outside, with Street view for eye level.' },
   { id: 'mirror', words: ['mirror', 'flip', 'reflect'], label: 'Mirror or flip the plan', says: 'Not in this planner: turn the house under Earthworks › Place, or turn furniture with Q.' },
   { id: 'skylight', words: ['skylight', 'roof window', 'dormer'], label: 'Skylights and dormers', says: 'Not in this planner: roofs are hip, gable or skillion, with no openings in them.' },
   { id: 'beam', words: ['beam', 'beams', 'column', 'columns', 'post', 'structure', 'structural', 'truss', 'rafters'], label: 'Beams, posts and framing', says: 'Not in this planner: it draws walls, floors and roofs, and leaves the structure to your engineer.' },
