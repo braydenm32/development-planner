@@ -80,5 +80,5 @@ export function useSteps(d: Loaded): Step[] {
       da: { address: !!(details.address || place?.lot.address), lot: !!(details.lot || place?.lot.label), preparedBy: !!details.preparedBy },
       questions,
     })
-  }, [plan, terrain, survey, sketch, seen, d.layers, d.project.roles, place, numbers, onGround, profiles, names, drawn, checks, estimate, details, questions])
+  }, [plan, terrain, survey, sketch, seen, d.layers, d.project, place, numbers, onGround, profiles, names, drawn, checks, estimate, details, questions])
 }

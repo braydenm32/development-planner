@@ -7,7 +7,7 @@ import { FEATURE_ROLES, ROLE_LABELS, SURVEY_ROLES } from '../lib/survey'
 import type { ViewSettings } from '../lib/storage'
 import { bearingName, type SiteStats } from '../lib/terrain'
 import { foundText } from '../safety/readBack'
-import { gradeText } from '../lib/drape'
+import { isLevel, LEVEL_PCT, slopeText } from './siteWords'
 
 function describeLayer(l: LayerInfo): string {
   const parts: string[] = []
@@ -21,15 +21,6 @@ function describeLayer(l: LayerInfo): string {
 }
 
 const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })
-
-/** Under this slope (%) a block reads as level: "0% (1 in 10,000)" says nothing a person can use. */
-const LEVEL_PCT = 0.5
-
-/** A block with no fall to speak of: nothing is its low side. */
-export const isLevel = (stats: Pick<SiteStats, 'maxSlopePct'>): boolean => stats.maxSlopePct < 0.05
-
-/** "1 in 25.0 (4%)", as every grade is written (gradeText), or "Level" under half a percent. */
-export const slopeText = (pct: number): string => (pct < LEVEL_PCT ? 'Level' : gradeText(pct / 100))
 
 /** Site area, perimeter, RL range, fall and slope; `children` are more rows after which way it falls (Site › Block's street side). */
 export function SiteFacts({ stats, children }: { stats: SiteStats; children?: ReactNode }) {
@@ -80,7 +71,11 @@ export function ExaggerationSlider({ view, onChange: set }: { view: ViewSettings
   )
 }
 
-/** What the 3D view shows. */
+/**
+ * What the 3D view shows of the block and the works. The roof, each level, trees and furniture
+ * have one home, the Show menu on the 3D view itself (src/phone/CanvasBits.tsx), so they aren't
+ * repeated here (HO-20).
+ */
 export function ViewToggles({ view, onChange: set }: { view: ViewSettings; onChange: SetView }) {
   return (
     <>
@@ -105,26 +100,10 @@ export function ViewToggles({ view, onChange: set }: { view: ViewSettings; onCha
         House
       </label>
       <label className="check">
-        <input type="checkbox" checked={view.showRoof} disabled={!view.showHouse} onChange={e => set({ showRoof: e.target.checked })} />
-        Roof
-      </label>
-      <label className="check">
-        <input type="checkbox" checked={view.showFurniture} disabled={!view.showHouse} onChange={e => set({ showFurniture: e.target.checked })} />
-        Furniture
-      </label>
-      <label className="check">
         <input type="checkbox" checked={view.showEarthworks} onChange={e => set({ showEarthworks: e.target.checked })} />
         Cut and fill (finished ground)
       </label>
     </>
-  )
-}
-
-export function ResetCameraButton({ onReset }: { onReset: () => void }) {
-  return (
-    <button className="secondary" onClick={onReset}>
-      Reset camera
-    </button>
   )
 }
 

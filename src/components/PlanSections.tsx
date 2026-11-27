@@ -71,7 +71,7 @@ import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from 
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
-import { houseOutline, retainedText } from './planNumbers'
+import { areaSizeText, houseOutline, retainedText } from './planNumbers'
 import { downloadPlan, importPlanFile, startNewPlan } from './planFile'
 import { navigate } from '../nav/router'
 import { RoofModeSwitch } from './RoofModeSwitch'
@@ -766,7 +766,12 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
   const kind = areaKind(a)
   return (
     <section className="selection">
-      <h2>Area</h2>
+      {/* "Outdoor area", since a room's card has a figure called Area; and its size up top, as a room's is (LD-26). */}
+      <h2>Outdoor area</h2>
+      <div className="sel-figure">
+        <span>Size</span>
+        <b>{areaSizeText(a.pts)}</b>
+      </div>
       <TextField label="Name" value={a.name} onCommit={name => st.commit(p => updateArea(p, a.id, { name }))} />
       <Select<AreaKind> label="Type" value={kind} options={AREA_KINDS} onChange={k => st.commit(p => updateArea(p, a.id, { kind: k }))} />
       {(kind === 'slab' || kind === 'deck') && (

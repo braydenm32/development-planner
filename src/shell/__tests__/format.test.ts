@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { gradeText } from '../../lib/drape'
-import { slopeText } from '../../components/SiteSections'
+import { slopeText } from '../../components/siteWords'
 import { tagSize } from '../../grading/tags'
 import { ROWS as COMPARE_ROWS } from '../../options/compare'
 import { m2, shownArea, siteM2 } from '../format'

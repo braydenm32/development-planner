@@ -62,7 +62,8 @@ export const FEATURE_TYPES: FeatureTypeInfo[] = [
   { type: 'tree', label: 'Tree', plural: 'Trees', geoms: ['point'] },
   { type: 'easement', label: 'Easement', plural: 'Easements', geoms: ['area'] },
   { type: 'fence', label: 'Fence', plural: 'Fences', geoms: ['line'] },
-  { type: 'paving', label: 'Driveway or paving', plural: 'Driveways and paving', geoms: ['area'] },
+  // "Existing": Design has its own Driveway, the proposed one; this is what is on the block now.
+  { type: 'paving', label: 'Existing driveway or paving', plural: 'Existing driveways and paving', geoms: ['area'] },
   { type: 'building', label: 'Building or shed', plural: 'Buildings and sheds', geoms: ['area', 'point'] },
   { type: 'service', label: 'Service', plural: 'Services', geoms: ['line', 'point'] },
   { type: 'kerb', label: 'Kerb or road edge', plural: 'Kerbs and road edges', geoms: ['line'] },
