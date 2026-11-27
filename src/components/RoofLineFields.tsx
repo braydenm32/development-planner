@@ -2,7 +2,8 @@
 // level's ceiling lined up with another's (Floors). See src/plan/roofline.ts.
 
 import { floorRL, levelById, sortedLevels, type Plan, type Roof } from '../plan/model'
-import { updateLevel } from '../plan/ops'
+import { updateLevel, updateRoof } from '../plan/ops'
+import { roofPlateLift } from '../plan/roof'
 import { ceilingHeightToMatch, ceilingLinedUpWith, ceilingRL, levelsSharingCeiling, matchRoofline, roofEavesRL, roofLineKey, roofName, setEavesRL } from '../plan/roofline'
 import { usePlan } from '../plan/store'
 import { Num, Select } from './fields'
@@ -22,12 +23,14 @@ export function RoofLineFields({ plan, roof }: { plan: Plan; roof: Roof }) {
       .map(l => ({ id: `level:${l.id}`, label: `${l.name} ceiling (RL ${rl(ceilingRL(plan, l.id))})` })),
     ...plan.roofs
       .filter(r => r.id !== roof.id)
-      .map(r => ({ id: `roof:${r.id}`, label: `${roofName(plan, r)} (RL ${rl(roofEavesRL(plan, r))}${r.type === 'flat' ? '' : `, ${r.pitch.toFixed(0)}°`})` })),
+      .map(r => ({ id: `roof:${r.id}`, label: `${roofName(plan, r)} (RL ${rl(roofEavesRL(plan, r))}${r.type === 'flat' ? '' : `, ${r.pitch.toFixed(1)}°`})` })),
     ...(key === 'rl' ? [{ id: 'rl', label: 'An RL typed in (below)' }] : []),
   ]
   // Over every level whose ceiling meets this one's, said so the person knows the roof covers them.
   const shared = levelsSharingCeiling(plan, roof.level).slice(1)
   const gap = Math.round((eaves - ceilingRL(plan, roof.level)) * 1000)
+  // A roof saved before eaves were taken at the wall plate keeps the extra height it had (mm).
+  const lift = Math.round(roofPlateLift(roof) * 1000)
   return (
     <>
       <Select label="Match roofline with" value={key} options={options} onChange={k => k !== 'rl' && st.commit(p => matchRoofline(p, roof.id, k))} />
@@ -39,6 +42,14 @@ export function RoofLineFields({ plan, roof }: { plan: Plan; roof: Roof }) {
             ? `It sits on ${level?.name ?? 'its level'}’s walls${shared.length ? ` and ${shared.map(l => l.name).join(' and ')}’s, whose ceiling lines up` : ''}.`
             : `Its eaves are ${Math.abs(gap)} mm ${gap > 0 ? 'above' : 'below'} ${level?.name ?? 'its level'}’s ceiling.`}
       </p>
+      {lift >= 5 && (
+        <p className="muted small">
+          This roof was drawn when the eaves level was taken at the outer edge of the overhang, so it sits {lift} mm higher over the walls than a new roof would.{' '}
+          <button className="link" onClick={() => st.commit(p => updateRoof(p, roof.id, { plateLift: 0 }))}>
+            Lower it onto the walls
+          </button>
+        </p>
+      )}
     </>
   )
 }

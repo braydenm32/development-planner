@@ -276,6 +276,14 @@ export interface Roof {
    * a typed RL (a section's eaves drag will set this too).
    */
   eaves?: RoofEaves
+  /**
+   * How far the roof's surface sits above its usual height over the wall line (m). 0 on every roof
+   * drawn now: the eaves level is taken at the wall plate, so the roof's top there is the roof's
+   * own depth above the eaves line and a wider overhang runs down past it, never lifting the ridge.
+   * Missing on roofs saved before that, whose eaves level was taken at the overhang's outer edge:
+   * they sit overhang × tan(pitch) higher at the wall and keep that look (see roofPlateLift).
+   */
+  plateLift?: number
 }
 
 /**

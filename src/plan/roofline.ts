@@ -5,7 +5,7 @@
 
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { floorRL, houseWalls, levelById, sortedLevels, type Level, type Plan, type Roof, type RoofEaves, type Wall } from './model'
-import { growRing, levelOutlines } from './roof'
+import { growRing, keepPlateLift, levelOutlines } from './roof'
 
 /** Ceilings this close (m) line up, for one roof over both and for the Floors helper. */
 export const CEILING_MATCH = 0.005
@@ -86,7 +86,7 @@ export function setEavesRL(plan: Plan, roofId: string, rl: number): Plan {
 
 /** A roof with a patch, dropping `eaves` when it's set to undefined so saved plans stay tidy. */
 function withEaves(r: Roof, patch: Partial<Roof>): Roof {
-  const next = { ...r, ...patch }
+  const next = keepPlateLift(r, { ...r, ...patch })
   if (next.eaves === undefined) delete next.eaves
   return next
 }

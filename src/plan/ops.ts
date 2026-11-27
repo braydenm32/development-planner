@@ -21,7 +21,7 @@ import {
   type WallKind,
 } from './model'
 import { furnitureCorners, resized } from './furniture'
-import { defaultGables, simplifyRing } from './roof'
+import { defaultGables, keepPlateLift, simplifyRing } from './roof'
 import { followLevels, linkStairs, stairLayout } from './stairs'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
@@ -122,12 +122,15 @@ export function addRoof(plan: Plan, level: string, outline: Vec2[], d: RoofDefau
     overhang: d.overhang,
     gables: defaultGables(pts),
     lowEdge: len.indexOf(Math.max(...len)),
+    // The eaves level is taken at the wall plate: a wider overhang never lifts the ridge.
+    plateLift: 0,
   }
   return { ...plan, roofs: [...plan.roofs, roof] }
 }
 
 export function updateRoof(plan: Plan, id: string, patch: Partial<Roof>): Plan {
-  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? { ...r, ...patch } : r)) }
+  // An older roof keeps its height at the wall when its overhang or pitch changes (keepPlateLift).
+  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? keepPlateLift(r, { ...r, ...patch }) : r)) }
 }
 
 /** Height from one level's floor to the floor above, or a typical storey if it's the top level. */

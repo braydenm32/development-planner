@@ -139,6 +139,30 @@ export function toggleGable(gables: boolean[], n: number, m: number): { gables: 
   return { gables: g, hipped }
 }
 
+const pitchTan = (pitch: number) => Math.tan((Math.min(Math.max(pitch, 1), 75) * Math.PI) / 180)
+
+/** How far a sloping roof's surface drops from the wall line to the outer edge of its overhang (m). */
+export const eaveDrop = (roof: Pick<Roof, 'type' | 'pitch' | 'overhang'>) => (roof.type === 'flat' ? 0 : Math.max(0, roof.overhang) * pitchTan(roof.pitch))
+
+/**
+ * How far the roof's surface sits above its usual height over the wall line: its own `plateLift`,
+ * or for a roof saved before eaves were taken at the wall plate, the drop of its overhang (the
+ * eaves level used to be applied out at the overhang's edge, which put the roof that much higher).
+ */
+export const roofPlateLift = (roof: Pick<Roof, 'type' | 'pitch' | 'overhang' | 'plateLift'>) =>
+  roof.type === 'flat' ? 0 : typeof roof.plateLift === 'number' && Number.isFinite(roof.plateLift) ? roof.plateLift : eaveDrop(roof)
+
+/**
+ * An older roof keeps its height at the wall when its overhang, pitch or type changes: the lift
+ * it had is written down first, so from then on a wider overhang runs down past the wall instead
+ * of lifting the ridge. Roofs that already say (every new one) come back as they are.
+ */
+export function keepPlateLift(before: Roof, after: Roof): Roof {
+  if (after.plateLift !== undefined || before.plateLift !== undefined) return after
+  if (before.overhang === after.overhang && before.pitch === after.pitch && before.type === after.type) return after
+  return { ...after, plateLift: Math.round(roofPlateLift(before) * 1000) / 1000 }
+}
+
 class MeshBuilder {
   pos: number[] = []
   tris: number[] = []
@@ -178,6 +202,30 @@ class MeshBuilder {
       this.tri(bottom[i], top[j], top[i], out)
     }
   }
+  /**
+   * The underside and sides of a roof whose top corners (`top`, at heights `topZ`) are round
+   * `ring`, the outline with its overhang. Over the walls (`inner`, the eaves line, corner for
+   * corner with `ring`) it's flat at z = 0, the top of the walls. Where the overhang runs down
+   * below that, its underside follows it down from the wall line, keeping the roof's depth at
+   * the edge. A roof that stays above the walls all round is the plain prism it always was.
+   */
+  under(inner: Vec2[], ring: Vec2[], top: number[], topZ: number[], edge: number) {
+    const low = topZ.map(z => Math.min(0, z - edge))
+    if (inner.length !== ring.length || low.every(z => z > -1e-9)) return this.base(ring, top)
+    const outer = ring.map((p, i) => this.add(p[0], p[1], low[i]))
+    const mid = inner.map(p => this.add(p[0], p[1], 0))
+    this.polygon(mid, inner, [0, 0, -1])
+    const n = ring.length
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n
+      this.tri(mid[i], mid[j], outer[j], [0, 0, -1])
+      this.tri(mid[i], outer[j], outer[i], [0, 0, -1])
+      const d = unit(sub(ring[j], ring[i]))
+      const out: [number, number, number] = [d[1], -d[0], 0]
+      this.tri(outer[i], outer[j], top[j], out)
+      this.tri(outer[i], top[j], top[i], out)
+    }
+  }
 }
 
 const cache = new WeakMap<Roof, RoofGeometry>()
@@ -204,7 +252,10 @@ function buildRoof(roof: Roof, edge: number): RoofGeometry {
   if (signedArea(outline) <= 0) return failed(outline, 'The roof outline crosses itself.')
   const n = outline.length
   const m = new MeshBuilder()
-  const tan = Math.tan((Math.min(Math.max(roof.pitch, 1), 75) * Math.PI) / 180)
+  const tan = pitchTan(roof.pitch)
+  // The roof is built up from the outer edge of its overhang; this puts its surface over the wall
+  // line where it belongs (the roof's depth above the eaves line, plus any lift an older roof keeps).
+  const shift = roofPlateLift(roof) - eaveDrop(roof)
 
   if (roof.type === 'flat' || roof.type === 'skillion') {
     let heights = outline.map(() => Math.max(FLAT_ROOF, edge))
@@ -215,10 +266,10 @@ function buildRoof(roof: Roof, edge: number): RoofGeometry {
       const a = outline[low]
       const nrm = unit(sub(outline[(low + 1) % n], a))
       const inward: Vec2 = [-nrm[1], nrm[0]]
-      heights = outline.map(p => edge + dot(sub(p, a), inward) * tan)
+      heights = outline.map(p => edge + dot(sub(p, a), inward) * tan + shift)
     }
     const top = outline.map((p, i) => m.add(p[0], p[1], heights[i]))
-    m.base(outline, top)
+    m.under(simple.pts, outline, top, heights, edge)
     const normal: [number, number, number] = [0, 0, 1]
     m.polygon(top, outline, normal)
     const area = roof.type === 'flat' ? Math.abs(signedArea(outline)) : Math.abs(signedArea(outline)) / Math.cos(Math.atan(tan))
@@ -235,10 +286,13 @@ function buildRoof(roof: Roof, edge: number): RoofGeometry {
   } catch (e) {
     return failed(outline, (e as Error).message)
   }
-  const ids = sk.nodes.map(nd => m.add(nd.p[0], nd.p[1], edge + nd.t))
-  m.base(
+  const ids = sk.nodes.map(nd => m.add(nd.p[0], nd.p[1], edge + nd.t + shift))
+  m.under(
+    simple.pts,
     outline,
     ids.slice(0, n),
+    outline.map(() => edge + shift),
+    edge,
   )
   let area = 0
   sk.faces.forEach((face, i) => {
@@ -270,6 +324,6 @@ function buildRoof(roof: Roof, edge: number): RoofGeometry {
     }
     lines.push([sk.nodes[a].p, sk.nodes[b].p])
   }
-  const height = edge + Math.max(...sk.nodes.map(nd => nd.t))
+  const height = edge + Math.max(...sk.nodes.map(nd => nd.t)) + shift
   return { outline, lines, mesh: m, height, area, error: null }
 }
