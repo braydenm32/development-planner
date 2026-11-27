@@ -67,7 +67,7 @@ import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } from './GroundOverlay'
 import { LevelMenu } from './LevelMenu'
 import { askName } from './nameFocus'
-import { nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
+import { closesFirstOutline, nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
 import { floorStack, nextOnFloor } from '../plan/floorPick'
 import { useWallMode } from '../plan/wallMode'
 import { useRectRoom } from './RectRoom'
@@ -94,7 +94,7 @@ import { undoTarget } from '../shell/undoTarget'
 import { useSiteStore } from '../site/store'
 import { useSectionMarks } from '../sections/SectionMarks'
 import { useSectionStrip } from '../sectionStrip/useSectionStrip'
-import { useStripSpace } from '../sectionStrip/store'
+import { opensItself, stripSpace, useStrip, useStripSpace } from '../sectionStrip/store'
 import { useGradeBrush } from '../grading/GradeBrush'
 import { useMeasureNotes } from '../measure/useMeasure'
 import { useSketchGuides, useSketchLayer } from '../sketch/useSketchLayer'
@@ -512,8 +512,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })
 
   /** Frame the house (or the block, when there is no house yet), the whole block, or some points (a drawing being lined up). */
-  const fitView = (target: 'house' | 'block' | Vec2[] = 'house'): View => {
-    const b = target === 'house' ? houseBounds(plan) : null
+  const fitView = (target: 'house' | 'block' | Vec2[] = 'house', of: Plan = plan, under = 0): View => {
+    const b = target === 'house' ? houseBounds(of) : null
     const pts: Vec2[] = Array.isArray(target) && target.length
       ? target
       : b
@@ -532,7 +532,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const minY = Math.min(...ys)
     const maxY = Math.max(...ys)
     // Keep clear of anything floating over the canvas's edges.
-    const ins = insets ?? { l: 0, r: 0, t: 0, b: 0 }
+    // (`under`: more room to leave at the foot, for the section strip about to open.)
+    const edge = insets ?? { l: 0, r: 0, t: 0, b: 0 }
+    const ins = { ...edge, b: edge.b + under }
     const w = frame ? Math.max(size.w - ins.l - ins.r, 100) : size.w
     const h = frame ? Math.max(size.h - ins.t - ins.b, 100) : size.h
     const k = Math.min(Math.max(Math.min(w / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1)) * 0.75, 5), 400)
@@ -776,6 +778,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     // A house's first walls: its floor starts at the mean ground under them (src/plan/levelGround.ts).
     floorToFirstWalls(c.plan, survey, terrain.grid)
     wallsPlaced(c.plan, c.level)
+    // The house's first outline: the plan, until now on the whole block, comes in to the house.
+    if (closesFirstOutline(c.plan, usePlan.getState().plan!)) glideToHouse()
   }
   // Switching tool or level drops the run, and leaving the plan ends it: ask then.
   useEffect(() => askAfterChain, [draftKey])
@@ -987,6 +991,38 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }
   useEffect(() => () => cancelAnimationFrame(zoomFrame.current), [])
 
+  /**
+   * Bring the view in from the block to the house, smoothly (straight there where motion is turned
+   * down), and leave it there as the place the plan was left, so it opens the same next time. The
+   * section strip opens by itself once there is a house and the tool goes back to Select: the
+   * house is framed clear of where the strip will be, so it isn't left half under it.
+   */
+  const glideToHouse = () => {
+    const st = usePlan.getState()
+    if (!st.plan) return
+    const strip = useStrip.getState()
+    const phone = !!touch?.phone
+    const under = Math.max(stripSpace(stripShows, strip.choice ?? opensItself(phone, true), strip.height, phone) - stripH, 0)
+    stopZoom()
+    const start = vRef.current
+    const end = fitView('house', st.plan, under)
+    if (typeof window.matchMedia !== 'function' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setView(end)
+      settle()
+      return
+    }
+    let t0 = -1
+    const step = (now: number) => {
+      if (t0 < 0) t0 = now
+      const t = Math.min((now - t0) / 350, 1)
+      const e = 1 - (1 - t) ** 3
+      setView({ cx: start.cx + (end.cx - start.cx) * e, cy: start.cy + (end.cy - start.cy) * e, k: start.k * (end.k / start.k) ** e, token: end.token })
+      if (t < 1) zoomFrame.current = requestAnimationFrame(step)
+      else settle()
+    }
+    zoomFrame.current = requestAnimationFrame(step)
+  }
+
   /** A tap that didn't move: true when it was the second of a double tap, and zoomed. */
   const doubleTapped = (e: ReactPointerEvent<SVGSVGElement>, s: Pt): boolean => {
     const tap = { t: e.timeStamp, x: s[0], y: s[1] }
@@ -1025,6 +1061,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       drag.current = { type: 'pan', sx, sy, start: v }
       return
     }
+    stopZoom()
     startPointer(e)
     setDragKind(drag.current?.type ?? null)
   }
@@ -2163,7 +2200,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     path,
     tag,
     dim: liveDim,
-    // As after a run of walls: the first walls set the floor, and a closed space asks its floor type.
+    // As after a run of walls: the first walls set the floor, a closed space asks its floor type, the first outline zooms in.
     made: before => {
       chainStart.current = { plan: before, level }
       askAfterChain()

@@ -123,6 +123,7 @@ describe('features.json', () => {
       'rooms-from-walls',
       'rectangle-room',
       'click-room-floor',
+      'first-outline-fit',
       'new-tool-settings-kept',
       'roof-click-inside',
       'setback-dimensions-plan',

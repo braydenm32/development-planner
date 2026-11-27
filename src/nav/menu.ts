@@ -389,6 +389,7 @@ export const AREAS: Area[] = [
           'place-room',
           'rooms-from-walls',
           'click-room-floor',
+          'first-outline-fit',
           'draw-area',
           'draw-roof',
           'place-stair',
