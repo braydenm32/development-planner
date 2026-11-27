@@ -8,12 +8,14 @@ export const isMac = (): boolean => {
   }
 }
 
-/** `mod+shift+Z` → "⌘⇧Z" on a Mac, "Ctrl+Shift+Z" elsewhere. */
+/** `mod+shift+Z` → "⌘⇧Z" on a Mac, "Ctrl+Shift+Z" elsewhere; `shift / alt` → "Shift / Alt" or "⇧ / ⌥": two keys for two things. */
 export function shortcutText(s: string, mac = isMac()): string {
+  if (s.includes(' / ')) return s.split(' / ').map(x => shortcutText(x, mac)).join(' / ')
   // A lone + is the key itself.
   const parts = (s === '+' ? ['+'] : s.split('+')).map(p => {
     if (p === 'mod') return mac ? '⌘' : 'Ctrl'
     if (p === 'shift') return mac ? '⇧' : 'Shift'
+    if (p === 'alt') return mac ? '⌥' : 'Alt'
     return p
   })
   return mac ? parts.join('') : parts.join('+')

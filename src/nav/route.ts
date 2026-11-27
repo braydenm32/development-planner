@@ -51,7 +51,12 @@ export const MOVED: Record<string, [AreaId, string]> = {
   'design/checks': ['approvals', 'checks'],
   'design/basix': ['approvals', 'basix'],
   'earthworks/stormwater': ['approvals', 'stormwater'],
+  // The Levels tab is named Levels but lives at floors: its name in the address works too.
+  'design/levels': ['design', 'floors'],
 }
+
+/** The page a route is on, whatever is selected or which level shows: an area's tab, or a page of its own. */
+export const pageOf = (r: Route): string => (r.kind === 'app' ? `${r.area}/${r.tab}` : formatHash(r))
 
 /** The hash for a route. */
 export function formatHash(r: Route): string {
