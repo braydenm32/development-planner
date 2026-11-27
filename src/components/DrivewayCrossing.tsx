@@ -214,13 +214,13 @@ const PAD = { l: 6, r: 6, t: 24, b: 36 }
 /** The share of the width the footpath and layback get at least: at true scale they'd be a sliver beside a long drive. */
 const CROSSING_SHARE = 0.36
 
-/** A grade for the chart: "8% · 1 in 12" with room, "8%" with a little, nothing with none. */
+/** A grade for the chart: "1 in 12.0 (8%)" with room, "8%" with a little, nothing with none. */
 function gradeLabel(g: number, room: number): string | null {
   // One format everywhere: 1 in N to one decimal, as the rows and Levels write it.
   if (room < 30) return null
   if (g < 0.0005) return 'level'
   const pct = `${(g * 100).toFixed(g < 0.1 ? 1 : 0).replace(/\.0$/, '')}%`
-  return room >= 84 ? `${pct} · 1 in ${(1 / g).toFixed(1)}` : pct
+  return room >= 84 ? `1 in ${(1 / g).toFixed(1)} (${pct})` : pct
 }
 
 /**

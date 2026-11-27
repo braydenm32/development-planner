@@ -507,7 +507,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     const footprint = buildingFootprint(plan)
     const rows: [string, string][] = [
       ['Site area', `${input.siteArea.toFixed(0)} m²`],
-      ['Building footprint (all floors)', `${footprint.toFixed(2)} m²`],
+      ['Building footprint, seen from above (all floors)', `${footprint.toFixed(2)} m²`],
       ['Site coverage', `${((footprint / Math.max(input.siteArea, 1)) * 100).toFixed(1)}%`],
       ...fflRows(),
     ]

@@ -20,7 +20,7 @@ import { m2, netText, slabBedText } from './format'
 import { balanceWords, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
-import type { CheckCounts } from '../checks/rules'
+import { waitingWords, type CheckCounts } from '../checks/rules'
 import { checkedAgainst } from '../checks/settings'
 import type { Pathway } from '../checks/types'
 import { ScrollCue } from './ScrollCue'
@@ -331,7 +331,7 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const parts = [counts.fail && `${counts.fail} to fix`, counts.warn && `${counts.warn} to confirm`].filter(Boolean).join(' · ')
   if (shown || !loud) {
     // A design that isn't drawn enough to check says so before anything passes.
-    const text = loud ? parts : counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
+    const text = loud ? parts : counts.incomplete ? waitingWords(counts).join(' · ') : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
     const cls = shown ? 'chip echo' : 'chip ghost'
     if (readOnly || shown)
       return (

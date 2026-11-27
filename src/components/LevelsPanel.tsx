@@ -204,7 +204,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
                 <span className="level-fold-caret" aria-hidden="true" />
                 <span>{s.level.name}</span>
                 <span className="muted small">
-                  RL {floorRL(plan, s.level.id).toFixed(2)} · {s.gross.area.toFixed(1)} m²
+                  RL {floorRL(plan, s.level.id).toFixed(2)} · {s.gross.area.toFixed(2)} m²
                 </span>
               </button>
             </h3>

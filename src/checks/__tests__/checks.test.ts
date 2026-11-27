@@ -10,7 +10,7 @@ import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { measure, rearEdgeOf } from '../measure'
-import { countChecks, countsWords, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, hcRearSetback, hcSideSetback, minWidth, runChecks } from '../rules'
+import { countChecks, countsWords, waitingWords, dcpCoverage, dcpLandscaped, hcLandscapedShare, hcMaxGfa, hcRearSetback, hcSideSetback, minWidth, runChecks } from '../rules'
 import { encroachment, srzRadius, tpzRadius, treeTitles } from '../trees'
 import { siteWarnings } from '../../site/warnings'
 import { checkTreesOf } from '../siteTrees'
@@ -195,7 +195,7 @@ describe('Housing Code (CDC)', () => {
     const two = house({ frontEdge: 0 }, { levels: [{ id: L0, name: 'Ground', elevation: 0, height: 2.7 }, { id: L1, name: 'First', elevation: 3, height: 2.7 }], walls: [...box('g', 0, 0, 10, 8), ...box('u', 0, 0, 10, 8, L1)] })
     const r2 = byId(run(two).cdc, 'hc-gfa')
     expect(r2.status).toBe('pass')
-    expect(r2.value).toBe('152.9 m² inside the outside walls (167.3 m² to the outside of the walls)')
+    expect(r2.value).toBe('152.88 m² inside the outside walls (167.28 m² to the outside of the walls)')
     expect(r2.note).toMatch(/^Gross floor area is measured to the inside of the outside walls/)
     // Outside 15.4 × 20 = 308 m² > 300, but inside 15 × 19.6 = 294 m²: it passes, where the outside figure used to warn (DB-16).
     const big = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.2, 19.8), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
@@ -204,7 +204,7 @@ describe('Housing Code (CDC)', () => {
     const over = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.8, 20), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
     const ro = byId(run(over).cdc, 'hc-gfa')
     expect(ro.status).toBe('warn')
-    expect(ro.value).toBe('308.9 m² inside the outside walls (323.2 m² to the outside of the walls). Over by 8.9 m² unless a garage comes off: give its room the type Garage or carport')
+    expect(ro.value).toBe('308.88 m² inside the outside walls (323.20 m² to the outside of the walls). Over by 8.88 m² unless a garage comes off: give its room the type Garage or carport')
     // The same house with a 6 × 6 m garage walled off inside it: one space of 18 m² comes off, and it passes.
     const garage = house(
       { frontEdge: 0 },
@@ -218,7 +218,7 @@ describe('Housing Code (CDC)', () => {
     )
     const rg = byId(run(garage).cdc, 'hc-gfa')
     expect(rg.status).toBe('pass')
-    expect(rg.value).toBe('290.9 m² inside the outside walls, one garage space of 18.0 m² left out (323.2 m² to the outside of the walls)')
+    expect(rg.value).toBe('290.88 m² inside the outside walls, one garage space of 18.00 m² left out (323.20 m² to the outside of the walls)')
     // Over by more than a garage space fails outright.
     const huge = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 16.2, 20.2), rooms: [{ id: 'r', level: L0, name: 'Big', at: [5, 5] }] })
     expect(byId(run(huge).cdc, 'hc-gfa').status).toBe('fail')
@@ -347,7 +347,7 @@ describe('an unfinished design', () => {
     const over = house({ frontEdge: 0 }, { walls: box('g', 0, 0, 15.8, 20), rooms: [] })
     const r = byId(run(over).cdc, 'hc-gfa')
     expect(r.status).toBe('incomplete')
-    expect(r.value).toBe('308.9 m² inside the outside walls (323.2 m² to the outside of the walls). Add rooms to check this.')
+    expect(r.value).toBe('308.88 m² inside the outside walls (323.20 m² to the outside of the walls). Add rooms to check this.')
     // Under the limit, the outline is enough to pass.
     expect(byId(run(house({ frontEdge: 0 }, { rooms: [] })).cdc, 'hc-gfa').status).toBe('pass')
   })
@@ -413,7 +413,7 @@ describe('Wollongong LEP and DCP (DA)', () => {
     const r = byId(run(house({ lepFsr: 0.5, titleArea: 660, battleAxe: true })).da, 'da-fsr')
     expect(r.status).toBe('pass')
     // The same gross floor area as the Housing Code row: 9.8 × 7.8 m inside the outside walls.
-    expect(r.value).toBe(`${(76.44 / 660).toFixed(2)}:1 on 660.0 m² (gross floor area 76.4 m²)`)
+    expect(r.value).toBe(`${(76.44 / 660).toFixed(2)}:1 on 660.0 m² (gross floor area 76.44 m²)`)
   })
   it('battle-axe lots: a second storey warns, the front setback is unknown', () => {
     const levels = [
@@ -646,6 +646,21 @@ describe('checks that agree with themselves', () => {
     expect(words).toContain('2 to remove')
     const total = words.reduce((t, w) => t + Number(w.split(' ')[0]), 0)
     expect(total).toBe(da.length)
+  })
+
+  it('checks waiting on a driveway are said the same on the strip as in the panel (LF-21)', () => {
+    // No driveway drawn: its crossing checks wait for one, and are counted apart from what else isn't drawn.
+    const { cdc } = run(house({ frontEdge: 0 }))
+    const c = countChecks(cdc)
+    const drive = cdc.filter(r => r.status === 'incomplete' && r.id.startsWith('drive-')).length
+    expect(drive).toBeGreaterThan(0)
+    expect(c.driveway).toBe(drive)
+    expect(waitingWords(c)).toEqual([`${c.incomplete - drive} not drawn yet`, `${drive} wait for a driveway`])
+    expect(waitingWords({ ...c, incomplete: drive })).toEqual([`${drive} wait for a driveway`])
+    expect(countsWords(c)).toContain(`${drive} wait for a driveway`)
+    // Counts made before the split (a saved option's) still read as before.
+    expect(waitingWords({ ...c, driveway: undefined, incomplete: 3 })).toEqual(['3 not drawn yet'])
+    expect(countsWords({ ...c, incomplete: 0, driveway: 0 }, true)).toContain('0 not drawn yet')
   })
 
   it('tree rows are named once, and trees that would read the same are numbered', () => {

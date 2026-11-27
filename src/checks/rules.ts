@@ -23,15 +23,18 @@ import {
   type SetbackRule,
 } from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
-import { crossingChecks } from './crossing'
+import { crossingChecks, isDriveCheck } from './crossing'
 import { battersText, isRetained } from '../plan/batters'
 import { GFA_CAR_SPACE } from '../plan/keyNumbers'
+import { m2 as floorM2, siteM2 } from '../shell/format'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
 import { NEED_FRONT, type CheckResult, type CheckStatus, type CouncilId, type Pathway, type Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
 const m2 = (v: number) => `${v.toFixed(1)} m²`
+/** The surveyed lot's area, whole m² as Site › Block and the Overview write it: "an 810 m² lot" reads the same there and here. */
+const lotM2 = (v: number) => `${/^(8|11|18)/.test(String(Math.round(v))) ? 'an' : 'a'} ${siteM2(v)} lot`
 const pct = (v: number) => `${Math.round(v * 100)}%`
 
 // Sources, as the research marks them.
@@ -344,7 +347,7 @@ function livingSun(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] {
  * ratio, the glossary): the figure is floorAreasOf's in src/plan/keyNumbers.ts.
  */
 const gfaText = (ms: Measures) =>
-  `${m2(ms.gfa)} inside the outside walls${ms.garageSpace > 0 ? `, one garage space of ${m2(ms.garageSpace)} left out` : ''} (${m2(ms.grossArea)} to the outside of the walls)`
+  `${floorM2(ms.gfa)} inside the outside walls${ms.garageSpace > 0 ? `, one garage space of ${floorM2(ms.garageSpace)} left out` : ''} (${floorM2(ms.grossArea)} to the outside of the walls)`
 const GFA_NOTE = `Gross floor area is measured to the inside of the outside walls, the walls between rooms included. One garage or carport space up to ${GFA_CAR_SPACE} m² doesn’t count: give that room the type Garage or carport. Stairs and voids over a floor below don’t count either, and aren’t taken off here.`
 
 // ---------------------------------------------------------------------------
@@ -379,9 +382,9 @@ function housingCode(ms: Measures): CheckResult[] {
     value: !ms.hasHouse
       ? 'No floors yet'
       : garageDecides
-        ? `${gfaText(ms)}. ${ms.hasRooms ? `Over by ${m2(ms.gfa - gfa)} unless a garage comes off: give its room the type Garage or carport` : DRAW.rooms}`
+        ? `${gfaText(ms)}. ${ms.hasRooms ? `Over by ${floorM2(ms.gfa - gfa)} unless a garage comes off: give its room the type Garage or carport` : DRAW.rooms}`
         : gfaText(ms),
-    limit: `${m2(gfa)} on a ${m2(area)} lot`,
+    limit: `${m2(gfa)} on ${lotM2(area)}`,
     note: GFA_NOTE + ' Check the table against the current text.',
     source: HC_TABLE('cl 3.9'),
   })
@@ -829,7 +832,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       id: 'da-fsr',
       title: 'Floor space ratio',
       status: s.lepFsr === undefined ? 'unknown' : atMost(ratio, s.lepFsr),
-      value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)} (gross floor area ${m2(ms.gfa)})`,
+      value: `${ratio.toFixed(2)}:1 on ${title ? m2(title) : lotM2(lot)} (gross floor area ${floorM2(ms.gfa)})`,
       limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
       note:
         (s.lepFsr === undefined ? 'Enter the map value here once it’s looked up. ' : '') +
@@ -873,7 +876,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: 'Site coverage',
       status: ms.footprint <= cover(lot) + 1e-6 ? 'pass' : title && ms.footprint <= cover(title) + 1e-6 ? 'warn' : 'fail',
       value: `${m2(ms.footprint)} (${pct(ms.footprint / lot)})`,
-      limit: `${m2(cover(lot))} on ${m2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
+      limit: `${m2(cover(lot))} on ${lotM2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
       note: title ? cv.handleNote : undefined,
       source: cite(c, cv.source),
     })
@@ -891,7 +894,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: ls.name ?? 'Landscaped area',
       status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
       value: `About ${m2(land)}`,
-      limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
+      limit: `${m2(landNeed)} on ${lotM2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
       note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.',
       source: cite(c, ls.source),
     })
@@ -1102,12 +1105,27 @@ export interface CheckCounts {
   pass: number
   pending: number
   info: number
+  /** How many of `incomplete` are the driveway's checks, waiting for a driveway to be drawn. */
+  driveway?: number
 }
 
 export function countChecks(rs: CheckResult[]): CheckCounts {
-  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0 }
-  for (const r of rs) c[r.status]++
+  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0, driveway: 0 }
+  for (const r of rs) {
+    c[r.status]++
+    if (r.status === 'incomplete' && isDriveCheck(r.id)) c.driveway!++
+  }
   return c
+}
+
+/**
+ * What waits for more of the design, in the Checks panel's words: "3 not drawn yet", "5 wait for a
+ * driveway", or both. The strip, the Overview, Compare and the DA pack say it the same.
+ */
+export function waitingWords(c: CheckCounts): string[] {
+  const drive = c.driveway ?? 0
+  const other = c.incomplete - drive
+  return [other > 0 ? `${other} not drawn yet` : '', drive > 0 ? `${drive} wait for a driveway` : ''].filter(Boolean)
 }
 
 /**
@@ -1122,7 +1140,7 @@ export function countsWords(c: CheckCounts, zeros = false): string[] {
     part(c.fail, `${c.fail} to fix`, true),
     part(c.warn, `${c.warn} to confirm`, true),
     part(c.unknown, `${c.unknown} fact${c.unknown === 1 ? '' : 's'} to add`, true),
-    part(c.incomplete, `${c.incomplete} not drawn yet`, true),
+    ...(c.incomplete ? waitingWords(c) : [part(0, '0 not drawn yet', true)]),
     part(c.pending, `${c.pending} to remove`),
     `${c.pass} OK`,
     part(c.info, `${c.info} for info`),

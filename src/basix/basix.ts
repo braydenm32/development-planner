@@ -6,6 +6,7 @@ import { fileSafe } from '../print/export'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { buildingOutline, closestOnSegment, faceAround, planarFaces, type Face } from '../plan/geometry'
 import { grossFloorArea } from '../plan/keyNumbers'
+import { m2 as floorM2 } from '../shell/format'
 import { pointOnWall, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
 import { roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
@@ -262,7 +263,8 @@ export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[
     {
       id: 'floor-area',
       item: 'Conditioned floor area',
-      value: `${m2(facts.floor.conditioned)} (${m2(facts.floor.inside)} inside the outside walls, garages ${m2(facts.floor.garages)} left out)`,
+      // Floor areas to 2 decimals, as the checks and the strip write them.
+      value: `${floorM2(facts.floor.conditioned)} (${floorM2(facts.floor.inside)} inside the outside walls, garages ${floorM2(facts.floor.garages)} left out)`,
       why: 'The heated and cooled floor area, which the energy and water targets are set against.',
       fromPlan: true,
     },

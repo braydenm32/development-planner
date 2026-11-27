@@ -56,12 +56,13 @@ export const costHeadline = (e: Estimate): CostHeadline => ({
 })
 
 /**
- * Every level's floor RL, lowest first: "RL 81.60" for one level, "81.60 / 84.60 / 86.10" for a
- * split-level house, so its other floors aren't hidden behind the lowest.
+ * Every level's floor RL, lowest first: "RL 81.60" for one level, "RL 81.60 / 84.60 / 86.10" for a
+ * split-level house, so its other floors aren't hidden behind the lowest. Always with "RL" first,
+ * as levels are written everywhere else.
  */
 export function floorsText(floors: { rl: number }[], ffl: number): string {
   if (floors.length < 2) return `RL ${(floors[0]?.rl ?? ffl).toFixed(2)}`
-  return floors.map(f => f.rl.toFixed(2)).join(' / ')
+  return `RL ${floors.map(f => f.rl.toFixed(2)).join(' / ')}`
 }
 
 /** "Floor level" or "Floor levels", as the plain label with the term after it. */

@@ -94,8 +94,12 @@ export function floorAreasOf(summaries: LevelSummary[]): FloorAreas {
 /** Gross floor area and the areas it comes from (see FloorAreas). */
 export const grossFloorArea = (plan: Plan): FloorAreas => floorAreasOf(levelSummaries(plan))
 
-/** All the rooms on a level together (m²), each enclosed space counted once however many labels sit in it. */
-export const roomsTotal = (rooms: LevelSummary['rooms']): number => rooms.reduce((t, r) => t + (r.sameAs ? 0 : (r.area ?? 0)), 0)
+/**
+ * All the rooms on a level together (m²), each enclosed space counted once however many labels sit
+ * in it. Each room goes in as it is shown, to 0.01 m², so the total is the sum of the list above it
+ * and the levels' totals add to the house's (169.55 used to sit over 70.43 + 99.11).
+ */
+export const roomsTotal = (rooms: LevelSummary['rooms']): number => Math.round(rooms.reduce((t, r) => t + (r.sameAs ? 0 : Math.round((r.area ?? 0) * 100)), 0)) / 100
 
 /** The room label that already names the space this one sits in (the first drawn there), or null when it has the space to itself. */
 export function sameSpaceAs(plan: Plan, room: Room): Room | null {

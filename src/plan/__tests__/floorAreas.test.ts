@@ -2,7 +2,7 @@
 // between rooms included, less one garage space. Checked by hand on boxes.
 
 import { describe, expect, it } from 'vitest'
-import { GFA_CAR_SPACE, grossFloorArea, levelSummaries } from '../keyNumbers'
+import { GFA_CAR_SPACE, grossFloorArea, levelSummaries, roomsTotal } from '../keyNumbers'
 import { normalizePlan, type Plan, type Wall } from '../model'
 import { garageFloor } from './fixtures'
 
@@ -67,5 +67,15 @@ describe('gross floor area', () => {
     expect(f.inside).toBeLessThan(f.outside)
     expect(f.inside).toBeGreaterThanOrEqual(rooms - 1e-6)
     expect(f.gfa).toBeCloseTo(f.inside - Math.min(GFA_CAR_SPACE, f.garages), 9)
+  })
+})
+
+describe('rooms total', () => {
+  it('adds the rooms as they are shown, so levels add to the house (LD-27)', () => {
+    // Two rooms of 35.214 and 35.214 m² show as 35.21 each: the total is 70.42, not 70.43.
+    const rooms = [{ room: { id: 'a' }, area: 35.214 }, { room: { id: 'b' }, area: 35.214 }, { room: { id: 'c' }, area: 35.214, sameAs: { id: 'a' } }] as unknown as Parameters<typeof roomsTotal>[0]
+    expect(roomsTotal(rooms)).toBe(70.42)
+    const upper = [{ room: { id: 'd' }, area: 99.106 }] as unknown as Parameters<typeof roomsTotal>[0]
+    expect((roomsTotal(rooms) + roomsTotal(upper)).toFixed(2)).toBe((70.42 + 99.11).toFixed(2))
   })
 })
