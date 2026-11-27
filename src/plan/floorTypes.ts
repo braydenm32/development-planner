@@ -252,19 +252,19 @@ export function setLevelFloorType<P extends Pick<Plan, 'levels'>>(plan: P, level
  * meaning what it did; from then on every level keeps its own.
  */
 export function migrateFloorTypes<P extends Pick<Plan, 'levels' | 'rooms' | 'floorsByLevel'>>(plan: P): P {
-  let p = plan
-  if (!p.floorsByLevel) {
-    const low = lowest(p)
-    p = {
-      ...p,
-      floorsByLevel: true,
-      levels: p.levels.map(l => {
-        if (l.id === low?.id || l.floorType === undefined) return l
-        const next = { ...l }
-        delete next.floorType
-        return next
-      }),
-    }
+  // A plan saved since then has been through here already. Its lowest level may still be waiting
+  // on "How is this floor built?": opening it again mustn't answer that for the person.
+  if (plan.floorsByLevel) return plan
+  const low = lowest(plan)
+  const p = {
+    ...plan,
+    floorsByLevel: true,
+    levels: plan.levels.map(l => {
+      if (l.id === low?.id || l.floorType === undefined) return l
+      const next = { ...l }
+      delete next.floorType
+      return next
+    }),
   }
   const ground = lowest(p)
   if (!ground || ground.floorType !== undefined || !(p.rooms ?? []).some(r => r.level === ground.id)) return p

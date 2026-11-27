@@ -497,11 +497,14 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       }
       // Sockets for the walls it sits on, which key into it, and room for any wall that stands
       // taller than its eaves (a roof set lower than the ceiling): the roof rests on those.
+      // An overhang that runs down past the top of the walls is cleared from there up.
+      let low = base
+      for (let k = 2; k < pos.length; k += 3) low = Math.min(low, pos[k])
       for (const L of info) {
         for (const { top, shape: walls } of L.byTop) {
           if (top < base - 1e-3) continue
           const meets = top < base + 1e-3
-          m = minus(m, extrude(grow(walls, c), Math.max(base, L.ffl) - eps, meets ? base + key + c : top))
+          m = minus(m, extrude(grow(walls, c), Math.max(low, L.ffl) - eps, meets ? base + key + c : top))
         }
       }
       solids.push(m)

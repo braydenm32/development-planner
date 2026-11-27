@@ -14,7 +14,9 @@ import { analyzeLayers, buildSurvey, guessRoles, type Survey } from '../../lib/s
 import { buildTerrain, type Terrain } from '../../lib/terrain'
 import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
 import { areaRoute } from '../../nav/route'
-import { balancedRL, boundarySides, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea } from '../../plan/keyNumbers'
+import { houseHeight, measure } from '../../checks/measure'
+import { runChecks } from '../../checks/rules'
+import { balancedRL, boundarySides, buildingHeight, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea } from '../../plan/keyNumbers'
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { addLevelAbove } from '../../plan/ops'
 import { earthworksPlatforms, retainingStrips } from '../../plan/platforms'
@@ -406,16 +408,82 @@ describe('roof height above the ground', () => {
     expect(Math.abs(n.roof!.height - (top - lowest))).toBeLessThan(0.01)
     expect(words(strip(n))).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     // "above ground" is in the chip's tip, which says what the number is.
-    expect(strip(n)).toContain('The most a roof rises above the natural ground under it')
+    expect(strip(n)).toContain('The highest point of the roof or walls above the natural ground under it')
     // One roof: the total roof area is its own.
     expect(n.roofs).toHaveLength(1)
     expect(n.roofArea).toBeCloseTo(n.roof!.area, 9)
   })
 
-  it('has none to show without a roof', () => {
+  it('has no roof to show without one, and gives the height of the walls', () => {
     const n = numbersOf(house(), survey, terrain, null)
     expect(n.roof).toBeNull()
     expect(words(strip(n))).not.toContain('Roof')
+    expect(words(strip(n))).toContain(`Building height ${n.height!.toFixed(2)} m`)
+    // Nothing drawn: no height.
+    expect(numbersOf(house({ walls: [], rooms: [] }), survey, terrain, null).height).toBeNull()
+  })
+})
+
+describe('one building height', () => {
+  // A two-storey house, with its roof left on the ground floor (inside the upper storey) or with none:
+  // the strip, the Overview and Design › Roofs give the figure Approvals › Checks and Sections do.
+  const hip: Roof = {
+    id: 'roof1',
+    level: L0,
+    pts: [
+      [-0.15, -0.15],
+      [12.15, -0.15],
+      [12.15, 9.15],
+      [-0.15, 9.15],
+    ],
+    type: 'hip',
+    pitch: 22.5,
+    overhang: 0.45,
+    gables: [false, false, false, false],
+    lowEdge: 0,
+    plateLift: 0,
+  }
+  const twoStorey = (roofs: Roof[]): Plan => {
+    const up = addLevelAbove(house()).plan
+    return { ...up, roofs: roofs.map(r => ({ ...r, level: r.level === 'top' ? up.levels[1].id : r.level })) }
+  }
+  const cases: [string, Plan][] = [
+    ['with no roof', twoStorey([])],
+    ['with its roof left on the ground floor', twoStorey([hip])],
+    ['with its roof on the upper floor', twoStorey([{ ...hip, level: 'top' }])],
+  ]
+
+  it.each(cases)('is the same in the strip, the Overview, Roofs, Checks and Sections %s', (_, plan) => {
+    const n = numbersOf(plan, survey, terrain, null)
+    const ms = measure({ plan, survey, terrain, earth: null })
+    expect(n.height).toBe(ms.height)
+    expect(n.height).toBe(buildingHeight(plan, survey, terrain))
+    expect(n.height).toBe(houseHeight(plan, survey, terrain))
+    // The walls of the upper storey stand 2 × 2.7 + 0.3 = 5.7 m over the floor: a roof-only figure would miss them.
+    expect(n.height!).toBeGreaterThan(5.7)
+    const figure = `${ms.height.toFixed(2)} m`
+    expect(words(strip(n))).toContain(`Building height ${figure}`)
+    expect(words(renderToStaticMarkup(<OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} />))).toContain(figure)
+    const check = runChecks(ms, 'cdc').find(r => r.id === 'hc-height')!
+    expect(`${check.value} ${check.note}`).toContain(`${figure} above existing ground`)
+    usePlan.getState().load(plan)
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
+    const Roofs = TAB_PANELS['design/roofs']
+    const tab = words(
+      renderToStaticMarkup(
+        <ShellContext.Provider value={shellData(null)}>
+          <Roofs />
+        </ShellContext.Provider>,
+      ),
+    )
+    expect(tab).toContain(`Building height ${figure}`)
+  })
+
+  it('counts a roof on the top storey as the highest point', () => {
+    const plan = cases[2][1]
+    const n = numbersOf(plan, survey, terrain, null)
+    expect(n.height).toBe(n.roof!.height)
+    expect(n.height!).toBeGreaterThan(numbersOf(cases[0][1], survey, terrain, null).height!)
   })
 })
 
@@ -450,7 +518,8 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   it('keeps chips as buttons otherwise', () => {
     const html = strip(n)
     expect(html).not.toContain('chip ghost')
-    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(2)
+    // Floor, floor level, and Building height: walls have a height before they have a roof.
+    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(3)
   })
 })
 

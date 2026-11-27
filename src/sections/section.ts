@@ -24,8 +24,8 @@ import {
 import { pierOutlines } from '../plan/platforms'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
-import { roofGeometry, type RoofMesh } from '../plan/roof'
-import { stairLayout } from '../plan/stairs'
+import { ROOF_EDGE, roofGeometry, type RoofMesh } from '../plan/roof'
+import { mm1, stairLayout } from '../plan/stairs'
 import { compassWord, intersectSpans, postStations, spansInside, stations, subtractSpans, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
 
@@ -82,6 +82,28 @@ export interface SectionStair {
   outlines: Pt[][]
   /** Cut stairs: "17 risers × 176 mm", for under the flight. */
   label?: string
+}
+
+/**
+ * The cut through a roof as one closed shape: its top along the cut, then its underside back the
+ * other way. The underside is the top of the walls (`base`), except where an overhang runs down
+ * below that: there it's the roof's own depth under its top, as the roof is built (roofGeometry).
+ */
+export function roofCutShape(top: Pt[], base: number): Pt[] {
+  const under = (z: number) => Math.min(base, z - ROOF_EDGE)
+  if (top.every(p => p[1] - ROOF_EDGE >= base - 1e-9)) return [...top, [top[top.length - 1][0], base], [top[0][0], base]]
+  const bottom: Pt[] = []
+  for (let i = top.length - 1; i >= 0; i--) {
+    const [s, z] = top[i]
+    bottom.push([s, under(z)])
+    if (i === 0) break
+    // Where the underside meets the top of the walls between two points of the top.
+    const [s0, z0] = top[i - 1]
+    const d1 = z - ROOF_EDGE - base
+    const d0 = z0 - ROOF_EDGE - base
+    if (d1 * d0 < -1e-12) bottom.push([s + ((s0 - s) * d1) / (d1 - d0), base])
+  }
+  return [...top, ...bottom]
 }
 
 const PIER_W = 0.1
@@ -300,10 +322,7 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     const g = roofGeometry(r)
     if (!level || g.error) continue
     const base = roofEavesRL(plan, r)
-    for (const run of roofProfile(g.mesh, a, b)) {
-      const top = run.map(([s, z]): Pt => [s, base + z])
-      roofs.push([...top, [top[top.length - 1][0], base], [top[0][0], base]])
-    }
+    for (const run of roofProfile(g.mesh, a, b)) roofs.push(roofCutShape(run.map(([s, z]): Pt => [s, base + z]), base))
   }
 
   const stairs = sectionStairs(plan, a, b)
@@ -371,7 +390,7 @@ export function sectionStairs(plan: Plan, a: Vec2, b: Vec2): SectionStair[] {
     const cutBoxes: Box[] = []
     for (const step of L.steps) for (const [s0, s1] of spansInside(a, b, [step.pts])) cutBoxes.push({ s0, s1, z0: bottom, z1: bottom + step.top })
     if (cutBoxes.length) {
-      out.push({ id: st.id, cut: true, outlines: stepOutlines(cutBoxes, bottom), label: `${L.risers} risers × ${Math.round(L.riser * 1000)} mm` })
+      out.push({ id: st.id, cut: true, outlines: stepOutlines(cutBoxes, bottom), label: `${L.risers} risers × ${mm1(L.riser)} mm` })
       continue
     }
     if (!L.outline.every(p => depth(p) > 1e-6)) continue

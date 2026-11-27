@@ -19,7 +19,7 @@ import { spansInside, type Pt } from '../common'
 import { elevationDrawing, elevationSides, highestPoint, SIDES } from '../elevation'
 import { addSection, flipSection, nextLabel, removeSection, sectionsOf, snapEnd } from '../lines'
 import { paintDrawing, spread, type Painter } from '../paint'
-import { roofProfile, sectionDrawing } from '../section'
+import { roofCutShape, roofProfile, sectionDrawing } from '../section'
 import { textWidth, type PdfPage } from '../../share/pdfWriter'
 import { drawSectionMarks } from '../sheets'
 
@@ -202,6 +202,20 @@ describe('a section through a roof', () => {
     expect(Math.max(...d.roofs[0].map(p => p[1]))).toBeCloseTo(48.2 + g.height, 6)
     expect(Math.min(...d.roofs[0].map(p => p[1]))).toBeCloseTo(48.2, 6)
     expect(d.levels.at(-1)).toMatchObject({ text: 'Roof' })
+  })
+
+  it('cuts a roof whose eaves level is at the wall plate with its overhang running down past the walls', () => {
+    // The same roof drawn now: 22.5° over 0.45 m of overhang drops 186 mm below the top of the walls.
+    const drop = 0.45 * Math.tan((22.5 * Math.PI) / 180)
+    const now = { ...plan, roofs: [{ ...plan.roofs[0], plateLift: 0 }] }
+    const gn = roofGeometry(now.roofs[0])
+    expect(g.height - gn.height).toBeCloseTo(drop, 6)
+    const d = sectionDrawing({ id: 'r', label: 'A', a: [5, -3], b: [5, 11] }, { plan: now, survey, terrain })
+    const zs = d.roofs[0].map(p => p[1])
+    expect(Math.max(...zs)).toBeCloseTo(48.2 + gn.height, 6)
+    expect(Math.min(...zs)).toBeCloseTo(48.2 - drop, 6)
+    // Over the walls its underside is the top of the walls; the eave is the roof's own depth thick.
+    expect(roofCutShape([[0, 9.9], [1, 10.9], [2, 9.9]], 10)).toEqual([[0, 9.9], [1, 10.9], [2, 9.9], [2, 9.9 - ROOF_EDGE], [1.75, 10], [1, 10], [0.25, 10], [0, 9.9 - ROOF_EDGE]])
   })
 })
 

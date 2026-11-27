@@ -59,11 +59,14 @@ function ReviewSheet() {
           )}
           {review.choices && review.choices.length > 0 && (
             <fieldset className="sf-choices">
-              <legend>How the block and house line up</legend>
-              <div className="sf-choice-row">
-                <div className="sf-pic">
-                  <BlockThumb t={choice?.thumb} label={choice?.label} />
-                </div>
+              <legend>{review.choicesLegend ?? 'How the block and house line up'}</legend>
+              <div className={`sf-choice-row${review.choices.some(c => c.thumb !== undefined) ? '' : ' plain'}`}>
+                {/* Choices with nothing to picture (what happens to a level) are just the list. */}
+                {review.choices.some(c => c.thumb !== undefined) && (
+                  <div className="sf-pic">
+                    <BlockThumb t={choice?.thumb} label={choice?.label} />
+                  </div>
+                )}
                 <div className="sf-options">
                   {review.choices.map((c, i) => (
                     <label key={c.id} className={`sf-option${review.choice === c.id ? ' on' : ''}`}>

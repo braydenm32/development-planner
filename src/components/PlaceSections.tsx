@@ -52,7 +52,8 @@ export function LevelsOnGround({ plan, survey, terrain }: { plan: Plan; survey: 
   if (rows.length < 2) return null
   return (
     <table className="place-levels">
-      <caption>Each level on the ground</caption>
+      {/* Every level is listed, the framed ones above the ground too: the table doesn't claim they sit on it. */}
+      <caption>Each level and the ground under it</caption>
       <thead>
         <tr>
           <th scope="col">Level</th>

@@ -18,8 +18,10 @@ import { planarFaces } from '../plan/geometry'
 import { floorRL, houseWalls, levelById, sortedLevels, type Plan, type Wall } from '../plan/model'
 import { levelFloorAnswer } from '../plan/floorTypes'
 import { growRing, levelOutlines } from '../plan/roof'
-import { ceilingRL, levelsSharingCeiling, roofEavesRL, roofLineKey } from '../plan/roofline'
+import { ceilingRL, coveredRoofs, levelsSharingCeiling, roofEavesRL, roofLineKey } from '../plan/roofline'
+import { stairLandingIssues } from '../plan/stairLanding'
 import { stairMeetsNoFloor } from '../plan/stairs'
+import { storeyWarnings } from '../plan/storeys'
 import type { Selection, Tool } from '../plan/store'
 import { shortMoney } from '../costs/format'
 import { andList, m2, netText } from '../shell/format'
@@ -255,6 +257,13 @@ function levelsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
     if (!planarFaces(house.filter(w => w.level === id)).some(f => f.area > 0)) continue
     items.push({ id: `floor:${id}`, text: `How is the floor on ${l.name} built?`, detail: 'It sits on the ground: slab, piers or something else changes the earthworks.', tone: 'todo', go: place('design', 'floors', { view: 'plan', level: id }) })
   }
+  // Storey heights that clash (a ceiling above the next floor, a very low ceiling): fixed in Design › Floors.
+  for (const l of levels)
+    for (const w of storeyWarnings(plan, l.id)) {
+      // A clash between two levels is listed once, on the lower one.
+      if (w.id.startsWith('floor-in:') || w.id.startsWith('thin-under:')) continue
+      items.push({ id: `storey:${l.id}:${w.id}`, text: `Check ${l.name}’s heights`, detail: w.text, tone: 'todo', go: place('design', 'floors', { view: 'plan', level: l.id }) })
+    }
   for (const s of plan.stairs) {
     if (!stairMeetsNoFloor(plan, s)) continue
     const l = levelById(plan, s.level)
@@ -265,6 +274,18 @@ function levelsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       tone: 'todo',
       go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
     })
+  }
+  // Where each stair lands: outside the floor it joins, through a wall, too long a flight (the stair's card says the same).
+  for (const s of plan.stairs) {
+    const l = levelById(plan, s.level)
+    for (const issue of stairLandingIssues(plan, s))
+      items.push({
+        id: `stair-${issue.id}:${s.id}`,
+        text: `Check where the stair on ${l?.name ?? 'a level'} lands`,
+        detail: issue.text,
+        tone: 'todo',
+        go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
+      })
   }
   const area = i.numbers.floorArea
   const headline = started && area ? `${plural(levels.length, 'level')} · ${m2(area)}` : levels.length > 1 ? `${plural(levels.length, 'level')} · nothing drawn` : 'Nothing drawn yet'
@@ -319,6 +340,16 @@ function roofStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boolea
         go: place('design', 'roofs', { view: 'plan', level, frame: bare.flatMap(wallPts), tool: 'roof' }),
       })
     }
+  for (const { roof, under } of coveredRoofs(plan)) {
+    const l = levelById(plan, roof.level)
+    items.push({
+      id: `covered:${roof.id}`,
+      text: `The roof on ${l?.name ?? 'a level'} is under ${under.name}`,
+      detail: `${under.name} is built over all of it: move it up (in the roof’s card) or delete it. It isn’t in the estimate.`,
+      tone: 'todo',
+      go: place('design', 'roofs', { view: 'plan', level: roof.level, sel: { type: 'roof', id: roof.id }, frame: roof.pts }),
+    })
+  }
   for (const [a, b] of unmatchedRooflines(plan)) {
     const ra = plan.roofs.find(r => r.id === a)!
     const rb = plan.roofs.find(r => r.id === b)!

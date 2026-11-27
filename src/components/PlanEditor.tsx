@@ -11,6 +11,7 @@ import {
   fromSite,
   houseWalls,
   isRetaining,
+  levelById,
   pointOnWall,
   sortedLevels,
   wallDir,
@@ -47,14 +48,15 @@ import {
 } from '../plan/ops'
 import { setbackDims } from '../plan/setbacks'
 import { useSitePlan } from '../site/SitePlanLayer'
-import { outlineAround, roofGeometry, toggleGable } from '../plan/roof'
-import { roofsOverLevel, wallsUnderRoofline } from '../plan/roofline'
+import { roofGeometry, toggleGable } from '../plan/roof'
+import { moveRoofUp, roofCoveredBy, roofsOverLevel, roofTarget } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
+import { showToast } from '../safety/store'
 import { suggestedRoomName } from '../plan/roomTypes'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
-import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
+import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel, undoToastFor } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
 import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
@@ -830,9 +832,52 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const before = usePlan.getState().plan!.roofs.length
       commit(pl => addRoof(pl, level, pts, roofDefaults))
       const after = usePlan.getState().plan!.roofs
-      if (after.length > before) select({ type: 'roof', id: after.at(-1)!.id })
+      if (after.length > before) {
+        const made = after.at(-1)!
+        select({ type: 'roof', id: made.id })
+        // An outline drawn wholly under the storey above: say so where it's made, with the way out.
+        const over = roofCoveredBy(usePlan.getState().plan!, made)
+        if (over)
+          showToast({
+            text: `${over.name} is built over all of this roof, so it would be inside that storey.`,
+            link: {
+              label: `Move it up to ${over.name}`,
+              go: () => {
+                const st = usePlan.getState()
+                // Already moved or deleted since (from its card, say): nothing to do.
+                const still = st.plan?.roofs.find(r => r.id === made.id)
+                if (!still || !roofCoveredBy(st.plan!, still)) return
+                st.commit(pl => moveRoofUp(pl, made.id))
+                st.setActiveLevel(over.id)
+                st.select({ type: 'roof', id: made.id })
+              },
+            },
+          })
+      }
     }
     setAreaPts([])
+  }
+
+  /**
+   * Roof this building, clicked on a level with a storey built over all of it: the roof goes on
+   * that storey (`up`), which shows, and a toast says so with Undo. A roof already there is picked.
+   */
+  const roofStoreyAbove = (up: string, outline: Vec2[], at: Vec2) => {
+    const st = usePlan.getState()
+    const name = levelById(plan, up)?.name ?? 'The level above'
+    const there = roofAtPoint(roofsOverLevel(plan, up), at, 0)
+    st.setActiveLevel(up)
+    if (there) {
+      st.select({ type: 'roof', id: there.id })
+      showToast({ text: `${name} is built over these walls and already has a roof, so that roof is selected.` })
+      return
+    }
+    const before = plan.roofs.length
+    st.commit(pl => addRoof(pl, up, outline, roofDefaults))
+    const after = usePlan.getState().plan!.roofs
+    if (after.length === before) return
+    st.select({ type: 'roof', id: after.at(-1)!.id })
+    undoToastFor(`${name} is built over these walls, so the roof is on ${name}, which is showing now.`, () => usePlan.getState().setActiveLevel(level))
   }
 
   /** Direction from the stair's start towards the cursor: square to the house unless Shift is held. */
@@ -1597,12 +1642,17 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       // The walls of every level whose ceiling lines up with this one's, so one roof goes over them all.
-      const outline = outlineAround(wallsUnderRoofline(plan, level), world)
-      if (!outline) {
+      // With a storey built over all of them, the roof goes on that storey, never inside it.
+      const target = roofTarget(plan, level, world)
+      if (!target) {
         notify('Click inside a building’s walls to roof it. To draw a roof of any shape, choose Draw roof outline.')
         return
       }
-      closeRoof(outline)
+      if (target.level !== level) {
+        roofStoreyAbove(target.level, target.outline, world)
+        return
+      }
+      closeRoof(target.outline)
       notify(null)
     } else if (tool === 'roof') {
       // Draw roof outline: every click is a corner.
@@ -2552,7 +2602,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {noFloor ? null : touch?.phone || viewOnly ? (
         <PhoneLevelChip plan={plan} level={level} rl={floorRL} />
       ) : (
-        <LevelMenu rows={levelMenu} action={viewOnly ? undefined : flow.chipAction} />
+        <LevelMenu rows={levelMenu} action={viewOnly || !grounded.has(level) ? undefined : flow.chipAction} />
       )}
       <div className="plan-actions">
         {frame ? (

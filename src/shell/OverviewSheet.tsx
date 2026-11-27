@@ -216,16 +216,15 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                   ) : undefined
                 }
               >
+                {(n.height != null || n.roof) && (
+                  <dl className="stats">
+                    {/* The same figure as the strip and Approvals › Checks: roofs and wall tops alike. */}
+                    {n.height != null && <FragmentRow label={`Building height (highest point above the natural ground${n.roof ? '' : ': the tops of the walls'})`} value={`${n.height.toFixed(2)} m`} strong />}
+                    {n.roofs.length > 1 && <FragmentRow label={`Roof area, all ${n.roofs.length} roofs`} value={`${n.roofArea.toFixed(1)} m²`} strong />}
+                  </dl>
+                )}
                 {n.roof ? (
-                  <>
-                    <dl className="stats">
-                      <FragmentRow label="Building height (highest roof above the ground)" value={`${n.roof.height.toFixed(2)} m`} strong />
-                      {n.roofs.length > 1 && <FragmentRow label={`Roof area, all ${n.roofs.length} roofs`} value={`${n.roofArea.toFixed(1)} m²`} strong />}
-                    </dl>
-                    {n.roofs.map((r, i) => (
-                      <RoofRows key={r.roof.id} r={r} n={n.roofs.length > 1 ? i + 1 : 0} />
-                    ))}
-                  </>
+                  n.roofs.map((r, i) => <RoofRows key={r.roof.id} r={r} n={n.roofs.length > 1 ? i + 1 : 0} />)
                 ) : (
                   <p className="muted small">No roof yet.</p>
                 )}

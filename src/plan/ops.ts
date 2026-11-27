@@ -25,9 +25,11 @@ import { furnitureCorners, resized } from './furniture'
 import { closestOnSegment, planarFaces } from './geometry'
 import { wallClear } from './openingFit'
 import { followTees, insideHouse, resizeWall, shiftJoint, type WallEnd } from './wallJoins'
-import { defaultGables, simplifyRing } from './roof'
+import { defaultGables, keepPlateLift, simplifyRing } from './roof'
 import type { RoomTypeId } from './roomTypes'
+import { roofCoveredBy, roofEavesRL, setEavesRL } from './roofline'
 import { followLevels, linkStairs, stairLayout } from './stairs'
+import { levelLeftAbove } from './storeys'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
 /** A new wall wholly on top of one already there (same level, both house walls or both retaining) adds nothing. */
@@ -149,12 +151,15 @@ export function addRoof(plan: Plan, level: string, outline: Vec2[], d: RoofDefau
     overhang: d.overhang,
     gables: defaultGables(pts),
     lowEdge: len.indexOf(Math.max(...len)),
+    // The eaves level is taken at the wall plate: a wider overhang never lifts the ridge.
+    plateLift: 0,
   }
   return { ...plan, roofs: [...plan.roofs, roof] }
 }
 
 export function updateRoof(plan: Plan, id: string, patch: Partial<Roof>): Plan {
-  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? { ...r, ...patch } : r)) }
+  // An older roof keeps its height at the wall when its overhang or pitch changes (keepPlateLift).
+  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? keepPlateLift(r, { ...r, ...patch }) : r)) }
 }
 
 /** Height from one level's floor to the floor above, or a typical storey if it's the top level. */
@@ -237,12 +242,16 @@ export function deleteSelection(plan: Plan, sel: Selection): Plan {
   }
 }
 
-/** Add a level above the top one, copying the top level's outside walls as a start. */
-export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
+/**
+ * Add a level above the top one, copying the top level's external walls as a start. Roofs the
+ * new storey would bury (those wholly under its walls) move up onto it in the same step, sitting
+ * on its walls: `roofsMoved` says how many, for the toast.
+ */
+export function addLevelAbove(plan: Plan): { plan: Plan; id: string; roofsMoved: number } {
   const top = sortedLevels(plan).at(-1)!
   const level: Level = {
     id: newId('level'),
-    name: plan.levels.length === 1 ? 'First floor' : `Level ${plan.levels.length + 1}`,
+    name: newLevelName(plan, 'above'),
     elevation: Math.round((top.elevation + top.height + FLOOR_STRUCTURE) * 1000) / 1000,
     height: top.height,
   }
@@ -254,15 +263,47 @@ export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
   const copied = (encloses ? outside : external)
     .map(w => ({ ...w, id: newId('wall'), level: level.id }))
   // A stair on the old top level that climbs a storey now arrives on the new floor.
-  return { plan: linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }), id: level.id }
+  const added = linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] })
+  const buried = new Set(added.roofs.filter(r => !roofCoveredBy(plan, r) && roofCoveredBy(added, r)?.id === level.id).map(r => r.id))
+  if (!buried.size) return { plan: added, id: level.id, roofsMoved: 0 }
+  const roofs = added.roofs.map(r => {
+    if (!buried.has(r.id)) return r
+    // On the new level's walls; a roofline shared with another roof that moves too is kept.
+    const { eaves, ...rest } = r
+    return eaves && 'roof' in eaves && buried.has(eaves.roof) ? { ...r, level: level.id } : { ...rest, level: level.id }
+  })
+  const moved = { ...added, roofs }
+  // A roof that stays where it is but followed one that moved keeps the eaves it had.
+  const kept = moved.roofs.map(r => {
+    if (buried.has(r.id) || Math.abs(roofEavesRL(moved, r) - roofEavesRL(plan, r)) < 1e-6) return r
+    return setEavesRL(moved, r.id, roofEavesRL(plan, r)).roofs.find(x => x.id === r.id)!
+  })
+  return { plan: { ...moved, roofs: kept }, id: level.id, roofsMoved: buried.size }
 }
 
-/** A name for a new level no other level has: "Level 4", or the next number free. */
-function newLevelName(plan: Plan): string {
-  const taken = new Set(plan.levels.map(l => l.name.toLowerCase()))
-  let n = plan.levels.length + 1
-  while (taken.has(`level ${n}`)) n++
-  return `Level ${n}`
+/** Where a new level goes: a storey above the top one, a storey below the lowest, or beside the others at an RL. */
+export type LevelPlace = 'above' | 'below' | 'beside'
+
+/** What new levels are called, by where they go, in the order they're tried. */
+const LEVEL_NAMES: Record<LevelPlace, string[]> = {
+  above: ['First floor', 'Second floor', 'Third floor', 'Upper floor'],
+  below: ['Lower floor', 'Basement level'],
+  beside: ['Split level'],
+}
+
+/**
+ * A name for a new level that says where it is and no other level has: "First floor", then
+ * "Second floor", above; "Lower floor", then "Basement level", below; "Split level" beside.
+ * Once those are taken, the last with the next number free ("Split level 2").
+ */
+export function newLevelName(plan: Plan, place: LevelPlace): string {
+  const taken = new Set(plan.levels.map(l => l.name.trim().toLowerCase()))
+  const free = LEVEL_NAMES[place].find(n => !taken.has(n.toLowerCase()))
+  if (free) return free
+  const last = LEVEL_NAMES[place].at(-1)!
+  let n = 2
+  while (taken.has(`${last} ${n}`.toLowerCase())) n++
+  return `${last} ${n}`
 }
 
 /**
@@ -272,17 +313,17 @@ function newLevelName(plan: Plan): string {
 export function addLevelBelow(plan: Plan): { plan: Plan; id: string } {
   const low = sortedLevels(plan)[0]!
   const height = low.height
-  return addLevelAt(plan, floorRL(plan, low.id) - height - FLOOR_STRUCTURE, height)
+  return addLevelAt(plan, floorRL(plan, low.id) - height - FLOOR_STRUCTURE, height, 'below')
 }
 
 /**
  * Add a level with its floor at an RL: a split level beside the others, a step up or down.
  * It starts empty, with the lowest level's ceiling height unless one is given.
  */
-export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0]?.height ?? 2.7): { plan: Plan; id: string } {
+export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0]?.height ?? 2.7, place: LevelPlace = 'beside'): { plan: Plan; id: string } {
   const level: Level = {
     id: newId('level'),
-    name: newLevelName(plan),
+    name: newLevelName(plan, place),
     elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000,
     height,
   }
@@ -292,8 +333,26 @@ export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0
 /** Set a level's floor RL: its height above the placement's FFL follows. */
 export const setLevelRL = (plan: Plan, id: string, rl: number): Plan => updateLevel(plan, id, { elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000 })
 
-export function deleteLevel(plan: Plan, id: string): Plan {
+/**
+ * Delete a level and everything on it. With `lower`, when that leaves the level that was built
+ * over it as the lowest, up in the air (levelLeftAbove), every level that stays comes down by
+ * that much, so the house sits where the deleted floor was; a roof with a typed eaves RL comes
+ * down with them, and a "First floor" that is now the ground floor is called that.
+ */
+export function deleteLevel(plan: Plan, id: string, lower = false): Plan {
   if (plan.levels.length <= 1) return plan
+  const left = lower ? levelLeftAbove(plan, id) : null
+  const without = removeLevel(plan, id)
+  if (!left) return without
+  const rename = left.level.name === 'First floor' && !without.levels.some(l => l.name.trim().toLowerCase() === 'ground floor')
+  return followLevels({
+    ...without,
+    levels: without.levels.map(l => ({ ...l, elevation: Math.round((l.elevation - left.drop) * 1000) / 1000, ...(rename && l.id === left.level.id ? { name: 'Ground floor' } : {}) })),
+    roofs: without.roofs.map(r => (r.eaves && 'rl' in r.eaves ? { ...r, eaves: { rl: Math.round((r.eaves.rl - left.drop) * 1000) / 1000 } } : r)),
+  })
+}
+
+function removeLevel(plan: Plan, id: string): Plan {
   const walls = new Set(plan.walls.filter(w => w.level === id).map(w => w.id))
   // Stairs that went up to it are let go, keeping their tops (followLevels).
   return followLevels({

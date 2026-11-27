@@ -1894,8 +1894,10 @@ describe('sample survey and plan (made up)', () => {
     const grown = areaOf(OUTLINE) + perimeterOf(OUTLINE) * o + 4 * o * o
     expect(g.area).toBeCloseTo(grown / Math.cos(22.5 * D2R), 4)
     // Highest point: the widest square that fits in the grown outline is 7.405 m (the 6.505 m garage
-    // depth plus 2 × 450), so the ridge is 3.7025 m in from the eaves.
-    expect(g.height).toBeCloseTo(0.15 + 3.7025 * Math.tan(22.5 * D2R), 3)
+    // depth plus 2 × 450), so the ridge is 3.7025 m in from the eaves. The slope passes through the wall
+    // plate at the wall, so the ridge stands the rise of the run inside the walls (3.7025 − 0.45) above it:
+    // the overhang hangs below the plate and adds no height.
+    expect(g.height).toBeCloseTo(0.15 + (3.7025 - o) * Math.tan(22.5 * D2R), 3)
     record('hypotheticalHipRoof', {
       area_m2: g.area,
       height_aboveWalls_m: g.height,

@@ -5,8 +5,9 @@ import { askReview, dismissToast, showToast } from '../safety/store'
 import type { Vec2 } from '../lib/geom'
 import { allOnLevel, clipCount, copySelection, deleteSelections, pasteClip, selectedList, selectionName, translateSelection, type Clip } from './editing'
 import { deleteLevel } from './ops'
-import { sortedLevels, type Plan } from './model'
+import { floorRL, type Plan } from './model'
 import { usePlan } from './store'
+import { levelLeftAbove } from './storeys'
 import { useSketch } from '../sketch/store'
 
 /** An arrow key moves 10 mm; with Shift, 100 mm. */
@@ -185,20 +186,42 @@ export async function deleteLevelWithReview(id: string): Promise<boolean> {
   const level = plan?.levels.find(l => l.id === id)
   if (!plan || !level || plan.levels.length <= 1) return false
   const contents = levelContents(plan, id)
+  // The level built over the lowest one would be left as the lowest, a storey up in the air: say so, and offer to bring it down.
+  const left = levelLeftAbove(plan, id)
+  const rl = (z: number) => `RL ${z.toFixed(2)}`
+  const others = plan.levels.length > 2
   const choice = await askReview({
     kind: 'delete-level',
     title: `Delete ${level.name} and everything on it?`,
     facts: [{ label: 'On this level', value: contents.length ? contents.join(', ') : 'Nothing drawn yet' }],
-    changes: [`${level.name} is removed, with everything drawn on it.`],
+    changes: [`${level.name} is removed, with everything drawn on it.`, ...(left ? [`${left.level.name} becomes the lowest level: the one the ground is shaped for.`] : [])],
     kept: ['Your other levels', 'The block and survey', 'Undo, straight after'],
+    ...(left
+      ? {
+          warning: `${left.level.name} is built over ${level.name}. Without it, ${left.level.name} is the lowest level, ${left.drop.toFixed(2)} m above where ${level.name}’s floor is now.`,
+          choicesLegend: `What happens to ${left.level.name}`,
+          choices: [
+            {
+              id: 'lower',
+              label: `Bring it down to ${rl(floorRL(plan, id))}`,
+              detail: `It sits where ${level.name}’s floor was${others ? ', and the levels above come down with it' : ''}.${left.level.name === 'First floor' ? ' It’s renamed Ground floor.' : ''}`,
+            },
+            {
+              id: 'keep',
+              label: `Leave it at ${rl(floorRL(plan, left.level.id))}`,
+              detail: `Its floor stays ${left.drop.toFixed(2)} m up and is treated as built on the ground there, so expect a lot of fill until you lower it in Design › Floors.`,
+            },
+          ],
+        }
+      : {}),
     confirm: 'Delete level',
     replaces: true,
   })
   const st = usePlan.getState()
   // The plan can have changed while the sheet was open (another project opened).
   if (!choice || st.plan !== plan) return false
-  st.commit(p => deleteLevel(p, id))
-  st.setActiveLevel(sortedLevels(usePlan.getState().plan!)[0].id)
-  undoToastFor(`${level.name} deleted`, () => usePlan.getState().setActiveLevel(id))
+  // The store goes to the nearest level left when the one showing is deleted.
+  st.commit(p => deleteLevel(p, id, choice === 'lower'))
+  undoToastFor(choice === 'lower' && left ? `${level.name} deleted, and ${left.level.name} brought down to ${rl(floorRL(plan, id))}` : `${level.name} deleted`, () => usePlan.getState().setActiveLevel(id))
   return true
 }

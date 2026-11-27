@@ -7,7 +7,7 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roomsTotal, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
+import { balancedRL as balanceTo, boundarySides, buildingHeight, crossedBoundaries, levelSummaries, movesFloor, roomsTotal, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
 import { earthworksOf, floorRL, isRetaining, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
@@ -49,7 +49,12 @@ export interface KeyNumbers {
    * `impliedTallest` says the tallest is an implied one.
    */
   retaining: { count: number; length: number; maxHeight: number; face: number; engineer: boolean; implied?: ImpliedTotals | null; impliedTallest?: boolean } | null
-  /** The roof that rises highest above the ground (the building's height). */
+  /**
+   * Building height: the highest point of the roofs and the walls above the natural ground, the
+   * same measure Approvals › Checks and Design › Sections give (buildingHeight). Null with no house.
+   */
+  height?: number | null
+  /** The roof that rises highest above the ground. */
   roof: RoofNumbers | null
   /** Every roof that builds, highest first. */
   roofs: RoofNumbers[]
@@ -93,6 +98,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
     }
     return out.sort((a, b) => b.height - a.height)
   }, [plan, survey, terrain])
+  const height = useMemo(() => buildingHeight(plan, survey, terrain), [plan, survey, terrain])
   const floors = useMemo(() => sortedLevels(plan).map(l => ({ id: l.id, name: l.name, rl: floorRL(plan, l.id) })), [plan])
 
   return useMemo(() => {
@@ -138,6 +144,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
               impliedTallest: !!implied && implied.maxHeight > Math.max(0, ...walls.map(w => w.maxHeight)),
             }
           : null,
+      height: height > 0 ? height : null,
       roof: roofs[0] ?? null,
       roofs,
       roofArea: roofs.reduce((t, r) => t + r.area, 0),
@@ -146,5 +153,5 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       placement,
       sun,
     }
-  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, survey, placement, sun])
+  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, height, survey, placement, sun])
 }

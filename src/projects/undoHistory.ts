@@ -6,7 +6,7 @@
 // for what it touched), and IndexedDB keeps that sharing when it stores them, so a hundred
 // steps cost little more than the changes themselves.
 
-import type { Plan } from '../plan/model'
+import { normalizePlan, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { projectsNow, registerRecordKind, saveBesidePlan } from './session'
 
@@ -39,7 +39,9 @@ function restore(value: SavedHistory | undefined) {
   if (!value || value.version !== 1 || !plan || !Array.isArray(value.past) || !Array.isArray(value.future)) return
   // The plan saved after the history did (a reload before it settled): keep the steps that
   // led to what was saved, with that as one more step, and drop Redo, which no longer fits.
-  const fits = value.present && sameDrawing(value.present, plan)
+  // The plan was tidied as it opened (normalizePlan); the saved one is read the same way, so a
+  // reload that changed nothing never adds a step that undoes nothing.
+  const fits = value.present && (sameDrawing(value.present, plan) || sameDrawing(normalizePlan(value.present), plan))
   const past = (fits ? value.past : [...value.past, value.present].filter(Boolean)).slice(-HISTORY_KEEP)
   const future = fits ? value.future.slice(0, HISTORY_KEEP) : []
   restoring = true

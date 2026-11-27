@@ -7,6 +7,7 @@ import type { Vec2 } from '../lib/geom'
 import type { RoomTypeId } from './roomTypes'
 import { fitOpenings, fixesText, type OpeningFix } from './openingFit'
 import {
+  adoptOrphans,
   DOOR_DEFAULT,
   GARAGE_DOOR_DEFAULT,
   normalizePlan,
@@ -148,7 +149,7 @@ let lastFixes: OpeningFix[] = []
  * started from, which for a drag is the plan when it began), so the rest stay as they were saved.
  */
 function tidy(p: Plan, before: Plan, since: Plan = before): Plan {
-  const fitted = fitOpenings(p, since)
+  const fitted = fitOpenings(adoptOrphans(p), since)
   lastFixes = fitted.fixes
   const next = keepFloorTypes(before, followLevels(linkStairs(fitted.plan)))
   return samePlan(next, before) ? before : next
@@ -185,6 +186,23 @@ function reportFixes() {
     unsub()
     dismissToast(id)
   })
+}
+
+/**
+ * The level to draw on once the plan is `next`: the one being drawn on while it's still there,
+ * else the nearest level left, by floor height (`before` is the plan that still had it). Drawing
+ * on a level that's gone would save walls no level shows.
+ */
+export function levelStillThere(next: Plan, before: Plan | null, active: string): string {
+  if (next.levels.some(l => l.id === active) || !next.levels.length) return active
+  const was = before?.levels.find(l => l.id === active)?.elevation ?? 0
+  return next.levels.reduce((best, l) => (Math.abs(l.elevation - was) < Math.abs(best.elevation - was) ? l : best)).id
+}
+
+/** The plan changed to `next`: stay on a level it has. */
+function onLevel(next: Plan, before: Plan | null, st: { activeLevel: string }): Partial<Pick<PlanStore, 'activeLevel' | 'selection' | 'extra'>> {
+  const activeLevel = levelStillThere(next, before, st.activeLevel)
+  return activeLevel === st.activeLevel ? {} : { activeLevel, selection: null, extra: [] }
 }
 
 export const usePlan = create<PlanStore>((setState, getState) => ({
@@ -226,7 +244,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     if (!plan) return
     const next = tidy(fn(plan), plan)
     if (next === plan) return
-    setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
+    setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [], ...onLevel(next, plan, getState()) })
     reportFixes()
   },
 
@@ -251,13 +269,16 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
     const { plan, past, future } = getState()
     if (!plan || past.length === 0) return
     const prev = past[past.length - 1]
-    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], ...keepSelection(prev, getState()) })
+    // The step can take away the level being drawn on (undoing "Add level above"): go to the nearest one left.
+    const activeLevel = levelStillThere(prev, plan, getState().activeLevel)
+    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], activeLevel, ...keepSelection(prev, { ...getState(), activeLevel }) })
   },
 
   redo: () => {
     const { plan, past, future } = getState()
     if (!plan || future.length === 0) return
-    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), ...keepSelection(future[0], getState()) })
+    const activeLevel = levelStillThere(future[0], plan, getState().activeLevel)
+    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), activeLevel, ...keepSelection(future[0], { ...getState(), activeLevel }) })
   },
 
   setTool: tool => setState({ tool, notice: null }),

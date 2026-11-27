@@ -291,6 +291,14 @@ export interface Roof {
    * a typed RL (a section's eaves drag will set this too).
    */
   eaves?: RoofEaves
+  /**
+   * How far the roof's surface sits above its usual height over the wall line (m). 0 on every roof
+   * drawn now: the eaves level is taken at the wall plate, so the roof's top there is the roof's
+   * own depth above the eaves line and a wider overhang runs down past it, never lifting the ridge.
+   * Missing on roofs saved before that, whose eaves level was taken at the overhang's outer edge:
+   * they sit overhang × tan(pitch) higher at the wall and keep that look (see roofPlateLift).
+   */
+  plateLift?: number
 }
 
 /**
@@ -453,7 +461,7 @@ export function emptyPlan(placement: Placement): Plan {
 
 /** Fill in anything an older saved plan is missing. */
 export function normalizePlan(p: Plan): Plan {
-  return linkStairs(migrateFloorTypes({
+  return linkStairs(migrateFloorTypes(adoptOrphans({
     ...p,
     rooms: p.rooms ?? [],
     openings: p.openings ?? [],
@@ -467,7 +475,7 @@ export function normalizePlan(p: Plan): Plan {
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
     ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
     ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
-  }))
+  })))
 }
 
 /** A saved plan's grading, kept only when there's some to keep. */
@@ -555,6 +563,31 @@ export function fromSite(p: Vec2, pl: Placement, origin: Vec2): Vec2 {
   const x = p[0] + origin[0] - pl.e
   const y = p[1] + origin[1] - pl.n
   return [x * c + y * s, -x * s + y * c]
+}
+
+/**
+ * Things saved on a level the plan no longer has (drawn while a level that had just been undone
+ * away was still showing) come back on the lowest level, where the plan opens, rather than
+ * staying in the file where no level shows them. The same plan when there are none.
+ */
+export function adoptOrphans(plan: Plan): Plan {
+  const ids = new Set(plan.levels.map(l => l.id))
+  const lost = (x: { level: string }) => !ids.has(x.level)
+  const kinds = [plan.walls, plan.rooms, plan.areas, plan.roofs, plan.stairs, plan.furniture, plan.notes ?? [], plan.sketch ?? []]
+  if (!ids.size || !kinds.some(k => k.some(lost))) return plan
+  const home = sortedLevels(plan)[0].id
+  const fix = <T extends { level: string }>(xs: T[]): T[] => (xs.some(lost) ? xs.map(x => (lost(x) ? { ...x, level: home } : x)) : xs)
+  return {
+    ...plan,
+    walls: fix(plan.walls),
+    rooms: fix(plan.rooms),
+    areas: fix(plan.areas),
+    roofs: fix(plan.roofs),
+    stairs: fix(plan.stairs),
+    furniture: fix(plan.furniture),
+    ...(plan.notes ? { notes: fix(plan.notes) } : {}),
+    ...(plan.sketch ? { sketch: fix(plan.sketch) } : {}),
+  }
 }
 
 export function levelById(plan: Plan, id: string): Level | undefined {

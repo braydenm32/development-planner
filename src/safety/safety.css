@@ -142,6 +142,11 @@
   align-items: start;
 }
 
+/* No picture beside the choices: they take the full width. */
+.sf-choice-row.plain {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .sf-pic {
   aspect-ratio: 1;
   border: 1px solid var(--sf-line);

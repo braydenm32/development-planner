@@ -43,7 +43,8 @@ import {
   updateWall,
 } from '../plan/ops'
 import { defaultGables, levelOutlines, roofGeometry } from '../plan/roof'
-import { stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
+import { mm1, stairCounts, stairJoins, stairLayout, stairMeetsNoFloor, stairRules, type StairRule } from '../plan/stairs'
+import { stairLandingIssues } from '../plan/stairLanding'
 import { isOpeningTool, usePlan, type Tool } from '../plan/store'
 import { placeAtClearance, signedClearance } from '../plan/placement'
 import { overText } from '../plan/setbacks'
@@ -77,7 +78,7 @@ import { SketchColours, SketchOptions, SketchSelection } from '../sketch/SketchP
 import { colourSketch } from '../sketch/actions'
 import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
-import { roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
+import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -586,9 +587,30 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       const len = o.map((p, i) => Math.hypot(o[(i + 1) % o.length][0] - p[0], o[(i + 1) % o.length][1] - p[1]))
       set({ pts: o, gables: defaultGables(o), lowEdge: len.indexOf(Math.max(...len)) })
     }
+    // A storey built over all of it: it would be inside that storey, so it's flagged and can move up.
+    const over = roofCoveredBy(plan, r)
     return (
       <section className="selection">
         <h2>Roof</h2>
+        {over && (
+          <>
+            <p className="notice small" role="note">
+              {coveredRoofWords(over)}
+            </p>
+            <div className="row">
+              <button
+                className="secondary"
+                onClick={() => {
+                  st.commit(p => moveRoofUp(p, r.id))
+                  st.setActiveLevel(over.id)
+                  st.select({ type: 'roof', id: r.id })
+                }}
+              >
+                Move it up to {over.name}
+              </button>
+            </div>
+          </>
+        )}
         <Select<RoofType> label="Type" value={r.type} options={ROOF_TYPES} onChange={type => set({ type })} />
         {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} max={MAX_PITCH} onCommit={pitch => set({ pitch })} />}
         <Num label="Overhang" unit="mm" value={r.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => set({ overhang })} />
@@ -656,7 +678,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <ul className="stair-rules" aria-label="NCC stair limits">
           {rules.map(r => (
             <li key={r.id} className={r.ok ? 'ok' : 'bad'}>
-              {r.ok ? '✓' : '✗'} {r.label} {Math.round(r.value * 1000)} mm <span>({Math.round(r.range[0] * 1000)}–{Math.round(r.range[1] * 1000)})</span>
+              {r.ok ? '✓' : '✗'} {r.label} {mm1(r.value)} mm <span>({Math.round(r.range[0] * 1000)}–{Math.round(r.range[1] * 1000)})</span>
             </li>
           ))}
         </ul>
@@ -705,12 +727,17 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         {stairMeetsNoFloor(plan, s) && (
           <p className="notice small">Its top (RL {top.toFixed(2)}) meets no floor. Pick the level it goes up to, or add a level above.</p>
         )}
+        {stairLandingIssues(plan, s).map(issue => (
+          <p key={issue.id} className="notice small" role="note">
+            {issue.text}
+          </p>
+        ))}
         <Num label="Direction" unit="°" value={s.angle} onCommit={angle => set({ angle: ((angle % 360) + 360) % 360 })} />
         <dl className="stats">
           <FragmentRow label="Treads" value={counts.treads} />
           {length !== null && <FragmentRow label="Length" value={`${length.toFixed(2)} m`} />}
         </dl>
-        <p className="muted small">The limits are the NCC’s for a house stair: risers 115–190 mm, going 240–355 mm, and 2 risers + going 550–700 mm, the range people find comfortable.</p>
+        <p className="muted small">The limits are the NCC’s for a house stair: risers 115–190 mm, going 240–355 mm, 2 risers + going 550–700 mm (the range people find comfortable), and no more than 18 risers in a flight.</p>
         <div className="row">
           <button className="secondary" onClick={() => set({ angle: (s.angle + 90) % 360 })}>
             Rotate 90°

@@ -15,7 +15,7 @@ import type { RetainingProfile } from './retaining'
 import type { ImpliedTotals } from '../grading/implied'
 import { isGarageRoom, roomIsGarage, roomWet, WET_ROOMS, wetRoomOf, type WetRoom } from './roomTypes'
 import { roofGeometry } from './roof'
-import { insideEdgeMid, wallTopAt } from './roofline'
+import { insideEdgeMid, roofCoveredBy, wallTopAt } from './roofline'
 
 // A room's kind (wet rooms, garages) is its type's, or for a room with none its name's: src/plan/roomTypes.ts.
 export { isGarageRoom, WET_ROOMS, wetRoomOf, type WetRoom }
@@ -280,7 +280,8 @@ export function designQuantities(
   const roofs = { ...counted(), first: null as Roof | null }
   for (const r of plan.roofs) {
     const g = roofGeometry(r)
-    if (g.error) continue
+    // A roof with a storey built over all of it isn't a roof that gets built (Design › Roofs flags it).
+    if (g.error || roofCoveredBy(plan, r)) continue
     roofs.count++
     roofs.area += g.area
     roofs.ids.push(r.id)

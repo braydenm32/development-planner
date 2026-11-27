@@ -6,10 +6,10 @@ import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
 import { buildingOutline, faceAround, planarFaces, roomShape, type Face } from './geometry'
-import { floorRL, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
+import { floorRL, houseWalls, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
 import { roofGeometry, type RoofGeometry } from './roof'
-import { roofEavesRL } from './roofline'
+import { roofEavesRL, wallTopRL } from './roofline'
 
 export interface LevelSummary {
   level: Level
@@ -81,6 +81,30 @@ export function tallestRoof(plan: Plan, survey: Survey, terrain: Terrain): { roo
     if (!best || height > best.height) best = { roof: r, height }
   }
   return best
+}
+
+/**
+ * Building height: the highest point of the house above the natural ground straight under it,
+ * read at every roof's corners and ridges and at the tops of the walls. The one figure for the
+ * summary strip, the Overview, Design › Roofs, Approvals › Checks and Design › Sections, so a
+ * storey with no roof yet (or a roof left on the storey below) still counts. 0 with nothing drawn.
+ */
+export function buildingHeight(plan: Plan, survey: Survey, terrain: Terrain): number {
+  let h = 0
+  for (const r of plan.roofs) {
+    const g = roofGeometry(r)
+    if (!g.error) h = Math.max(h, roofAboveGround(plan, r, g, survey, terrain))
+  }
+  for (const w of houseWalls(plan.walls)) {
+    const level = plan.levels.find(l => l.id === w.level)
+    if (!level) continue
+    const top = wallTopRL(plan, w)
+    for (const p of [w.a, w.b]) {
+      const s = toSite(p, plan.placement, survey.origin)
+      h = Math.max(h, top - terrain.grid.sample(s[0], s[1]))
+    }
+  }
+  return h
 }
 
 /** Which sides of the block the batters run into, by the way each side faces ("north"). */

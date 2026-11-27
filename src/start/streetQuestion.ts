@@ -23,12 +23,49 @@ interface StreetAsk {
    * clicks on the block's sides answer it: before, they belong to the plan (C19).
    */
   answering: boolean
+  /**
+   * The projects still waiting on the question, kept in this browser so it's still there after a
+   * reload (or another day) until it's answered or put off with "Not sure yet".
+   */
+  waiting: string[]
 }
 
-export const useStreetAsk = create<StreetAsk>(() => ({ project: null, chosen: null, hover: null, answering: false }))
+const KEY = 'street-ask-v1'
 
-export const askStreetSide = (project: string | null) => useStreetAsk.setState({ project, chosen: null, hover: null, answering: false })
-export const streetAsked = () => useStreetAsk.setState({ project: null, chosen: null, hover: null, answering: false })
+function loadWaiting(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(KEY) ?? '[]') as unknown
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(-50) : []
+  } catch {
+    return []
+  }
+}
+
+function keepWaiting(ids: string[]): string[] {
+  const waiting = ids.slice(-50)
+  try {
+    if (waiting.length) localStorage.setItem(KEY, JSON.stringify(waiting))
+    else localStorage.removeItem(KEY)
+  } catch {
+    // Kept for this visit only.
+  }
+  return waiting
+}
+
+export const useStreetAsk = create<StreetAsk>(() => ({ project: null, chosen: null, hover: null, answering: false, waiting: loadWaiting() }))
+
+export const askStreetSide = (project: string | null) => {
+  const was = useStreetAsk.getState().waiting
+  const waiting = project ? keepWaiting([...was.filter(id => id !== project), project]) : was
+  useStreetAsk.setState({ project, chosen: null, hover: null, answering: false, waiting })
+}
+/** Answered, or put off: the question goes for the project it was asked about, and the one open. */
+export const streetAsked = () => {
+  const st = useStreetAsk.getState()
+  const done = [st.project, projectsNow().currentId]
+  const waiting = st.waiting.some(id => done.includes(id)) ? keepWaiting(st.waiting.filter(id => !done.includes(id))) : st.waiting
+  useStreetAsk.setState({ project: null, chosen: null, hover: null, answering: false, waiting })
+}
 /** Open or close the question in the list. */
 export const answerStreet = (answering: boolean) => useStreetAsk.setState({ answering, ...(answering ? {} : { hover: null }) })
 /** Pick a side, on the card or by clicking it on the plan. */
@@ -60,7 +97,9 @@ export function edgeNear(pts: [number, number][], x: number, y: number, tol: num
 /** Whether the question waits on this plan: asked for the project open, and not yet answered. */
 export function useStreetPending(plan: Plan | null, boundary: Survey['boundary']) {
   const project = useStreetAsk(s => s.project)
-  return !!project && !!plan && project === projectsNow().currentId && frontEdgeOf(plan, boundary) === undefined
+  const waiting = useStreetAsk(s => s.waiting)
+  const current = projectsNow().currentId
+  return !!plan && !!current && (project === current || waiting.includes(current)) && frontEdgeOf(plan, boundary) === undefined
 }
 
 /** Whether the question is open now, in the question list, so the block's sides can be clicked to answer it. */

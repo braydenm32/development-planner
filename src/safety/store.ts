@@ -40,6 +40,8 @@ export interface Review {
   /** Ways to line things up; the first is the one we suggest unless `choice` says otherwise. */
   choices?: ReviewChoice[]
   choice?: string
+  /** What the choices are about, when it isn't how the block and house line up. */
+  choicesLegend?: string
   /** A picture of the result when there are no choices. */
   thumb?: ProjectThumbnail | null
   /** The confirming button's words. */

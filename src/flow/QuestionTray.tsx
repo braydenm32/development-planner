@@ -11,6 +11,7 @@ import type { Terrain } from '../lib/terrain'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { groundedLevels } from '../plan/levelMenu'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { StreetAsk } from '../start/StreetAsk'
@@ -38,9 +39,11 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   const hints = useHintPrefs()
   const facts = useQuestionContext(s => s.facts)
   const tool = usePlan(s => s.tool)
+  // A split level that sits on the ground is asked its floor type too, and keeps waiting through a reload.
+  const onGround = useMemo(() => groundedLevels(plan, survey, terrain.grid), [plan, survey, terrain])
   const qs = useMemo(
-    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, offer, hints, facts }),
-    [plan, level, street, ask, dismissed, offer, hints, facts],
+    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, onGround, offer, hints, facts }),
+    [plan, level, street, ask, dismissed, onGround, offer, hints, facts],
   )
   const [open, setOpen] = useState(false)
   const [answering, setAnswering] = useState<string | null>(null)

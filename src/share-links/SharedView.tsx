@@ -440,7 +440,7 @@ function Numbers({
   // A number already on the canvas steps back in the strip, as in the app (CALM 5).
   const shown: Partial<Record<NumberId, string>> = {}
   if (canvas === 'plan' && sortedLevels(plan)[0]?.id === level) shown.ffl = 'on plan'
-  if (canvas === 'plan' && selectedRoof && numbers.roof?.roof.id === selectedRoof) shown['roof-height'] = 'selected'
+  if (canvas === 'plan' && selectedRoof && numbers.roof?.roof.id === selectedRoof && Math.abs(numbers.roof.height - (numbers.height ?? 0)) < 0.005) shown['roof-height'] = 'selected'
   const route: AppRoute = { kind: 'app', area: 'design', tab: 'plan', view: canvas }
   return (
     <>
