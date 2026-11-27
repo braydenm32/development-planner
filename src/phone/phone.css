@@ -1141,8 +1141,8 @@ body:has(.app-shell.phone) {
 @media (pointer: coarse) {
   .app-shell:not(.phone) .undo-redo button,
   .app-shell:not(.phone) .icon-button {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 
   .app-shell:not(.phone) .search-button,
@@ -1150,11 +1150,23 @@ body:has(.app-shell.phone) {
   .app-shell:not(.phone) .steps-button,
   .app-shell:not(.phone) .canvas-controls button,
   .app-shell:not(.phone) .top-bar .cl-chip {
-    height: 42px;
+    min-width: 44px;
+    height: 44px;
   }
 
   .app-shell:not(.phone) .view-switch button {
-    height: 36px;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  /* The tools at 44 px: a short screen scrolls the rail rather than closing its buttons up. */
+  .app-shell:not(.phone) .tool-rail.full button {
+    height: 44px;
+  }
+
+  .app-shell:not(.phone) .tool-rail {
+    max-height: calc(100% - 2 * var(--gap));
+    overflow-y: auto;
   }
 
   .app-shell:not(.phone) .chip,
@@ -1187,9 +1199,12 @@ body:has(.app-shell.phone) {
 }
 
 /* iOS zooms the page when a field under 16 px takes focus, and the page's own pinch is off, so
-   there is no way back out (PH-08). Every typed or picked field is 16 px on a phone. */
-.app-shell.phone :is(input, select, textarea):not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']) {
-  font-size: 16px !important;
+   there is no way back out (PH-08). Every typed or picked field is 16 px under a finger, a tablet
+   on its side too. */
+@media (max-width: 760px), (pointer: coarse) {
+  .app-shell:is(.phone, :not(.phone)) :is(input, select, textarea):not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']) {
+    font-size: 16px !important;
+  }
 }
 
 /* The keyboard covers the foot of the screen without moving the layout: the shell stops above
@@ -1258,69 +1273,75 @@ body:has(.app-shell.phone) {
   }
 }
 
-/* Buttons that are a row of choices grow to 44 px. */
-.app-shell.phone .sec-picks button,
-.app-shell.phone .print-actions .segmented button,
-.app-shell.phone .print-crop .segmented button,
-.app-shell.phone .parts .part-group > button {
-  min-height: 44px;
-}
+/* These are about the finger, not the width: a touch screen of any size gets them, a tablet on
+   its side in the computer's layout too (final check, problem 3). A narrow window is in the list
+   for a phone-sized desktop window, which has the phone's layout. `:is(.phone, :not(.phone))` is
+   every shell, at the weight `.app-shell.phone` had, so the phone's sizes in shell.css still give way. */
+@media (max-width: 760px), (pointer: coarse) {
+  /* Buttons that are a row of choices grow to 44 px. */
+  .app-shell:is(.phone, :not(.phone)) .sec-picks button,
+  .app-shell:is(.phone, :not(.phone)) .print-actions .segmented button,
+  .app-shell:is(.phone, :not(.phone)) .print-crop .segmented button,
+  .app-shell:is(.phone, :not(.phone)) .parts .part-group > button {
+    min-height: 44px;
+  }
 
-.app-shell.phone .sec-picks button {
-  min-width: 44px;
-}
+  .app-shell:is(.phone, :not(.phone)) .sec-picks button {
+    min-width: 44px;
+  }
 
-/* A fold's own line is its handle: tall enough to tap, with its marker where it was. */
-.app-shell.phone .panel-body summary,
-.app-shell.phone .menu-pop summary {
-  padding-block: 11px;
-}
+  /* A fold's own line is its handle: tall enough to tap, with its marker where it was. */
+  .app-shell:is(.phone, :not(.phone)) .panel-body summary,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop summary {
+    padding-block: 11px;
+  }
 
-/* Links in a line of text, and the small buttons along the section strip and Costs, keep their
-   look: an unseen margin round each takes the tap, so nothing on the page moves. */
-.app-shell.phone .panel-body button.link,
-.app-shell.phone .menu-pop button.link,
-.app-shell.phone .sstrip button.link,
-.app-shell.phone .sstrip-head .fold,
-.app-shell.phone .costs-strip .chip,
-.app-shell.phone .ce-fold,
-.app-shell.phone .ce-total button.link {
-  position: relative;
-}
+  /* Links in a line of text, and the small buttons along the section strip and Costs, keep their
+     look: an unseen margin round each takes the tap, so nothing on the page moves. */
+  .app-shell:is(.phone, :not(.phone)) .panel-body button.link,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link,
+  .app-shell:is(.phone, :not(.phone)) .sstrip button.link,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip,
+  .app-shell:is(.phone, :not(.phone)) .ce-fold,
+  .app-shell:is(.phone, :not(.phone)) .ce-total button.link {
+    position: relative;
+  }
 
-.app-shell.phone .panel-body button.link::after,
-.app-shell.phone .menu-pop button.link::after,
-.app-shell.phone .sstrip button.link::after,
-.app-shell.phone .sstrip-head .fold::after,
-.app-shell.phone .sstrip-band::after,
-.app-shell.phone .costs-strip .chip::after,
-.app-shell.phone .ce-fold::after,
-.app-shell.phone .ce-total button.link::after {
-  content: '';
-  position: absolute;
-  inset: -12px -4px;
-}
+  .app-shell:is(.phone, :not(.phone)) .panel-body button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-band::after,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip::after,
+  .app-shell:is(.phone, :not(.phone)) .ce-fold::after,
+  .app-shell:is(.phone, :not(.phone)) .ce-total button.link::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
 
-.app-shell.phone .sstrip-band::after,
-.app-shell.phone .costs-strip .chip::after {
-  inset: -8px 0;
-}
+  .app-shell:is(.phone, :not(.phone)) .sstrip-band::after,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip::after {
+    inset: -8px 0;
+  }
 
-/* ---- Nothing meant to be read is under 12 px on a phone (PH-27): the page can't be pinched larger ---- */
+  /* Nothing meant to be read is under 12 px (PH-27): the page can't be pinched larger. */
 
-.app-shell.phone :is(.site-label, .stair-label, .stair-dest, .setback-label, .drainage-label, .grade-suggest-text, .sstrip-boundary text, .sstrip-cut .tag, .sstrip.phone .sstrip-band, .needle span, .map-credit, .parts .part-each, .check-pin, .drive-profile text, .grade-suggest-n-text, .ck-pin text, .ground-meets-label, .furniture-code, .drive-arrows text, .rw-htag text, .drainage-fall text) {
-  font-size: 12px;
-}
+  .app-shell:is(.phone, :not(.phone)) :is(.site-label, .stair-label, .stair-dest, .setback-label, .drainage-label, .grade-suggest-text, .sstrip-boundary text, .sstrip-cut .tag, .sstrip.phone .sstrip-band, .needle span, .map-credit, .parts .part-each, .check-pin, .drive-profile text, .grade-suggest-n-text, .ck-pin text, .ground-meets-label, .furniture-code, .drive-arrows text, .rw-htag text, .drainage-fall text) {
+    font-size: 12px;
+  }
 
-/* The tools' names at 12 px need a slightly wider rail (RAIL_CLEAR.phone in src/shell/AppShell.tsx follows). */
-.app-shell.phone .tool-rail button {
-  width: 54px;
-}
+  /* The tools' names at 12 px need a slightly wider rail (RAIL_CLEAR.phone in src/shell/AppShell.tsx follows). */
+  .app-shell:is(.phone, :not(.phone)) .tool-rail button {
+    width: 54px;
+  }
 
-.app-shell.phone .tool-rail .tool-name {
-  max-width: 54px;
-  font-size: 12px;
-  letter-spacing: -0.02em;
+  .app-shell:is(.phone, :not(.phone)) .tool-rail .tool-name {
+    max-width: 54px;
+    font-size: 12px;
+    letter-spacing: -0.02em;
+  }
 }
 
 .app-shell.phone .has-rail .plan-actions {

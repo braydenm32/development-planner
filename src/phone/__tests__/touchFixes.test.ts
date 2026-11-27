@@ -120,9 +120,9 @@ describe('sheets on a phone', () => {
     expect(keyboardInset(664, 364)).toBe(300)
   })
 
-  it('every field is 16 px in the phone layout, so iOS does not zoom the page (PH-08)', () => {
+  it('every field is 16 px in the phone layout and on any touch screen, so iOS does not zoom the page (PH-08, final check 3)', () => {
     const css = readFileSync('src/phone/phone.css', 'utf8')
-    expect(css).toMatch(/\.app-shell\.phone :is\(input, select, textarea\)[^{]*\{\s*font-size: 16px !important;/)
+    expect(css).toMatch(/@media \(max-width: 760px\), \(pointer: coarse\) \{\s*\.app-shell:is\(\.phone, :not\(\.phone\)\) :is\(input, select, textarea\)[^{]*\{\s*font-size: 16px !important;/)
     expect(css).toContain('height: calc(100% - var(--keyboard-inset, 0px));')
   })
 

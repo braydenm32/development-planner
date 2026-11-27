@@ -96,8 +96,11 @@
   flex: none;
 }
 
+/* The key gives way before the buttons at the end do: on a narrow strip it is cut, never "Fold away". */
 .sstrip-key {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   gap: 12px;
   margin: 0;
   padding: 0;
