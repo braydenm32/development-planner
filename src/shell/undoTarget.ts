@@ -17,6 +17,7 @@ import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
 import { fileStepNow, forgetFileStep, undoFileStep } from '../safety/fileUndo'
 import { showToast } from '../safety/store'
+import { announce } from '../a11y/announce'
 import { nameCostsStep, namePlanStep, nameSiteStep, placeLabel, stepOnScreen, type StepName } from './undoSteps'
 // Undo and Redo that change another floor go to it and say so.
 import '../plan/undoLevel'
@@ -130,12 +131,19 @@ function stepNow(k: UndoKind, which: 'undo' | 'redo'): StepName | null {
 /** After a step was undone or redone: when it doesn't show on the screen open now, say what it was and where. */
 function say(step: StepName | null, word: 'Undone' | 'Redone') {
   const route = useRouter.getState().route
-  if (!step || route.kind !== 'app' || stepOnScreen(step, route.area)) return
+  if (!step || route.kind !== 'app' || stepOnScreen(step, route.area)) {
+    // On this screen the change shows, but not to a screen reader: say what it was (a toast speaks for itself).
+    announce(undoWords(step, word))
+    return
+  }
   showToast({
     text: `${word}: ${step.what}, in ${placeLabel(step)}.`,
     link: { label: 'Show', go: () => navigate(tabRoute(useRouter.getState().route, step.area, step.tab)) },
   })
 }
+
+/** "Undone: move wall.", for the live region. */
+export const undoWords = (step: StepName | null, word: 'Undone' | 'Redone'): string => (step ? `${word}: ${step.what}.` : `${word}.`)
 
 const sayFailed = (e: unknown) => void showToast({ text: `That couldn’t be undone: ${(e as Error)?.message || 'storage error'}.`, error: true })
 

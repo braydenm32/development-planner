@@ -73,3 +73,18 @@ describe('what is said', () => {
     expect([0, 1, 12].map(resultCountWords)).toEqual(['No results', '1 result', '12 results'])
   })
 })
+
+describe('typed edits and undo, said (final check, problem 7)', () => {
+  it('says the value a box kept, in its unit', async () => {
+    const { typedWords } = await import('../announce')
+    expect(typedWords('Length', '9000', 'mm')).toBe('Length set to 9000 mm.')
+    expect(typedWords('Floor level', '45.34', 'RL')).toBe('Floor level set to RL 45.34.')
+    expect(typedWords('Batter slope', '2.00', ':1')).toBe('Batter slope set to 2.00:1.')
+  })
+
+  it('names the step undone or redone', async () => {
+    const { undoWords } = await import('../../shell/undoTarget')
+    expect(undoWords({ what: 'move wall', area: 'design', tab: 'plan' }, 'Undone')).toBe('Undone: move wall.')
+    expect(undoWords(null, 'Redone')).toBe('Redone.')
+  })
+})

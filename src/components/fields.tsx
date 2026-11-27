@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Termed } from '../guide/Term'
+import { announce, typedWords } from '../a11y/announce'
 import './editing.css'
 import { settled } from './fieldKeys'
 import { readNumber, type NumUnit } from './readNumber'
@@ -69,13 +70,15 @@ interface NumProps {
  */
 export function Num({ label, value, unit, onCommit, min, max, check, decimals, tidy, range }: NumProps) {
   const exact = decimals !== undefined
-  const shown = exact
-    ? String(Number(value.toFixed(decimals)))
-    : unit === 'mm'
-      ? Math.round(value * 1000).toString()
-      : unit === '°'
-        ? value.toFixed(1)
-        : value.toFixed(2)
+  const show = (v: number) =>
+    exact
+      ? String(Number(v.toFixed(decimals)))
+      : unit === 'mm'
+        ? Math.round(v * 1000).toString()
+        : unit === '°'
+          ? v.toFixed(1)
+          : v.toFixed(2)
+  const shown = show(value)
   // Once something is typed, the box shows that; until then the current value, so an Undo made
   // from the box shows in it, and leaving it untouched changes nothing.
   const [editing, setEditing] = useState<string | null>(null)
@@ -104,7 +107,11 @@ export function Num({ label, value, unit, onCommit, min, max, check, decimals, t
     // Unusable: keep the text and the reason showing.
     if (!r.ok) return false
     setEditing(null)
-    if (Math.abs(r.value - value) > 1e-9) onCommit(r.value)
+    if (Math.abs(r.value - value) > 1e-9) {
+      onCommit(r.value)
+      // The box shows the new value, but a screen reader isn't told the change was kept.
+      announce(typedWords(label, show(r.value), unit))
+    }
     return true
   }
   const commit = () => {
