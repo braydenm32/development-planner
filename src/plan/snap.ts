@@ -33,6 +33,23 @@ export interface SnapContext {
 
 const round = (v: number, step: number) => Math.round(v / step) * step
 
+/**
+ * Where a typed length from `a` ends, towards the pointer at `toward`. The direction keeps to the
+ * nearest 0/45/90° step, the same steps the pointer snaps to, so a hand slightly off square doesn't
+ * skew the wall; `free` (Shift held) follows the pointer exactly.
+ */
+export function typedLengthEnd(a: Vec2, toward: Vec2, len: number, free: boolean): Vec2 | null {
+  const dx = toward[0] - a[0]
+  const dy = toward[1] - a[1]
+  if (!(len > 0) || Math.hypot(dx, dy) < 1e-6) return null
+  const ang = free ? Math.atan2(dy, dx) : round(Math.atan2(dy, dx), Math.PI / 4)
+  const c = Math.cos(ang)
+  const s = Math.sin(ang)
+  // Clean the zeros a cos/sin of a right angle leaves, so the wall is exactly square.
+  const tidy = (v: number) => (Math.abs(v) < 1e-12 ? 0 : v)
+  return [a[0] + tidy(c) * len, a[1] + tidy(s) * len]
+}
+
 export function snap(raw: Vec2, ctx: SnapContext): SnapResult {
   if (ctx.free) return { p: [round(raw[0], 0.001), round(raw[1], 0.001)], kind: 'free', guides: [] }
 

@@ -54,7 +54,7 @@ import { roofAtPoint } from '../plan/roofPick'
 import { showToast } from '../safety/store'
 import { setRoomType, suggestedRoomName } from '../plan/roomTypes'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
-import { snap, type SnapResult } from '../plan/snap'
+import { snap, typedLengthEnd, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
 import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel, undoToastFor } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
@@ -788,13 +788,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     askAfterChain()
   }
 
-  /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it. */
+  /** Where the side being drawn from `a` ends: at the pointer, or at a typed length towards it (square to the nearest step unless Shift is held). */
   function typedEnd(a: Vec2, toward: Vec2): Vec2 | null {
     const l = Math.hypot(toward[0] - a[0], toward[1] - a[1])
     if (!typed) return l > 1e-6 ? toward : null
-    const len = parseFloat(typed) / 1000
-    if (!(len > 0) || l < 1e-6) return null
-    return [a[0] + ((toward[0] - a[0]) / l) * len, a[1] + ((toward[1] - a[1]) / l) * len]
+    return typedLengthEnd(a, toward, parseFloat(typed) / 1000, cursor?.kind === 'free')
   }
 
   const placeWallPoint = (p: Vec2) => {
@@ -1935,7 +1933,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       // View on a phone changes nothing; Esc still clears the selection.
       if (viewOnly && e.key !== 'Escape') return
-      // A typed length sets the next wall or outline side, in the direction of the pointer.
+      // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
       const drawnFrom = tool === 'wall' || tool === 'retaining' ? chain.at(-1) : tool === 'area' || tool === 'roof' ? areaPts.at(-1) : undefined
       if (drawnFrom) {
         if (/^[0-9.]$/.test(e.key)) {
