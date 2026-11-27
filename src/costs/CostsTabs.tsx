@@ -1008,7 +1008,7 @@ export function AboutCostsSection() {
       <h3>Not included</h3>
       <p className="small">The land and stamp duty, water and sewer contributions, contributions the app has no figure for, heating and cooling, window coverings, furniture, a pool, and anything not drawn.</p>
       <h3>Sources</h3>
-      <p className="small">Starting rates are rough figures for NSW as at {RATES_AS_AT}, GST included, raised by half late that month because estimates came in well under what one-off houses cost. Where a public guide gave a range, Rates names it, and most rates now sit above it; the rest say plainly that they are rough. Replace them with quotes as you get them.</p>
+      <p className="small">Starting rates are rough figures for NSW as at {RATES_AS_AT}, GST included. Where a public guide gave a range, Rates names it and the rate sits in or near it. Fixed prices such as fees and the owner-builder permit are as published. The rest say plainly that they are rough, and were raised by half late that month because estimates came in well under what one-off houses cost. Replace them with quotes as you get them.</p>
       <ul className="costs-sources">
         {SOURCES.map(s => (
           <li key={s.url}>

@@ -514,20 +514,31 @@ describe('the rates', () => {
     }
   })
 
-  it('were raised by half in November 2026, to a round figure: $5 under $1,000, $50 above', () => {
-    expect([R('prelims'), R('cut'), R('frame-timber'), R('win-aluminium'), R('bathroom'), R('kitchen'), R('fees'), R('permit')]).toEqual([255, 85, 390, 1150, 33000, 42000, 21000, 750])
+  it('with no guide behind them were raised by half in November 2026, to a round figure: $5 under $1,000, $50 above', () => {
+    expect([R('prelims'), R('frame-timber'), R('win-aluminium'), R('bathroom'), R('kitchen')]).toEqual([255, 390, 1150, 33000, 42000])
     for (const r of STARTING_RATES) expect(r.rate % (r.rate < 1000 ? 5 : 50), r.id).toBe(0)
+  })
+
+  it('with a fixed price or a public guide behind them were not raised', () => {
+    // Fees and hire are fixed prices; earthworks, retaining walls, slabs, roofing and the driveway follow their guides.
+    expect([R('fees'), R('permit'), R('site-setup')]).toEqual([14000, 500, 9500])
+    expect([R('cut'), R('fill'), R('spoil'), R('import')]).toEqual([55, 45, 85, 75])
+    expect([R('retaining-sleeper'), R('retaining-block'), R('floor-slab'), R('floor-waffle')]).toEqual([450, 650, 185, 155])
+    expect([R('roof-colorbond'), R('roof-concrete-tile'), R('driveway'), R('outdoor-slab')]).toEqual([115, 120, 125, 115])
+    // A guide's range is named on the rate, and nothing claims to sit above it any more.
+    for (const r of STARTING_RATES) expect(r.source, r.id).not.toMatch(/raised by half/)
   })
 
   it('reach a saved project as they are, except the ones its owner typed in', () => {
     // A project saved before the rise holds only the rates its owner changed: those stay as typed.
-    const d = normalizeCosts({ version: 1, who: 'builder', rates: { cut: 55, bathroom: 18000 } })
-    expect(d.rates).toEqual({ cut: 55, bathroom: 18000 })
+    const d = normalizeCosts({ version: 1, who: 'builder', rates: { cut: 60, bathroom: 18000 } })
+    expect(d.rates).toEqual({ cut: 60, bathroom: 18000 })
     const e = estimate(quantities(), d)
-    expect(line(e, 'cut').rate).toBe(55)
+    expect(line(e, 'cut').rate).toBe(60)
     expect(line(e, 'bathroom').rate).toBe(18000)
     expect(line(e, 'fill').rate).toBe(R('fill'))
-    expect(R('fill')).toBe(70)
+    expect(line(e, 'prelims').rate).toBe(R('prelims'))
+    expect(R('prelims')).toBe(255)
   })
 })
 

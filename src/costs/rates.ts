@@ -7,12 +7,14 @@
 // fees), the rest being labour. An owner-builder sees the two apart. Where a public guide gave
 // a range, the source line names it; where none was found it says so plainly ("Rough figure").
 //
-// Raised by half in late November 2026 (every rate × 1.5, to the nearest $5 under $1,000 and
-// the nearest $50 above): the estimates came in well under what one-off houses cost to build.
-// So most rates that name a public guide now sit at or above its range. They are rough
-// starting figures, to be replaced with quotes.
+// Late in November 2026 the house-building rates that had no public guide behind them (prelims,
+// frame, upper floors, walls, windows and doors, fit-out, services, deck and garden) were raised
+// by half, to the nearest $5 under $1,000 and the nearest $50 above: estimates came in well under
+// what one-off houses cost to build. Fixed prices (fees, the owner-builder permit, site hire) and
+// rates with a public guide behind them (earthworks, retaining walls, slabs, metal and concrete
+// tile roofing, the driveway) were left where the guides put them.
 
-/** When the starting rates were set (raised by half late in the month). */
+/** When the starting rates were set. */
 export const RATES_AS_AT = 'November 2026'
 
 /** How far either way the true cost could reasonably land: the estimate's ± range. */
@@ -72,21 +74,21 @@ const OB_PERMIT = 'NSW owner-builder permit $233 (July 2026 to June 2027 fees, n
 // the guide below. Part of the gap is the guide itself (custom-built houses), part was items a
 // builder prices that no line counted: preliminaries and the fix-out. Those are lines now, and
 // the frame, slab, linings and electrical rates moved up to the middle of what trades quote.
-// Every rate was then raised by half (see the top of this file).
+// The rates with no guide behind them were then raised by half (see the top of this file).
 export const STARTING_RATES = [
   // Preliminaries
   { id: 'prelims', group: 'prelims', label: 'Preliminaries: supervision, insurance, scaffolding and cleaning', unit: 'm²', rate: 255, materials: 0.5, source: 'Rough figure per m² of floor: a builder’s site supervision, home warranty insurance (HBCF), scaffolding, cleaning and the like, often 6–10% of a house.' },
   // Site works
-  { id: 'site-setup', group: 'site', label: 'Site set-up: temporary fence, toilet, skips', unit: 'item', rate: 14250, materials: 0.6, source: 'Rough figure: hire for about six months.' },
-  { id: 'cut', group: 'site', label: 'Dig out (cut), machine and operator', unit: 'm³', rate: 85, materials: 0.35, source: 'Oneflare excavation guide: $30–50/m³ in plain soil, up to $150/m³ with rock or roots.' },
-  { id: 'fill', group: 'site', label: 'Fill from the site, placed and compacted', unit: 'm³', rate: 70, materials: 0.3, source: 'Rough figure, near the cost of digging it.' },
-  { id: 'spoil', group: 'site', label: 'Take away spare earth: trucks and tip fees', unit: 'm³', rate: 130, materials: 0.65, source: 'Rough figure for clean fill to a Sydney or Illawarra tip.' },
-  { id: 'import', group: 'site', label: 'Bring in fill, placed and compacted', unit: 'm³', rate: 115, materials: 0.6, source: 'Rough figure.' },
-  { id: 'retaining-sleeper', group: 'site', label: 'Retaining walls, concrete sleepers and steel posts', unit: 'm² face', rate: 675, materials: 0.5, source: 'Yellow Pages retaining wall guide, May 2026: sleeper walls $220–650/m². Set above it since the rates were raised by half.' },
-  { id: 'retaining-block', group: 'site', label: 'Retaining walls, reinforced concrete block', unit: 'm² face', rate: 975, materials: 0.45, source: 'Yellow Pages retaining wall guide, May 2026: reinforced block $480–700/m², Besser block $550–850/m². Set above it since the rates were raised by half.' },
+  { id: 'site-setup', group: 'site', label: 'Site set-up: temporary fence, toilet, skips', unit: 'item', rate: 9500, materials: 0.6, source: 'Rough figure: hire for about six months.' },
+  { id: 'cut', group: 'site', label: 'Dig out (cut), machine and operator', unit: 'm³', rate: 55, materials: 0.35, source: 'Oneflare excavation guide: $30–50/m³ in plain soil, up to $150/m³ with rock or roots.' },
+  { id: 'fill', group: 'site', label: 'Fill from the site, placed and compacted', unit: 'm³', rate: 45, materials: 0.3, source: 'Rough figure, near the cost of digging it.' },
+  { id: 'spoil', group: 'site', label: 'Take away spare earth: trucks and tip fees', unit: 'm³', rate: 85, materials: 0.65, source: 'Rough figure for clean fill to a Sydney or Illawarra tip.' },
+  { id: 'import', group: 'site', label: 'Bring in fill, placed and compacted', unit: 'm³', rate: 75, materials: 0.6, source: 'Rough figure.' },
+  { id: 'retaining-sleeper', group: 'site', label: 'Retaining walls, concrete sleepers and steel posts', unit: 'm² face', rate: 450, materials: 0.5, source: 'Yellow Pages retaining wall guide, May 2026: sleeper walls $220–650/m².' },
+  { id: 'retaining-block', group: 'site', label: 'Retaining walls, reinforced concrete block', unit: 'm² face', rate: 650, materials: 0.45, source: 'Yellow Pages retaining wall guide, May 2026: reinforced block $480–700/m², Besser block $550–850/m².' },
   // Slab and floor
-  { id: 'floor-slab', group: 'floor', label: 'Slab on ground', unit: 'm²', rate: 280, materials: 0.5, source: 'Yellow Pages slab guide, May 2026: $75–110/m², plus site preparation, steel, formwork, a pump and termite protection.' },
-  { id: 'floor-waffle', group: 'floor', label: 'Waffle pod slab', unit: 'm²', rate: 235, materials: 0.5, source: 'Rough figure: a little under a slab on ground.' },
+  { id: 'floor-slab', group: 'floor', label: 'Slab on ground', unit: 'm²', rate: 185, materials: 0.5, source: 'Yellow Pages slab guide, May 2026: $75–110/m², plus site preparation, steel, formwork, a pump and termite protection.' },
+  { id: 'floor-waffle', group: 'floor', label: 'Waffle pod slab', unit: 'm²', rate: 155, materials: 0.5, source: 'Rough figure: a little under a slab on ground.' },
   { id: 'floor-piers', group: 'floor', label: 'Bearers and joists on piers, with flooring', unit: 'm²', rate: 300, materials: 0.5, source: 'Rough figure.' },
   { id: 'floor-suspended', group: 'floor', label: 'Suspended slab', unit: 'm²', rate: 570, materials: 0.45, source: 'Rough figure: formwork, propping and more steel.' },
   { id: 'floor-upper', group: 'floor', label: 'Upper floor framing and flooring', unit: 'm²', rate: 240, materials: 0.5, source: 'Rough figure.' },
@@ -95,8 +97,8 @@ export const STARTING_RATES = [
   { id: 'frame-steel', group: 'frame', label: 'Wall frames and roof trusses, steel', unit: 'm²', rate: 445, materials: 0.6, source: 'Rough figure: about 10–15% over timber.' },
   { id: 'stairs', group: 'frame', label: 'Stairs, built and fixed', unit: 'each', rate: 9750, materials: 0.5, source: 'Rough figure.' },
   // Roof
-  { id: 'roof-colorbond', group: 'roof', label: 'Roofing, Colorbond, with sarking and gutters', unit: 'm²', rate: 175, materials: 0.55, source: 'Yellow Pages Colorbond guide, May 2026: $80–150/m² installed. Set above it since the rates were raised by half.' },
-  { id: 'roof-concrete-tile', group: 'roof', label: 'Roofing, concrete tile, with sarking and gutters', unit: 'm²', rate: 180, materials: 0.5, source: 'Rough figure: about the same as Colorbond.' },
+  { id: 'roof-colorbond', group: 'roof', label: 'Roofing, Colorbond, with sarking and gutters', unit: 'm²', rate: 115, materials: 0.55, source: 'Yellow Pages Colorbond guide, May 2026: $80–150/m² installed.' },
+  { id: 'roof-concrete-tile', group: 'roof', label: 'Roofing, concrete tile, with sarking and gutters', unit: 'm²', rate: 120, materials: 0.5, source: 'Rough figure: about the same as Colorbond.' },
   { id: 'roof-terracotta', group: 'roof', label: 'Roofing, terracotta tile, with sarking and gutters', unit: 'm²', rate: 250, materials: 0.55, source: 'Rough figure.' },
   // Walls and cladding
   { id: 'wall-brick', group: 'walls', label: 'External walls, brick veneer', unit: 'm²', rate: 285, materials: 0.45, source: 'Rough figure, with wrap and insulation.' },
@@ -122,13 +124,13 @@ export const STARTING_RATES = [
   { id: 'drainage', group: 'services', label: 'Drainage, connections and hot water', unit: 'item', rate: 22500, materials: 0.45, source: 'Rough figure: sewer, stormwater and water to the house, and a hot water system.' },
   { id: 'plumbing', group: 'services', label: 'Plumbing to each wet room', unit: 'room', rate: 6750, materials: 0.4, source: 'Rough figure.' },
   // Outside
-  { id: 'driveway', group: 'outside', label: 'Driveway, plain concrete', unit: 'm²', rate: 190, materials: 0.45, source: 'Yellow Pages driveway guide, May 2026: $110–130/m², about $10/m² more on a slope. Set above it since the rates were raised by half.' },
-  { id: 'outdoor-slab', group: 'outside', label: 'Outdoor concrete slabs', unit: 'm²', rate: 175, materials: 0.45, source: 'Yellow Pages slab guide, May 2026: $60–90/m² plain, $100–170/m² decorative. Set above it since the rates were raised by half.' },
+  { id: 'driveway', group: 'outside', label: 'Driveway, plain concrete', unit: 'm²', rate: 125, materials: 0.45, source: 'Yellow Pages driveway guide, May 2026: $110–130/m², about $10/m² more on a slope.' },
+  { id: 'outdoor-slab', group: 'outside', label: 'Outdoor concrete slabs', unit: 'm²', rate: 115, materials: 0.45, source: 'Yellow Pages slab guide, May 2026: $60–90/m² plain, $100–170/m² decorative.' },
   { id: 'deck', group: 'outside', label: 'Decks on posts, hardwood', unit: 'm²', rate: 825, materials: 0.5, source: 'Rough figure.' },
   { id: 'garden', group: 'outside', label: 'Garden and lawn', unit: 'm²', rate: 85, materials: 0.5, source: 'Rough figure: soil, turf or planting.' },
   // Fees and allowances
-  { id: 'fees', group: 'fees', label: 'Engineer, certifier, BASIX, surveys and approvals', unit: 'item', rate: 21000, materials: 1, source: 'Rough allowance.' },
-  { id: 'permit', group: 'fees', label: 'Owner-builder permit and course', unit: 'item', rate: 750, materials: 1, source: OB_PERMIT },
+  { id: 'fees', group: 'fees', label: 'Engineer, certifier, BASIX, surveys and approvals', unit: 'item', rate: 14000, materials: 1, source: 'Rough allowance.' },
+  { id: 'permit', group: 'fees', label: 'Owner-builder permit and course', unit: 'item', rate: 500, materials: 1, source: OB_PERMIT },
 ] as const satisfies readonly StartingRate[]
 
 export type RateId = (typeof STARTING_RATES)[number]['id']
