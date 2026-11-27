@@ -21,6 +21,7 @@ import { focusLost } from '../a11y/rowFocus'
 import { PLAN_NAME_ID } from '../a11y/planCanvas'
 import { toolbarStep } from '../a11y/toolbar'
 import { useCamera } from '../phone/cameraStore'
+import { setTapMeasure, useTapMeasureOn } from '../phone/tapMeasure'
 import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
 import type { Loaded } from './useSite'
@@ -254,6 +255,12 @@ function SunCtl() {
   return <Ctl icon="sun" label="Sun" pressed={on} onClick={() => useSun.getState().setOn(!on)} />
 }
 
+/** A phone's plan in View: two taps measure (src/phone/tapMeasure.tsx). Edit has Measure on its rail. */
+function MeasureCtl() {
+  const on = useTapMeasureOn(s => s.on)
+  return <Ctl icon="ruler" label="Measure" pressed={on} onClick={() => setTapMeasure(!on)} />
+}
+
 /** The name of the CSS variable that holds the view bar's width, which the hint at the foot keeps clear of. */
 const CONTROLS_W = '--controls-w'
 
@@ -293,6 +300,7 @@ export function CanvasControls({ canvas, up, run }: ControlsProps) {
 
 function ViewBar({ canvas, up, run }: ControlsProps) {
   const ref = useControlsWidth()
+  const touch = useTouchCanvas()
   return (
     <div ref={ref} className="canvas-controls" role="group" aria-label="View">
       <span className="phone-only">
@@ -303,6 +311,7 @@ function ViewBar({ canvas, up, run }: ControlsProps) {
           <ZoomButtons className="desk-only" />
           <Ctl icon="fitBlock" label="Fit block" onClick={() => run('fit-block')} />
           <Ctl icon="fitHouse" label="Fit house" onClick={() => run('fit-house')} />
+          {touch?.phone && touch.viewOnly && <MeasureCtl />}
         </>
       ) : (
         <>
