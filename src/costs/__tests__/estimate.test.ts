@@ -513,6 +513,22 @@ describe('the rates', () => {
       expect(r.source.length, r.id).toBeGreaterThan(5)
     }
   })
+
+  it('were raised by half in November 2026, to a round figure: $5 under $1,000, $50 above', () => {
+    expect([R('prelims'), R('cut'), R('frame-timber'), R('win-aluminium'), R('bathroom'), R('kitchen'), R('fees'), R('permit')]).toEqual([255, 85, 390, 1150, 33000, 42000, 21000, 750])
+    for (const r of STARTING_RATES) expect(r.rate % (r.rate < 1000 ? 5 : 50), r.id).toBe(0)
+  })
+
+  it('reach a saved project as they are, except the ones its owner typed in', () => {
+    // A project saved before the rise holds only the rates its owner changed: those stay as typed.
+    const d = normalizeCosts({ version: 1, who: 'builder', rates: { cut: 55, bathroom: 18000 } })
+    expect(d.rates).toEqual({ cut: 55, bathroom: 18000 })
+    const e = estimate(quantities(), d)
+    expect(line(e, 'cut').rate).toBe(55)
+    expect(line(e, 'bathroom').rate).toBe(18000)
+    expect(line(e, 'fill').rate).toBe(R('fill'))
+    expect(R('fill')).toBe(70)
+  })
 })
 
 describe('a project’s costs', () => {

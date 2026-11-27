@@ -119,9 +119,10 @@ describe('the example project', () => {
     const walls = retainingProfiles(plan, site.survey.origin, earth.result.grid)
     const e = estimate(designQuantities(plan, earth.result, walls), opened.costs!)
     expect(e.lines.filter(l => l.missing).map(l => l.label)).toEqual([])
-    expect(e.total).toBeGreaterThan(300_000)
-    expect(e.perM2!).toBeGreaterThan(1500)
-    expect(e.perM2!).toBeLessThan(4000)
+    // About $827k, $4,284 per m² all in, at the starting rates (raised by half in November 2026).
+    expect(e.total).toBeGreaterThan(600_000)
+    expect(e.perM2!).toBeGreaterThan(3000)
+    expect(e.perM2!).toBeLessThan(5500)
   })
 })
 
