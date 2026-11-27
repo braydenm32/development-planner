@@ -20,6 +20,13 @@ export function checkedAgainst(pathway: Pathway, council: Council | null): strin
   return `Checked against the ${pathway === 'cdc' ? 'Housing Code' : council ? council.rules : 'council rules'}`
 }
 
+/**
+ * Said under the route switch when DA is picked before a council: a DA has only the council's
+ * rules to check against, so the switch stays on CDC and says why (LF-22, PH-32).
+ */
+export const NEED_COUNCIL =
+  'Still on CDC: a DA is checked against your council’s rules, so pick your council in the list beside DA first. If yours isn’t listed, only the state-wide Housing Code (CDC) checks are here so far; your council’s DCP has its own rules to check by hand.'
+
 /** Change the checks' settings as one undoable step. */
 export function setCheckSettings(patch: Partial<CheckSettings>) {
   usePlan.getState().commit(p => ({ ...p, checks: { ...checkSettingsOf(p.checks), ...patch } }))

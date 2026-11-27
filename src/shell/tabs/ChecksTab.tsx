@@ -11,7 +11,7 @@ import type { Measures } from '../../checks/measure'
 import { CDC_LAND, CDC_LAND_MAPPED, controlCount, NEED_FRONT, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, checkSettingsOf, COUNCILS, type Council } from '../../checks/councils'
-import { checkedAgainst, mapCouncil, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
+import { checkedAgainst, mapCouncil, NEED_COUNCIL, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
 import type { CheckResult, CheckSettings, Pathway } from '../../checks/types'
 import { useChecks, type Checks as ChecksData } from '../../checks/useChecks'
 import { foldedText, groupBadges, groupChecks, isLoud, pinNumbers, verdictOf, WORD_OF, WORD_TEXT, type Group } from '../../checks/topics'
@@ -300,10 +300,15 @@ export function CheckRow({ r, n, placed = false, differ, children }: { r: CheckR
 function RouteControl({ c }: { c: ChecksData }) {
   const fromMap = useMap(st => mapCouncil(st.place?.planning))
   const pick = useRef<HTMLSelectElement>(null)
+  // DA was picked with no council to check against: the switch can't move, so it says why (it used to do nothing visible).
+  const [needCouncil, setNeedCouncil] = useState(false)
   const chooseDa = () => {
     const k = c.council ?? fromMap
     if (k) setRoute('da', k.id)
-    else pick.current?.focus()
+    else {
+      setNeedCouncil(true)
+      pick.current?.focus()
+    }
   }
   const coverage = c.council ? controlCount(c.council) : null
   return (
@@ -318,7 +323,11 @@ function RouteControl({ c }: { c: ChecksData }) {
               role="radio"
               aria-checked={c.pathway === p}
               className={c.pathway === p ? 'on' : ''}
-              onClick={() => (p === 'cdc' ? setRoute('cdc') : chooseDa())}
+              onClick={() => {
+                if (p === 'da') return chooseDa()
+                setNeedCouncil(false)
+                setRoute('cdc')
+              }}
               title={pathwayLong(p, p === 'da' ? (c.council ?? fromMap) : null)}
             >
               {p.toUpperCase()}
@@ -338,6 +347,11 @@ function RouteControl({ c }: { c: ChecksData }) {
           </select>
         </label>
       </div>
+      {needCouncil && !c.council && (
+        <p className="notice small cr-need" role="status">
+          {NEED_COUNCIL}
+        </p>
+      )}
       <p className="muted small">
         {checkedAgainst(c.pathway, c.council)}
         {c.pathway === 'da' && coverage && coverage.have < coverage.of ? `: ${coverage.have} of its ${coverage.of} controls so far` : ''}.
