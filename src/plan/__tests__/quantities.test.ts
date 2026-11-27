@@ -222,7 +222,18 @@ describe('designQuantities with more drawn', () => {
     expect(q.roofs.count).toBe(1)
     expect(q.roofs.ids).toEqual(['roof1'])
     expect(q.roofs.first?.id).toBe('roof1')
-    expect(q.roofs.area).toBeCloseTo(plan / Math.cos((22.5 * Math.PI) / 180), 3)
+    // To 0.1 m², as each roof is shown, so a total of several adds up by hand (LF-21).
+    expect(q.roofs.area).toBe(Math.round((plan / Math.cos((22.5 * Math.PI) / 180)) * 10) / 10)
+  })
+
+  it('prices several roofs as the sum of their shown areas (LF-21)', () => {
+    const p = bigger()
+    // Two roofs of 106.73 m² each show as 106.7: priced at 213.4 m², not the raw sum's 213.5.
+    p.roofs = [hip('a', rect(0, 0, 10.13, 8.04), 22.5, 0.45), hip('b', rect(20, 0, 30.13, 8.04), 22.5, 0.45)]
+    const two = designQuantities(p, null, [])
+    const one = designQuantities({ ...p, roofs: [p.roofs[0]] }, null, []).roofs.area
+    expect(one).toBe(106.7)
+    expect(two.roofs.area).toBe(213.4)
   })
 
   it('counts the stairs', () => {

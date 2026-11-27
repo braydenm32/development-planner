@@ -446,7 +446,7 @@ describe('roof height above the ground', () => {
     expect(strip(n)).toContain('The highest point of the roof or walls above the natural ground under it')
     // One roof: the total roof area is its own.
     expect(n.roofs).toHaveLength(1)
-    expect(n.roofArea).toBeCloseTo(n.roof!.area, 9)
+    expect(n.roofArea).toBe(Math.round(n.roof!.area * 10) / 10)
   })
 
   it('has no roof to show without one, and gives the height of the walls', () => {

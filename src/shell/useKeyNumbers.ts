@@ -155,7 +155,8 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       height: height > 0 ? height : null,
       roof: roofs[0] ?? null,
       roofs,
-      roofArea: roofs.reduce((t, r) => t + r.area, 0),
+      // Each roof as it is shown, to 0.1 m², so the total is the sum of the rows under it, as Costs prices it (LF-21).
+      roofArea: Math.round(roofs.reduce((t, r) => t + Math.round(r.area * 10), 0)) / 10,
       batterSides: hasEarth ? boundarySides(r, survey) : [],
       batters: hasEarth ? crossedBoundaries(r, survey) : null,
       placement,
