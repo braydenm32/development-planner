@@ -73,6 +73,8 @@ import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
+// After the phone's rules, which it adjusts for a window both short and narrow (400% zoom).
+import '../a11y/reflow.css'
 
 /** The plan's tool rail and a little room beside it, from the canvas's left edge (px): shell.css's rail at its --gap. */
 const RAIL_CLEAR = { desk: 80, phone: 72 }
