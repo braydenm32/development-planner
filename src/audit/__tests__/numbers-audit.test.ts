@@ -1136,7 +1136,7 @@ describe('suspects raised by the simulated users', () => {
 
   // (6) Each sheet picks its own scale to fit what is on it (plans.ts:89), and every sheet is turned the
   // way the screen is (planTurn of the "Top of view" setting), so with north up the floor plans are north-up.
-  it('PDF: each sheet has its own scale; floor plans follow the view orientation', () => {
+  it('PDF: every floor plan is at one scale, fitted to the house; floor plans follow the view orientation', () => {
     let plan = syntheticPlan()
     plan = {
       ...plan,
@@ -1151,12 +1151,14 @@ describe('suspects raised by the simulated users', () => {
       )
     const squared = sheets('house')
     const north = sheets(0)
-    // The ground floor sheet also holds the driveway, garden and deck, so it needs a smaller scale.
-    const gf = expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0, 'A3', 50)
-    const ff = expectedScale(SYN_OUTLINE, 0, 'A3', 50)
-    expect(squared).toEqual([squared[0], `Scale 1:${gf} at A3`, `Scale 1:${ff} at A3`])
-    expect(gf).not.toBe(ff)
-    expect(north[1]).toBe(`Scale 1:${expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0 + 15, 'A3', 50)} at A3`)
+    // Floor plans fit the house: the driveway, garden and deck on the ground floor's sheet are on
+    // the site plan, and no longer push that floor to a smaller scale than the one above it.
+    const withAreas = expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0, 'A3', 50)
+    const house = expectedScale(SYN_OUTLINE, 0, 'A3', 50)
+    expect(squared).toEqual([squared[0], `Scale 1:${house} at A3`, `Scale 1:${house} at A3`])
+    expect(withAreas).not.toBe(house)
+    expect(north[1]).toBe(`Scale 1:${expectedScale(SYN_OUTLINE, 0 + 15, 'A3', 50)} at A3`)
+    expect(north[2]).toBe(north[1])
     synth.pdfScalesPerSheet = { squareToHouse: squared, northUp: north }
   })
 })
@@ -1292,8 +1294,8 @@ describe('site coverage and the PDF sheets', () => {
     const turn = up === 'house' ? 0 : up + plan.placement.rotation
     const boundaryHouse = (survey.boundary as P2[]).map(q => siteToHouse(q, plan.placement, survey.origin))
     const siteScale = expectedScale([...boundaryHouse, ...SYN_OUTLINE], turn, paper, 100)
-    const floorPts = [...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])]
-    const floorScale = expectedScale(floorPts, turn, paper, 50)
+    // The floor plan fits the house; its outdoor areas are on the site plan.
+    const floorScale = expectedScale(SYN_OUTLINE, turn, paper, 50)
     expect(pages).toHaveLength(2)
     expect(pages[0].texts).toContain(`Scale 1:${siteScale} at ${paper}`)
     expect(pages[1].texts).toContain(`Scale 1:${floorScale} at ${paper}`)
@@ -1796,7 +1798,8 @@ describe('sample survey and plan (made up)', () => {
         const turn = up === 'house' ? 0 : up + plan.placement.rotation
         const bHouse = (survey.boundary as P2[]).map(q => siteToHouse(q, plan.placement, survey.origin))
         const siteScale = expectedScale([...bHouse, ...OUTLINE], turn, paper, 100)
-        const floorScale = expectedScale([...OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], turn, paper, 50)
+        // The floor plan fits the house; its outdoor areas are on the site plan.
+        const floorScale = expectedScale(OUTLINE, turn, paper, 50)
         expect(pages[0].texts).toContain(`Scale 1:${siteScale} at ${paper}`)
         expect(pages[1].texts).toContain(`Scale 1:${floorScale} at ${paper}`)
         const drawn = pathAfter(pages[0].stream, '1.7 w').map(mm => (mm * siteScale) / 1000).sort((a, b) => a - b)
