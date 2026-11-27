@@ -26,11 +26,19 @@ const today = () => new Date().toLocaleDateString('en-AU', { day: 'numeric', mon
 export function dxfText({ plan, survey, terrain, earth }: ExportInput): string {
   const e = earth?.result
   const finished = e && e.cut + e.fill > 0.01 ? finishedContours(survey, terrain.grid, e.grid, earth?.strips).finished : null
-  return planDxf({ plan, survey, finished, title: projectTitle(plan), date: today() })
+  return planDxf({ plan, survey, finished, ground: e?.grid ?? terrain.grid, pads: earth?.platforms, title: projectTitle(plan), date: today() })
 }
 
-export function saveDxf(i: ExportInput): void {
-  saveFile(`${fileSafe(projectTitle(i.plan))}.dxf`, dxfText(i), 'application/dxf')
+/**
+ * "-design" on the end: a project is often named after its survey file, and this must never be
+ * mistaken for (or saved over) the surveyor's own DXF.
+ */
+export const dxfFileName = (plan: Plan): string => `${fileSafe(projectTitle(plan))}-design.dxf`
+
+export function saveDxf(i: ExportInput): string {
+  const name = dxfFileName(i.plan)
+  saveFile(name, dxfText(i), 'application/dxf')
+  return name
 }
 
 export const scheduleRows = (plan: Plan) => doorWindowSchedule(plan)

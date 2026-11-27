@@ -2,9 +2,12 @@
 // door and window schedule (on screen, and as a CSV for a spreadsheet).
 
 import { useState } from 'react'
+import { toastDownloaded } from '../components/printFiles'
 import { Waiting } from '../shell/tabs/Waiting'
 import { useLoaded } from '../shell/useSite'
+import { sortedLevels } from '../plan/model'
 import { dxfText, saveDxf, savePicture, saveScheduleCsv, scheduleRows } from './files'
+import { openingLayer, wallLayer } from './planDxf'
 import './export.css'
 import '../share/share.css'
 
@@ -18,13 +21,16 @@ export function ExportTab() {
   const rows = scheduleRows(d.plan)
   // The floor only helps when there is more than one.
   const floors = d.plan.levels.length > 1
+  // The layer names as this plan's file has them, so the list reads like the file.
+  const lowest = sortedLevels(d.plan)[0]?.id
+  const layers = lowest ? `${wallLayer(d.plan, lowest)}, ${openingLayer(d.plan, lowest)}` : 'WALLS-GROUND-FLOOR, OPENINGS-GROUND-FLOOR'
   const picture = async (which: 'plan' | '3d') => setError(await savePicture(d.plan, which))
   const dxf = () => {
     setDxfError(null)
     try {
       // Written first, so a plan that can't be drawn says so instead of saving an empty file.
       dxfText({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth })
-      saveDxf({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth })
+      toastDownloaded(saveDxf({ plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth }))
     } catch (err) {
       setDxfError((err as Error).message || 'The DXF could not be written.')
     }
@@ -36,8 +42,10 @@ export function ExportTab() {
       <details className="sh-whats">
         <summary>What’s in it</summary>
         <p className="muted small">
-          The block boundary, the survey’s contours, the house walls (each floor on its own layer), the finished contours once the ground is cut or filled,
-          retaining walls and the driveway.
+          The block boundary, the survey’s contours and the finished contours once the ground is cut or filled. Each level’s walls, doors and windows, and
+          stairs, on layers named after the level ({layers}, …). Roofs, retaining walls with their top RLs, the driveway
+          and other outdoor areas, section lines, your notes, and each floor and pad level as text. Saved as “your project-design.dxf”, so it can’t be
+          mixed up with the survey file.
         </p>
       </details>
       <div className="row">

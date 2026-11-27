@@ -175,7 +175,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       }
     case 'download-dxf':
       try {
-        saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth })
+        toastDownloaded(saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The DXF could not be written.')
