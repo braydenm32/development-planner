@@ -2,7 +2,7 @@
 // wall colour, and the floors by kind of room. Each pick is one undo step; dragging round the
 // custom colour picker is one step too (the store's nudge run). The 3D button "Finishes" opens it.
 
-import { Select } from '../components/fields'
+import { Num, Select } from '../components/fields'
 import { usePlan } from '../plan/store'
 import { navigate, useRouter } from '../nav/router'
 import { tabRoute } from '../nav/route'
@@ -18,6 +18,14 @@ import {
   WALL_COLOURS,
   WALL_FINISHES,
   colourName,
+  clearWallFinishes,
+  DEFAULT_SPLIT,
+  houseLower,
+  MIN_BAND,
+  pickLowerFinish,
+  wallsWithOwnFinish,
+  band,
+  type WallFinish,
   pickFloorFinish,
   pickRoofFinish,
   pickWallFinish,
@@ -26,12 +34,13 @@ import {
   type Finishes,
   type Swatch,
 } from './model'
-import type { Plan } from '../plan/model'
+import { floorRL, type Plan } from '../plan/model'
+import { wallTopRL } from '../plan/roofline'
 import './finishes.css'
 
 const commit = (fn: (p: Plan) => Plan) => usePlan.getState().commit(fn)
 
-function Kinds<T extends string>({ label, value, options, onPick }: { label: string; value: T; options: { id: T; label: string }[]; onPick: (v: T) => void }) {
+export function Kinds<T extends string>({ label, value, options, onPick }: { label: string; value: T; options: { id: T; label: string }[]; onPick: (v: T) => void }) {
   return (
     <div className="segmented finish-kinds" role="radiogroup" aria-label={label}>
       {options.map(o => (
@@ -43,8 +52,11 @@ function Kinds<T extends string>({ label, value, options, onPick }: { label: str
   )
 }
 
-/** A short row of named colours and a custom one. `value` undefined marks none (the default look). */
-function Swatches({ label, palette, value, onPick, field }: { label: string; palette: Swatch[]; value: string | undefined; onPick: (hex: string | undefined) => void; field: keyof Finishes }) {
+/**
+ * A short row of named colours and a custom one. `value` undefined marks none (the default look).
+ * A drag round the custom picker changes `field` of the finishes, or runs `drag` (a wall's).
+ */
+export function Swatches({ label, palette, value, onPick, field, drag }: { label: string; palette: Swatch[]; value: string | undefined; onPick: (hex: string | undefined) => void; field?: keyof Finishes; drag?: { key: string; apply: (p: Plan, hex: string) => Plan } }) {
   const custom = !!value && !palette.some(s => s.hex === value)
   return (
     <div className="finish-colours">
@@ -68,7 +80,11 @@ function Swatches({ label, palette, value, onPick, field }: { label: string; pal
             aria-label={`${label}: custom colour`}
             value={value ?? palette[0].hex}
             // A drag round the picker sends many changes: they make one undo step.
-            onChange={e => usePlan.getState().nudge(`finish-${field}`, p => withFinishes(p, { [field]: e.target.value }))}
+            onChange={e => {
+              const hex = e.target.value
+              if (drag) usePlan.getState().nudge(drag.key, p => drag.apply(p, hex))
+              else if (field) usePlan.getState().nudge(`finish-${field}`, p => withFinishes(p, { [field]: hex }))
+            }}
           />
           <span aria-hidden="true" style={custom ? { background: value } : undefined}>
             <Icon name="plus" size={14} />
@@ -90,6 +106,8 @@ export function FinishesPanel({ plan }: { plan: Plan }) {
       <h3>Outside walls</h3>
       <Kinds label="Outside wall finish" value={r.walls} options={WALL_FINISHES} onPick={k => commit(p => pickWallFinish(p, k))} />
       <Swatches label="Outside wall colour" palette={WALL_COLOURS} value={r.wallColour} field="wallColour" onPick={hex => commit(p => withFinishes(p, { wallColour: hex }))} />
+      <LowerWalls plan={plan} />
+      <OwnFinishWalls plan={plan} />
 
       <h3>Roof</h3>
       <Kinds label="Roof finish" value={r.roof} options={ROOF_FINISHES} onPick={k => commit(p => pickRoofFinish(p, k))} />
@@ -111,6 +129,52 @@ export function FinishesPanel({ plan }: { plan: Plan }) {
         ))}
       </div>
     </div>
+  )
+}
+
+const NO_LOWER = 'none'
+const LOWER_OPTIONS: { id: WallFinish | typeof NO_LOWER; label: string }[] = [{ id: NO_LOWER, label: 'The same all the way up' }, ...WALL_FINISHES]
+
+/** "Lower part of the walls: brick up to 1000 mm": a base in another finish all round the house. */
+function LowerWalls({ plan }: { plan: Plan }) {
+  const f = plan.finishes
+  const lower = houseLower(f)
+  // The lowest outside wall: the height has to leave some of the upper finish on every one.
+  const heights = plan.walls.filter(w => w.kind === 'external').map(w => wallTopRL(plan, w) - floorRL(plan, w.level))
+  const high = heights.length ? Math.min(...heights) : Infinity
+  const mm = (m: number) => Math.round(m * 1000)
+  return (
+    <div className="tool-options finish-lower">
+      <Select label="Lower part of the walls" value={lower?.walls ?? NO_LOWER} options={LOWER_OPTIONS} onChange={v => commit(p => pickLowerFinish(p, v === NO_LOWER ? undefined : v))} />
+      {lower && (
+        <>
+          <Swatches label="Lower part colour" palette={WALL_COLOURS} value={band(lower).colour} field="lowerColour" onPick={hex => commit(p => withFinishes(p, { lowerColour: hex }))} />
+          <Num
+            label="Up to"
+            unit="mm"
+            value={f?.lowerTo ?? DEFAULT_SPLIT}
+            min={MIN_BAND}
+            check={v => (v > high - MIN_BAND + 1e-9 ? `Max ${mm(high - MIN_BAND)} mm: the lowest outside wall is ${mm(high)} mm high` : null)}
+            onCommit={lowerTo => commit(p => withFinishes(p, { lowerTo }))}
+          />
+          <p className="muted small">Above each floor, on every outside wall that doesn’t have its own finish.</p>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Says how many walls have a finish of their own (set on a wall's card), with a way to put them all back. */
+function OwnFinishWalls({ plan }: { plan: Plan }) {
+  const n = wallsWithOwnFinish(plan).length
+  if (!n) return <p className="muted small">To give one wall its own finish, or two finishes, select it on the plan.</p>
+  return (
+    <p className="small own-finish-walls">
+      {n === 1 ? '1 wall has its own finish.' : `${n} walls have their own finish.`}{' '}
+      <button type="button" className="link small" onClick={() => commit(clearWallFinishes)}>
+        Set {n === 1 ? 'it' : 'them all'} back to the house finish
+      </button>
+    </p>
   )
 }
 

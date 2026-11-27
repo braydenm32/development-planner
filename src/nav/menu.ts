@@ -492,8 +492,8 @@ export const AREAS: Area[] = [
         label: 'Finishes',
         icon: 'swatch',
         subtitle: 'How the house looks in 3D: cladding, roof, colours and floors.',
-        keywords: ['finish', 'finishes', 'material', 'materials', 'texture', 'colour', 'color', 'paint', 'cladding', 'brick', 'render', 'rendered', 'weatherboard', 'roof colour', 'metal roof', 'roof sheeting', 'roof tiles', 'wall colour', 'inside colour', 'floor finish', 'timber floor', 'tiles', 'carpet', 'concrete floor', 'look', 'appearance'],
-        features: ['finishes-walls', 'finishes-roof', 'finishes-inside', 'finishes-floors', 'finishes-3d-button'],
+        keywords: ['finish', 'finishes', 'material', 'materials', 'texture', 'colour', 'color', 'paint', 'cladding', 'brick', 'render', 'rendered', 'weatherboard', 'roof colour', 'metal roof', 'roof sheeting', 'roof tiles', 'wall colour', 'inside colour', 'floor finish', 'timber floor', 'tiles', 'carpet', 'concrete floor', 'look', 'appearance', 'lower part', 'base course', 'brick base', 'two finishes', 'per wall finish'],
+        features: ['finishes-walls', 'finishes-roof', 'finishes-inside', 'finishes-floors', 'finishes-3d-button', 'finishes-lower-walls', 'finishes-own-walls'],
       },
       {
         id: 'sections',
@@ -1678,7 +1678,7 @@ export const HOMES: Home[] = [
     label: 'Selection inspector',
     features: [],
     items: [
-      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts'] },
+      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square', 'wall finish', 'wall cladding', 'two finishes', 'brick base'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts', 'wall-own-finish'] },
       {
         id: 'inspect-opening', at: 'design/plan', hint: 'Click a door or window on the plan: its settings open on the right.',
         label: 'Selected door or window',

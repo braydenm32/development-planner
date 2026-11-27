@@ -86,3 +86,18 @@
   flex: none;
   height: 34px;
 }
+
+/* The house-wide lower part, and a wall's own finish on its card (WallFinishField). */
+.finishes .finish-lower {
+  margin-top: 14px;
+}
+
+.wall-finish-part {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.wall-finish-part .finish-colours {
+  margin-top: 0;
+}

@@ -103,7 +103,7 @@ Pieces that stand against a wall snap their back flush to the wall face when you
 
 Furniture shows in the 3D view (turn it off under **Site › 3D**), on the PDF floor plans in thin lines (turn it off under **PDF plans**), and is left out of the 3D print unless you tick **Include furniture**.
 
-**Design › Finishes** (or **Finishes** on the 3D view's bar) sets how the house looks in 3D: the outside walls plain, brick, rendered or weatherboard, the roof plain, metal sheeting or tiles, each in a colour from a short palette or any colour, the inside wall colour, and timber, tiles, carpet or concrete floors by kind of room. They change only the picture, not the drawings, numbers, costs or 3D print.
+**Design › Finishes** (or **Finishes** on the 3D view's bar) sets how the house looks in 3D: the outside walls plain, brick, rendered or weatherboard, the roof plain, metal sheeting or tiles, each in a colour from a short palette or any colour, the inside wall colour, and timber, tiles, carpet or concrete floors by kind of room. They change only the picture, not the drawings, numbers, costs or 3D print. A **Lower part of the walls** puts a second finish round the bottom of the house (a brick base under weatherboard, say), and an outside wall's card gives that wall its own finish or two finishes with the height where they change (the elevations show that line).
 
 ## Roofs
 
