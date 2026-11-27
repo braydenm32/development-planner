@@ -1,0 +1,82 @@
+/* Settings people turn on in their system: Windows High Contrast (forced colours) and reduce
+   motion. Kept in one sheet, with !important, so no screen's own rule can outrank them. */
+
+/* Forced colours drops fills and shadows, which is how the app marks what is chosen. System
+   colours survive it, so the chosen area, tab, view, tool or option takes the system's own
+   selection pair. */
+@media (forced-colors: active) {
+  /* Opted out of the forcing and given system colours by hand: left to the browser, the label
+     keeps a page-coloured plate behind it and reads as a blank box on the selection colour. */
+  :is(button, a, [role='tab'], [role='radio'], [role='option'], [role='menuitemradio']):is(.on, [aria-current]:not([aria-current='false']), [aria-pressed='true'], [aria-checked='true'], [aria-selected='true']) {
+    forced-color-adjust: none;
+    background: Highlight !important;
+    color: HighlightText !important;
+    border-color: Highlight !important;
+    box-shadow: none !important;
+  }
+
+  /* Small print and badges inside a chosen control have their own colours; swatches keep theirs. */
+  :is(button, a, [role='tab'], [role='radio'], [role='option'], [role='menuitemradio']):is(.on, [aria-current]:not([aria-current='false']), [aria-pressed='true'], [aria-checked='true'], [aria-selected='true']) *:not(.sw, [class*='swatch']) {
+    background-color: transparent !important;
+    color: HighlightText !important;
+  }
+
+  :is(button, a):is(.on, [aria-current]:not([aria-current='false']), [aria-pressed='true'], [aria-checked='true'], [aria-selected='true']):disabled {
+    color: GrayText !important;
+  }
+
+  /* A chosen row that holds other controls (a level, an option, a search result) gets a frame instead. */
+  li.on {
+    outline: 2px solid Highlight !important;
+    outline-offset: -2px;
+  }
+
+  /* Things that float over the picture were told apart from it by a shadow and a white fill. */
+  .toast,
+  .sf-toast,
+  .menu-pop,
+  .key-pop,
+  .term-tip,
+  .palette,
+  .level-menu-pop,
+  [data-tip]::after {
+    border: 1px solid CanvasText !important;
+  }
+
+  /* A swatch's colour is its meaning, so it keeps it. */
+  [class*='swatch'],
+  [class*='swatch'] *,
+  .legend-key i,
+  .legend-ramp,
+  .grade-list .sw,
+  .grade-seg .sw,
+  .sketch-colour,
+  .check-dot,
+  .chip .dot,
+  .step-item .dot {
+    forced-color-adjust: none;
+  }
+}
+
+/* Reduce motion: sheets, tips and flashes arrive at once instead of sliding or fading in. The 3D
+   camera checks the same setting itself (src/phone/CameraRig.tsx). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* For a screen reader only: a heading or a few words that the picture already makes plain to the eye. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
