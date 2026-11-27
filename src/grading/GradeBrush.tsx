@@ -3,7 +3,8 @@
 // the suggested retaining walls with Add and Dismiss. PlanEditor hands it the pointer, clicks and
 // keys first, and renders `over`.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { CanvasFrame } from '../components/canvasFrame'
 import { useCheckTrees } from '../checks/siteTrees'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
@@ -43,6 +44,8 @@ export interface GradeBrushArgs {
   viewOnly: boolean
   /** A finger, not a mouse: picking reaches further. */
   touch: boolean
+  /** The plan's size on screen (px), so the suggestions' tags stay clear of the buttons round its edges. */
+  size?: { w: number; h: number }
 }
 
 /** Which Earthworks tab is open, if any. */
@@ -52,6 +55,7 @@ function earthTab(r: ReturnType<typeof useRouter.getState>['route']): string | n
 
 export function useGradeBrush(a: GradeBrushArgs) {
   const { plan, survey, terrain, earth, S, k, viewOnly } = a
+  const frame = useContext(CanvasFrame)
   const route = useRouter(s => s.route)
   const tab = earthTab(route)
   const brush = useBrush()
@@ -226,7 +230,9 @@ export function useGradeBrush(a: GradeBrushArgs) {
           (() => {
             const scr = (p: Vec2) => S(fromSite(p, plan.placement, o))
             const ends = suggestions.map(s => ({ A: scr(s.a), B: scr(s.b), height: s.height, implied: s.rule === 'implied' }))
-            const at = placeTags(ends, !viewOnly)
+            const ins = frame?.insets
+            const view = a.size && ins ? { x0: ins.l, y0: ins.t, x1: a.size.w - ins.r, y1: a.size.h - ins.b } : undefined
+            const at = placeTags(ends, !viewOnly, view)
             return [
               ...suggestions.map((s, n) => <path key={`l${n}`} className={`grade-suggest-line${s.rule === 'implied' ? ' implied' : ''}`} d={`M${s.path.map(p => scr(p).map(v => v.toFixed(1)).join(' ')).join('L')}`} />),
               ...suggestions.map((s, n) => (

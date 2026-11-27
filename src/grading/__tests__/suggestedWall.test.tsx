@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { Suggested } from '../SuggestedWall'
 import type { WallSuggestion } from '../suggest'
-import { tagSize } from '../tags'
+import { placeTags, tagSize } from '../tags'
 
 const wall = { key: 'w', source: 'pad', kind: 'cut', rule: 'boundary', path: [], a: [0, 0], b: [4, 0], level: 45, height: 1, face: 4, why: 'The batter would cross the boundary', engineer: true } as unknown as WallSuggestion
 
@@ -33,5 +33,17 @@ describe('a suggested wall’s buttons on the plan', () => {
     expect(dismiss.x - (add.x + add.w)).toBeGreaterThanOrEqual(4)
     const { w, total } = tagSize(wall.height, true)
     expect(dismiss.x + dismiss.w).toBeLessThanOrEqual(total - w / 2)
+  })
+})
+
+describe('a suggested wall’s tag stays in the open plan (final check, problem 4)', () => {
+  it('slides left so Add and Dismiss are clear of the buttons down the right', () => {
+    const line = { A: [300, 100] as [number, number], B: [300, 400] as [number, number], height: 1 }
+    const { w, total } = tagSize(1, true)
+    const free = placeTags([line], true)[0]
+    expect(free[0] - w / 2 + total).toBeGreaterThan(330)
+    const [at] = placeTags([line], true, { x0: 0, y0: 0, x1: 330, y1: 600 })
+    expect(at[0] - w / 2 + total + 2).toBeLessThanOrEqual(330.01)
+    expect(at[0] - w / 2 - 2).toBeGreaterThanOrEqual(0)
   })
 })

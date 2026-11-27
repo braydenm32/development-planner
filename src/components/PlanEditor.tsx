@@ -812,6 +812,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     finished: planContourLines ? (contours?.finished ?? null) : null,
     viewOnly,
     touch: !!touch?.phone,
+    size,
   })
   // The Measure and Note tools: the ruler and the plan's text notes.
   const mn = useMeasureNotes({ plan, level, tool, survey, terrain, S, walls, tol: 10 / v.k, guides, viewOnly, size, snapAt: (raw, o) => snapHere(raw, o).p })
