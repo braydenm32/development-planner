@@ -200,6 +200,11 @@ export interface Opening {
    * plans saved before kinds: a door is then hinged, and a window is drawn as it always was.
    */
   style?: OpeningStyle
+  /**
+   * Doors: it's glass, so it counts towards the BASIX glazing when it's in an outside wall. Missing
+   * goes by its kind (see isGlassDoor in ./openingStyles): sliding, bifold and double doors are glass.
+   */
+  glazed?: boolean
 }
 
 /** How the lowest floor is held up: one of FLOOR_TYPES (slab on ground, bearers and joists on piers, …). */

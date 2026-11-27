@@ -1,5 +1,5 @@
 // The BASIX checklist's plain maths: what the official BASIX tool will ask for, read off the plan
-// (window area by the way each wall faces, which way the living areas look, floor area, roof and
+// (window and glass door area by the way each wall faces, which way the living areas look, floor area, roof and
 // tank). It calculates no BASIX score and no star rating: that is the tool's job.
 
 import { fileSafe } from '../print/export'
@@ -8,6 +8,7 @@ import { buildingOutline, closestOnSegment, faceAround, planarFaces, type Face }
 import { grossFloorArea } from '../plan/keyNumbers'
 import { m2 as floorM2 } from '../shell/format'
 import { pointOnWall, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
+import { isGlassDoor } from '../plan/openingStyles'
 import { roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
 import { roofCatchments, tankRoofs, totalCatchment } from '../drainage/stormwater'
@@ -76,18 +77,18 @@ export function compassOf(dir: Vec2, rotation: number): number {
 export const facadeOf = (bearing: number): Facade => FACADES[Math.round((((bearing % 360) + 360) % 360) / 90) % 4]
 
 /**
- * Every window on an outside wall, with the way it faces. A wall's outside is the side of it that
- * isn't inside the building's outline; a wall inside the house, or standing free, has no facade.
+ * Every opening `pick` takes on an outside wall, with the way it faces. A wall's outside is the side
+ * of it that isn't inside the building's outline; a wall inside the house, or standing free, has no facade.
  */
-export function windowFacings(plan: Plan): WindowFacing[] {
+function outsideFacings(plan: Plan, pick: (o: Opening) => boolean): WindowFacing[] {
   const out: WindowFacing[] = []
   const byLevel = new Map<string, Vec2[][]>()
-  for (const l of plan.levels) byLevel.set(l.id, buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines)
   const walls = new Map(plan.walls.map(w => [w.id, w]))
   for (const o of plan.openings) {
-    if (o.kind !== 'window') continue
+    if (!pick(o)) continue
     const w = walls.get(o.wall)
     if (!w || w.kind === 'retaining') continue
+    if (!byLevel.has(w.level)) byLevel.set(w.level, buildingOutline(planarFaces(plan.walls.filter(x => x.level === w.level))).outlines)
     const rings = byLevel.get(w.level) ?? []
     const mid = pointOnWall(w, o.offset)
     const d = wallDir(w)
@@ -104,11 +105,30 @@ export function windowFacings(plan: Plan): WindowFacing[] {
   return out
 }
 
+/** Every window on an outside wall, with the way it faces. */
+export function windowFacings(plan: Plan): WindowFacing[] {
+  return outsideFacings(plan, o => o.kind === 'window')
+}
+
+/** Every glass door on an outside wall (see isGlassDoor), with the way it faces: its whole width × height counts as glass. */
+export function glassDoorFacings(plan: Plan): WindowFacing[] {
+  return outsideFacings(plan, isGlassDoor)
+}
+
+/** Whether a door is in an outside wall, where its glass counts towards the glazing. */
+export function onOutsideWall(plan: Plan, id: string): boolean {
+  return outsideFacings(plan, o => o.id === id).length > 0
+}
+
+const byFacade = (facings: WindowFacing[]): Record<Facade, number> => {
+  const t: Record<Facade, number> = { N: 0, E: 0, S: 0, W: 0 }
+  for (const f of facings) t[f.facade] += f.area
+  return t
+}
+
 /** Window area (m²) by facade, from the windows on the plan's outside walls. */
 export function windowAreaByFacade(plan: Plan): Record<Facade, number> {
-  const t: Record<Facade, number> = { N: 0, E: 0, S: 0, W: 0 }
-  for (const f of windowFacings(plan)) t[f.facade] += f.area
-  return t
+  return byFacade(windowFacings(plan))
 }
 
 export const LIVING_ROOM = /living|lounge|family|dining|kitchen|rumpus|meals|open plan|great room/i
@@ -116,9 +136,9 @@ export const LIVING_ROOM = /living|lounge|family|dining|kitchen|rumpus|meals|ope
 export interface LivingOrientation {
   room: string
   level: string
-  /** Window area by facade in this room's own outside walls. */
+  /** Glass (windows and glass doors) by facade in this room's own outside walls. */
   windows: Record<Facade, number>
-  /** The facade with the most glass, or null with no windows. */
+  /** The facade with the most glass, or null with none. */
   main: Facade | null
 }
 
@@ -128,9 +148,9 @@ export function isBasixLiving(r: Pick<Room, 'name' | 'type'>): boolean {
   return t ? !!t.basix : LIVING_ROOM.test(r.name)
 }
 
-/** Which way each living area looks: its windows by facade. */
+/** Which way each living area looks: its glass (windows and glass doors) by facade. */
 export function livingOrientations(plan: Plan): LivingOrientation[] {
-  const facings = windowFacings(plan)
+  const facings = [...windowFacings(plan), ...glassDoorFacings(plan)]
   const facesByLevel = new Map<string, Face[]>()
   for (const l of plan.levels) facesByLevel.set(l.id, planarFaces(plan.walls.filter(w => w.level === l.id)))
   return plan.rooms
@@ -165,8 +185,14 @@ export interface BasixFacts {
   living: LivingOrientation[]
   windows: Record<Facade, number>
   windowTotal: number
+  /** Glass doors in outside walls (isGlassDoor), by facade and in all (m²). */
+  doors: Record<Facade, number>
+  doorTotal: number
+  /** All the glass, windows and glass doors, by facade and in all (m²): what the glazing ratio counts. */
+  glass: Record<Facade, number>
+  glassTotal: number
   floor: FloorAreas
-  /** Window area as a share of the conditioned floor area; null with no floor. */
+  /** Window and glass door area as a share of the conditioned floor area; null with no floor. */
   glazingRatio: number | null
   /** Roof plan area (m²), all roofs, and the part draining to the tank. */
   roofArea: number
@@ -177,14 +203,22 @@ export interface BasixFacts {
 export function basixFacts(plan: Plan): BasixFacts {
   const windows = windowAreaByFacade(plan)
   const windowTotal = FACADES.reduce((t, f) => t + windows[f], 0)
+  const doors = byFacade(glassDoorFacings(plan))
+  const doorTotal = FACADES.reduce((t, f) => t + doors[f], 0)
+  const glass = { N: windows.N + doors.N, E: windows.E + doors.E, S: windows.S + doors.S, W: windows.W + doors.W }
+  const glassTotal = windowTotal + doorTotal
   const floor = floorAreas(plan)
   const roofs = roofCatchments(plan)
   return {
     living: livingOrientations(plan),
     windows,
     windowTotal,
+    doors,
+    doorTotal,
+    glass,
+    glassTotal,
     floor,
-    glazingRatio: floor.conditioned > 0 ? windowTotal / floor.conditioned : null,
+    glazingRatio: floor.conditioned > 0 ? glassTotal / floor.conditioned : null,
     roofArea: totalCatchment(roofs),
     tankRoofArea: totalCatchment(tankRoofs(plan, roofs)),
     tankLitres: stormwaterOf(plan).tankLitres,
@@ -248,16 +282,16 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`
 /** The checklist as rows, from the plan's facts and the person's answers. */
 export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[] {
   const living = facts.living.length
-    ? facts.living.map(l => `${l.room}: ${l.main ? `mostly ${FACADE_NAMES[l.main].toLowerCase()}` : 'no outside windows yet'}`).join('; ')
+    ? facts.living.map(l => `${l.room}: ${l.main ? `mostly ${FACADE_NAMES[l.main].toLowerCase()}` : 'no outside windows or glass doors yet'}`).join('; ')
     : 'No living, kitchen or dining room yet'
-  const windows = FACADES.map(f => `${FACADE_NAMES[f]} ${m2(facts.windows[f])}`).join(', ')
+  const glass = FACADES.map(f => `${FACADE_NAMES[f]} ${m2(facts.glass[f])}`).join(', ')
   return [
     { id: 'orientation', item: 'Living areas face', value: living, why: 'The tool asks which way each living area’s glass faces; north-facing living gets winter sun.', fromPlan: true },
     {
       id: 'glazing',
-      item: 'Window area by facade',
-      value: `${windows}; ${m2(facts.windowTotal)} in all${facts.glazingRatio !== null ? `, ${pct(facts.glazingRatio)} of the floor area` : ''}`,
-      why: 'Glass area and the way it faces drive the thermal result; the tool asks for every window’s size and orientation.',
+      item: 'Glass area by facade',
+      value: `${glass}; ${m2(facts.glassTotal)} in all (windows ${m2(facts.windowTotal)}, glass doors ${m2(facts.doorTotal)})${facts.glazingRatio !== null ? `, ${pct(facts.glazingRatio)} of the floor area` : ''}`,
+      why: 'Glass area and the way it faces drive the thermal result; the tool asks for every window’s and glass door’s size and orientation.',
       fromPlan: true,
     },
     {

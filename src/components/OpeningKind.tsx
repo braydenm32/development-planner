@@ -2,8 +2,10 @@
 // tools' cards for the next one, and on a door's or window's own card. The kinds are in
 // src/plan/openingStyles.ts.
 
-import type { Opening, OpeningKind } from '../plan/model'
-import { openingStyle, setOpeningStyle, styleSize, stylesFor, type OpeningStyle } from '../plan/openingStyles'
+import { onOutsideWall } from '../basix/basix'
+import type { Opening, OpeningKind, Plan } from '../plan/model'
+import { updateOpening } from '../plan/ops'
+import { isGlassDoor, openingStyle, setOpeningStyle, styleSize, stylesFor, type OpeningStyle } from '../plan/openingStyles'
 import { usePlan } from '../plan/store'
 import { Select } from './fields'
 import { rememberOpening } from './openingMemory'
@@ -46,5 +48,25 @@ export function OpeningKindField({ opening: o }: { opening: Opening }) {
         rememberOpening(o.id)
       }}
     />
+  )
+}
+
+/**
+ * On a door's or garage door's card, in an outside wall: whether it's glass, so its width × height
+ * counts in the BASIX glazing. Unset goes by its kind (sliding, bifold and double doors are glass);
+ * a tick is the person's own and stays when the kind changes. Inside the house a door never counts,
+ * so the tick isn't shown there.
+ */
+export function GlassDoorField({ plan, opening: o }: { plan: Plan; opening: Opening }) {
+  if ((o.kind !== 'door' && o.kind !== 'garage') || !onOutsideWall(plan, o.id)) return null
+  const on = isGlassDoor(o)
+  return (
+    <>
+      <label className="check">
+        <input type="checkbox" checked={on} onChange={e => usePlan.getState().commit(p => updateOpening(p, o.id, { glazed: e.target.checked }))} />
+        Glass door (counts as glazing)
+      </label>
+      <p className="muted small">{on ? `Its ${(o.width * o.height).toFixed(2)} m² counts towards the glass area under Approvals › BASIX.` : 'Tick it if this door is mostly glass: it then counts towards the glass area under Approvals › BASIX.'}</p>
+    </>
   )
 }

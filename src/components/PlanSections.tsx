@@ -70,7 +70,7 @@ import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from '../plan/roomTypes'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
-import { OpeningKindField, ToolOpeningKind } from './OpeningKind'
+import { GlassDoorField, OpeningKindField, ToolOpeningKind } from './OpeningKind'
 import { rememberOpening } from './openingMemory'
 import { openingName, openingStyle } from '../plan/openingStyles'
 import { RetainingWallPanel } from './RetainingWallPanel'
@@ -540,6 +540,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           />
         ))}
         <p className="muted small">Each is from its edge to {nib ? 'the inside corner at that end of its wall' : 'that end of its wall'}. Both show on the plan beside it.</p>
+        <GlassDoorField plan={plan} opening={o} />
         {o.kind === 'door' && openingStyle(o) !== 'sliding' && (
           <div className="row">
             {/* A pair of doors is hinged at both sides, so only its swing flips. */}
