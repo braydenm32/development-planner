@@ -27,11 +27,12 @@ import { usePrintModel } from './print/usePrintModel'
 import { projectActions, ProjectsHome, projectsNow, useProjects, useProjectSite } from './projects'
 import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
+import { ProjectsSearch } from './shell/ProjectsSearch'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
 import { ColumnsSheet } from './formats/ColumnsSheet'
 import { SafetyLayer } from './safety/SafetyLayer'
 import { sayFileError } from './safety/surveyor'
-import { pickFile } from './safety/store'
+import { pickFile, showToast } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
@@ -73,6 +74,17 @@ export default function App() {
   const toNewProject = () => navigate(NEW_PROJECT)
   /** Into the project that is open now, back where it was left (Design › Plan for a new one). */
   const toProject = (replace = false) => navigate(resumeRoute(projectsNow().opened?.prefs.place), { replace })
+  // With no project open, a project's address (a first visit's, or an old bookmark's) becomes the
+  // start screen's or the Projects home's own, so the address always says what is on screen (LD-31).
+  const nowhere = projects.ready && !openedId && route.kind === 'app'
+  useEffect(() => {
+    if (nowhere) navigate(projectsNow().list.length ? PROJECTS : NEW_PROJECT, { replace: true })
+  }, [nowhere])
+  // An address that names no page here still opens somewhere sensible; say so once (LF-31).
+  const lost = useRouter(s => s.lost)
+  useEffect(() => {
+    if (lost) showToast({ text: 'That page isn’t here. This is the nearest one.' })
+  }, [lost])
 
   // Each project remembers the area, tab, view and level it was last on.
   const place = route.kind === 'app' ? formatHash({ ...route, sel: undefined }) : null
@@ -205,7 +217,11 @@ export default function App() {
     )
   if (!projects.ready) return null
   const home = (inShell: boolean) => (
-    <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a, true)} onOpen={() => toProject()} onNew={toNewProject} />
+    <>
+      <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a)} onOpen={() => toProject()} onNew={toNewProject} />
+      {/* Ctrl+K here finds a project by its name (LF-31). */}
+      {!inShell && <ProjectsSearch onOpen={id => void projectActions.open(id).then(() => toProject())} />}
+    </>
   )
   // The review sheet, the Undo toast and the one file picker, over every screen.
   const alone = (screen: ReactNode) => (

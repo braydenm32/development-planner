@@ -111,6 +111,8 @@ export interface Area extends Entry {
   id: AreaId
   tabs: Tab[]
   defaultTab: string
+  /** Coming back to the area this visit opens the tab it was left on, not the first again (src/shell/lastTab.ts). */
+  remembersTab?: boolean
   /** The canvas the area opens on. */
   view: CanvasView
   /** The plan tools sit on a rail on the plan canvas. */
@@ -541,10 +543,12 @@ export const AREAS: Area[] = [
     label: 'Earthworks',
     icon: 'earth',
     keywords: ['ground', 'dig', 'excavation', 'site works'],
-    features: [],
+    features: ['earthworks-tool-rail'],
     view: 'plan',
     rail: true,
-    defaultTab: 'cut-fill',
+    // In the order the work is done: place the house, then see its cut and fill (HO-40).
+    defaultTab: 'place',
+    remembersTab: true,
     tabs: [
       {
         id: 'place',
@@ -600,7 +604,7 @@ export const AREAS: Area[] = [
         icon: 'shovel',
         subtitle: 'Levelling the ground under the house.',
         shows: ['cut-fill', 'warnings'],
-        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall'],
+        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters'],
         features: [
           'earthworks-cut-batter',
           'earthworks-fill-batter',
@@ -614,6 +618,8 @@ export const AREAS: Area[] = [
           'grade-wall-suggestions',
           'balance-keep-net',
           'implied-retaining-walls',
+          'retain-edges',
+          'remove-retained-edges',
           'cut-fill-works-tint',
           'cut-fill-folds',
         ],
@@ -1087,7 +1093,7 @@ export const HOMES: Home[] = [
         action: 'check-everything',
         run: 'now',
       },
-      { id: 'search', label: 'Search', icon: 'search', keywords: ['find', 'command'], features: ['command-search'], shortcut: 'mod+K', hint: 'Search is open now. ⌘K or Ctrl+K opens it from anywhere.' },
+      { id: 'search', label: 'Search', icon: 'search', keywords: ['find', 'command'], features: ['command-search', 'search-project-names', 'search-not-here'], shortcut: 'mod+K', hint: 'Search is open now. ⌘K or Ctrl+K opens it from anywhere.' },
       {
         id: 'sync-chip',
         label: 'Cloud sync status',
@@ -1267,7 +1273,7 @@ export const HOMES: Home[] = [
         label: 'Find or sort projects',
         icon: 'search',
         keywords: ['search projects', 'filter', 'sort', 'order', 'by name', 'alphabetical', 'recent', 'last edited'],
-        features: ['project-find', 'project-sort'],
+        features: ['project-find', 'project-sort', 'projects-search'],
         action: 'projects',
         run: 'now',
         hint: 'With seven or more projects, a search box and a Sort choice (last edited or name) show above the cards.',
@@ -1321,7 +1327,8 @@ export const HOMES: Home[] = [
         features: [],
         action: 'download-da-pack',
         run: 'offer',
-        at: 'share/plans',
+        // Where its Download button and the title block's details are (LF-14).
+        at: 'approvals/da-pack',
       },
       { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
       { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },

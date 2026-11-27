@@ -25,7 +25,7 @@ import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId,
 import { canvasOf, carriesSelection, readsTheHouse, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import { focusSoon } from '../nav/useModal'
-import type { SearchItem } from '../nav/search'
+import { thingItems, type SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { useSiteStore } from '../site/store'
@@ -50,6 +50,7 @@ import { useKeyNumbers } from './useKeyNumbers'
 import { checksHeadline, costHeadline } from './headline'
 import { setQuestionFacts } from '../flow/questions'
 import { useRouteSync } from './useRouteSync'
+import { rememberTab } from './lastTab'
 import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
 import { useCamera } from '../phone/cameraStore'
@@ -211,6 +212,12 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Search finds the project's own rooms, levels, roofs and named areas by name (LD-21).
+  const things = useMemo(
+    () => (plan ? thingItems({ levels: sortedLevels(plan), rooms: plan.rooms, areas: plan.areas.map(a => ({ id: a.id, name: a.name ?? '', level: a.level })), roofs: plan.roofs }) : undefined),
+    [plan],
+  )
+
   const loaded: Loaded | null = data.survey && data.terrain && plan ? { ...data, plan, survey: data.survey, terrain: data.terrain } : null
 
   // ⌘K: go to where an item lives, and run or offer its action.
@@ -232,6 +239,17 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const choose = (item: SearchItem, direct: boolean): Choice => {
     const e = item.entry
     const place = item.place
+    // Something the app doesn't do: the row has said so; say it again where it stays in view.
+    if (item.kind === 'absent') {
+      if (item.says) say(`${item.label}: ${item.says.charAt(0).toLowerCase()}${item.says.slice(1)}`)
+      return 'done'
+    }
+    // One of the project's own things: its tab, on the plan, on its level, with it picked.
+    if (item.thing && place.kind === 'tab') {
+      const t = item.thing
+      navigate({ ...tabRoute(route, place.area.id, place.tab.id), view: 'plan', level: t.level, sel: t.type === 'level' ? undefined : t.id })
+      return 'done'
+    }
     if (e.action && e.run) {
       let mode = e.run
       if (item.kind === 'feature' && mode === 'now' && !SAFE(e.action)) mode = 'offer'
@@ -347,7 +365,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <AreaNav route={route} go={r => navigate(r)} variant="bottom" />
         {fileInputs}
         <KeyboardHelp />
-        {palette && <CommandPalette choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
+        {palette && <CommandPalette things={things} choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
         {toast && (
           <div key={toast.n} className="toast" role="status">
             {toast.text}
@@ -482,6 +500,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
+  // The rail brings you back to the tab an area was left on, where the area remembers (Earthworks).
+  useEffect(() => rememberTab(projectsNow().opened?.id, area, route.tab), [projectKey, area, route.tab])
+
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
   // whole screen, so there the panel starts tucked away as a pill.
   useEffect(() => setPanelHidden(panelStartsHidden(phone, canvasKind)), [tabKey, phone, canvasKind, setPanelHidden])
@@ -598,7 +619,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       )}
       <main
         className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px' }}
+        style={{ ['--free-left' as string]: `${insets.l}px`, ...(phone ? {} : { ['--free-right' as string]: `${insets.r}px` }), ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px' }}
       >
         <TouchCanvas.Provider value={touch}>
           <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0 }}>
@@ -614,7 +635,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
             />
           )}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
-          {rail && <ToolRail />}
+          {rail && <ToolRail earthworks={area.id === 'earthworks'} />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>
             {/* In Earthworks the tab's panel is the subject: a tool's card above it stays one line. */}
             {toolCard && <ToolCard compact={showPanel && route.kind === 'app' && route.area === 'earthworks'} />}
