@@ -35,7 +35,7 @@ Units come from the DXF header (`$INSUNITS`), defaulting to metres. PDF surveys 
 
 | Tool | Key | What it does |
 | --- | --- | --- |
-| Select | V | Select and edit. Drag a wall to move it (walls joined to it stretch), drag its end handles to reshape, drag doors and windows along their wall, Delete to remove. |
+| Select | V | Select and edit. Drag a wall to move it (walls joined to it stretch, and walls that butt into it follow), drag its end handles to reshape, drag doors and windows along their wall, Delete to remove. |
 | Wall | W | Click each corner. Snaps to wall ends, along walls, square and 45° angles, and lines up with other corners. Type a length in mm and press Enter. The length and bearing of the wall you're drawing, and the total of the run, show by the pointer. Shift turns snapping off. |
 | Door / Window / Opening | D / N / O | Click on a wall. The distance to each end of the wall shows before you click. Openings are plain gaps such as garage doors. |
 | Room | R | Click inside an area enclosed by walls. The room's area is measured on the inside faces of its walls and updates as the walls change. |

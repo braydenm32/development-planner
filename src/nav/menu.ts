@@ -1510,7 +1510,7 @@ export const HOMES: Home[] = [
     label: 'Selection inspector',
     features: [],
     items: [
-      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall'], features: ['wall-length', 'wall-thickness', 'wall-kind', 'wall-facts'] },
+      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts'] },
       {
         id: 'inspect-opening', at: 'design/plan', hint: 'Click a door or window on the plan: its settings open on the right.',
         label: 'Selected door or window',

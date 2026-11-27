@@ -3,11 +3,11 @@
 // the plan's floating card shows the selection (src/shell/CanvasChrome.tsx).
 
 import { RetainEdges } from './RetainEdges'
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText, MAX_DRIVE_GRADE } from '../lib/drape'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
-import type { Terrain } from '../lib/terrain'
+import { bearingName, type Terrain } from '../lib/terrain'
 import {
   AREA_KINDS,
   areaKind,
@@ -31,6 +31,7 @@ import {
   type Wall,
 } from '../plan/model'
 import {
+  setWallKind,
   setWallLength,
   updateArea,
   updateOpening,
@@ -50,6 +51,7 @@ import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { earthAgainstWall, roomArea, roofAboveGround, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import { wallClear } from '../plan/openingFit'
+import { MIN_WALL, stillerEnd, wallLengthProblem, type WallEnd } from '../plan/wallJoins'
 import type { Earth } from '../plan/useEarthworks'
 import { copySelected, deleteSelected, duplicateSelected } from '../plan/editActions'
 import { selectionCounts } from '../plan/editing'
@@ -80,6 +82,8 @@ const ROOF_TYPES: { id: RoofType; label: string }[] = [
 ]
 
 // The most a number box takes, so a slip (an extra nought, metres for mm) is said and not built.
+/** Longest wall (m). */
+const MAX_WALL = 200
 /** Thickest wall (m). */
 const MAX_THICKNESS = 1
 /** The biggest door, window or garage door the tools draw (m). */
@@ -165,6 +169,7 @@ export function WallOptions() {
           st.setWallStyle({ kind, thickness })
         }}
       />
+      {wallStyle.kind === 'external' && <p className="muted small">A wall drawn wholly inside the house is an internal wall (110 mm stud), whatever the type here.</p>}
       <p className="muted small">A retaining preset or kind picks the Retaining wall tool (T), which asks once which side a wall holds back and how high.</p>
     </div>
   )
@@ -373,9 +378,15 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         <h2>{w.kind === 'internal' ? 'Internal wall' : 'External wall'}</h2>
         <WallsHere wall={w} plan={plan} />
         <WallFacts plan={plan} wall={w} groundAt={groundAt} />
-        <Num label="Length (centreline)" unit="mm" value={wallLength(w)} min={0.05} onCommit={len => st.commit(p => setWallLength(p, w.id, len))} />
-        <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
-        <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />
+        <WallLength key={w.id} plan={plan} wall={w} />
+        <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} max={MAX_THICKNESS} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
+        <Select
+          label="Kind"
+          value={w.kind}
+          options={WALL_KINDS}
+          // The Wall tool's own thickness for that kind, when it's set to it: the type the house is being drawn in.
+          onChange={kind => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined))}
+        />
         <div className="row">{del}</div>
       </section>
     )
@@ -678,6 +689,53 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
       <p className="muted small">Drag the corner handles to reshape it.</p>
       <div className="row">{del}</div>
     </section>
+  )
+}
+
+/** Which way a wall's end lies from its middle, by the compass: "East end". */
+function endName(plan: Plan, w: Wall, end: WallEnd): string {
+  const [from, to] = end === 'b' ? [w.a, w.b] : [w.b, w.a]
+  // The plan's x axis is turned anticlockwise from east by the placement's rotation.
+  const t = (plan.placement.rotation * Math.PI) / 180
+  const dx = to[0] - from[0]
+  const dy = to[1] - from[1]
+  const e = dx * Math.cos(t) - dy * Math.sin(t)
+  const n = dx * Math.sin(t) + dy * Math.cos(t)
+  const name = bearingName(((Math.atan2(e, n) * 180) / Math.PI + 360) % 360)
+  return `${name[0].toUpperCase()}${name.slice(1)} end`
+}
+
+/**
+ * A house wall's length, and the end that moves when it's typed. The walls joined at that end
+ * slide with it so the plan stays square; a length that would cut off a door or window, or squeeze
+ * a wall out, stays in the box in red with the nearest length that works.
+ */
+function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
+  // The end that disturbs less of the plan, until the person picks one.
+  const [picked, setPicked] = useState<WallEnd | null>(null)
+  const end = picked ?? stillerEnd(plan, w.id)
+  return (
+    <>
+      <Num
+        label="Length (centreline)"
+        unit="mm"
+        value={wallLength(w)}
+        min={MIN_WALL}
+        max={MAX_WALL}
+        check={len => wallLengthProblem(plan, w.id, len, end)}
+        onCommit={len => usePlan.getState().commit(p => setWallLength(p, w.id, len, end))}
+      />
+      <Select<WallEnd>
+        label="End that moves"
+        value={end}
+        options={[
+          { id: 'b', label: endName(plan, w, 'b') },
+          { id: 'a', label: endName(plan, w, 'a') },
+        ]}
+        onChange={setPicked}
+      />
+      <p className="muted small">The walls joined at that end slide with it, so the plan stays square.</p>
+    </>
   )
 }
 

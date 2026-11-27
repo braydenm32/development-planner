@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
 import { DEFAULT_BENCH, earthworksOf, levelById, sortedLevels, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
-import { deleteSelection, moveWall, setWallLength, updateWall } from '../plan/ops'
+import { deleteSelection, moveWall, setWallKind, setWallLength, updateWall } from '../plan/ops'
+import { wallLengthProblem } from '../plan/wallJoins'
 import { housePadRL, MIN_BENCH, sideRL } from '../plan/platforms'
 import { gapShift, HOUSE_WALL_NOTE } from '../plan/retainOffer'
 import { ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
@@ -363,9 +364,9 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
           </div>
         </dl>
         <div className="rw-size">
-          <Num label="Length (centreline)" unit="mm" value={len} min={0.05} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
-          <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
-          <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />
+          <Num label="Length (centreline)" unit="mm" value={len} min={0.05} max={200} check={l => wallLengthProblem(plan, w.id, l)} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
+          <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} max={1} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
+          <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => setWallKind(p, w.id, kind))} />
         </div>
       </details>
 

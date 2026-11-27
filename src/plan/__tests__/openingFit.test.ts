@@ -103,13 +103,14 @@ describe('changes that change nothing add no undo step and keep Redo (LD-19)', (
   beforeEach(() => usePlan.getState().load(box()))
   const steps = () => usePlan.getState().past.length
 
-  it('a wall with no length', () => {
+  it('a wall with no length, or one drawn on a wall already there', () => {
     const st = usePlan.getState()
     st.commit(p => addWall(p, L, [20, 0], [24, 0], style))
     st.undo()
     expect(usePlan.getState().future).toHaveLength(1)
     const before = usePlan.getState().plan
     st.commit(p => addWall(p, L, [3, 3], [3, 3], style))
+    st.commit(p => addWall(p, L, [0, 0], [10, 0], style))
     expect(steps()).toBe(0)
     expect(usePlan.getState().future).toHaveLength(1)
     expect(usePlan.getState().plan).toBe(before)

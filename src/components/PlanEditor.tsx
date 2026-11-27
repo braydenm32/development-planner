@@ -35,6 +35,8 @@ import {
   addWall,
   moveJoint,
   moveWall,
+  wallAlreadyThere,
+  wallStyleAt,
   newStair,
   houseBounds,
   planBounds,
@@ -752,7 +754,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const closes = chain.length > 1 && Math.hypot(p[0] - first[0], p[1] - first[1]) < 0.002
     const end: Vec2 = closes ? first : p
     chainStart.current ??= { plan: usePlan.getState().plan!, level }
-    commit(pl => addWall(pl, level, last, end, wallStyle))
+    const now = usePlan.getState().plan!
+    if (wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
+      // Nothing is added, and the run carries on from here.
+      notify('There’s already a wall there, so no new one was drawn.')
+    } else {
+      // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
+      const style = wallStyleAt(now, level, last, end, wallStyle)
+      commit(pl => addWall(pl, level, last, end, style))
+      notify(style === wallStyle ? null : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.`)
+    }
     // Walls that close round a space make a room: its floor type, or a retaining wall, is asked
     // about when the run ends (finishChain).
     if (closes) finishChain()

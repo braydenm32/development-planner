@@ -6,6 +6,7 @@ import { furnitureName } from './furniture'
 import { newId, OPENING_NAMES, wallDir, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type SketchItem, type Stair, type Wall } from './model'
 import { deleteSelection } from './ops'
 import type { Selection } from './store'
+import { followTees } from './wallJoins'
 
 const r4 = (x: number) => Math.round(x * 1e4) / 1e4
 const TOL = 1e-3
@@ -18,7 +19,7 @@ const idsOf = (sels: Selection[], type: Selection['type']) => new Set(sels.filte
 
 /**
  * Move the selected things by `delta` (metres, in the plan's frame). Walls move with the walls
- * joined at their ends (as dragging a wall does), and carry their doors and windows; a door or
+ * joined at their ends and the walls that butt into them (as dragging a wall does), and carry their doors and windows; a door or
  * window picked on its own slides along its wall by the part of the move that lies along it.
  */
 export function translateSelection(plan: Plan, sels: Selection[], delta: Vec2): Plan {
@@ -35,7 +36,7 @@ export function translateSelection(plan: Plan, sels: Selection[], delta: Vec2): 
   const furniture = idsOf(sels, 'furniture')
   const sketch = idsOf(sels, 'sketch')
   const wallById = new Map(plan.walls.map(w => [w.id, w]))
-  return {
+  const next: Plan = {
     ...plan,
     walls: moved.length ? plan.walls.map(w => (hits(w.level, w.a) || hits(w.level, w.b) ? { ...w, a: hits(w.level, w.a) ? shift(w.a) : w.a, b: hits(w.level, w.b) ? shift(w.b) : w.b } : w)) : plan.walls,
     openings: openingIds.size
@@ -54,6 +55,7 @@ export function translateSelection(plan: Plan, sels: Selection[], delta: Vec2): 
     furniture: furniture.size ? plan.furniture.map(f => (furniture.has(f.id) ? { ...f, at: shift(f.at) } : f)) : plan.furniture,
     ...(sketch.size && plan.sketch ? { sketch: plan.sketch.map(s => (sketch.has(s.id) ? { ...s, pts: s.pts.map(shift) } : s)) } : {}),
   }
+  return moved.length ? followTees(plan, next) : next
 }
 
 /** Remove every selected thing (a wall takes its doors and windows with it). */
