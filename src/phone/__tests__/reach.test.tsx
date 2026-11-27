@@ -147,10 +147,12 @@ describe('the numbers it reaches', () => {
     expect(rule![1]).toMatch(/min-width: 44px/)
   })
 
-  it('say when there is no roof yet, rather than leave a gap', () => {
+  it('give the height of the walls before there is a roof (as the checks do), and say when there are no walls, rather than leave a gap', () => {
     const bare = house({ roofs: [] })
     const m = numbersOf(bare, survey, terrain, null)
-    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No roof yet')
+    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain(`Building height ${m.height!.toFixed(2)} m`)
+    const empty = numbersOf(house({ roofs: [], walls: [], rooms: [] }), survey, terrain, null)
+    expect(words(renderToStaticMarkup(<PeekSheet numbers={empty} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No walls yet')
   })
 
   it('say when no house is drawn yet, rather than a bare dash (a block just imported)', () => {

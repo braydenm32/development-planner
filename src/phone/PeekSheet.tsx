@@ -83,7 +83,8 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
     if (!moved.current || pulled >= PULL_TO_OPEN) onOpen()
   }
 
-  const roof = n.roof ? `${n.roof.height.toFixed(2)} m` : 'No roof yet'
+  // Building height: roofs and wall tops, the figure the checks give.
+  const roof = n.height != null ? `${n.height.toFixed(2)} m` : 'No walls yet'
   const floors = floorsText(n.floors, n.ffl)
   // Easements and tree zones first (Site › Features says which), then the balance, then batters.
   const checkText = readOnly ? `${checks} to check: easements and tree zones` : `${checks} to check in Site features`
@@ -150,9 +151,9 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
         <span>
           {floorsLabel(n.floors)} <b>{floors}</b>
         </span>
-        {n.roof && (
+        {n.height != null && (
           <span>
-            Height <b>{n.roof.height.toFixed(2)} m</b>
+            Height <b>{n.height.toFixed(2)} m</b>
           </span>
         )}
         <Icon name="chevU" size={16} />

@@ -130,9 +130,9 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                 <Chip id="ffl" label={n.floors.length > 1 ? 'Floor levels (FFL)' : 'Floor level (FFL)'} shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title={n.floors.length > 1 ? n.floors.map(f => `${f.name}: RL ${f.rl.toFixed(2)}`).join('\n') : 'The ground floor’s level'}>
                   <b>{floorsText(n.floors, n.ffl)}</b>
                 </Chip>
-                {n.roof && (
-                  <Chip id="roof-height" label="Building height" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The most a roof rises above the natural ground under it">
-                    <b>{n.roof.height.toFixed(2)} m</b>
+                {n.height != null && (
+                  <Chip id="roof-height" label="Building height" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The highest point of the roof or walls above the natural ground under it, as Approvals › Checks measures it">
+                    <b>{n.height.toFixed(2)} m</b>
                   </Chip>
                 )}
                 {n.earth &&

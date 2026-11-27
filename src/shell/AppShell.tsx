@@ -703,7 +703,8 @@ function NumbersHost({
   // The level chip on the plan shows the ground floor's RL while you draw on it.
   // (Site's plan has no level chip: it's the block, before the house.)
   if (!shown.ffl && canvasKind === 'plan' && route.area !== 'site' && sortedLevels(d.plan)[0]?.id === level) shown.ffl = 'on the plan, by the level'
-  if (canvasKind === 'plan' && selection?.type === 'roof' && numbers.roof?.roof.id === selection.id) shown['roof-height'] = 'in the roof’s card'
+  // The roof's card gives its own height: that's the building's only when the roof is its highest point.
+  if (canvasKind === 'plan' && selection?.type === 'roof' && numbers.roof?.roof.id === selection.id && Math.abs(numbers.roof.height - (numbers.height ?? 0)) < 0.005) shown['roof-height'] = 'in the roof’s card'
   // Costs has a line of its own: the estimate, per m² and quotes, on a phone too.
   if (route.area === 'costs')
     return (

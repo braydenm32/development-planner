@@ -2,7 +2,9 @@
 
 import { FurniturePicker } from '../../components/FurniturePanel'
 import { AreasBody, LevelsBody } from '../../components/LevelsPanel'
-import { RoofOptions } from '../../components/PlanSections'
+import { useMemo } from 'react'
+import { FragmentRow, RoofOptions } from '../../components/PlanSections'
+import { buildingHeight } from '../../plan/keyNumbers'
 import { levelById, type Plan } from '../../plan/model'
 import { roofGeometry } from '../../plan/roof'
 import { usePlan } from '../../plan/store'
@@ -44,11 +46,26 @@ function RoofList({ plan }: { plan: Plan }) {
   )
 }
 
+/** Building height, the one figure the strip, the Overview and Approvals › Checks give (buildingHeight). */
+function BuildingHeight({ d }: { d: NonNullable<ReturnType<typeof useLoaded>> }) {
+  const height = useMemo(() => buildingHeight(d.plan, d.survey, d.terrain), [d.plan, d.survey, d.terrain])
+  if (height <= 0) return null
+  return (
+    <>
+      <dl className="stats">
+        <FragmentRow label="Building height" value={`${height.toFixed(2)} m`} strong />
+      </dl>
+      <p className="muted small">The highest point of the roof or walls above the natural ground under it, as Approvals › Checks measures it.</p>
+    </>
+  )
+}
+
 export function RoofsTab() {
   const d = useLoaded()
   if (!d) return <Waiting />
   return (
     <>
+      <BuildingHeight d={d} />
       <h3>New roofs</h3>
       <RoofOptions />
       <div className="row">
