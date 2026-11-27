@@ -22,6 +22,7 @@ import { PLAN_NAME_ID } from '../a11y/planCanvas'
 import { toolbarStep } from '../a11y/toolbar'
 import { useCamera } from '../phone/cameraStore'
 import { WalkButton } from '../walk/WalkPanel'
+import { useWalk } from '../walk/walkStore'
 import { setTapMeasure, useTapMeasureOn } from '../phone/tapMeasure'
 import { findSelection } from './selection'
 import { hasToolCard } from './toolCard'
@@ -302,6 +303,9 @@ export function CanvasControls({ canvas, up, run }: ControlsProps) {
 function ViewBar({ canvas, up, run }: ControlsProps) {
   const ref = useControlsWidth()
   const touch = useTouchCanvas()
+  // Walking through on a phone, the camera buttons do nothing and the bar would run under the walk panel:
+  // it keeps the switch, Walk through and Picture.
+  const slim = useWalk(s => s.active) && !!touch?.phone && canvas === '3d'
   return (
     <div ref={ref} className="canvas-controls" role="group" aria-label="View">
       <span className="phone-only">
@@ -317,15 +321,19 @@ function ViewBar({ canvas, up, run }: ControlsProps) {
       ) : (
         <>
           {/* A press each, where a wheel, a drag or a pinch was the only way (the arrow keys and + and − do the same). */}
-          <ZoomButtons onZoom={dir => useCamera.getState().nudge({ zoom: dir })} />
-          <TurnButtons />
-          <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
+          {!slim && (
+            <>
+              <ZoomButtons onZoom={dir => useCamera.getState().nudge({ zoom: dir })} />
+              <TurnButtons />
+              <Ctl icon="rotate" label="Reset camera" onClick={() => run('reset-camera')} />
+            </>
+          )}
           <WalkButton />
-          <SunCtl />
+          {!slim && <SunCtl />}
         </>
       )}
       <Ctl icon="download" label="Picture" onClick={() => run('save-picture')} />
-      <Ctl icon="north" label="North up" pressed={up === 0} onClick={() => run('north-up')} />
+      {!slim && <Ctl icon="north" label="North up" pressed={up === 0} onClick={() => run('north-up')} />}
     </div>
   )
 }

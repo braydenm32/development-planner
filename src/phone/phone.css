@@ -548,7 +548,9 @@ body:has(.app-shell.phone) {
   grid-auto-columns: 44px;
   align-content: start;
   direction: rtl;
-  height: calc(100% - 58px - 52px - 3 * var(--gap) - var(--peek-h, 0px) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
+  /* Above whatever sits at the foot: the key numbers line, or an open panel's sheet (up to half the canvas), so the
+     buttons wrap into another column rather than run under it. */
+  height: calc(100% - 58px - max(52px + var(--peek-h, 0px), min(var(--sheet-h, 0px), 50%)) - 3 * var(--gap) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
   min-height: 44px;
   pointer-events: none;
 }
