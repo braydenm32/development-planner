@@ -91,6 +91,13 @@ export function SharedView({ address, api: given }: { address: ShareAddress; api
 
   useEffect(() => void load(false), [load])
 
+  // Back online: look again, so "You're offline" goes by itself.
+  useEffect(() => {
+    const back = () => void load(true)
+    window.addEventListener('online', back)
+    return () => window.removeEventListener('online', back)
+  }, [load])
+
   // Back on the page after a while: the newest saved revision, if it changed.
   useEffect(() => {
     let away = 0

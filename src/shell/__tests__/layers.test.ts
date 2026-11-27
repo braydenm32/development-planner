@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const css = ['shell/shell.css', 'safety/safety.css', 'components/editing.css', 'projects/projects.css', 'cloud/cloud.css', 'sections/sections.css'].map(f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8')).join('\n')
+const css = ['shell/shell.css', 'safety/safety.css', 'components/editing.css', 'projects/projects.css', 'cloud/cloud.css', 'sections/sections.css', 'offline/offline.css'].map(f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8')).join('\n')
 
 /** The z-index given to exactly this selector, in the first top-level rule for it that sets one. */
 function z(selector: string): number {
@@ -17,7 +17,7 @@ function z(selector: string): number {
   throw new Error(`no z-index for ${selector}`)
 }
 
-const TOASTS = ['.toast', '.sf-toast', '.ph-toast']
+const TOASTS = ['.toast', '.sf-toast', '.ph-toast', '.of-note']
 const DIALOGS = ['.kbd-scrim', '.palette-backdrop', '.sf-scrim', '.cl-scrim', '.sec-scrim', '.ph-scrim']
 
 describe('toasts and dialogs', () => {

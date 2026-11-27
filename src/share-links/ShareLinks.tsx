@@ -9,6 +9,8 @@ import { CommentsSection, LinkCommentCount, LinkCommentsSetting, NextLinkComment
 import { commentActions, useComments } from '../comments/store'
 import { cloudActions, useCloud, type CloudState } from '../cloud/state'
 import { Icon } from '../nav/icons'
+import { NeedsConnection } from '../offline/NeedsConnection'
+import { useOnline } from '../offline/state'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import { edited, onDay } from '../projects/format'
@@ -43,6 +45,7 @@ export function ShareLinksSection() {
   const projectId = useProjects().currentId
   const inCloud = useCloud(s => !!projectId && s.inCloud.includes(projectId))
   const state = useShareLinks()
+  const online = useOnline()
   // The time, a minute at a time, so days left and ended links stay true while it shows.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -64,14 +67,14 @@ export function ShareLinksSection() {
   return (
     <>
       {waiting > 0 && comments}
-      <ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={now} />
+      <ShareLinksBody phase={phase} projectId={projectId} inCloud={inCloud} state={state} now={now} offline={!online} />
       {waiting === 0 && comments}
     </>
   )
 }
 
 /** What the section shows for the cloud's phase, the open project and its links. */
-export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phase: CloudState['phase']; projectId: string | null; inCloud: boolean; state: ShareLinksState; now: number }) {
+export function ShareLinksBody({ phase, projectId, inCloud, state, now, offline = false }: { phase: CloudState['phase']; projectId: string | null; inCloud: boolean; state: ShareLinksState; now: number; offline?: boolean }) {
   const { links, making, problem, fresh, days, extending, projectId: listFor } = state
   // Not known yet: nothing, so it doesn't flicker.
   if (phase !== 'signed-in' && phase !== 'signed-out' && phase !== 'unavailable') return null
@@ -88,7 +91,8 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
     return (
       <section className="share-links" aria-label="View-only link">
         {head}
-        <p className="sl-line muted">{NO_CLOUD_LINKS}</p>
+        {/* Offline, there may be a cloud it can't reach yet: src/cloud/state.ts looks again once back. */}
+        {offline ? <NeedsConnection offline>The project file below works anywhere.</NeedsConnection> : <p className="sl-line muted">{NO_CLOUD_LINKS}</p>}
       </section>
     )
 
@@ -97,7 +101,8 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
       <section className="share-links" aria-label="View-only link">
         {head}
         <p className="sl-line">Show the plan, the 3D view and the numbers to anyone, on any phone or computer, with no sign-in for them.</p>
-        <button className="sl-btn" onClick={() => cloudActions.open('sign-in', 'share')}>
+        <NeedsConnection offline={offline} />
+        <button className="sl-btn" disabled={offline} onClick={() => cloudActions.open('sign-in', 'share')}>
           <Icon name="cloud" size={16} /> Sign in to share a link
         </button>
       </section>
@@ -111,6 +116,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
     <section className="share-links" aria-label="View-only link">
       {head}
       <p className="sl-line sl-who">{WHO_SEES}</p>
+      <NeedsConnection offline={offline}>Making a link, Add {EXTEND_DAYS} days and Turn off wait for it.</NeedsConnection>
       {!inCloud && !busy && <p className="sl-line muted">This project is on this device only. Making a link saves it to the cloud first.</p>}
       <div className="sl-length">
         <span className="sl-length-label" id="sl-length-label">
@@ -125,7 +131,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
         </div>
       </div>
       <NextLinkComments mode={state.comments} disabled={busy} />
-      <button className="sl-btn primary" disabled={busy} onClick={() => void shareLinkActions.make(projectId)}>
+      <button className="sl-btn primary" disabled={busy || offline} onClick={() => void shareLinkActions.make(projectId)}>
         <Icon name="link" size={16} />
         {busy ? (making === 'upload' ? 'Saving to the cloud…' : 'Making the link…') : inCloud ? 'Share a view-only link' : 'Save to the cloud and share a link'}
       </button>
@@ -159,7 +165,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
                     {l.expires !== null && (
                       <button
                         className="sl-btn quiet"
-                        disabled={!room || extending === l.id}
+                        disabled={!room || extending === l.id || offline}
                         title={room ? undefined : 'A link can work for up to a year from today.'}
                         onClick={() => void shareLinkActions.extend(projectId, l)}
                         aria-label={`Add ${EXTEND_DAYS} days to the link made ${made}`}
@@ -167,7 +173,7 @@ export function ShareLinksBody({ phase, projectId, inCloud, state, now }: { phas
                         Add {EXTEND_DAYS} days
                       </button>
                     )}
-                    <button className="sl-btn quiet" onClick={() => void shareLinkActions.turnOff(projectId, l)} aria-label={`Turn off the link made ${made}`}>
+                    <button className="sl-btn quiet" disabled={offline} onClick={() => void shareLinkActions.turnOff(projectId, l)} aria-label={`Turn off the link made ${made}`}>
                       Turn off
                     </button>
                   </span>

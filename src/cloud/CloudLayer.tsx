@@ -6,6 +6,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, ty
 import { saveFile } from '../lib/download'
 import { Icon } from '../nav/icons'
 import { useModal } from '../nav/useModal'
+import { NeedsConnection } from '../offline/NeedsConnection'
 import { edited } from '../projects/format'
 import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
@@ -61,7 +62,11 @@ function Sheet({ title, children, closable = true, wide }: { title: string; chil
             </button>
           )}
         </header>
-        <div className="cl-body">{children}</div>
+        <div className="cl-body">
+          {/* Every one of these talks to the cloud. */}
+          <NeedsConnection />
+          {children}
+        </div>
       </div>
     </div>
   )
