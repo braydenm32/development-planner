@@ -3,6 +3,7 @@
 // (SHARED_KINDS in worker/src/shares.ts) without it, so prices stay private.
 
 import { projectsNow, registerRecordKind } from '../projects/session'
+import { historyCanRestore } from '../projects/undoHistory'
 import { COSTS_KIND, emptyCosts, normalizeCosts, type CostsData } from './model'
 import { useCosts } from './store'
 
@@ -38,6 +39,8 @@ export function startCostRecords() {
     } finally {
       applying = false
     }
+    // The saved undo steps go back behind what opened.
+    historyCanRestore('costs')
   })
   useCosts.subscribe((s, prev) => {
     if (applying || s.data === prev.data) return
