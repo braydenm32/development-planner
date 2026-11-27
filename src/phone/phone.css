@@ -667,6 +667,19 @@ body:has(.app-shell.phone) {
   align-items: flex-start;
 }
 
+/* The ground's short rail has room for a name on two lines, as on a computer: "Move house" in full (final check, problem 9). */
+.app-shell.phone .tool-rail:not(.full) button {
+  height: auto;
+  min-height: 46px;
+  padding: 3px 0;
+}
+
+.app-shell.phone .tool-rail:not(.full) .tool-name {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.05;
+}
+
 .app-shell.phone .has-rail .plan-actions {
   left: calc(var(--gap) + 62px);
 }
@@ -1333,6 +1346,44 @@ body:has(.app-shell.phone) {
   .app-shell:is(.phone, :not(.phone)) .sstrip-band::after,
   .app-shell:is(.phone, :not(.phone)) .costs-strip .chip::after {
     inset: -8px 0;
+  }
+
+  /* Final check, problem 9: the rest a finger missed. Fold away / Show the live section and the
+     project menu's Replace… reach further; a glossary word in a label gets an unseen margin too. */
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link::after {
+    inset: -14px -4px;
+  }
+
+  /* The strip's foot can sit on the sheet below: the fold's band reaches up over the plan instead. */
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold::after {
+    inset: -20px -4px -14px;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .term {
+    position: relative;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .term::after {
+    content: '';
+    position: absolute;
+    inset: -13px -10px;
+  }
+
+  /* The pieces of furniture to place, and the costs' number chips, are 44 px tall. */
+  .app-shell:is(.phone, :not(.phone)) .furniture-items button,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip button.chip {
+    min-height: 44px;
+  }
+
+  /* The sheet's handle is a slim bar to look at: an unseen band round it takes the tap. */
+  .app-shell.phone .float-card > button.sheet-grab {
+    position: relative;
+  }
+
+  .app-shell.phone .float-card > button.sheet-grab::after {
+    content: '';
+    position: absolute;
+    inset: -12px 0 -8px;
   }
 
   /* Nothing meant to be read is under 12 px (PH-27): the page can't be pinched larger. */

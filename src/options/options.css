@@ -58,7 +58,8 @@
   border-radius: 9px;
   background: var(--accent);
   color: #ffffff;
-  font-size: 11px;
+  /* 12 px: nothing to read is smaller on a phone (final check, problem 9). */
+  font-size: 12px;
   font-weight: 500;
 }
 
