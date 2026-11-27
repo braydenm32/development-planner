@@ -6,6 +6,7 @@ import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId, type LevelFloor } from './floorTypes'
+import type { OpeningStyle } from './openingStyles'
 import type { RoomTypeId } from './roomTypes'
 import { linkStairs } from './stairs'
 
@@ -194,6 +195,11 @@ export interface Opening {
   flipHinge: boolean
   /** Doors: swing to the wall's right side instead of its left. */
   flipSwing: boolean
+  /**
+   * What kind of door or window it is (sliding, bifold, awning…; see ./openingStyles). Missing in
+   * plans saved before kinds: a door is then hinged, and a window is drawn as it always was.
+   */
+  style?: OpeningStyle
 }
 
 /** How the lowest floor is held up: one of FLOOR_TYPES (slab on ground, bearers and joists on piers, …). */

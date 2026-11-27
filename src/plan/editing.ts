@@ -3,7 +3,9 @@
 
 import type { Vec2 } from '../lib/geom'
 import { furnitureName } from './furniture'
-import { newId, OPENING_NAMES, wallDir, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type SketchItem, type Stair, type Wall } from './model'
+import { newId, wallDir, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type SketchItem, type Stair, type Wall } from './model'
+import { copyOpeningTo } from './openingCopy'
+import { openingName } from './openingStyles'
 import { deleteSelection } from './ops'
 import type { Selection } from './store'
 import { followTees } from './wallJoins'
@@ -74,7 +76,7 @@ export function selectionName(plan: Plan, sels: Selection[]): string {
     }
     case 'opening': {
       const o = plan.openings.find(x => x.id === s.id)
-      return o ? OPENING_NAMES[o.kind] : 'Opening'
+      return o ? openingName(o) : 'Opening'
     }
     case 'room':
       return plan.rooms.find(x => x.id === s.id)?.name.trim() || 'Room'
@@ -186,12 +188,15 @@ export interface Clip {
   stairs: Stair[]
   furniture: Furniture[]
   sketch: SketchItem[]
+  /** Doors and windows copied on their own, without their wall: pasted into a wall beside the original, or into the wall picked. */
+  loose?: Opening[]
 }
 
-/** How many things a clip holds (doors and windows count with their walls). */
-export const clipCount = (c: Clip) => c.walls.length + c.rooms.length + c.areas.length + c.roofs.length + c.stairs.length + c.furniture.length + c.sketch.length
+/** How many things a clip holds: every wall, door and window, room and so on, as the selection counts them. */
+export const clipCount = (c: Clip) =>
+  c.walls.length + c.openings.length + (c.loose?.length ?? 0) + c.rooms.length + c.areas.length + c.roofs.length + c.stairs.length + c.furniture.length + c.sketch.length
 
-/** What the selection holds that can be copied: walls with their doors and windows, rooms, areas, roofs, stairs and furniture. Null when none. */
+/** What the selection holds that can be copied: walls with their doors and windows, doors and windows on their own, rooms, areas, roofs, stairs and furniture. Null when none. */
 export function copySelection(plan: Plan, sels: Selection[]): Clip | null {
   const pick = <T extends { id: string }>(items: T[], type: Selection['type']) => {
     const ids = idsOf(sels, type)
@@ -199,9 +204,11 @@ export function copySelection(plan: Plan, sels: Selection[]): Clip | null {
   }
   const walls = pick(plan.walls, 'wall')
   const wallIds = new Set(walls.map(w => w.id))
+  const loose = pick(plan.openings, 'opening').filter(o => !wallIds.has(o.wall))
   const clip: Clip = {
     walls,
     openings: plan.openings.filter(o => wallIds.has(o.wall)),
+    ...(loose.length ? { loose } : {}),
     rooms: pick(plan.rooms, 'room'),
     areas: pick(plan.areas, 'area'),
     roofs: pick(plan.roofs, 'roof'),
@@ -212,8 +219,13 @@ export function copySelection(plan: Plan, sels: Selection[]): Clip | null {
   return clipCount(clip) ? structuredClone(clip) : null
 }
 
-/** Put a clip on `level`, moved by `offset`, with new ids. Returns the new plan and what was added, to select. */
-export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2): { plan: Plan; added: Selection[] } {
+/**
+ * Put a clip on `level`, moved by `offset`, with new ids. Returns the new plan and what was added,
+ * to select. Doors and windows copied on their own go into `intoWall` when one is given, else
+ * beside the original in its own wall (when that wall is on this level); `left` counts the ones
+ * no wall had room for.
+ */
+export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2, intoWall?: string): { plan: Plan; added: Selection[]; left: number } {
   const shift = (p: Vec2): Vec2 => [r4(p[0] + offset[0]), r4(p[1] + offset[1])]
   const wallIds = new Map(clip.walls.map(w => [w.id, newId('wall')]))
   const walls = clip.walls.map(w => ({ ...w, id: wallIds.get(w.id)!, level, a: shift(w.a), b: shift(w.b) }))
@@ -224,20 +236,33 @@ export function pasteClip(plan: Plan, clip: Clip, level: string, offset: Vec2): 
   const stairs = clip.stairs.map(s => ({ ...s, id: newId('stair'), level, at: shift(s.at) }))
   const furniture = clip.furniture.map(f => ({ ...f, id: newId('furniture'), level, at: shift(f.at) }))
   const sketch = (clip.sketch ?? []).map(s => ({ ...s, id: newId('sketch'), level, pts: s.pts.map(shift) }))
+  let next: Plan = {
+    ...plan,
+    walls: [...plan.walls, ...walls],
+    openings: [...plan.openings, ...openings],
+    rooms: [...plan.rooms, ...rooms],
+    areas: [...plan.areas, ...areas],
+    roofs: [...plan.roofs, ...roofs],
+    stairs: [...plan.stairs, ...stairs],
+    furniture: [...plan.furniture, ...furniture],
+    ...(sketch.length ? { sketch: [...(plan.sketch ?? []), ...sketch] } : {}),
+  }
+  const loose: string[] = []
+  let left = 0
+  for (const o of clip.loose ?? []) {
+    const wall = plan.walls.find(w => w.id === (intoWall ?? o.wall) && w.level === level)
+    const put = wall && copyOpeningTo(next, o, wall)
+    if (put) {
+      next = put.plan
+      loose.push(put.id)
+    } else left++
+  }
   return {
-    plan: {
-      ...plan,
-      walls: [...plan.walls, ...walls],
-      openings: [...plan.openings, ...openings],
-      rooms: [...plan.rooms, ...rooms],
-      areas: [...plan.areas, ...areas],
-      roofs: [...plan.roofs, ...roofs],
-      stairs: [...plan.stairs, ...stairs],
-      furniture: [...plan.furniture, ...furniture],
-      ...(sketch.length ? { sketch: [...(plan.sketch ?? []), ...sketch] } : {}),
-    },
+    plan: next,
+    left,
     added: [
       ...walls.map(x => ({ type: 'wall' as const, id: x.id })),
+      ...[...openings.map(x => x.id), ...loose].map(id => ({ type: 'opening' as const, id })),
       ...rooms.map(x => ({ type: 'room' as const, id: x.id })),
       ...areas.map(x => ({ type: 'area' as const, id: x.id })),
       ...roofs.map(x => ({ type: 'roof' as const, id: x.id })),

@@ -1,0 +1,92 @@
+/* Door and window kinds on the plan, the furniture list's search box and drag tag, and the
+   Move, turn, flip and line up tools on a selection's card. */
+
+/* A sliding or bifold door's panels, drawn heavier than a window's glass (src/plan/openingStyles.ts). */
+.opening.kind-door {
+  stroke-width: 1.8;
+}
+
+.opening.kind-door.selected {
+  stroke-width: 2.4;
+}
+
+.furniture-search input.text {
+  width: 150px;
+}
+
+/* Said to a screen reader only: how many pieces the search found. */
+.furniture-found {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.furniture-items button {
+  /* A press and drag takes the piece to the plan instead of selecting its name. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.dragging-furniture,
+body.dragging-furniture * {
+  cursor: grabbing !important;
+}
+
+/* The piece being dragged from the list, until the pointer reaches the plan (which then draws it to scale). */
+.furniture-drag-tag {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin: 10px 0 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel, #fff);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.transform-tools {
+  display: grid;
+  gap: 8px;
+}
+
+.transform-tools > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.transform-tools h3 {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.transform-tools .row {
+  flex-wrap: wrap;
+}
+
+.transform-tools .align-row button {
+  padding-inline: 8px;
+}
+
+/* The card's rows sit closer together here than under a single setting. */
+.transform-tools .row button.secondary {
+  margin-top: 0;
+}
+
+/* Dragging from the list needs a mouse or pen: a finger scrolls the list, so a touch screen isn't told to drag. */
+@media (hover: none) {
+  .mouse-only {
+    display: none;
+  }
+}

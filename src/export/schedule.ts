@@ -3,7 +3,8 @@
 
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { planarFaces, roomShape } from '../plan/geometry'
-import { OPENING_NAMES, levelById, pointOnWall, sortedLevels, wallDir, wallLength, type OpeningKind, type Plan } from '../plan/model'
+import { levelById, pointOnWall, sortedLevels, wallDir, wallLength, type OpeningKind, type Plan } from '../plan/model'
+import { openingName } from '../plan/openingStyles'
 import { EXPORT_CAVEAT } from './exportCaveat'
 
 export interface ScheduleRow {
@@ -53,7 +54,7 @@ export function doorWindowSchedule(plan: Plan): ScheduleRow[] {
     rows.push({
       id: `${MARK[o.kind]}${count[o.kind]}`,
       floor: levelById(plan, w.level)?.name ?? '',
-      type: OPENING_NAMES[o.kind],
+      type: openingName(o),
       room: names.length ? names.join(' / ') : 'Outside',
       wall: `${w.kind === 'internal' ? 'Internal' : w.kind === 'retaining' ? 'Retaining' : 'External'} wall, ${wallLength(w).toFixed(2)} m`,
       width: o.width,

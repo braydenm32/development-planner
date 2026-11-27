@@ -7,7 +7,8 @@ import { featureName } from '../site/model'
 import { roomFloorText } from '../plan/floorTypes'
 import { furnitureName } from '../plan/furniture'
 import { roomArea } from '../plan/keyNumbers'
-import { areaKind, AREA_KINDS, OPENING_NAMES, wallLength, WALL_KINDS, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type Stair, type Wall } from '../plan/model'
+import { areaKind, AREA_KINDS, wallLength, WALL_KINDS, type Area, type Furniture, type Opening, type Plan, type Roof, type Room, type Stair, type Wall } from '../plan/model'
+import { openingName } from '../plan/openingStyles'
 import { stairLayout } from '../plan/stairs'
 
 export type TipSubject =
@@ -44,7 +45,7 @@ export function tooltipText(s: TipSubject, ctx: TipContext): string {
     }
     case 'opening': {
       const o = s.item
-      return `${OPENING_NAMES[o.kind]} · ${mm(o.width)} wide`
+      return `${openingName(o)} · ${mm(o.width)} wide`
     }
     case 'room': {
       const r = s.item

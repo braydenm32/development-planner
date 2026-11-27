@@ -4,6 +4,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
+import { TransformTools } from '../components/TransformTools'
 import { TOOLS } from '../components/tools'
 import { ZoomButtons } from '../components/ZoomButtons'
 import { Icon, type IconName } from '../nav/icons'
@@ -116,7 +117,10 @@ export function Inspector({ d, readOnly = false, wide = false, elsewhere }: { d:
           {panel}
         </ViewLock>
       ) : (
-        panel
+        <>
+          {panel}
+          <TransformTools plan={d.plan} />
+        </>
       )}
     </aside>
   )

@@ -72,16 +72,13 @@ export function forgetCopied() {
   pastes = 0
 }
 
-/** Copy what is selected (walls take their doors and windows). */
+/** Copy what is selected: walls take their doors and windows, and a door or window can be copied on its own. */
 export function copySelected(): boolean {
   const st = usePlan.getState()
   const sels = selectedList(st)
   if (!st.plan || !sels.length) return false
   const clip = copySelection(st.plan, sels)
-  if (!clip) {
-    showToast({ text: 'Doors and windows are copied with their wall. Pick the wall to copy it.' })
-    return true
-  }
+  if (!clip) return false
   clipboard = clip
   copiedOn = st.activeLevel
   pastes = 0
@@ -99,10 +96,7 @@ export function cutSelected(): boolean {
   const sels = selectedList(st)
   if (!st.plan || !sels.length) return false
   const clip = copySelection(st.plan, sels)
-  if (!clip) {
-    showToast({ text: 'Doors and windows are cut with their wall. Pick the wall to cut it.' })
-    return true
-  }
+  if (!clip) return false
   clipboard = clip
   copiedOn = st.activeLevel
   pastes = -1
@@ -113,46 +107,60 @@ export function cutSelected(): boolean {
   return true
 }
 
-function put(clip: Clip, offset: Vec2) {
+/** Why a door or window copied on its own couldn't be pasted. */
+const NO_ROOM = 'There’s no room in that wall for another one that size. Make a gap, or pick another wall and paste.'
+const NO_WALL = 'Pick the wall to put it in, then paste.'
+
+/**
+ * Put a clip on the level being shown, as one undo step, select what was added and say so (`did`:
+ * "pasted", "duplicated"), with Undo. False when nothing could be added, which is said instead.
+ */
+function put(clip: Clip, offset: Vec2, did: string): boolean {
   const st = usePlan.getState()
-  if (!st.plan) return
-  let added: ReturnType<typeof pasteClip>['added'] = []
-  st.commit(p => {
-    const r = pasteClip(p, clip, st.activeLevel, offset)
-    added = r.added
-    return r.plan
-  })
-  st.selectMany(added)
+  const plan = st.plan
+  if (!plan) return false
+  // A door or window copied on its own goes into the wall that is picked, when one is.
+  const picked = selectedList(st)
+  const wall = clip.loose?.length && picked.length === 1 && picked[0].type === 'wall' ? picked[0].id : undefined
+  const r = pasteClip(plan, clip, st.activeLevel, offset, wall)
+  if (!r.added.length) {
+    showToast({ text: clip.loose?.some(o => plan.walls.some(w => w.id === (wall ?? o.wall) && w.level === st.activeLevel)) ? NO_ROOM : NO_WALL })
+    return false
+  }
+  st.commit(() => r.plan)
+  st.selectMany(r.added)
+  const name = selectionName(r.plan, r.added)
+  undoToastFor(`${name} ${did}${r.left ? `. ${r.left === 1 ? 'One door or window' : `${r.left} doors and windows`} had no room in the wall` : ''}`)
+  return true
 }
 
 /**
- * Paste the copied things on the level being shown. On the level they came from they land a
- * little off from where they were, so they're seen; on another level, or with `inPlace`
- * (Ctrl+Shift+V), right where they were, lined up with the floor they came from.
+ * Paste the copied things on the level being shown, and say how many. On the level they came
+ * from they land a little off from where they were, so they're seen; on another level, or with
+ * `inPlace` (Ctrl+Shift+V), right where they were, lined up with the floor they came from. A
+ * door or window copied on its own lands beside the original, or in the wall that is picked.
  */
 export function pasteCopied(inPlace = false): boolean {
   if (!clipboard) return false
   const st = usePlan.getState()
   const elsewhere = copiedOn !== null && copiedOn !== st.activeLevel
   if (inPlace || elsewhere) {
-    put(clipboard, [0, 0])
     const level = st.plan?.levels.find(l => l.id === st.activeLevel)
-    showToast({ text: elsewhere && level ? `Pasted in place on ${level.name}.` : 'Pasted in place.' })
+    put(clipboard, [0, 0], elsewhere && level ? `pasted in place on ${level.name}` : 'pasted in place')
     return true
   }
-  pastes += 1
-  put(clipboard, [PASTE_OFFSET * pastes, PASTE_OFFSET * pastes])
+  if (put(clipboard, [PASTE_OFFSET * (pastes + 1), PASTE_OFFSET * (pastes + 1)], 'pasted')) pastes += 1
   return true
 }
 
-/** Copy and paste in one go, without touching what was copied. */
+/** Copy and paste in one go, without touching what was copied. A door or window on its own gets a copy beside it in its wall. */
 export function duplicateSelected(): boolean {
   const st = usePlan.getState()
   const sels = selectedList(st)
   if (!st.plan || !sels.length) return false
   const clip = copySelection(st.plan, sels)
   if (!clip) return false
-  put(clip, [PASTE_OFFSET, PASTE_OFFSET])
+  put(clip, [PASTE_OFFSET, PASTE_OFFSET], 'duplicated')
   return true
 }
 

@@ -11,8 +11,9 @@ import type { Survey } from '../lib/survey'
 import type { Heightfield } from '../lib/terrain'
 import type { ContourRun } from '../plan/finishedContours'
 import { wallPolygons } from '../plan/geometry'
-import { OPENING_NAMES, floorRL, houseWalls, isRetaining, pointOnWall, sortedLevels, toSite, areaKind, wallDir, type Plan } from '../plan/model'
+import { floorRL, houseWalls, isRetaining, pointOnWall, sortedLevels, toSite, areaKind, wallDir, type Plan } from '../plan/model'
 import { notesOf } from '../plan/notes'
+import { openingName } from '../plan/openingStyles'
 import { retainingProfiles } from '../plan/retaining'
 import { levelOutlines, roofGeometry } from '../plan/roof'
 import { roofEavesRL } from '../plan/roofline'
@@ -136,7 +137,7 @@ export function planDxf({ plan, survey, finished, ground, pads, title, date }: P
     const corner = (along: number, across: number): Vec2 => fromHouse([c[0] + d[0] * along - d[1] * across, c[1] + d[1] * along + d[0] * across])
     const [hw, ht] = [o.width / 2, w.thickness / 2]
     dxf.polyline(layerOf('OPENINGS', w.level), [corner(-hw, -ht), corner(hw, -ht), corner(hw, ht), corner(-hw, ht)], { closed: true })
-    const size = `${OPENING_NAMES[o.kind]} ${mm(o.width)} x ${mm(o.height)}${o.kind === 'window' ? `, sill ${mm(o.sill)}` : ''}`
+    const size = `${openingName(o)} ${mm(o.width)} x ${mm(o.height)}${o.kind === 'window' ? `, sill ${mm(o.sill)}` : ''}`
     dxf.text(layerOf('OPENINGS', w.level), corner(-hw, ht + 0.1), size, 0.15)
   }
   for (const roof of plan.roofs) {

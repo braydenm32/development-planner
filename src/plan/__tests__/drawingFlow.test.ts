@@ -72,7 +72,9 @@ describe('paste on another level', () => {
     const pasted = plan().rooms.find(r => r.id === usePlan.getState().selection!.id)!
     expect(pasted.level).toBe(added.id)
     expect(pasted.at).toEqual(plan().rooms.find(r => r.id === 'r1')!.at)
-    expect(useSafety.getState().toast?.text).toBe('Pasted in place on First floor.')
+    // The toast names what was pasted and where, and has Undo.
+    expect(useSafety.getState().toast?.text).toBe('Garage pasted in place on First floor')
+    expect(useSafety.getState().toast?.undo).toBeTypeOf('function')
   })
 
   it('pastes in place on the same floor with Shift, and a little off without', () => {

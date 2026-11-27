@@ -59,6 +59,7 @@ import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPla
 import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel, undoToastFor } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
 import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
+import { styleSymbol } from '../plan/openingStyles'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
 import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
@@ -188,7 +189,7 @@ const HINTS: Record<Tool, string> = {
   roof: 'Click inside the walls to roof that building. Select a roof to set its type, pitch and gable ends.',
   stair: 'Click where the stair starts, then click the direction it goes up. Hold Shift for any angle.',
   furniture:
-    'Pick a piece from the list and click to place it. Its back snaps flush to a nearby wall. Q turns it 90° (Shift+Q the other way), or drag its round handle. Hold Shift to turn off snapping.',
+    'Pick a piece from the list and click to place it, or drag it from the list. Its back snaps flush to a nearby wall. Q turns it 90° (Shift+Q the other way), or drag its round handle. Hold Shift to turn off snapping.',
   measure: 'Click a point, then another to read the distance and height; keep clicking for a chain. Double-click or Enter finishes. Shift turns off snapping. Esc ends the tool.',
   sketch: 'Click to sketch. Sketch lines change nothing; everything snaps to them.',
   note: 'Click the plan to add a note; click a note to change or delete it. Esc finishes.',
@@ -1878,8 +1879,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (e.key.toLowerCase() === 'q') {
-        // Turn the piece about to be placed, or the selected one, a quarter turn.
-        const turn = e.shiftKey ? -90 : 90
+        // Turn the piece about to be placed, or the selected one, a quarter turn: clockwise, as its card counts it.
+        const turn = e.shiftKey ? 90 : -90
         const sel = st.selection
         const f = sel?.type === 'furniture' ? st.plan?.furniture.find(x => x.id === sel.id) : undefined
         if (ghost) st.setFurnitureDefaults({ ...st.furnitureDefaults, rotation: normDeg(st.furnitureDefaults.rotation + turn) })
@@ -2035,7 +2036,14 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const selected = isSel('opening', o.id)
     const cls = `opening${selected ? ' selected' : ''}${ghost ? ' ghost' : ''}`
     const parts = [<path key="gap" className="opening-gap" d={path(gap)} />]
-    if (o.kind === 'window') {
+    // A sliding, double or bifold door, or a window of a named kind, has its own symbol (src/plan/openingStyles.ts).
+    const styled = styleSymbol(o, p0, p1, n, ht)
+    if (styled) {
+      parts.push(
+        <path key="kind" className={`${cls} kind-${o.kind}`} d={styled.lines.map(l => path(l, false)).join('')} />,
+        <path key="kind-light" className={`${cls} swing`} d={styled.light.map(l => path(l, false)).join('')} />,
+      )
+    } else if (o.kind === 'window') {
       parts.push(
         <path key="glass" className={cls} d={`${path([at(p0, -ht / 3), at(p1, -ht / 3)], false)}${path([at(p0, ht / 3), at(p1, ht / 3)], false)}`} />,
         <path key="jambs" className={cls} d={`${path([at(p0, -ht), at(p0, ht)], false)}${path([at(p1, -ht), at(p1, ht)], false)}`} />,
@@ -2537,7 +2545,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {ghost && cursor && tag(cursor.p, [`${furnitureName(ghost.item)}  ${fmtMm(ghost.item.width)} × ${fmtMm(ghost.item.depth)}`])}
         {ghost?.fit.touch && <SnapMarker p={S(ghost.fit.touch)} kind="wall" />}
         {box && <rect className="marquee" x={Math.min(box.a[0], box.b[0])} y={Math.min(box.a[1], box.b[1])} width={Math.abs(box.a[0] - box.b[0])} height={Math.abs(box.a[1] - box.b[1])} />}
-        {dragKind === 'furnitureTurn' && selFurniture && cursor && tag(cursor.p, [`${selFurniture.rotation.toFixed(0)}°`])}
+        {dragKind === 'furnitureTurn' && selFurniture && cursor && tag(cursor.p, [`${normDeg(-selFurniture.rotation).toFixed(0)}°`])}
 
         {/* Retaining walls: how much the selected or new one holds back, and a flag on tall ones */}
         <RetainingMarks
