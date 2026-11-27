@@ -999,3 +999,45 @@ body:has(.app-shell.phone) {
     padding: 0 16px;
   }
 }
+
+/* ---- Approvals and Share read the house on a computer too (src/nav/route.ts) ---- */
+
+/* The selection's card there: its numbers as values, nothing to type in or delete, and one line
+   that says where it is changed, with the way there. */
+.app-shell:not(.phone) .inspector.read-only .view-lock-note.elsewhere {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 16px 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock-note.elsewhere button {
+  flex: none;
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock input,
+.app-shell:not(.phone) .inspector.read-only .view-lock select,
+.app-shell:not(.phone) .inspector.read-only .view-lock textarea,
+.app-shell:not(.phone) .inspector.read-only .view-lock .num-input {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  opacity: 1;
+  -webkit-text-fill-color: var(--text);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock button.danger,
+.app-shell:not(.phone) .inspector.read-only .view-lock .delete-row,
+.app-shell:not(.phone) .inspector.read-only .view-lock .floor-more {
+  display: none;
+}
+
+.app-shell.phone .view-lock-note.elsewhere {
+  display: flex;
+}

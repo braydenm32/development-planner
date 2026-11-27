@@ -147,6 +147,13 @@ export function carriesSelection(from: AppRoute, to: AppRoute, kind: SelectionKi
   return (EDITED_IN[kind] ?? []).some(t => t === `${to.area}/${to.tab}` || t === `${to.area}/*`)
 }
 
+/**
+ * The areas where the house is read, never changed: Approvals checks it and Share sends it. A
+ * selection there shows its numbers, with no fields, no drags and no Delete; Design changes it.
+ * (Costs reads it too, with no selection at all; Earthworks keeps its own things to move.)
+ */
+export const readsTheHouse = (area: AreaId) => area === 'approvals' || area === 'share'
+
 /** The canvas a route shows: the plan, the 3D view, or the print preview. */
 export function canvasOf(r: AppRoute): CanvasView | 'print' {
   const area = areaById(r.area)

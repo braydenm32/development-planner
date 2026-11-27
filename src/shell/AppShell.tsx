@@ -22,7 +22,7 @@ import { shortcutText, typingIn } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
-import { canvasOf, carriesSelection, tabRoute, type AppRoute } from '../nav/route'
+import { canvasOf, carriesSelection, readsTheHouse, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
@@ -420,6 +420,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const view = loaded?.view
   // Costs reports on the design: the plan is for looking at, and on a phone the panel takes the screen.
   const report = !!area.report
+  // Approvals and Share read the house too: it's selected to read its numbers and changed in Design
+  // (LF-12, LD-36, LF-09). What those tabs set themselves (a check's facts, the plans' sheets) still changes.
+  const reads = readsTheHouse(area.id)
   const selection = usePlan(s => s.selection)
   const tool = usePlan(s => s.tool)
   // On a phone in View, the plan has no tools.
@@ -463,7 +466,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
     const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
     return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
   }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps])
-  const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
+  const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
   // whole screen, so there the panel starts tucked away as a pill.
@@ -637,7 +640,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           {aside && Aside && <Aside />}
           {inspector && loaded && (
             <ErrorBoundary variant="float">
-              <Inspector d={loaded} readOnly={phone && !editing} wide={wideInspector} />
+              <Inspector
+                d={loaded}
+                readOnly={(phone && !editing) || reads}
+                wide={wideInspector}
+                // A phone in View says how to Edit first; in Edit, and on a computer, where the thing is changed.
+                elsewhere={reads && editing ? changedIn(selRetaining) : undefined}
+              />
             </ErrorBoundary>
           )}
           {steps && loaded && (
@@ -650,6 +659,19 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       </main>
     </>
   )
+}
+
+/** Where a thing read in Approvals or Share is changed, and the way there with it still selected. */
+function changedIn(retaining: boolean) {
+  const [area, tab] = retaining ? (['earthworks', 'retaining-walls'] as const) : (['design', 'plan'] as const)
+  return {
+    text: retaining ? 'This is for reading here. Retaining walls are changed in Earthworks.' : 'This is for reading here. The house is changed in Design.',
+    label: retaining ? 'Go to Earthworks' : 'Go to Design',
+    go: () => {
+      const r = useRouter.getState().route
+      if (r.kind === 'app') navigate({ ...tabRoute(r, area, tab), view: 'plan' })
+    },
+  }
 }
 
 /** The Overview's way to Check everything: one sheet at a time. */

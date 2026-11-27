@@ -90,7 +90,8 @@ import { SketchKey } from '../sketch/SketchPanel'
 import { roomMade, wallsPlaced } from '../flow/store'
 import { PlanHints } from '../guide/PlanHints'
 import { PHONE_LABELS_K, useLabelDeclutter } from './declutter'
-import { useRouter } from '../nav/router'
+import { navigate, useRouter } from '../nav/router'
+import { readsTheHouse, tabRoute } from '../nav/route'
 import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { CostsPlanLayer } from '../costs/PlanHighlight'
@@ -148,8 +149,13 @@ type Drag =
  */
 const AREA_HINTS: Record<string, string> = {
   site: 'Drag to pan, scroll to zoom. This is the block as surveyed; the house is drawn in Design.',
-  share: 'Drag to pan, scroll to zoom. Click a room, wall or roof to read it; the house is changed in Design.',
-  approvals: 'Drag to pan, scroll to zoom. The pins are the checks to fix or confirm; the house is changed in Design.',
+  share: 'Click a room, wall or roof to read it. The house is changed in Design.',
+  approvals: 'The pins are the checks to fix or confirm. The house is changed in Design.',
+}
+/** From a plan that only reads the house to Design › Plan, with what's selected still selected. */
+function toDesign() {
+  const r = useRouter.getState().route
+  if (r.kind === 'app') navigate({ ...tabRoute(r, 'design', 'plan'), view: 'plan' })
 }
 const GUARDED_HINT = 'Drag to pan, scroll to zoom. Click something to select it; once selected, it can be dragged.'
 
@@ -243,6 +249,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const inDesign = area === 'design'
   // In the app's frame, outside Design and Earthworks: a drag pans, and only a selected thing moves (AREA_HINTS).
   const guarded = !!frame && !viewOnly && area !== null && area !== 'design' && area !== 'earthworks'
+  // Approvals and Share read the house (src/nav/route.ts): the frame makes the plan view-only there.
+  const readsHouse = !!frame && viewOnly && area !== null && readsTheHouse(area)
   // Site is the block before the house, and tracing a feature is about the block too: no floor to
   // draw on, no ground-meets-floor line and no drawing hints there.
   const siteTool = useSiteStore(s => s.tool !== null)
@@ -252,9 +260,20 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const stripH = useStripSpace(stripShows, !!touch?.phone)
   const insets = frame ? { ...frame.insets, b: frame.insets.b + stripH } : null
   // A drawing tool left out in Design is put down where the plan is only for looking at.
+  const looking = guarded || (viewOnly && readsHouse)
   useEffect(() => {
-    if (guarded && tool !== 'select') usePlan.getState().setTool('select')
-  }, [guarded, tool])
+    if (looking && tool !== 'select') usePlan.getState().setTool('select')
+  }, [looking, tool])
+  // Approvals and Share on a computer say the house is changed in Design, with the way there.
+  const readHint =
+    readsHouse && !touch?.phone ? (
+      <>
+        {AREA_HINTS[area]}{' '}
+        <button type="button" className="link" onClick={toDesign}>
+          Go to Design
+        </button>
+      </>
+    ) : null
   // One thing at a time: the next-step tip waits while the street question is up.
   const askingStreet = useStreetAskOpen(plan, survey.boundary)
   // While it's asked, the side picked (the low side to start) and the one pointed at show on the block.
@@ -2538,7 +2557,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         ) : (
           <span className="muted">
             {viewOnly
-              ? VIEW_HINT[touch?.phone ? 'phone' : 'desk']
+              ? (readHint ?? VIEW_HINT[touch?.phone ? 'phone' : 'desk'])
               : (sections.hint ?? brush.hint ?? (site.active ? site.hint : guarded ? (AREA_HINTS[area!] ?? GUARDED_HINT) : tool === 'roof' ? ROOF_HINTS[roofMode] : (sk.hint ?? HINTS[tool])))}
           </span>
         )}

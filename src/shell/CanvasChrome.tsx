@@ -98,9 +98,10 @@ export function ToolCard({ compact = false }: { compact?: boolean }) {
 
 /**
  * The selected item's settings and numbers, floating on the right of the plan (a sheet on
- * a phone). On a phone in View they read but can't be changed.
+ * a phone). On a phone in View they read but can't be changed; nor in Approvals and Share
+ * (`elsewhere`), which say where the thing is changed and go there with it still selected.
  */
-export function Inspector({ d, readOnly = false, wide = false }: { d: Loaded; readOnly?: boolean; wide?: boolean }) {
+export function Inspector({ d, readOnly = false, wide = false, elsewhere }: { d: Loaded; readOnly?: boolean; wide?: boolean; elsewhere?: { text: string; label: string; go: () => void } }) {
   const selection = usePlan(s => s.selection)
   if (!selection || !findSelection(d.plan, selection.id)) return null
   const panel = <SelectionPanel plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} />
@@ -110,7 +111,13 @@ export function Inspector({ d, readOnly = false, wide = false }: { d: Loaded; re
       <button className="icon-button inspector-close" onClick={() => usePlan.getState().select(null)} aria-label="Close (clear the selection)" title="Close (Esc)">
         <Icon name="x" size={16} />
       </button>
-      {readOnly ? <ViewLock after>{panel}</ViewLock> : panel}
+      {readOnly ? (
+        <ViewLock after why={elsewhere}>
+          {panel}
+        </ViewLock>
+      ) : (
+        panel
+      )}
     </aside>
   )
 }

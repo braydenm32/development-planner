@@ -5,6 +5,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlanEditor } from '../../components/PlanEditor'
+import { AREAS } from '../../nav/menu'
+import { readsTheHouse } from '../../nav/route'
 import { usePlan } from '../../plan/store'
 import { useSiteStore } from '../../site/store'
 import { canEdit, readMode, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
@@ -138,3 +140,42 @@ describe('a panel in View', () => {
     expect(html.indexOf('Wall 10.00 m')).toBeLessThan(html.indexOf('View: one finger pans'))
   })
 })
+
+// LF-12, LD-36, LF-09: Approvals and Share read the house on a computer too. The frame makes the
+// plan view-only there (the same lock as a phone's View: no handles, no drags, no Delete), and the
+// selection's card says where the thing is changed.
+describe('Approvals and Share, which read the house', () => {
+  it('are the two areas where the house is read: Design and Earthworks change it', () => {
+    expect(AREAS.map(a => a.id).filter(readsTheHouse)).toEqual(['approvals', 'share'])
+  })
+
+  it('lock the selection’s card, say where it is changed, and offer the way there', () => {
+    const go = vi.fn()
+    const html = renderToStaticMarkup(
+      <ViewLock after why={{ text: 'This is for reading here. The house is changed in Design.', label: 'Go to Design', go }}>
+        <button className="danger">Delete</button>
+      </ViewLock>,
+    )
+    expect(html).toContain('<fieldset class="view-lock" disabled="">')
+    expect(words(html)).toContain('The house is changed in Design. Go to Design')
+    // Not the phone's line: there is nothing to switch to Edit for.
+    expect(words(html)).not.toContain('Tap Edit')
+  })
+
+  it('draw no handles on a computer either, where the plan is view-only', () => {
+    usePlan.getState().load(house())
+    usePlan.getState().select({ type: 'wall', id: 's' })
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
+    const { survey, terrain } = loadBlock()
+    const html = renderToStaticMarkup(
+      <TouchCanvas.Provider value={{ phone: false, viewOnly: true, projectKey: 'p' }}>
+        <PlanEditor survey={survey} terrain={terrain} up="house" onUpChange={() => {}} showGround={false} onShowGroundChange={() => {}} earth={null} />
+      </TouchCanvas.Provider>,
+    )
+    expect(html).toContain('view-only')
+    expect(html).not.toContain('class="handle"')
+    // The level chip picks a floor to look at; it has no Pick a contour, which moves floors.
+    expect(html).not.toContain('Pick a contour')
+  })
+})
+

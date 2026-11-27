@@ -921,6 +921,11 @@ button.chip:hover .chip-label {
   white-space: normal;
 }
 
+/* The hint's own link (Go to Design, where the plan only reads the house) takes a click; the rest lets it through to the plan. */
+.app-shell .readout button.link {
+  pointer-events: auto;
+}
+
 /* While the pointer reads the ground, that line has the box to itself; the tool's hint comes back after. */
 .app-shell .canvas-plan .readout:has(.ground-readout) > .muted {
   display: none;

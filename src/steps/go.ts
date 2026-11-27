@@ -42,7 +42,8 @@ export function goTo(g: Go) {
   if (g.to === 'check') {
     if (g.fix) navigate({ ...tabRoute(r, g.fix.area, g.fix.tab), view: 'plan' })
     else {
-      navigate({ ...tabRoute(r, 'approvals', 'checks'), view: 'plan' })
+      // Whatever the last step picked is put down: its card would cover this check's pin (LF-09).
+      navigate({ ...tabRoute(r, 'approvals', 'checks'), view: 'plan', sel: undefined })
       // Its row opens in the list and its pin, where it has one, lights on the plan.
       revealCheck(g.id)
     }
