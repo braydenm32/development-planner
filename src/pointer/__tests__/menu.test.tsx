@@ -4,7 +4,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { forgetCopied } from '../../plan/editActions'
+import { newFurniture } from '../../plan/furniture'
 import { normalizePlan, wallLength } from '../../plan/model'
+import { addFurniture } from '../../plan/ops'
 import { usePlan, type Selection } from '../../plan/store'
 import { garageFloor } from '../../plan/__tests__/fixtures'
 import { useSafety } from '../../safety/store'
@@ -62,6 +64,19 @@ describe('the right-click menu (CB-09)', () => {
     expect(ids([{ type: 'room', id: room.id }])[0]).toBe('rename')
     const f = plan().furniture[0]
     if (f) expect(ids([{ type: 'furniture', id: f.id }])[0]).toBe('turn')
+  })
+
+  it('offers a handed piece Mirror, as one undo step that H also takes', () => {
+    const sofa = newFurniture('sofa-corner', plan().levels[0].id, [3, 3])!
+    const bed = newFurniture('bed-queen', plan().levels[0].id, [6, 3])!
+    st().commit(p => addFurniture(addFurniture(p, sofa), bed))
+    expect(ids([{ type: 'furniture', id: bed.id }])).not.toContain('mirror')
+    const m = item([{ type: 'furniture', id: sofa.id }], 'mirror')
+    expect(m.keys).toBe('H')
+    expect(steps(() => m.run())).toBe(1)
+    expect(plan().furniture.find(x => x.id === sofa.id)!.mirrored).toBe(true)
+    item([{ type: 'furniture', id: sofa.id }], 'mirror').run()
+    expect('mirrored' in plan().furniture.find(x => x.id === sofa.id)!).toBe(false)
   })
 
   it('acts on everything picked when several things are', () => {

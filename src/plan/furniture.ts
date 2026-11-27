@@ -1,6 +1,6 @@
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { catalogItem, catalogSolids, catalogSymbol, CUSTOM_BOX, type SymbolPart, type Solid } from './furnitureCatalog'
-import { newId, wallDir, wallLength, type Furniture, type Wall } from './model'
+import { newId, wallDir, wallLength, type Furniture, type Plan, type Wall } from './model'
 
 export { CATALOG, FURNITURE_GROUPS, catalogItem, type CatalogItem, type FurnitureGroup } from './furnitureCatalog'
 
@@ -56,10 +56,13 @@ export function furnitureContains(f: Placed, p: Vec2): boolean {
   return pointInPolygon(p[0], p[1], furnitureCorners(f))
 }
 
+/** A point in the item's own frame, mirrored across its width when the piece is. */
+const own = (f: Pick<Furniture, 'mirrored'>, p: Vec2): Vec2 => (f.mirrored ? [-p[0], p[1]] : p)
+
 /** The plan symbol in the plan frame, with the appliance note (REF, DW) if it has one. */
 export function furnitureSymbol(f: Furniture): { parts: SymbolPart[]; code: string | null } {
   const item = catalogItem(f.kind)
-  const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, q)), closed: p.closed }))
+  const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, own(f, q))), closed: p.closed }))
   // A custom box carries the name it was given, kept short enough to sit on it.
   const named = f.kind === CUSTOM_BOX ? f.label?.trim().slice(0, 14) : undefined
   return { parts, code: item?.code ?? (named || null) }
@@ -67,7 +70,22 @@ export function furnitureSymbol(f: Furniture): { parts: SymbolPart[]; code: stri
 
 /** The 3D shape in the plan frame, heights above the floor. */
 export function furnitureSolids(f: Furniture): Solid[] {
-  return catalogSolids(catalogItem(f.kind), f.width, f.depth, f.height).map(s => ({ ...s, pts: s.pts.map(q => furnitureToPlan(f, q)) }))
+  return catalogSolids(catalogItem(f.kind), f.width, f.depth, f.height).map(s => ({ ...s, pts: s.pts.map(q => furnitureToPlan(f, own(f, q))) }))
+}
+
+/** Whether a piece has a left and a right hand worth mirroring: what the Mirror button and H offer. */
+export const isHanded = (f: Pick<Furniture, 'kind'>) => !!catalogItem(f.kind)?.handed
+
+/** The piece mirrored left to right, or back; a piece that isn't mirrored carries no flag. */
+export function mirrored(f: Furniture): Furniture {
+  const { mirrored: was, ...rest } = f
+  return was ? rest : { ...rest, mirrored: true }
+}
+
+/** The plan with one piece mirrored (or back): what the card's Mirror, the menu and H do, as one undo step. */
+export function mirrorFurniture(plan: Plan, id: string): Plan {
+  if (!plan.furniture.some(f => f.id === id)) return plan
+  return { ...plan, furniture: plan.furniture.map(f => (f.id === id ? mirrored(f) : f)) }
 }
 
 /** Change an item's size, keeping its back where it is (so it stays against its wall). */

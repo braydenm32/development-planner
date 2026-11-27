@@ -83,13 +83,15 @@ Keep several projects in the one browser: **All projects…** (in the project me
 The **Furniture** tool (U) places furniture and fittings in common Australian sizes, drawn as simple architectural symbols:
 
 - **Bedroom**: single, king single, double, queen and king beds, bedside table, wardrobe.
-- **Living**: 2- and 3-seat sofas, armchair, coffee table, TV unit.
+- **Living**: 2- and 3-seat sofas, corner sofa, armchair, coffee table, TV unit.
 - **Dining**: tables for 4, 6 and 8, drawn with their chairs.
-- **Kitchen**: a 600 deep bench run, island bench, 900 wide fridge space, cooktop and oven, sink, dishwasher.
+- **Kitchen**: a 600 deep bench run, an L-shaped bench run with a return, pantry cupboard, island bench, 900 wide fridge space, cooktop and oven, sink, dishwasher.
 - **Laundry**: washing machine, dryer, laundry tub.
 - **Bathroom**: toilet, vanity basin, 900 × 900 shower, 1700 bath.
-- **Study**: desk and desk chair.
-- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ.
+- **Study**: desk, L-shaped corner desk and desk chair.
+- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ, 5000 L rainwater tank, 7 × 3.5 m swimming pool. The tank and pool are only drawn: they don't count in the checks, the cut and fill or the costs.
+
+Handed pieces (the corner sofa, the L-shaped bench and desk, the bath and the pool) can be mirrored left to right: **Mirror** on the piece's card, the right-click menu, or H.
 
 Pieces that stand against a wall snap their back flush to the wall face when you bring them close, turn to face into the room, and slide into a corner when the side wall is close too; tables, chairs, the island and the car stay where you put them. Drag a piece to move it, drag its round handle to turn it (it snaps to square, then 5° steps), or type the angle in its card. Width, depth and height are there too; changing the depth keeps the back against its wall. Delete removes it, and undo works as usual.
 
