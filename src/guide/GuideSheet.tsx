@@ -6,6 +6,8 @@ import { useId, useLayoutEffect, useRef } from 'react'
 import { useModal } from '../nav/useModal'
 import { openExample } from '../example/open'
 import { Icon } from '../nav/icons'
+import { startFromHouse } from '../starters/flow'
+import { StarterCards } from '../starters/StarterCards'
 import { termTitle, TERMS } from './glossary'
 import { SECTIONS, WORDS_ID, type Picture } from './sections'
 import { closeGuide, useGuide } from './store'
@@ -79,6 +81,14 @@ function GuideSheet({ example }: { example: boolean }) {
               <span className="cl-muted">A finished made-up house to look round and change. Your own projects aren’t touched.</span>
             </p>
           )}
+          <StarterCards
+            title="Start from a house"
+            note="A made-up starter plan put on your block (or a sketch block, before there is one), ready to move, turn and change."
+            onPick={id => {
+              closeGuide()
+              void startFromHouse(id)
+            }}
+          />
           {SECTIONS.map((s, i) => (
             <section key={s.id} id={`guide-${s.id}`} className="guide-section">
               <h3>

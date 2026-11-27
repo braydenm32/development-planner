@@ -563,6 +563,14 @@ export const AREAS: Area[] = [
           keywords: ['mirror', 'flip', 'mirror image', 'reverse plan', 'handed', 'left to right', 'swap sides', 'garage on the other side', 'flip house'],
           features: ['flip-plan'],
         },
+        {
+          // Made-up starter plans to put on the block (src/starters).
+          id: 'starter-houses',
+          label: 'Start from a house',
+          icon: 'plan',
+          keywords: ['starter', 'starter house', 'starter plan', 'template', 'templates', 'sample plan', 'floor plan ideas', 'house designs', 'ready made', 'pick a plan', 'two bedroom', 'three bedroom', 'four bedroom', 'granny flat', 'studio', 'narrow block', 'two storey', 'split level'],
+          features: ['starter-houses', 'starter-houses-replace-or-beside'],
+        },
       ],
     },
   },

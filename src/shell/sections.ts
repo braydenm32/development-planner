@@ -21,6 +21,7 @@ import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
 import { SectionsTab } from '../sections/SectionsTab'
 import { SiteSunTab } from '../sun/SunTab'
 import { MapTab } from '../map/MapTab'
+import { StarterHousesSection } from '../starters/StarterCards'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
@@ -65,6 +66,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   'flip-plan': FlipPlanSection,
+  'starter-houses': StarterHousesSection,
   origin: More.OriginSection,
   'earthworks-margin': More.MarginSection,
   'slab-bed': More.SlabBedSection,

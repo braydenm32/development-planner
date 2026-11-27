@@ -926,7 +926,8 @@ describe('⌘K search', () => {
     for (const q of ['stairs', 'staircase', 'steps']) expect(first(q), q).toBe('command:tool-stair')
     expect(first('print')).toBe('tab:share/plans')
     for (const q of ['rotate', 'turn']) expect(first(q), q).toBe('tab:earthworks/place')
-    expect(first('template')).toBe('command:open-example')
+    // The starter houses are the templates now; the finished example is still found by its own words.
+    for (const q of ['template', 'starter', 'floor plan ideas']) expect(first(q), q).toBe('more:starter-houses')
     expect(first('save')).toBe('command:save-state')
     for (const q of ['level', 'basement', 'second floor', 'upstairs']) expect(first(q), q).toBe('tab:design/floors')
     for (const q of ['background', 'background image', 'blueprint']) expect(first(q), q).toBe('tab:site/features')

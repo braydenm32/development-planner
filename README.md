@@ -31,6 +31,8 @@ The start screen offers two ways in, plus a third for a block with no survey yet
 - **Sketch without a survey**: a flat or gently sloping block of the size you give, to plan on now and swap for the survey later (**Site › More › Replace survey** keeps the plan).
 - **Start from the address**: find the lot on the NSW map and use the state's ground levels (the 5 m elevation model, roughly ±0.9 m) with the lot as the boundary. Good for a first look, not for earthworks; the app keeps saying so until a survey replaces it.
 
+Or **start from a house**: seven made-up starter plans (a studio, a compact two-bedroom, a narrow-block home, three- and four-bedroom single storeys, a split level and a two-storey) go in the middle of the block facing the street, as ordinary plan data to move and change. They're on the start screen, in Getting started and under **Design › More › Start from a house**; a plan with a house drawn asks whether to replace it or add the starter beside it.
+
 From a DXF the importer reads:
 
 - **Contours** as 3D polylines, or 2D polylines/LWPOLYLINEs with an elevation. A survey with only spot levels gets contours drawn from them.

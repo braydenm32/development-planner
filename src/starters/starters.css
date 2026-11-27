@@ -1,0 +1,105 @@
+/* Start from a house: a row of starter cards, in whichever look is around it (the start screen's,
+   the guide's, the app's), falling back to the app's own tokens. */
+
+.starters {
+  --sc-line: var(--st-line, var(--cl-line, var(--line, #e2e6eb)));
+  --sc-muted: var(--st-muted, var(--cl-muted, var(--muted, #687382)));
+  --sc-accent: var(--st-accent, var(--cl-accent, var(--accent, #2f6f62)));
+  --sc-ink: var(--st-ink, var(--cl-ink, var(--text, #1d232b)));
+  min-width: 0;
+}
+
+.sc-title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sc-note {
+  margin: 0 0 8px;
+  color: var(--sc-muted);
+}
+
+.sc-row {
+  list-style: none;
+  margin: 0;
+  padding: 2px 2px 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 10px;
+}
+
+/* On a phone: one row to swipe along, rather than a long column. */
+@media (max-width: 600px) {
+  .sc-row {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 156px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+}
+
+.sc-row > li {
+  scroll-snap-align: start;
+}
+
+.sc-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px;
+  text-align: left;
+  font: inherit;
+  color: var(--sc-ink);
+  background: #ffffff;
+  border: 1px solid var(--sc-line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sc-card:hover:not(:disabled) {
+  border-color: var(--sc-accent);
+}
+
+.sc-card:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sc-thumb {
+  align-self: center;
+  margin-bottom: 6px;
+}
+
+.sc-wall {
+  stroke: var(--sc-ink);
+  stroke-linecap: square;
+}
+
+.sc-gap {
+  stroke: #ffffff;
+}
+
+.sc-gap.sc-window {
+  stroke: #cfd8f6;
+}
+
+.sc-name {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sc-facts,
+.sc-size {
+  font-size: 12px;
+  color: var(--sc-muted);
+}
+
+.sc-sheet {
+  width: min(760px, calc(100vw - 32px));
+}

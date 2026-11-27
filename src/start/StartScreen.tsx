@@ -18,6 +18,8 @@ import { projectsNow } from '../projects/session'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
 import { SurveyorRequest } from '../safety/SurveyorRequest'
+import { startFromHouse } from '../starters/flow'
+import { StarterCards } from '../starters/StarterCards'
 import { readSketchSize, ROUGH_SIZE, SKETCH_FIELDS, sketchProblems, type SketchField, type StreetSide } from './sketch'
 import '../shell/fonts.css'
 import './start.css'
@@ -165,6 +167,12 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
     }
     const block = readSketchSize(width, depth, fall, street)
     startSketch(block, into, name).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
+  }
+
+  // A starter house goes on a sketch block: the one typed above when it reads, else the rough sheet.
+  const fromHouse = (id: string) => {
+    const typed = Object.keys(sketchProblems(width, depth, fall)).length ? undefined : readSketchSize(width, depth, fall, street)
+    startFromHouse(id, { block: typed, into, name }).catch((e: unknown) => setSketchError((e as Error)?.message || 'The house couldn’t be put on a block.'))
   }
 
   /** What marks a number box as wrong and ties it to its reason; typing in it again clears the mark. */
@@ -361,6 +369,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
             <AddressStart into={into} />
           </section>
         </div>
+        <StarterCards onPick={fromHouse} title="Or start from a house" note="A made-up starter plan to change as you like. It goes on a sketch block (the size, fall and street side above, if you’ve typed them); add the survey when it comes." />
       </main>
       <LegalFooter />
 
