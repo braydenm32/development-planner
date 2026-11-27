@@ -22,6 +22,7 @@ import {
   type SectionLine,
 } from '../plan/model'
 import { earthworksPlatforms, padSteps, pierOutlines } from '../plan/platforms'
+import { slabBedOf } from '../plan/model'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { roofGeometry, type RoofMesh } from '../plan/roof'
@@ -236,7 +237,8 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
     const grounded = levelBuildsAs(plan, level.id) !== 'framed'
     const onPiers = grounded ? intersectSpans(spans, spansInside(a, b, pierOutlines(plan, level.id))) : []
     const solid = grounded ? subtractSpans(spans, onPiers) : []
-    for (const [s0, s1] of solid) slabs.push({ s0, s1, z0: rl - FLOOR_STRUCTURE, z1: rl })
+    // A slab on the ground is drawn down to its pad, when its bed is set deeper than the usual floor structure.
+    for (const [s0, s1] of solid) slabs.push({ s0, s1, z0: rl - Math.max(FLOOR_STRUCTURE, slabBedOf(plan)), z1: rl })
     for (const [s0, s1] of grounded ? onPiers : spans) framing.push({ s0, s1, z0: rl - FLOOR_STRUCTURE, z1: rl })
     for (const [s0, s1] of onPiers) for (const s of postStations(s0, s1)) post(s, rl - FLOOR_STRUCTURE, PIER_W)
 

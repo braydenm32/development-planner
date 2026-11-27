@@ -14,6 +14,7 @@ import {
   levelById,
   padLevelOf,
   SLAB_THICKNESS,
+  slabBedOf,
   sortedLevels,
   toSite,
   wallDir,
@@ -70,10 +71,10 @@ export const BENCH_PREFIX = 'bench:'
 export const slabPlatformId = (areaId: string) => `slab:${areaId}`
 
 /**
- * RL of the levelled ground under a floor's slab: the house pad. With no level given (or one that
- * isn't in the plan), the lowest floor's.
+ * RL of the levelled ground under a floor's slab: the house pad, the slab's bed (Earthworks › More)
+ * below the floor. With no level given (or one that isn't in the plan), the lowest floor's.
  */
-export const housePadRL = (plan: Plan, levelId?: string) => floorRL(plan, levelId !== undefined && levelById(plan, levelId) ? levelId : undefined) - FLOOR_STRUCTURE
+export const housePadRL = (plan: Plan, levelId?: string) => floorRL(plan, levelId !== undefined && levelById(plan, levelId) ? levelId : undefined) - slabBedOf(plan)
 
 /**
  * The RL a side of a retaining wall is levelled to. 'pad' is the pad of the level the wall is beside
@@ -206,7 +207,7 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     const open = openWallOutlines(plan, lv.id, outlines)
     if (outlines.length || open.length) {
       const stops = padStops(plan, lv.id, outlines)
-      out.push({ id: padId(plan, lv.id), include: [...outlines, ...open].map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - FLOOR_STRUCTURE, fill: true, pad: true })
+      out.push({ id: padId(plan, lv.id), include: [...outlines, ...open].map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - slabBedOf(plan), fill: true, pad: true })
     }
     if (piers.length) {
       out.push({ id: piersId(plan, lv.id), include: piers.map(site), exclude: below.map(site), level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })

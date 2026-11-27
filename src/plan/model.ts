@@ -359,6 +359,11 @@ export interface Earthworks {
   /** Gap kept between the ground and the underside of floors on piers (m). */
   subfloor: number
   /**
+   * How far below the finished floor the ground is dug under a slab on ground: the slab and its bed
+   * (m). Missing (older plans, and the default) means DEFAULT_SLAB_BED.
+   */
+  slabBed?: number
+  /**
    * The design takes earth away (or brings it in) on purpose: "Out of balance" stays quiet. Missing
    * (older plans, and the default) means it's flagged.
    */
@@ -417,6 +422,9 @@ export const FLOOR_STRUCTURE = 0.3 // allowance between ceiling and the floor ab
 export const SLAB_THICKNESS = 0.1 // outdoor concrete slabs and driveways (m)
 export const DECK_DEPTH = 0.2 // deck boards and joists (m)
 export const MAX_RISER = 0.19 // m
+
+/** The depth dug under a slab on ground unless the plan says otherwise: the slab and its bed (m). */
+export const DEFAULT_SLAB_BED = 0.3
 
 export const DEFAULT_EARTHWORKS: Earthworks = { margin: 0.5, cutBatter: 2, fillBatter: 2, subfloor: 0.4 }
 
@@ -523,6 +531,12 @@ export function sketchNamesOf(v: unknown): Partial<Record<SketchColour, string>>
 
 export function earthworksOf(plan: Plan): Earthworks {
   return { ...DEFAULT_EARTHWORKS, ...plan.earthworks }
+}
+
+/** How far below a floor the ground is dug under its slab (Earthworks › More): the pad is this far under the floor (m). */
+export function slabBedOf(plan: Pick<Plan, 'earthworks'>): number {
+  const v = plan.earthworks?.slabBed
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : DEFAULT_SLAB_BED
 }
 
 export function wallLength(w: Pick<Wall, 'a' | 'b'>): number {

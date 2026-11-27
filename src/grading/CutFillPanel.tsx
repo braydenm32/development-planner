@@ -13,8 +13,8 @@ import type { Terrain } from '../lib/terrain'
 import { DemFlag } from '../map/DemNotes'
 import { useMap } from '../map/store'
 import { navigate } from '../nav/router'
-import { crossedBoundaries } from '../plan/keyNumbers'
-import { earthworksOf, type Earthworks, type Plan } from '../plan/model'
+import { balancedFloorRL, crossedBoundaries, slabBedOnly } from '../plan/keyNumbers'
+import { earthworksOf, floorRL, slabBedOf, type Earthworks, type Plan } from '../plan/model'
 import { housePadRL } from '../plan/platforms'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
@@ -45,14 +45,26 @@ export function CutFillPanel({ plan, survey, terrain, earth }: Props) {
   const has = !!r && !!earth && earth.platforms.length > 0
   const crossed = has ? crossedBoundaries(r, survey) : null
   // What runs into the boundary: one line for each part of the design, so it's clear what to change.
+  // The earth left over is only the slab's own bed (the site scrape): said plainly, not as a warning.
+  const bedOnly = useMemo(() => !!earth && has && slabBedOnly(balancedFloorRL(plan, earth.prep), floorRL(plan), slabBedOf(plan), earth.platforms.some(p => p.pad)), [plan, earth, has])
   const culprits = useMemo(() => (crossed && earth ? worksNearBoundary(plan, earth.prep, earth.result, survey.boundary, earth.prep.natural.cell * 1.5) : []), [crossed, plan, earth, survey.boundary])
   return (
     <>
       {has ? (
         <>
           <Results plan={plan} earth={earth} />
+          {bedOnly && (
+            <p className="muted small cf-bed">
+              The earth to take away is no more than the slab’s own {Math.round(slabBedOf(plan) * 1000)} mm bed (the site scrape under the slab), so nothing is out of balance. Change that
+              depth in{' '}
+              <button className="link" onClick={() => navigate({ kind: 'app', area: 'earthworks', tab: 'more', view: 'plan' }, { focus: 'slab-bed' })}>
+                Earthworks › More
+              </button>
+              .
+            </p>
+          )}
           <DemFlag what="these volumes" />
-          <BalanceBlock plan={plan} survey={survey} terrain={terrain} earth={earth} />
+          <BalanceBlock plan={plan} survey={survey} terrain={terrain} earth={earth} bedOnly={bedOnly} />
           {crossed && (
             <div className="notice small">
               <p>Earth slopes (batters) cross {crossed}. Add a suggested retaining wall (below), draw one there with the Retaining wall tool, or move the house.</p>
@@ -133,7 +145,7 @@ function useCountFails(plan: Plan, survey: Survey, terrain: Terrain, earth: Eart
  * tallest wall, the roof, the batters and the checks), before and after, and only then moves it.
  * A design that cuts or fills on purpose can say so, and the strip's "Out of balance" goes quiet.
  */
-function BalanceBlock({ plan, survey, terrain, earth }: Props) {
+function BalanceBlock({ plan, survey, terrain, earth, bedOnly }: Props & { bedOnly: boolean }) {
   const open = useBalanceAsk(s => s.open)
   const fails = useCountFails(plan, survey, terrain, earth)
   const [preview, setPreview] = useState<BalancePreview | null | 'none' | 'working'>(null)
@@ -193,7 +205,7 @@ function BalanceBlock({ plan, survey, terrain, earth }: Props) {
           </div>
         </section>
       )}
-      {Math.abs(net) >= 0.05 && (
+      {Math.abs(net) >= 0.05 && (!bedOnly || !!ew.keepNet) && (
         <label className="check cf-keep">
           <input type="checkbox" checked={!!ew.keepNet} onChange={e => setEarthworks({ keepNet: e.target.checked || undefined })} />
           <span>

@@ -96,7 +96,7 @@ export interface StepsInput {
     floorArea: number | null
     /** The lowest floor's RL. */
     ffl: number
-    earth: { net: number; outOfBalance: boolean; balancedRL: number | null } | null
+    earth: { net: number; outOfBalance: boolean; balancedRL: number | null; bedOnly?: boolean } | null
     /** The tallest roof's height above the ground. */
     roofHeight: number | null
     implied: ImpliedTotals | null
@@ -300,7 +300,7 @@ function groundStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       items.push({ id: `eng:${r.wall.id}`, text: `${name}, ${r.height.toFixed(2)} m, needs an engineer`, detail: `Over ${ENGINEER_TEXT}: it needs a professional engineer’s certificate.`, tone: 'confirm', go })
   }
   const started = !!e
-  return { id: 'ground', title: STEP_TITLES.ground, headline: e ? (e.outOfBalance ? netText(e.net) : 'Cut and fill balance') : 'Nothing to dig yet', items, started }
+  return { id: 'ground', title: STEP_TITLES.ground, headline: e ? (e.outOfBalance ? netText(e.net) : e.bedOnly ? `Slab bed only: ${netText(e.net)}` : 'Cut and fill balance') : 'Nothing to dig yet', items, started }
 }
 
 function roofStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boolean } {

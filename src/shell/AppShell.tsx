@@ -44,7 +44,7 @@ import { ProjectMenu } from './ProjectMenu'
 import { MORE_SECTIONS, TAB_ASIDES, TAB_PANELS, TAB_TOOL } from './sections'
 import { useChecks } from '../checks/useChecks'
 import { SummaryStrip } from './SummaryStrip'
-import { floorDrawn } from './drawn'
+import { floorDrawn, outlineClosed, stripWaitText } from './drawn'
 import { useKeyNumbers } from './useKeyNumbers'
 import { checksHeadline, costHeadline } from './headline'
 import { setQuestionFacts } from '../flow/questions'
@@ -684,13 +684,17 @@ function NumbersHost({
   peek: 'full' | 'slim' | null
   onPeekHeight: (h: number) => void
 }) {
-  const numbers = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
+  const all = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
+  // While the first outline is still open its walls' own footings aren't earthworks worth a warning:
+  // the peek sheet and the Overview hold the cut and fill back too, as the strip does.
+  const numbers = useMemo(() => (floorDrawn(d.plan) && !outlineClosed(d.plan) ? { ...all, earth: null, batters: null, batterSides: [] } : all), [all, d.plan])
   // The strip counts the site checks itself; on a phone the peek sheet says them.
   const siteChecks = useSiteWarnings().filter(w => w.severity === 'attn').length
   const checks = useChecks(d.plan, d.survey, d.terrain, d.earth)
   const level = usePlan(s => s.activeLevel)
   const selection = usePlan(s => s.selection)
-  const drawn = floorDrawn(d.plan)
+  // Nothing is counted (or warned about) until a floor is enclosed: one wall is a drawing in progress.
+  const drawn = useMemo(() => floorDrawn(d.plan) && outlineClosed(d.plan), [d.plan])
   // The two answers people open the app for: the checks' verdict and the estimate (C02).
   const verdict = useMemo(() => checksHeadline(checks.pathway, checks.results), [checks.pathway, checks.results])
   // The plan's question list asks for the facts the checks can't work out (src/flow/questions.ts).
@@ -733,7 +737,7 @@ function NumbersHost({
           route={route}
           // Nothing to count before a floor is drawn: no floor level of nothing, no checks all "not drawn yet".
           numbers={drawn ? numbers : null}
-          emptyText="Key numbers show here once a floor is drawn."
+          emptyText={stripWaitText(d.plan)}
           checks={drawn ? { pathway: checks.pathway, council: checks.council, counts: checks.counts } : undefined}
           verdict={drawn ? verdict : undefined}
           cost={drawn ? cost : undefined}

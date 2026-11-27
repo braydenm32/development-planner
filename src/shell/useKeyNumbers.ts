@@ -7,9 +7,9 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
+import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, slabBedOnly, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { earthworksOf, floorRL, sortedLevels, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, slabBedOf, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
@@ -36,7 +36,12 @@ export interface KeyNumbers {
     deepestFill: number
     /** Where Balance would put the floor, to the 10 mm it sets; null when it can't. */
     balancedRL: number | null
+    /** Balance would move the floor by more than the slab's own bed accounts for, and the design doesn't mean to. */
     outOfBalance: boolean
+    /** The earth left over is no more than the slab's own bed (slabBedOnly): said plainly, never as a warning. */
+    bedOnly: boolean
+    /** The depth dug under a slab on ground (m). */
+    slabBed: number
   } | null
   /**
    * The retaining walls: the drawn ones, and with them the walls the earthworks imply (vertical
@@ -101,6 +106,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
     const total = levels.reduce((t, l) => t + l.area, 0)
     const r = earth?.result
     const hasEarth = !!r && !!earth && earth.platforms.length > 0
+    const bedOnly = hasEarth && slabBedOnly(balancedRL, ffl, slabBedOf(plan), earth.platforms.some(p => p.pad))
     return {
       levels,
       floorArea: total > 0 ? total : null,
@@ -115,8 +121,10 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
             deepestCut: r.maxCut,
             deepestFill: r.maxFill,
             balancedRL,
-            // A design that cuts or fills on purpose said so: the chip stays quiet.
-            outOfBalance: movesFloor(balancedRL, ffl) && !earthworksOf(plan).keepNet,
+            // A design that cuts or fills on purpose said so: the chip stays quiet. So does the slab's own bed.
+            outOfBalance: movesFloor(balancedRL, ffl) && !earthworksOf(plan).keepNet && !bedOnly,
+            bedOnly,
+            slabBed: slabBedOf(plan),
           }
         : null,
       retaining:
