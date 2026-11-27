@@ -7,7 +7,8 @@ import { resizeFurniture, updateFurniture } from '../plan/ops'
 import { usePlan } from '../plan/store'
 import { Num, Select, TextField } from './fields'
 import './copy-kinds.css'
-import { forTouch } from '../phone/words'
+import { forTouch, isTouch } from '../phone/words'
+import { followHold } from '../phone/holdDrag'
 
 const mm = (m: number) => Math.round(m * 1000)
 
@@ -30,8 +31,8 @@ function Thumb({ item }: { item: CatalogItem }) {
 const DRAG_START = 5
 
 /**
- * Dragging a piece from the list onto the plan (a mouse or pen; a finger scrolls the list, and
- * taps to pick). Once the pointer has moved, the piece is the one the Furniture tool places, so
+ * Dragging a piece from the list onto the plan (a mouse or pen; a finger scrolls the list and
+ * taps to pick, so it presses and holds first: src/phone/holdDrag.ts). Once the pointer has moved, the piece is the one the Furniture tool places, so
  * the plan draws it under the pointer and puts it down where the button is let go, exactly as a
  * click there would. Until the pointer reaches the plan a small tag follows it.
  */
@@ -39,18 +40,34 @@ function useCatalogDrag() {
   const [tag, setTag] = useState<{ item: CatalogItem; x: number; y: number } | null>(null)
   const stop = useRef<(() => void) | null>(null)
   useEffect(() => () => stop.current?.(), [])
+  const pick = (item: CatalogItem) => {
+    const st = usePlan.getState()
+    st.setFurnitureDefaults({ ...st.furnitureDefaults, kind: item.key })
+    st.setTool('furniture')
+    document.body.classList.add('dragging-furniture')
+  }
   const start = (item: CatalogItem, e: ReactPointerEvent) => {
-    if (e.pointerType === 'touch' || e.button !== 0) return
+    if (e.pointerType === 'touch') {
+      stop.current?.()
+      stop.current = followHold(e.clientX, e.clientY, {
+        begin: () => pick(item),
+        move: (x, y, overPlan) => setTag(overPlan ? null : { item, x, y }),
+        end: () => {
+          document.body.classList.remove('dragging-furniture')
+          stop.current = null
+          setTag(null)
+        },
+      })
+      return
+    }
+    if (e.button !== 0) return
     const [x0, y0] = [e.clientX, e.clientY]
     let dragging = false
     const move = (ev: PointerEvent) => {
       if (!dragging && Math.hypot(ev.clientX - x0, ev.clientY - y0) < DRAG_START) return
       if (!dragging) {
         dragging = true
-        const st = usePlan.getState()
-        st.setFurnitureDefaults({ ...st.furnitureDefaults, kind: item.key })
-        st.setTool('furniture')
-        document.body.classList.add('dragging-furniture')
+        pick(item)
       }
       const overPlan = !!(ev.target as Element | null)?.closest?.('.plan-svg')
       setTag(overPlan ? null : { item, x: ev.clientX, y: ev.clientY })
@@ -137,7 +154,7 @@ export function FurniturePicker() {
       </div>
       <p className="muted small">
         {forTouch('Click a piece, then click on the plan to place it')}
-        <span className="mouse-only">, or drag it straight onto the plan</span>.{forTouch(' Press Q to turn the next piece a quarter turn before you place it.')}
+        {isTouch() ? ', or press and hold it, then drag it onto the plan' : ', or drag it straight onto the plan'}.{forTouch(' Press Q to turn the next piece a quarter turn before you place it.')}
         {defaults.kind === CUSTOM_BOX && ' A custom box stands in for anything else: place it, then give it a name and a size on its card.'}
       </p>
       {drag.tag && (
