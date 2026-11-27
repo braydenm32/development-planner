@@ -14,7 +14,10 @@ import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { DrawingSvg } from './DrawingSvg'
 import { elevationDrawing, SIDES } from './elevation'
-import { flipSection, removeSection, sectionName, sectionsOf } from './lines'
+import { projectsNow } from '../projects/session'
+import { keepStripSection, stripCut } from '../sectionStrip/keep'
+import { useStrip } from '../sectionStrip/store'
+import { flipSection, removeSection, sectionAlong, sectionName, sectionsOf } from './lines'
 import type { Drawing } from './paint'
 import { sectionDrawing } from './section'
 import { beginSectionLine, SECTION_KEY } from './SectionMarks'
@@ -73,6 +76,14 @@ function Sections({ d }: { d: Loaded }) {
   const drawings = useDrawings(d)
   const shown = useShown(drawings)
   const drawing = useSections(s => s.drawing)
+  // The live section's cut (this viewer's own, src/sectionStrip), and whether a section line already runs along it.
+  const project = projectsNow().opened?.id ?? null
+  const moved = useStrip(s => (project ? s.cuts[project] : undefined))
+  const liveKept = !!sectionAlong(d.plan, moved ?? stripCut(d.plan, d.survey, project))
+  const keepLive = () => {
+    const line = keepStripSection(d.survey, project)
+    if (line) showDrawing({ kind: 'section', id: line.id })
+  }
   const large = useSections(s => s.large)
   const phone = usePhone()
   const editing = canEdit(phone, usePhoneMode(s => s.mode))
@@ -130,7 +141,14 @@ function Sections({ d }: { d: Loaded }) {
         <>
           <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want to cut through the house and the ground; on a slope, run it down the fall.</p>
           {/* The strip under the plan cuts the house too, but it is a way of looking, not a drawing: say how the two meet. */}
-          <p className="muted small">The live section under Design › Plan isn’t listed here until you keep it: its Add to drawings makes its line a section line.</p>
+          {!liveKept && d.plan.walls.length > 0 && (
+            <p className="muted small">
+              The live section under Design › Plan isn’t one of these until you keep it.{' '}
+              <button className="link" onClick={keepLive}>
+                Add the live section’s line
+              </button>
+            </p>
+          )}
           <div className="row">
             <button className="secondary" onClick={beginSectionLine}>
               Draw a section line <kbd>{SECTION_KEY}</kbd>
