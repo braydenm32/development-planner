@@ -127,6 +127,7 @@ import { FREE_KEY, snapFree } from '../pointer/snapping'
 import { typedKey, typedLabel, typedPoint } from '../pointer/typedEntry'
 import { wheelPan } from '../pointer/wheel'
 import { dragHint, isDragHint } from '../pointer/dragHint'
+import { doorSwingAt } from '../plan/openingHit'
 import { faceGuides } from '../pointer/faceSnap'
 import { openingGapDims } from '../pointer/openingGaps'
 import './editing.css'
@@ -1197,7 +1198,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     // Sketch lines and kept measurements: on their line, before the area or roof they're drawn over.
     const sketchItem = sketch ? sk.hit(world) : null
     if (sketchItem) return { type: 'sketch', item: sketchItem }
-    const area = plan.areas.find(a => a.level === level && pointInPolygon(world[0], world[1], a.pts))
+    // A door's leaf and swing arc, out past its wall (an outward door's lie over bare ground): src/plan/openingHit.ts.
+    const swing = doorSwingAt(plan.openings, walls, world, 4 / v.k)
+    if (swing) return { type: 'opening', item: swing }
+    const area =plan.areas.find(a => a.level === level && pointInPolygon(world[0], world[1], a.pts))
     if (area) return { type: 'area', item: area }
     if (insideRooms) {
       const shape = roomShape({ id: 'probe', level, name: '', at: world }, faces)
