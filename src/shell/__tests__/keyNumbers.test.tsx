@@ -152,6 +152,39 @@ describe('floor area and FFL', () => {
     expect(words(strip(n))).not.toMatch(/Floor(, all levels)? \d/)
   })
 
+  // LD-34: one outside wall deleted used to make Floor and Estimate vanish with nothing in their place.
+  it('keeps Floor and Estimate, with the reason, when the outside walls have a gap', () => {
+    const open = house()
+    open.walls = open.walls.slice(1)
+    const n = numbersOf(open, survey, terrain, null)
+    expect(n.floorArea).toBeNull()
+    expect(n.open).toEqual([L0])
+    const cost = { ready: false, total: 0, low: 0, high: 0, missing: [] }
+    const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} cost={cost} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(html)).toContain('Floor — Outline not closed')
+    expect(words(html)).toContain('Estimate — outline not closed')
+    expect(html).toMatch(/<button class="chip warn" title="The outside walls don’t join up all the way round[^"]*Opens Design › Plan\."/)
+    // A shared view says the same, with nothing to press.
+    const shared = renderToStaticMarkup(<SummaryStrip readOnly route={areaRoute('design')} numbers={n} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(shared)).toContain('Floor — Outline not closed')
+    expect(shared).not.toContain('<button class="chip warn"')
+    // Closed again, the numbers are back and the note is gone.
+    expect(numbersOf(house(), survey, terrain, null).open).toEqual([])
+    expect(words(strip(numbersOf(house(), survey, terrain, null)))).not.toContain('not closed')
+    // Nothing drawn at all is not a gap.
+    expect(numbersOf(house({ walls: [], rooms: [] }), survey, terrain, null).open).toEqual([])
+  })
+
+  it('says which level’s outline is open when the others still have a floor', () => {
+    const { plan } = addLevelAbove(house())
+    const upper = plan.levels.find(l => l.id !== L0)!.id
+    const first = plan.walls.find(w => w.level === upper)!
+    const n = numbersOf({ ...plan, walls: plan.walls.filter(w => w !== first) }, survey, terrain, null)
+    expect(n.open).toEqual([upper])
+    const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} level={upper} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(html)).toContain('Floor, First floor — outline not closed of 114.39 m²')
+  })
+
   it('FFL is the ground floor RL, to 10 mm', () => {
     const n = numbersOf(house(), survey, terrain, null)
     expect(n.ffl).toBe(63.2)
