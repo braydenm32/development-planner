@@ -4,7 +4,7 @@
 // plan. With these, everything drawn can be reached, picked, changed and deleted from the keyboard
 // (WCAG 2.1.1): a row picks, the Selection panel beside the plan changes and deletes.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Num, Select } from '../components/fields'
 import { catalogItem } from '../plan/furniture'
 import { OPENING_NAMES, sortedLevels, wallLength, type OpeningKind, type Plan } from '../plan/model'
@@ -14,6 +14,7 @@ import { OPENING_TOOLS, usePlan, type Selection } from '../plan/store'
 import { focusSoon } from '../nav/useModal'
 import { selectOnPlan } from '../shell/useSite'
 import { announce } from './announce'
+import { focusLost, rowFocusAfter } from './rowFocus'
 import './a11y.css'
 
 /** The first thing to change in the Selection panel, for the row's "Change it" button. */
@@ -22,9 +23,15 @@ const toSelectionPanel = () => focusSoon('.inspector input:not([type="hidden"])'
 /** A list of things on the plan: each row picks its item and frames it, as Rooms & areas' rows do. */
 export function PickRows({ rows, level, label, empty }: { rows: PlanRow[]; level: string; label: string; empty: string }) {
   const selection = usePlan(s => s.selection)
-  if (!rows.length) return <p className="muted small">{empty}</p>
+  const anchor = useRowFocus(rows, selection)
+  if (!rows.length)
+    return (
+      <p className="muted small" ref={anchor}>
+        {empty}
+      </p>
+    )
   return (
-    <ul className="pick-list plan-rows" aria-label={label}>
+    <ul className="pick-list plan-rows" aria-label={label} ref={anchor}>
       {rows.map(r => {
         const on = selection?.type === r.sel.type && selection.id === r.id
         return (
@@ -32,6 +39,7 @@ export function PickRows({ rows, level, label, empty }: { rows: PlanRow[]; level
             <button
               className={on ? 'on' : ''}
               aria-pressed={on}
+              data-row={r.id}
               onClick={() => {
                 selectOnPlan(level, r.sel)
                 focusPlan(r.pts)
@@ -54,6 +62,62 @@ export function PickRows({ rows, level, label, empty }: { rows: PlanRow[]; level
       })}
     </ul>
   )
+}
+
+/**
+ * Keeps keyboard focus in the list when what it was on goes away: a deleted row's place goes to
+ * the next row, a put-down selection's to its row, an add's to the new row, and an emptied list's
+ * to its add button or heading (./rowFocus.ts). Only once focus has fallen to the page, so a
+ * Delete pressed on the plan leaves focus on the plan.
+ */
+function useRowFocus(rows: PlanRow[], selection: Selection | null) {
+  const anchor = useRef<HTMLElement | null>(null)
+  const ids = rows.map(r => r.id)
+  const key = ids.join(',')
+  const sel = selection?.id ?? null
+  const was = useRef({ ids, sel })
+  useLayoutEffect(() => {
+    const before = was.current
+    was.current = { ids, sel }
+    const to = rowFocusAfter(before.ids, before.sel, ids, sel)
+    if (!to) return
+    // The selection panel and the row's own link go in the same moment, or the next: look once they have.
+    // Not cancelled by the next change: a delete and the selection put down can come one render apart.
+    requestAnimationFrame(() => {
+      if (!focusLost()) return
+      const list = anchor.current
+      if (!list?.isConnected) return
+      if ('row' in to) {
+        list.querySelector<HTMLElement>(`[data-row="${CSS.escape(to.row)}"]`)?.focus()
+        return
+      }
+      const add = list.nextElementSibling?.querySelector<HTMLElement>('button')
+      const heading = list.previousElementSibling as HTMLElement | null
+      if (add) add.focus()
+      else if (heading) {
+        heading.tabIndex = -1
+        heading.focus()
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, sel])
+  return (el: HTMLElement | null) => {
+    anchor.current = el
+  }
+}
+
+/**
+ * An "add by typing" form: as it opens, its first field takes focus (or the form itself, when it
+ * only says what to do first), and Esc in one of its fields comes back to it (fields.tsx).
+ */
+function useFormFocus(open: boolean) {
+  const form = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = form.current
+    if (!open || !el) return
+    ;(el.querySelector<HTMLElement>('input, select') ?? el).focus()
+  }, [open])
+  return form
 }
 
 /** Carry out an add as one undo step, pick what was made, and say what happened. */
@@ -97,6 +161,7 @@ function AddWall({ plan, level, rows }: { plan: Plan; level: string; rows: PlanR
   const [heading, setHeading] = useState('left')
   const [angle, setAngle] = useState(0)
   const [problem, setProblem] = useState<string | null>(null)
+  const form = useFormFocus(open)
   // With no wall picked the only start is a typed point, and the only directions are the plan's own.
   const start = picked ? from : 'point'
   const dir = !picked || start === 'point' ? (HEADINGS.find(h => h.id === heading)?.needsWall ? '0' : heading) : heading
@@ -116,7 +181,7 @@ function AddWall({ plan, level, rows }: { plan: Plan; level: string; rows: PlanR
         </button>
       </div>
       {open && (
-        <div className="tool-options add-by-typing" role="group" aria-label="Add a wall by typing">
+        <div className="tool-options add-by-typing" role="group" aria-label="Add a wall by typing" ref={form} tabIndex={-1} data-esc-owner>
           {picked ? (
             <Select
               label="Start from"
@@ -169,6 +234,7 @@ function AddOpening({ plan, level, walls }: { plan: Plan; level: string; walls: 
   // The distance typed, for the wall it was typed for; another wall starts at its own middle.
   const [typed, setTyped] = useState<{ wall: string; offset: number } | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+  const form = useFormFocus(open)
   const run = wall ? openingRun(plan, wall) : null
   const offset = wall && typed?.wall === wall.id ? typed.offset : wall ? wallLength(wall) / 2 : 0
   const name = OPENING_NAMES[kind].toLowerCase()
@@ -180,7 +246,7 @@ function AddOpening({ plan, level, walls }: { plan: Plan; level: string; walls: 
         </button>
       </div>
       {open && (
-        <div className="tool-options add-by-typing" role="group" aria-label="Add a door or window by typing">
+        <div className="tool-options add-by-typing" role="group" aria-label="Add a door or window by typing" ref={form} tabIndex={-1} data-esc-owner>
           {wall && run ? (
             <>
               <p className="small">

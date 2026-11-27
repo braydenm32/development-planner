@@ -37,6 +37,13 @@ export function Select<T extends string | number>({
   )
 }
 
+/** What takes focus when Esc leaves a box: the nearest form, panel or dialog round it that can hold focus. */
+export function escOwner(box: Element): HTMLElement | null {
+  const owner = box.parentElement?.closest<HTMLElement>('[data-esc-owner], [role="dialog"], .tab-panel')
+  if (owner && owner.tabIndex < 0 && !owner.hasAttribute('tabindex')) owner.tabIndex = -1
+  return owner ?? null
+}
+
 interface NumProps {
   label: string
   /** Value in metres (or degrees / RL when unit is not mm). */
@@ -145,7 +152,11 @@ export function Num({ label, value, unit, onCommit, min, max, check, decimals, t
             }
             if (e.key === 'Escape') {
               cancelled.current = true
-              ;(e.target as HTMLInputElement).blur()
+              const box = e.target as HTMLInputElement
+              // Out of the box to what it belongs to (a form, the Selection panel), never to the page itself.
+              const owner = escOwner(box)
+              if (owner) owner.focus()
+              else box.blur()
             }
           }}
         />
