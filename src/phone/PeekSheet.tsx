@@ -9,7 +9,7 @@ import type { SiteStats } from '../lib/terrain'
 import { Icon } from '../nav/icons'
 import { shortMoney } from '../costs/format'
 import { m2, netText } from '../shell/format'
-import { floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
+import { checksName, floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
 import type { KeyNumbers } from '../shell/useKeyNumbers'
 import { peekRelease, type PeekSize } from './peekSize'
 
@@ -188,7 +188,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onSi
         <div className="peek-verdicts">
           {verdict && (
             <div className={`peek-tile w-${verdict.word}`}>
-              <span data-term={verdict.term}>{verdict.name === 'CDC' ? 'Fast-track (CDC) checks' : 'Council (DA) checks'}</span>
+              <span data-term={verdict.term}>{checksName(verdict.name)}</span>
               <b>{verdict.head}</b>
               {verdict.rest && <small>{verdict.rest}</small>}
             </div>

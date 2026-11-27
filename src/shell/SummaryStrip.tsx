@@ -17,7 +17,7 @@ import { tabRoute, type AppRoute } from '../nav/route'
 import { ENGINEER_RULE, ENGINEER_TEXT } from '../checks/engineer'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
 import { m2, netText, slabBedText } from './format'
-import { balanceWords, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
+import { balanceWords, checksName, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
 import type { CheckCounts } from '../checks/rules'
@@ -304,7 +304,7 @@ function VerdictChip({ verdict, route, readOnly }: { verdict: ChecksHeadline; ro
   const body = (
     <>
       {(verdict.word === 'fix' || verdict.word === 'confirm') && <i className="dot" />}
-      <span className="chip-label">{verdict.name} checks</span> <b>{verdict.head}</b>
+      <span className="chip-label">{checksName(verdict.name)}</span> <b>{verdict.head}</b>
     </>
   )
   if (readOnly)
@@ -322,7 +322,7 @@ function VerdictChip({ verdict, route, readOnly }: { verdict: ChecksHeadline; ro
 
 /** The checks: a warning chip when something fails or needs checking, otherwise a quiet label (the strip is crowded on a phone). */
 export function ChecksChip({ checks: { pathway, council, counts }, shown, route, readOnly = false }: { checks: { pathway: Pathway; council: Council | null; counts: CheckCounts }; shown?: string; route: AppRoute; readOnly?: boolean }) {
-  const name = pathway === 'cdc' ? 'CDC' : 'DA'
+  const name = checksName(pathway === 'cdc' ? 'CDC' : 'DA')
   const term = pathway === 'cdc' ? 'cdc' : 'da'
   const go = () => navigate({ kind: 'app', area: 'approvals', tab: 'checks', view: route.view, level: route.level, sel: route.sel })
   const loud = counts.fail + counts.warn > 0
@@ -336,24 +336,24 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
     if (readOnly || shown)
       return (
         <span className={cls} data-term={term} data-term-note={note}>
-          {name} checks <em>{text}</em>
+          {name} <em>{text}</em>
         </span>
       )
     return (
       <button className={cls} onClick={go} data-term={term} data-term-note={note}>
-        {name} checks <em>{text}</em>
+        {name} <em>{text}</em>
       </button>
     )
   }
   if (readOnly)
     return (
       <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>
-        <i className="dot" /> {name} checks · {parts}
+        <i className="dot" /> {name} · {parts}
       </span>
     )
   return (
     <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} data-term={term} data-term-note={against}>
-      <i className="dot" /> {name} checks · {parts}
+      <i className="dot" /> {name} · {parts}
     </button>
   )
 }

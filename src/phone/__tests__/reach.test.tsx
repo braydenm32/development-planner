@@ -6,9 +6,11 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { areaById, AREAS } from '../../nav/menu'
-import { canvasOf, everyRoute, tabRoute, type AppRoute } from '../../nav/route'
+import { areaRoute, canvasOf, everyRoute, tabRoute, type AppRoute } from '../../nav/route'
 import { ShellContext } from '../../shell/context'
+import { checksHeadline, checksName } from '../../shell/headline'
 import { OverviewSheet } from '../../shell/OverviewSheet'
+import { SummaryStrip } from '../../shell/SummaryStrip'
 import { PeekSheet } from '../PeekSheet'
 import { arriveAt, inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
 import { earthOf, house, loadBlock, numbersOf, shellData, words } from './block'
@@ -119,6 +121,35 @@ describe('the numbers it reaches', () => {
     expect(peek).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     expect(peek).toContain(`RL ${terrain.stats.minRL.toFixed(2)}`)
     expect(peek).toContain(`RL ${terrain.stats.maxRL.toFixed(2)}`)
+  })
+
+  it('the checks have one name in Key numbers, the Overview and the strip (PH-18)', () => {
+    // It was "Fast-track (CDC) checks" here, "Complying development (CDC) checks" in the Overview and "CDC checks" on the strip.
+    for (const pathway of ['cdc', 'da'] as const) {
+      const verdict = checksHeadline(pathway, [])
+      const name = checksName(verdict.name)
+      expect(name).toBe(pathway === 'cdc' ? 'Fast-track (CDC) checks' : 'Council (DA) checks')
+      const peek = words(renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} verdict={verdict} />))
+      const overview = words(
+        renderToStaticMarkup(
+          <ShellContext.Provider value={shellData(survey, terrain, earth)}>
+            <OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} verdict={verdict} />
+          </ShellContext.Provider>,
+        ),
+      )
+      const counts = { pass: 3, fail: 1, warn: 0, unknown: 0, incomplete: 0, pending: 0, info: 0 }
+      const strip = (share: boolean) =>
+        words(renderToStaticMarkup(<SummaryStrip route={areaRoute(share ? 'share' : 'design')} numbers={n} checks={{ pathway, council: null, counts }} verdict={verdict} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />))
+      for (const [where, text] of [
+        ['Key numbers', peek],
+        ['Overview', overview],
+        ['strip', strip(false)],
+        ['Share’s strip', strip(true)],
+      ]) {
+        expect(text, where).toContain(name)
+        expect(text, where).not.toMatch(/Complying development \(CDC\) checks|Development application \(DA\) checks/)
+      }
+    }
   })
 
   it('say first what Site features has to check, then the balance', () => {
