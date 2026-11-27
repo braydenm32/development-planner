@@ -13,6 +13,7 @@ import { groundedLevels, levelFloorWords } from '../plan/levelMenu'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { addLevelAbove, addLevelAt, addLevelBelow, setLevelRL, updateLevel } from '../plan/ops'
 import { focusPlan } from '../plan/planFocus'
+import { roomInsideSize } from '../plan/roomSize'
 import { storeyWarnings } from '../plan/storeys'
 import { usePlan, type Selection } from '../plan/store'
 import { selectOnPlan } from '../shell/useSite'
@@ -177,6 +178,12 @@ function showOnPlan(level: string, sel: Selection, pts: [number, number][]) {
   focusPlan(pts)
 }
 
+/** A room's clear size ahead of its area in the list: "4810 × 7730 · " (in mm, face to face), or nothing. */
+function insideText(inner: [number, number][] | undefined): string {
+  const s = roomInsideSize(inner)
+  return s ? `${Math.round(s.w * 1000)} × ${Math.round(s.d * 1000)} · ` : ''
+}
+
 /** Room areas, rooms total, floor area and outdoor areas, folded level by level; each room and area shows itself on the plan. */
 export function AreasBody({ plan }: { plan: Plan }) {
   const summary = useMemo(() => levelSummaries(plan), [plan])
@@ -220,7 +227,7 @@ export function AreasBody({ plan }: { plan: Plan }) {
                           onClick={() => showOnPlan(s.level.id, { type: 'room', id: r.room.id }, roomShape(r.room, faces)?.inner ?? [r.room.at])}
                         >
                           <span>{r.room.name}</span>
-                          <span className="muted">{r.sameAs ? `Same space as ${r.sameAs.name}` : r.area === null ? 'not enclosed' : `${r.area.toFixed(2)} m²`}</span>
+                          <span className="muted">{r.sameAs ? `Same space as ${r.sameAs.name}` : r.area === null ? 'not enclosed' : `${insideText(roomShape(r.room, faces)?.inner)}${r.area.toFixed(2)} m²`}</span>
                         </button>
                       </li>
                     ))}

@@ -56,6 +56,8 @@ import type { RetainingProfile } from '../plan/retaining'
 import { useRetaining } from '../plan/retainingSession'
 import { earthAgainstWall, roomArea, roofAboveGround, sameSpaceAs, sideLabel, type PlacementInfo } from '../plan/keyNumbers'
 import { openingClear, wallClear } from '../plan/openingFit'
+import { roomInside, roomSizeText } from '../plan/roomSize'
+import { offsetForGap, openingGaps } from '../pointer/openingGaps'
 import { showMovingEnd } from '../plan/movingEnd'
 import { MIN_WALL, stillerEnd, wallLengthProblem, type WallEnd } from '../plan/wallJoins'
 import type { Earth } from '../plan/useEarthworks'
@@ -464,6 +466,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const high = wallTopRL(plan, w) - floorRL(plan, w.level)
     const nib = run.from > 0.0005 || run.to < wallLength(w) - 0.0005
     const head = o.sill + o.height
+    const gaps = openingGaps(plan.walls, w, o)
     return (
       <section className="selection">
         <h2>{OPENING_NAMES[o.kind]}</h2>
@@ -514,19 +517,18 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             Its head is {mm(head)} mm above the floor, higher than the {mm(high)} mm wall. Lower it or make it shorter.
           </p>
         )}
-        <Num
-          label="From wall start to near edge"
-          unit="mm"
-          value={o.offset - o.width / 2}
-          check={v =>
-            v < run.from - 1e-9
-              ? `Min ${mm(run.from)} mm${run.from > 0.0005 ? ', clear of the wall at that corner' : ''}`
-              : v > run.to - o.width + 1e-9
-                ? `Max ${mm(run.to - o.width)} mm, to stay ${run.to < wallLength(w) - 0.0005 ? 'clear of the wall at the far corner' : 'in its wall'}`
-                : null
-          }
-          onCommit={edge => set({ offset: edge + o.width / 2 })}
-        />
+        {/* Where it is in its wall: the gap to each end, by the compass, as the plan writes beside it (src/pointer/openingGaps.ts). */}
+        {(['a', 'b'] as const).map(end => (
+          <Num
+            key={end}
+            label={`From the ${endName(plan, w, end).toLowerCase()}`}
+            unit="mm"
+            value={gaps[end].gap}
+            check={v => (v < -1e-9 ? 'Min 0 mm' : v > gaps.max + 1e-9 ? `Max ${mm(gaps.max)} mm, to stay ${nib ? 'clear of the wall at the other corner' : 'in its wall'}` : null)}
+            onCommit={gap => set({ offset: offsetForGap(plan.walls, w, o, end, gap) })}
+          />
+        ))}
+        <p className="muted small">Each is from its edge to {nib ? 'the inside corner at that end of its wall' : 'that end of its wall'}. Both show on the plan beside it.</p>
         {o.kind === 'door' && (
           <div className="row">
             <button className="secondary" onClick={() => set({ flipHinge: !o.flipHinge })}>
@@ -547,6 +549,8 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     if (!r) return null
     const area = roomArea(plan, r)
     const shared = sameSpaceAs(plan, r)
+    // Its clear size inside, wall face to wall face (src/plan/roomSize.ts).
+    const inside = roomInside(plan, r)
     return (
       <section className="selection">
         <h2>Room</h2>
@@ -554,6 +558,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <span>Area</span>
           <b>{area === null ? 'not enclosed' : `${area.toFixed(2)} m²`}</b>
         </div>
+        {inside && (
+          <dl className="stats">
+            <FragmentRow label={inside.rect ? 'Inside size' : 'Inside, at its widest'} value={roomSizeText(inside)} />
+          </dl>
+        )}
         {shared && (
           <p className="notice small">
             Same space as {shared.name}: no wall divides them, so this is the area of both together and it’s counted once in Rooms total. Draw the wall between them, or delete one label.
