@@ -123,7 +123,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     setOpen(false)
   }
   return (
-    <section ref={tray} className="q-tray" aria-label="Questions waiting for you">
+    <section ref={tray} className="q-tray" aria-label="Questions waiting for you" data-owns-keys>
       <header>
         {current ? (
           <button type="button" className="q-back" onClick={() => setAnswering(null)}>

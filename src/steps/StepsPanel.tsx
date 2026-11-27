@@ -47,6 +47,8 @@ export function StepsPanel({ d, phone }: { d: Loaded; phone: boolean }) {
         className={`steps-sheet${phone ? ' phone' : ''}`}
         role="dialog"
         aria-label="Check everything"
+        // Beside the plan, not over it: Tab may leave, but while focus is here Delete or W never reach the plan (src/nav/keys.ts).
+        data-owns-keys
         tabIndex={-1}
         onKeyDown={e => {
           if (e.key === 'Escape') {

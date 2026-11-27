@@ -71,6 +71,13 @@ const DRAWING = '.plan-editor, .tool-rail, .scene-keys'
 /** A dialog, sheet, menu or the search palette: while one is open the keyboard is its, not the plan's behind it. */
 export const OVERLAY = '[aria-modal="true"], [role="menu"], [data-overlay]'
 
+/**
+ * A panel that stays open beside the plan (Check everything, a comment card): Tab may leave it, so
+ * it isn't a dialog over everything, but while focus is inside it plain keys are its own and never
+ * reach the plan behind (Delete there must not delete what's selected).
+ */
+export const OWNS_KEYS = '[data-owns-keys]'
+
 export const overlayOpen = (): boolean => {
   try {
     return !!document.querySelector(OVERLAY)
@@ -147,6 +154,7 @@ const sceneNow = (): KeyScene => ({ overlay: overlayOpen(), tabbing, singleKeys:
 /**
  * May a shortcut take this key? Every window-level key handler asks this first, so they agree:
  * - never while a dialog, sheet, menu or the search palette is open (its own keys still work);
+ * - never while focus is in a panel beside the plan that owns its keys (OWNS_KEYS), Ctrl/⌘ keys aside;
  * - never in real text entry, which keeps its typing and the browser's own undo. A number or name
  *   box with nothing typed since its value was kept (data-settled) has nothing of its own to
  *   undo, so Undo and Redo go to the app;
@@ -161,6 +169,7 @@ export function shortcutAllowed(e: KeyPress, scene: KeyScene = sceneNow()): bool
   const mod = e.ctrlKey || e.metaKey
   if (textEntry(el)) return mod && /^[zy]$/i.test(e.key) && el?.dataset?.settled !== undefined
   if (mod) return true
+  if (el?.closest?.(OWNS_KEYS)) return false
   if (el && el.tagName && choiceField(el)) return false
   if (e.key === 'Escape') return true
   if (scene.tabbing && el?.closest?.(BUTTONISH) && !el.closest(DRAWING)) return false
