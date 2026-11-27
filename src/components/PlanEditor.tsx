@@ -53,7 +53,7 @@ import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
 import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
-import { modKey } from '../nav/keys'
+import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
 import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
@@ -1667,8 +1667,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // Keyboard: shortcuts, typed lengths, undo/redo, delete.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return
+      // The one rule every key handler shares: not behind a dialog or menu, not while typing (src/nav/keys.ts).
+      if (!shortcutAllowed(e)) return
       // While Costs is open, Undo and Redo work on costs.
       if (costsUndoKey(e)) {
         e.preventDefault()
@@ -1797,7 +1797,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       // 0 fits the house, Shift+0 the block (F is the roof tool).
-      if (e.code === 'Digit0' || e.code === 'Numpad0') {
+      if ((e.code === 'Digit0' || e.code === 'Numpad0') && singleKeysOn()) {
         e.preventDefault()
         st.requestFit(e.shiftKey ? 'block' : 'house')
         return

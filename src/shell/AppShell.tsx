@@ -18,7 +18,7 @@ import { useCosts } from '../costs/store'
 import { useEstimate, useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
-import { shortcutText, typingIn } from '../nav/keys'
+import { shortcutAllowed, shortcutText } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
@@ -180,6 +180,8 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         if (palette) closePalette(true)
+        // Not over another sheet that is waiting for an answer.
+        if (!palette && document.querySelector('[aria-modal="true"]')) return
         else openPalette()
         return
       }
@@ -189,13 +191,13 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         if (!e.repeat) void saveNow().then(text => showToast({ text }))
         return
       }
-      // ? lists the keys, wherever you are (not while typing).
-      if (e.key === '?' && !mod && !palette && !typingIn(e.target)) {
+      // ? lists the keys, wherever a single key may fire (src/nav/keys.ts).
+      if (e.key === '?' && !mod && shortcutAllowed(e)) {
         e.preventDefault()
         openKeyboardHelp()
         return
       }
-      if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
+      if (canvasKind === 'plan' || !mod || !shortcutAllowed(e)) return
       const k = e.key.toLowerCase()
       if (k === 'z' || k === 'y') {
         e.preventDefault()

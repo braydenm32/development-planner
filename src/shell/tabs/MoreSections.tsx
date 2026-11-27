@@ -19,7 +19,7 @@ import { layersKey, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { useShell } from '../context'
-import { ShortcutList } from '../KeyboardHelp'
+import { ShortcutList, SingleKeysSwitch } from '../KeyboardHelp'
 import { pickTool, useLoaded } from '../useSite'
 import { Waiting } from './Waiting'
 
@@ -137,6 +137,7 @@ export function KeyboardSection() {
   return (
     <>
       <p className="muted small">Press ? anywhere to see this list over whatever you are doing.</p>
+      <SingleKeysSwitch />
       <ShortcutList />
     </>
   )
