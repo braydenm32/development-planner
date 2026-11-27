@@ -83,7 +83,7 @@ function Basix({ d }: { d: Loaded }) {
           ))}
       </ul>
       <p className="muted small">
-        Windows count where they sit on an outside wall; name a room living, kitchen or dining and its orientation shows. Roof and tank come from{' '}
+        Windows count where they sit on an outside wall; give a room the Living, Kitchen or Dining type and its orientation shows. Roof and tank come from{' '}
         <button className="link" onClick={() => navigate({ kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan' })}>
           Approvals › Stormwater
         </button>

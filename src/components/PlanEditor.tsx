@@ -48,6 +48,7 @@ import { useSitePlan } from '../site/SitePlanLayer'
 import { outlineAround, roofGeometry, toggleGable } from '../plan/roof'
 import { roofsOverLevel, wallsUnderRoofline } from '../plan/roofline'
 import { roofAtPoint } from '../plan/roofPick'
+import { suggestedRoomName } from '../plan/roomTypes'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
@@ -1618,7 +1619,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       const n = plan.rooms.filter(r => r.level === level).length + 1
-      commit(p => addRoom(p, level, world, `Room ${n}`))
+      // The type picked on the Room tool's card names the room; with none it's "Room 3" until one is picked.
+      const type = usePlan.getState().roomTypeDefault
+      commit(p => (type ? addRoom(p, level, world, suggestedRoomName(p, type), type) : addRoom(p, level, world, `Room ${n}`)))
       const created = usePlan.getState().plan!.rooms.at(-1)
       if (created) select({ type: 'room', id: created.id })
       notify(null)

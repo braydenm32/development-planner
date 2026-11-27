@@ -22,6 +22,7 @@ import {
 } from './model'
 import { furnitureCorners, resized } from './furniture'
 import { defaultGables, simplifyRing } from './roof'
+import type { RoomTypeId } from './roomTypes'
 import { followLevels, linkStairs, stairLayout } from './stairs'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
@@ -90,8 +91,8 @@ export function updateOpening(plan: Plan, id: string, patch: Partial<Opening>): 
   return { ...plan, openings: plan.openings.map(o => (o.id === id ? { ...o, ...patch } : o)) }
 }
 
-export function addRoom(plan: Plan, level: string, at: Vec2, name: string): Plan {
-  return { ...plan, rooms: [...plan.rooms, { id: newId('room'), level, name, at }] }
+export function addRoom(plan: Plan, level: string, at: Vec2, name: string, type?: RoomTypeId): Plan {
+  return { ...plan, rooms: [...plan.rooms, { id: newId('room'), level, name, at, ...(type ? { type } : {}) }] }
 }
 
 export function updateRoom(plan: Plan, id: string, patch: Partial<Room>): Plan {

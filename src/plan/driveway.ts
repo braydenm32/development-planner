@@ -9,6 +9,7 @@ import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { SurveyPoint } from '../lib/survey'
 import { buildingOutline, planarFaces } from './geometry'
 import { areaKind, floorRL, houseWalls, toSite, type Area, type DriveLevels, type Plan } from './model'
+import { roomIsGarage } from './roomTypes'
 
 export { MAX_DRIVE_GRADE }
 
@@ -73,9 +74,9 @@ export function driveEndPoints(plan: Plan, area: Area, origin: Vec2, boundary: V
   return { poly, street: streetIsA ? ends.a : ends.b, garage: streetIsA ? ends.b : ends.a, streetIsA, length: ends.length }
 }
 
-/** The garage's slab: the floor of the level a room called Garage is on, or the ground floor's. */
+/** The garage's slab: the floor of the level the garage (by its type, or a room called Garage) is on, or the ground floor's. */
 export function garageSlab(plan: Plan): { rl: number; name: string } {
-  const garage = plan.rooms.find(r => /garage|carport/i.test(r.name))
+  const garage = plan.rooms.find(roomIsGarage)
   return garage ? { rl: floorRL(plan, garage.level), name: `${garage.name} slab` } : { rl: floorRL(plan), name: 'Ground floor slab' }
 }
 

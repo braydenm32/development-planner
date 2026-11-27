@@ -3,6 +3,7 @@ import { findSelection } from '../shell/selection'
 import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
+import type { RoomTypeId } from './roomTypes'
 import {
   clampOpenings,
   DOOR_DEFAULT,
@@ -81,6 +82,8 @@ interface PlanStore {
   roofMode: RoofMode
   stairDefaults: StairDefaults
   areaDefault: AreaKind
+  /** The type the Room tool gives the next room; null leaves it to be picked after placing. */
+  roomTypeDefault: RoomTypeId | null
   furnitureDefaults: FurnitureDefaults
   notice: string | null
   /** Bumped to ask the plan view to fit the drawing. */
@@ -112,6 +115,7 @@ interface PlanStore {
   setRoofMode: (m: RoofMode) => void
   setStairDefaults: (d: StairDefaults) => void
   setAreaDefault: (k: AreaKind) => void
+  setRoomTypeDefault: (t: RoomTypeId | null) => void
   setFurnitureDefaults: (d: FurnitureDefaults) => void
   notify: (msg: string | null) => void
   requestFit: (target?: 'house' | 'block') => void
@@ -155,6 +159,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   roofMode: 'building',
   stairDefaults: { shape: 'straight', width: 0.9, turn: 'left' },
   areaDefault: 'garden',
+  roomTypeDefault: null,
   furnitureDefaults: { kind: 'bed-queen', rotation: 0 },
   notice: null,
   fitToken: 0,
@@ -241,6 +246,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   setRoofMode: roofMode => setState({ roofMode, notice: null }),
   setStairDefaults: stairDefaults => setState({ stairDefaults }),
   setAreaDefault: areaDefault => setState({ areaDefault }),
+  setRoomTypeDefault: roomTypeDefault => setState({ roomTypeDefault }),
   setFurnitureDefaults: furnitureDefaults => setState({ furnitureDefaults }),
   notify: notice => setState({ notice }),
   requestFit: (fitTarget = 'house') => setState({ fitToken: getState().fitToken + 1, fitTarget }),

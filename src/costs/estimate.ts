@@ -400,6 +400,10 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
     q.windows.count ? null : 'windows',
     q.externalDoors.count ? null : 'outside doors',
     q.finishes.count || wetCount ? null : 'rooms',
+    // A house with rooms but no bathroom or kitchen among them (by type, or by name) has neither
+    // priced: said, as a missing roof is. A garage or shed on its own needs neither.
+    q.finishes.count && !q.wet.bathroom.count ? 'bathroom' : null,
+    q.finishes.count && !q.wet.kitchen.count ? 'kitchen' : null,
   ].filter((m): m is string => m !== null)
   const house = open.filter(l => HOUSE_GROUPS.includes(l.group as GroupId)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
   // The guide's figure for the house has a builder's margin in it already; the contingency goes on top, as on the rest.
