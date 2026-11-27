@@ -424,3 +424,28 @@ export async function duplicateWithUndo(id: string): Promise<ProjectMeta> {
   })
   return copy
 }
+
+// ---------------------------------------------------------------------------
+// Delete (All projects).
+
+/**
+ * Delete a project for good, after its review: it leaves the list now and storage when the toast
+ * goes, so Undo is exact. An active project (deleted from its card's menu) is archived on the
+ * way, since only archived projects can be deleted; Undo brings it back among the active ones,
+ * open again if it was the one open.
+ */
+export async function deleteWithUndo(m: ProjectMeta): Promise<void> {
+  const wasOpen = m.id === projectsNow().currentId
+  if (!m.archived) await projectActions.archive(m.id)
+  const undo = projectActions.deleteSoon(m.id)
+  showToast({
+    text: `Deleted “${m.name}”.`,
+    undo: async () => {
+      undo()
+      if (m.archived) return
+      await projectActions.restore(m.id)
+      if (wasOpen) await projectActions.open(m.id)
+    },
+    settle: () => void projectActions.finishDelete(m.id),
+  })
+}

@@ -132,6 +132,9 @@ describe('the local project store', () => {
     expect(lines[0]).toBe('The survey (plane.dxf) and its layer settings')
     expect(lines[1]).toMatch(/^The plan: 1 floor, \d+ walls/)
     expect(lines[2]).toBe('Its print and view settings')
+    // HO-37: an empty plan isn't "1 floor" to lose.
+    const empty = await local.create({ name: 'Empty', records: { plan: { ...garageFloor(), walls: [], rooms: [], roofs: [] } } })
+    expect(describeContents(empty, await local.read(empty.id))).toEqual(['The plan (nothing drawn yet)'])
   })
 })
 

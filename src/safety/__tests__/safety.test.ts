@@ -17,7 +17,7 @@ import { m2 } from '../../shell/format'
 import { SKETCH_DATUM } from '../../start/sketch'
 import { fitOnBlock, groundAtHouse, placeOnSketch } from '../align'
 import { detectFile, readSite } from '../files'
-import { duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
+import { deleteWithUndo, duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
 import { dismissToast, undoToast, useSafety, type Review } from '../store'
 import { undoTarget } from '../../shell/undoTarget'
 
@@ -425,6 +425,39 @@ describe('deleting a project for good', () => {
     await projectActions.finishDelete(id)
     expect(await projectActions.read(id)).toBeNull()
     expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+  })
+
+  // HO-37: Delete is in a project's card menu; it used to mean archiving first, then a tab change.
+  it('from a card’s menu deletes an active project, and Undo brings it back active, open and unchanged', async () => {
+    const id = await garageOnPlane()
+    const recs = await records(id)
+    const meta = projectsNow().list.find(m => m.id === id)!
+    expect(meta.archived).toBe(false)
+    await deleteWithUndo(meta)
+    expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+    expect(projectsNow().currentId).toBeNull()
+    expect(useSafety.getState().toast?.text).toBe(`Deleted “${meta.name}”.`)
+    await undo()
+    const back = projectsNow().list.find(m => m.id === id)!
+    expect(back.archived).toBe(false)
+    expect(projectsNow().currentId).toBe(id)
+    expect(await records(id)).toEqual(recs)
+
+    // Left alone, it goes from storage when the toast does.
+    await deleteWithUndo(back)
+    dismissToast(useSafety.getState().toast!.id)
+    await new Promise(res => setTimeout(res, 20))
+    await projectActions.finishDelete()
+    expect(await projectActions.read(id)).toBeNull()
+  })
+
+  it('from Archived, Undo leaves it archived', async () => {
+    const id = await garageOnPlane()
+    await projectActions.archive(id)
+    await deleteWithUndo(projectsNow().list.find(m => m.id === id)!)
+    expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+    await undo()
+    expect(projectsNow().list.find(m => m.id === id)?.archived).toBe(true)
   })
 
   it('refuses a project that isn’t archived', async () => {
