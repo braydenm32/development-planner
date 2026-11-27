@@ -67,6 +67,18 @@ export function spotAt(p: Vec2, floor: string, placement: Placement): Spot {
 }
 
 /**
+ * The spot for a comment on a whole floor, for anyone who can't tap a place on the plan (a
+ * keyboard, a screen reader): the middle of that floor's walls, or of the house when the floor has
+ * none. It is kept and shown like any other pin, so the Worker and the owner's list need nothing new.
+ */
+export function wholeFloorSpot(plan: Plan, floor: string): Spot {
+  const here = plan.walls.filter(w => w.level === floor)
+  const pts = (here.length ? here : plan.walls).flatMap(w => [w.a, w.b])
+  const mid = (i: 0 | 1) => (pts.length ? (Math.min(...pts.map(p => p[i])) + Math.max(...pts.map(p => p[i]))) / 2 : 0)
+  return spotAt([mid(0), mid(1)], floor, plan.placement)
+}
+
+/**
  * The floor a pin shows on: its own, or the lowest if that floor has gone from the plan since
  * (so a comment never goes missing).
  */

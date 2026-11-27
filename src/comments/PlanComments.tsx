@@ -9,7 +9,7 @@ import type { Vec2 } from '../lib/geom'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { Card, CommentsKey, ComposeCard, OwnerBody, PlacingBar, SentBar, ViewerBody } from './CommentCards'
-import { floorOf, numbered, spotAt, surveyToPlan, whoWrote, type OwnerComment, type ViewerComment } from './model'
+import { floorOf, numbered, spotAt, surveyToPlan, wholeFloorSpot, whoWrote, type OwnerComment, type ViewerComment } from './model'
 import { commentActions, useComments } from './store'
 import './comments.css'
 
@@ -135,7 +135,7 @@ export function useCommentsPlan({ plan, level, S, size, fitTo }: Args): Comments
   const html =
     side === null ? null : (
       <>
-        {placing && <PlacingBar />}
+        {placing && <PlacingBar onWhole={() => commentActions.place(wholeFloorSpot(plan, level))} />}
         {!placing && !draft && sent > putAway && side === 'viewer' && <SentBar />}
         {draft && <ComposeCard place={cardPlace(at(draft), size)} />}
         {openOne && !draft && (
