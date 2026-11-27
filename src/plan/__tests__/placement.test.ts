@@ -7,7 +7,7 @@ import { houseOutline } from '../../components/planNumbers'
 import { placementInfo } from '../keyNumbers'
 import { emptyPlan, toSite, type Placement, type Plan } from '../model'
 import { addWall } from '../ops'
-import { boundaryClearances, placeAtClearance, ringsCentre, rotatedPlacement } from '../placement'
+import { boundaryClearances, centreWithBlockStill, draggedPlacement, placeAtClearance, ringsCentre, rotatedPlacement } from '../placement'
 
 // A 20 m wide (east-west) by 40 m deep block, counter-clockwise from its south-west corner.
 const survey: Survey = {
@@ -142,5 +142,57 @@ describe('turning the house on the block', () => {
 
   it('turns about the plan origin when nothing is drawn', () => {
     expect(rotatedPlacement(at(3, 5), 30, null)).toEqual({ ...at(3, 5), rotation: 30 })
+  })
+})
+
+describe('dragging the house on the block (Move the house)', () => {
+  it('moves the house the way the drag went: east for a drag east, north for a drag north', () => {
+    const from = at(3, 10)
+    const east = draggedPlacement(from, [2.6, 0])
+    expect(east.e).toBeCloseTo(from.e + 2.6, 6)
+    expect(east.n).toBe(from.n)
+    // The east side is now 2.6 m closer and the west side 2.6 m further.
+    const before = boundaryClearances(house, from, survey)
+    const after = boundaryClearances(house, east, survey)
+    const side = (cs: typeof before, name: string) => cs.find(c => c.name.toLowerCase() === name.toLowerCase())!.dist
+    expect(side(after, 'East')).toBeCloseTo(side(before, 'East') - 2.6, 6)
+    expect(side(after, 'West')).toBeCloseTo(side(before, 'West') + 2.6, 6)
+    const north = draggedPlacement(from, [0, 1.5])
+    expect(side(boundaryClearances(house, north, survey), 'North')).toBeCloseTo(side(before, 'North') - 1.5, 6)
+  })
+
+  it('follows the drag on a turned house, to the nearest 10 mm', () => {
+    const from = { ...at(3, 10), rotation: 90 }
+    // The house's own x axis points north once it is turned 90 degrees.
+    const to = draggedPlacement(from, [1.234, 0])
+    expect(to.e).toBeCloseTo(from.e, 6)
+    expect(to.n).toBeCloseTo(from.n + 1.23, 6)
+    expect(to.rotation).toBe(90)
+    expect(to.ffl).toBe(from.ffl)
+  })
+
+  it('keeps the block where it is on screen: the same spot of the block stays under the middle of the view', () => {
+    for (const rotation of [0, 25, -90]) {
+      const from = { ...at(3, 10), rotation }
+      const to = draggedPlacement(from, [4, -2.5])
+      const centre: Vec2 = [5, 4]
+      const moved = centreWithBlockStill(centre, from, to)
+      const was = toSite(centre, from, survey.origin)
+      const now = toSite(moved, to, survey.origin)
+      expect(now[0]).toBeCloseTo(was[0], 6)
+      expect(now[1]).toBeCloseTo(was[1], 6)
+      // So the house is what moves across the view: by the drag, the other way to the centre.
+      expect(moved[0]).toBeCloseTo(centre[0] - 4, 2)
+      expect(moved[1]).toBeCloseTo(centre[1] + 2.5, 2)
+    }
+  })
+
+  it('keeps the block still when the house is turned as well as moved', () => {
+    const from = at(3, 10)
+    const to = { ...from, e: from.e + 2, rotation: 30 }
+    const centre: Vec2 = [1, 7]
+    const now = toSite(centreWithBlockStill(centre, from, to), to, survey.origin)
+    const was = toSite(centre, from, survey.origin)
+    expect(Math.hypot(now[0] - was[0], now[1] - was[1])).toBeLessThan(1e-9)
   })
 })
