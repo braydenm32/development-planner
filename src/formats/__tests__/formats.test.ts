@@ -124,6 +124,20 @@ describe('CSV spot levels', () => {
   it('gives plain errors for bad files', () => {
     expect(() => readPointsCsv('a.csv', '')).toThrow(/empty/)
     expect(() => readPointsCsv('a.csv', 'a,b\n1,2')).toThrow(/at least three columns/)
+    // No column of numbers: the file is refused plainly, where the columns step could never be finished (LD-32).
+    const none = (() => {
+      try {
+        readPointsCsv('bad.csv', 'a,b,c\nx,y,z')
+      } catch (e) {
+        return e as Error
+      }
+    })()
+    expect(none).not.toBeInstanceOf(NeedColumns)
+    expect(none?.message).toBe('bad.csv has no spot levels in it: easting, northing and RL need three columns of numbers, and none of its columns are numbers. Ask your surveyor for the points as a CSV (easting, northing, RL), or for a DXF.')
+    expect(() => readPointsCsv('two.csv', 'name,e,n\nA,1,2\nB,3,4')).toThrow(/only 2 of its columns are numbers/)
+    expect(() => readPointsCsv('head.csv', 'easting,northing,rl')).toThrow(/a heading row and nothing under it/)
+    // Three columns of numbers with no names still ask which is which.
+    expect(() => readPointsCsv('p.csv', '10,20,5\n30,40,6\n50,45,7')).toThrow(NeedColumns)
     expect(() => readPointsCsv('a.csv', 'E,N,RL\n1,2,3\n4,5,6')).toThrow(/only 2 points/)
     expect(() => readPointsCsv('a.csv', 'E,N,RL\nx,y,z\nx,y,z\nx,y,z', { roles: ['e', 'n', 'rl'], header: true })).toThrow(/no points with a level/)
     expect(() => readPointsCsv('a.csv', 'E,N,RL\n1,2,3', { roles: ['e', 'e', 'skip'], header: true })).toThrow(/easting, a northing and an RL/)
