@@ -22,7 +22,8 @@ describe('measure', () => {
     expect(m.rlB).toBeCloseTo(82, 3)
     expect(m.rise).toBeCloseTo(1, 3)
     expect(m.sloped).toBeCloseTo(Math.hypot(10, 1), 3)
-    expect(measureText(m)).toEqual({ flat: '10.00 m', sloped: '10.05 m', rise: '+1.00 m' })
+    // Lengths in mm like the plan's dimensions and the Total beside them; the height in metres (DB-25).
+    expect(measureText(m)).toEqual({ flat: '10000 mm', sloped: '10050 mm', rise: '+1.00 m' })
   })
 
   it('reads a fall as negative, and nothing level as zero', () => {

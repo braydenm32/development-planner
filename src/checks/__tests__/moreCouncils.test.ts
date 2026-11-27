@@ -43,7 +43,7 @@ describe('Kiama', () => {
     expect(status(KIAMA, { checks: front })).toMatchObject({ 'da-side': 'pass', 'da-rear': 'pass', 'da-coverage': 'pass' })
     expect(run(KIAMA, { checks: front, plan: moved({ e: 5000.4 }) })['da-side']).toMatchObject({ status: 'fail', value: '0.59 m to the west side', limit: '0.9 m to walls' })
     expect(run(KIAMA, { checks: front })['da-rear'].limit).toBe('6 m to walls')
-    expect(run(KIAMA, { checks: front })['da-coverage'].limit).toBe('486.2 m² on 810.3 m²')
+    expect(run(KIAMA, { checks: front })['da-coverage'].limit).toBe('486.2 m² on an 810 m² lot')
   })
   it('cut and fill: 900 mm each, batters 1 in 4, retaining walls 1 m', () => {
     expect(status(KIAMA, { checks: front, earth: { cutBatter: 4, fillBatter: 4 } })['da-batters']).toBe('pass')
@@ -82,7 +82,7 @@ describe('Central Coast', () => {
     expect(rear.note).toMatch(/^The house rises over 4\.5 m, so this uses 6 m throughout/)
   })
   it('coverage 50% on this lot; cut 3 m and fill 1 m; walls over 600 mm near a boundary need an engineer', () => {
-    expect(run(CENTRAL_COAST, { checks: front })['da-coverage'].limit).toBe('405.1 m² on 810.3 m²')
+    expect(run(CENTRAL_COAST, { checks: front })['da-coverage'].limit).toBe('405.1 m² on an 810 m² lot')
     expect(run(CENTRAL_COAST, { checks: front, earth: steep })['da-cut-fill']).toMatchObject({ status: 'pass', value: 'Cut 0.00 m within 1 m of the boundary, 1.33 m elsewhere; fill 0.92 m' })
     const walls = run(CENTRAL_COAST, { checks: front, plan: withRetaining, earth: steep })
     expect(walls['da-cut-fill'].status).toBe('fail')
@@ -113,8 +113,8 @@ describe('Blue Mountains', () => {
   })
   it('site cover 40%, pervious area 40%, cut and fill “generally” 1 m, and an erosion plan', () => {
     const r = run(BLUE_MOUNTAINS, { checks: front, earth: steep })
-    expect(r['da-coverage'].limit).toBe('324.1 m² on 810.3 m²')
-    expect(r['da-landscaped']).toMatchObject({ title: 'Pervious area', status: 'pass', limit: '324.1 m² on 810.3 m²' })
+    expect(r['da-coverage'].limit).toBe('324.1 m² on an 810 m² lot')
+    expect(r['da-landscaped']).toMatchObject({ title: 'Pervious area', status: 'pass', limit: '324.1 m² on an 810 m² lot' })
     expect(r['da-cut-fill']).toMatchObject({ status: 'warn', value: 'Cut 1.33 m; fill 0.92 m, outside the house' })
     expect(r['da-erosion'].limit).toBe('An erosion and sediment control plan (under 2,500 m²)')
   })

@@ -43,7 +43,8 @@ describe('two room labels in one space (DB-04)', () => {
     expect(s.rooms[1].sameAs?.name).toBe('Living')
     // Both read the one space's area, and the total is that area once: under the floor area.
     expect(s.rooms[1].area).toBeCloseTo(s.rooms[0].area!, 9)
-    expect(roomsTotal(s.rooms)).toBeCloseTo(s.rooms[0].area!, 9)
+    // The total adds the rooms as they are shown, to 0.01 m² (LD-27).
+    expect(roomsTotal(s.rooms)).toBe(Math.round(s.rooms[0].area! * 100) / 100)
     expect(roomsTotal(s.rooms)).toBeLessThan(s.gross.area)
     expect(sameSpaceAs(p, p.rooms[1])?.name).toBe('Living')
     expect(sameSpaceAs(p, p.rooms[0])).toBeNull()

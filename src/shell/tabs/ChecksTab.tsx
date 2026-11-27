@@ -11,7 +11,7 @@ import type { Measures } from '../../checks/measure'
 import { CDC_LAND, CDC_LAND_MAPPED, controlCount, NEED_FRONT, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, checkSettingsOf, COUNCILS, type Council } from '../../checks/councils'
-import { checkedAgainst, mapCouncil, PATHWAY_LABEL, PATHWAY_MEANS, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
+import { checkedAgainst, mapCouncil, NEED_COUNCIL, PATHWAY_LABEL, PATHWAY_MEANS, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
 import type { CheckResult, CheckSettings, Pathway } from '../../checks/types'
 import { useChecks, type Checks as ChecksData } from '../../checks/useChecks'
 import { Termed } from '../../guide/Term'
@@ -24,6 +24,9 @@ import { TreeRemoval } from '../../checks/TreeRemoval'
 import { useMap } from '../../map/store'
 import { navigate } from '../../nav/router'
 import { usePlan } from '../../plan/store'
+import { compassOf, edgeBearings } from '../../plan/streetSide'
+import { useProjects } from '../../projects/session'
+import { setSketchStreet } from '../../start/sketchStreet'
 import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
@@ -300,10 +303,15 @@ export function CheckRow({ r, n, placed = false, differ, children }: { r: CheckR
 function RouteControl({ c }: { c: ChecksData }) {
   const fromMap = useMap(st => mapCouncil(st.place?.planning))
   const pick = useRef<HTMLSelectElement>(null)
+  // DA was picked with no council to check against: the switch can't move, so it says why (it used to do nothing visible).
+  const [needCouncil, setNeedCouncil] = useState(false)
   const chooseDa = () => {
     const k = c.council ?? fromMap
     if (k) setRoute('da', k.id)
-    else pick.current?.focus()
+    else {
+      setNeedCouncil(true)
+      pick.current?.focus()
+    }
   }
   const coverage = c.council ? controlCount(c.council) : null
   return (
@@ -318,7 +326,11 @@ function RouteControl({ c }: { c: ChecksData }) {
               role="radio"
               aria-checked={c.pathway === p}
               className={c.pathway === p ? 'on' : ''}
-              onClick={() => (p === 'cdc' ? setRoute('cdc') : chooseDa())}
+              onClick={() => {
+                if (p === 'da') return chooseDa()
+                setNeedCouncil(false)
+                setRoute('cdc')
+              }}
               title={pathwayLong(p, p === 'da' ? (c.council ?? fromMap) : null)}
             >
               {PATHWAY_LABEL[p]}
@@ -339,6 +351,11 @@ function RouteControl({ c }: { c: ChecksData }) {
         </label>
       </div>
       <p className="muted small">{PATHWAY_MEANS[c.pathway]}</p>
+      {needCouncil && !c.council && (
+        <p className="notice small cr-need" role="status">
+          {NEED_COUNCIL}
+        </p>
+      )}
       <p className="muted small">
         {checkedAgainst(c.pathway, c.council)}
         {c.pathway === 'da' && coverage && coverage.have < coverage.of ? `: ${coverage.have} of its ${coverage.of} controls so far` : ''}.
@@ -391,6 +408,7 @@ function MapFact({ what }: { what: 'fsr' | 'height' }) {
 /** The lot's facts the survey doesn't hold, as the last group: open while the street side isn't set. */
 function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: CheckSettings; council: Council | null; pathway: Pathway; open?: boolean; onToggle: (open: boolean) => void }) {
   const needsFront = s.frontEdge === undefined
+  const sketch = useProjects().opened?.survey?.sketch
   const da = pathway === 'da' && !!council
   const missing = [needsFront, da && !!council?.fsr && s.lepFsr === undefined, da && !!council?.height && s.lepHeight === undefined].filter(Boolean).length
   const shown = open ?? needsFront
@@ -418,7 +436,12 @@ function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: 
             label={s.battleAxe ? 'Faces the lot in front' : 'Faces the street'}
             value={s.frontEdge ?? -1}
             options={edgeOptions}
-            onChange={v => setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })}
+            onChange={v => {
+              // On a sketch block the street is part of the sketch: the same setting as Site › Block's, through its review.
+              const facing = v < 0 ? null : edgeBearings(m.edges.map(e => e.a))[v]
+              if (sketch) return facing !== null && facing !== undefined ? setSketchStreet(sketch, compassOf(facing)) : undefined
+              setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })
+            }}
           />
           <p className="muted small">
             The same as the street side in{' '}

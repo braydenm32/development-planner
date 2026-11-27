@@ -23,6 +23,16 @@ export interface SketchBlock {
 
 /** RL of the ground at the street edge: an assumed datum, as surveyors use before levels are known. */
 export const SKETCH_DATUM = 100
+/**
+ * A level on a sketch block in everyday words: "2.00 m above the street". The RL 100 at the street
+ * is made up, so an RL means nothing to the person yet; it stays in the tooltip for when the
+ * survey comes.
+ */
+export function aboveStreet(rl: number): string {
+  const d = Math.round((rl - SKETCH_DATUM) * 100) / 100
+  return d === 0 ? 'level with the street' : `${Math.abs(d).toFixed(2)} m ${d > 0 ? 'above' : 'below'} the street`
+}
+
 /** The sheet used when no size is given. */
 export const ROUGH_SIZE = { width: 20, depth: 40 }
 /** The sketch block's south-west corner, in made-up site coordinates. */
@@ -78,7 +88,8 @@ export const SIDE_NAME: Record<StreetSide, string> = { N: 'north', E: 'east', S:
 
 /** "15 × 30 m, flat, street to the south". */
 export function describeSketch(b: SketchBlock): string {
-  const size = b.rough ? 'size not set yet' : `${b.width} × ${b.depth} m`
+  // With no size given the block is still drawn, at the default: say the size it has, and that it wasn't chosen.
+  const size = b.rough ? `${b.width} × ${b.depth} m (default size, not set yet)` : `${b.width} × ${b.depth} m`
   const fall = b.fall ? `${Math.abs(b.fall)} m ${b.fall > 0 ? 'up' : 'down'} to the back` : 'flat'
   return `${size}, ${fall}, street to the ${SIDE_NAME[b.street]}`
 }

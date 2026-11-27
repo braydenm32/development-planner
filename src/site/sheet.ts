@@ -252,7 +252,7 @@ function legendRows(features: SiteFeature[], warned: Set<string>): LegendRow[] {
     pg.lineWidth(0.15)
     for (let c = x + 1.2; c < x + 8; c += 2.4) pg.line([c, y], [c, y + 0.9])
   })
-  add('paving', 'Driveway or paving', (pg, x, y) => pg.lineWidth(0.15).stroke(PAVE_EDGE).fill(PAVE).rect(x, y - 1.3, 8, 2.6, 'both'))
+  add('paving', 'Existing driveway or paving', (pg, x, y) => pg.lineWidth(0.15).stroke(PAVE_EDGE).fill(PAVE).rect(x, y - 1.3, 8, 2.6, 'both'))
   add('building', 'Building or shed', (pg, x, y) => pg.lineWidth(0.25).stroke(BLDG_EDGE).fill(BLDG).rect(x, y - 1.3, 8, 2.6, 'both'))
   add('building-neighbour', "Neighbour's building", (pg, x, y) =>
     pg.lineWidth(0.25).stroke(BLDG_EDGE).fill(BLDG).dash([1, 0.6]).rect(x, y - 1.3, 8, 2.6, 'both').dash(),

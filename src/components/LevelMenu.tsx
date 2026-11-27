@@ -7,6 +7,8 @@ import { Icon } from '../nav/icons'
 import { useModal } from '../nav/useModal'
 import { setGhost, type LevelRow } from '../plan/levelMenu'
 import { usePlan } from '../plan/store'
+import { useProjects } from '../projects/session'
+import { aboveStreet, SKETCH_DATUM } from '../start/sketch'
 import './levels.css'
 
 /** Close the menu on a click outside it, or on Escape. */
@@ -38,6 +40,8 @@ export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNo
   const chip = useRef<HTMLButtonElement>(null)
   useModal(list, open, () => setOpen(false), { returnTo: chip })
   const on = rows.find(r => r.active)
+  // A sketch block's RLs hang off a made-up RL 100: the chip says how high the floor is above the street instead.
+  const sketch = !!useProjects().opened?.survey?.sketch
   const many = rows.length > 1
   const ghosts = rows.filter(r => r.ghost).length
   if (!on) return null
@@ -53,7 +57,7 @@ export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNo
           aria-expanded={many ? open : undefined}
           title={many ? 'Change level (Page Up, Page Down)' : undefined}
         >
-          Drawing on <b>{on.name}</b> · FFL RL {on.rl.toFixed(2)}
+          Drawing on <b>{on.name}</b> · {sketch ? <span title={`RL ${on.rl.toFixed(2)}, from an assumed RL ${SKETCH_DATUM.toFixed(2)} by the street`}>floor {aboveStreet(on.rl)}</span> : `FFL RL ${on.rl.toFixed(2)}`}
           {many && <Icon name={open ? 'chevU' : 'chevD'} size={13} />}
         </button>
         {action}

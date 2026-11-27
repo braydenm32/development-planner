@@ -16,6 +16,8 @@ import { paintSectionBody, spread } from '../sections/paint'
 import { svgPainter } from '../sections/svgPainter'
 import { sectionDrawing } from '../sections/section'
 import { rlText } from '../sections/common'
+import { addSection, sectionAlong, sectionName } from '../sections/lines'
+import { showToast } from '../safety/store'
 import { floorRL, levelById, sortedLevels, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
@@ -98,6 +100,21 @@ export function SectionStrip(props: SectionStripProps) {
     [plan, survey, terrain, grid, ax, ay, bx, by],
   )
   const roofs = useMemo(() => roofCuts(plan, { a: [ax, ay], b: [bx, by] }), [plan, ax, ay, bx, by])
+  // The live section is this viewer's slice, not one of the plan's drawings, until its line is kept as one.
+  const kept = sectionAlong(plan, { a: [ax, ay], b: [bx, by] })
+  const keepAsDrawing = () => {
+    const before = usePlan.getState().plan
+    if (!before) return
+    const { plan: next, line } = addSection(before, [ax, ay], [bx, by])
+    usePlan.getState().commit(() => next)
+    const after = usePlan.getState().plan
+    showToast({
+      text: `Kept as ${sectionName(line)}. It’s in Design › Sections and prints with the PDF plans.`,
+      undo: () => {
+        if (usePlan.getState().plan === after) usePlan.getState().undo()
+      },
+    })
+  }
 
   // How far the drawing's been dragged up or down (m), on the level drawn on: a new level brings it back to the middle.
   const [panned, setPanned] = useState({ level: '', by: 0 })
@@ -382,6 +399,7 @@ export function SectionStrip(props: SectionStripProps) {
         />
       )}
       <header className="sstrip-head" style={{ paddingLeft: Math.max(12, left + 4), paddingRight: Math.max(12, right + 4) }}>
+        {/* "Live": the viewer's own slice through the plan, where a section line (Design › Sections) is a drawing kept with it. */}
         <h2>Live section</h2>
         <span className="muted ends">
           {ends[0]} → {ends[1]}
@@ -404,6 +422,12 @@ export function SectionStrip(props: SectionStripProps) {
         )}
         <span className="grow" />
         {open && editable && <span className="muted hint">Click a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
+        {open && kept && <span className="muted hint">Kept as {sectionName(kept)}</span>}
+        {open && editable && !kept && drawing.walls.length > 0 && (
+          <button type="button" className="plain small" onClick={keepAsDrawing} title="Keep this line as a section drawing: it is listed in Design › Sections and prints with the PDF plans">
+            Add to drawings
+          </button>
+        )}
         {!alongHouse && (
           <button type="button" className="plain small" onClick={onReset} title="Put the live section’s line back through the middle of the house, along it">
             Along the house

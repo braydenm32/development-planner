@@ -323,6 +323,9 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                 </div>
               </div>
               <p className="st-note">
+                Rough fall is how much higher the back of the block is than the street, in metres. Type a minus (−2) if it falls away from the street.
+              </p>
+              <p className="st-note">
                 Not sure yet? Leave the size empty for a {ROUGH_SIZE.width} × {ROUGH_SIZE.depth} m sheet; you can change it under Site › Block.
               </p>
               {/* Every box that's wrong, each with its own reason (its box points here with aria-describedby). */}

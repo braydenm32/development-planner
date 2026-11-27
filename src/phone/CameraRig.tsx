@@ -87,8 +87,9 @@ class Rig {
     const from = this.current()
     if (!from || !controls || !this.live) return
     // Fit the preset to the part of the screen nothing covers.
-    const fov = (2 * Math.atan(Math.tan((camera.fov * Math.PI) / 360) * this.live.freeHeight) * 180) / Math.PI
-    const target = to === 'north' ? northUp(from) : presetPose(to, this.live.frame, fov, this.live.aspect)
+    // The view's own lens, not the wide one Street view may have on now: a preset pressed from Street view frames the same as from anywhere.
+    const fov = (2 * Math.atan(Math.tan(((this.baseFov ?? camera.fov) * Math.PI) / 360) * this.live.freeHeight) * 180) / Math.PI
+    const target = to === 'north' ? northUp(from) : presetPose(to, this.live.frame, fov, this.live.aspect, this.live.freeHeight)
     const preset = to === 'north' ? null : to
     // Reduce motion: cut to the view; a swing of the whole picture is what the setting asks not to see.
     if (!animate || lessMotion()) {

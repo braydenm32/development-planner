@@ -5,7 +5,7 @@ import type { SavedProject } from '../lib/storage'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { projectThumbnail, totalFloorArea } from '../projects/summary'
 import { m2 } from '../shell/format'
-import { isSketch } from '../start/sketch'
+import { describeSketch, isSketch } from '../start/sketch'
 import { fitOnBlock, groundUnder, heightToKeep, levelsOff, type Fit, type Site } from './align'
 import { foundText, rlRangeText, siteAreaText } from './readBack'
 import type { Review, ReviewChoice } from './store'
@@ -132,9 +132,14 @@ export function surveyReview(i: SurveyReviewInput): Review {
   const only = choices.length === 1 ? choices[0] : null
 
   const changes = [
-    i.old ? `The survey: ${i.old.fileName} becomes ${next.fileName}.` : `The survey: ${next.fileName}.`,
+    // One sketch to another (Change size, or a new street side): say what changes about the block, with no talk of survey files.
+    i.old?.sketch && next.sketch
+      ? `The sketch block: ${describeSketch(i.old.sketch)} becomes ${describeSketch(next.sketch)}.`
+      : i.old
+        ? `The survey: ${i.old.fileName} becomes ${next.fileName}.`
+        : `The survey: ${next.fileName}.`,
     sketchAfter ? 'The block is a sketch until the survey comes.' : `The block: ${siteAreaText(to.terrain.stats)}, ${rlRangeText(to.terrain.stats)}.`,
-    'Survey layers are read fresh from the new file.',
+    ...(next.sketch ? [] : ['Survey layers are read fresh from the new file.']),
     ...(only?.detail ? [drawn ? `The house goes in the middle of the ${sketchBefore ? 'surveyed' : 'new'} block. ${only.detail}` : only.detail] : []),
   ]
   const kept = [
@@ -146,7 +151,7 @@ export function surveyReview(i: SurveyReviewInput): Review {
   ]
   return {
     kind: 'replace-survey',
-    title: sketchBefore && !sketchAfter ? `Use ${next.fileName} as your block?` : `Replace the survey with ${next.fileName}?`,
+    title: sketchBefore && !sketchAfter ? `Use ${next.fileName} as your block?` : sketchBefore && sketchAfter ? 'Change the sketch block?' : `Replace the survey with ${next.fileName}?`,
     file: next.fileName,
     facts: sketchAfter
       ? [{ label: 'Block', value: next.fileName.replace(/^Sketch block\s*/, '') }]
@@ -163,7 +168,7 @@ export function surveyReview(i: SurveyReviewInput): Review {
     choices: only ? [] : choices,
     choice: only?.id,
     thumb: only ? only.thumb : choices.length ? undefined : thumbOf(to, i.moved ?? plan),
-    confirm: sketchBefore && !sketchAfter ? 'Use this survey' : 'Replace survey',
+    confirm: sketchBefore && !sketchAfter ? 'Use this survey' : sketchBefore && sketchAfter ? 'Change the sketch' : 'Replace survey',
     replaces: true,
   }
 }

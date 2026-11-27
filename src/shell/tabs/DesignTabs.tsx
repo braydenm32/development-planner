@@ -71,19 +71,46 @@ function BuildingHeight({ d }: { d: NonNullable<ReturnType<typeof useLoaded>> })
   )
 }
 
-export function RoofsTab() {
-  const d = useLoaded()
-  if (!d) return <Waiting />
+/**
+ * The Type, Pitch and Overhang the next roof is drawn with. While a roof is picked they fold away:
+ * they looked like that roof's own fields, beside its card, and changed nothing on it (LD-09).
+ */
+function NewRoofs({ plan }: { plan: Plan }) {
+  const picked = usePlan(s => (s.selection?.type === 'roof' ? s.selection.id : null))
+  const roof = picked ? plan.roofs.find(r => r.id === picked) : undefined
+  if (roof)
+    return (
+      <p className="notice small">
+        <b>
+          {ROOF_NAMES[roof.type]} · {levelById(plan, roof.level)?.name ?? 'level'}
+        </b>{' '}
+        is picked: change its type, pitch and overhang in its card on the plan.{' '}
+        <button className="link" onClick={() => usePlan.getState().select(null)}>
+          Set up the next roof instead
+        </button>
+      </p>
+    )
   return (
     <>
-      <BuildingHeight d={d} />
       <h3>New roofs</h3>
+      <p className="muted small">What the next roof you draw starts with. To change a roof already on the plan, pick it below.</p>
       <RoofOptions />
       <div className="row">
         <button className="secondary" onClick={() => pickTool('roof')}>
           Draw a roof
         </button>
       </div>
+    </>
+  )
+}
+
+export function RoofsTab() {
+  const d = useLoaded()
+  if (!d) return <Waiting />
+  return (
+    <>
+      <BuildingHeight d={d} />
+      <NewRoofs plan={d.plan} />
       <h3>Roofs on the plan</h3>
       <RoofList plan={d.plan} />
     </>

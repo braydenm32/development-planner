@@ -4,9 +4,11 @@
 
 import { fileSafe } from '../print/export'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { buildingOutline, closestOnSegment, faceAround, levelFloorAreas, planarFaces, roomShape, type Face } from '../plan/geometry'
-import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
-import { roomIsGarage, roomTypeInfo } from '../plan/roomTypes'
+import { buildingOutline, closestOnSegment, faceAround, planarFaces, type Face } from '../plan/geometry'
+import { grossFloorArea } from '../plan/keyNumbers'
+import { m2 as floorM2 } from '../shell/format'
+import { pointOnWall, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
+import { roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
 import { roofCatchments, tankRoofs, totalCatchment } from '../drainage/stormwater'
 import { basixOf, type BasixAnswers, type BasixItemId, type Cooling, type Heating, type HotWater, type Lighting } from './model'
@@ -145,32 +147,17 @@ export function livingOrientations(plan: Plan): LivingOrientation[] {
 }
 
 export interface FloorAreas {
-  /** All floors to the outside of the walls (m²). */
-  gross: number
-  /** Garages and carports inside the walls (m²), which BASIX leaves out of the conditioned area. */
+  /** All floors to the inside of the outside walls (m²): the basis gross floor area is counted on (floorAreasOf). */
+  inside: number
+  /** Garages and carports inside their walls (m²), which BASIX leaves out of the conditioned area. */
   garages: number
-  /** Roughly the conditioned floor area: gross less garages. */
+  /** Roughly the conditioned floor area: inside the outside walls, less the garages. Both on the inside faces. */
   conditioned: number
 }
 
 export function floorAreas(plan: Plan): FloorAreas {
-  let gross = 0
-  let garages = 0
-  // A wall shared by split levels drawn side by side is counted once (levelFloorAreas).
-  const floor = levelFloorAreas(plan)
-  for (const l of sortedLevels(plan)) {
-    const faces = planarFaces(plan.walls.filter(w => w.level === l.id))
-    gross += floor.get(l.id) ?? 0
-    const seen = new Set<Face>()
-    for (const r of plan.rooms) {
-      if (r.level !== l.id || !roomIsGarage(r)) continue
-      const f = faceAround(r.at, faces)
-      if (!f || seen.has(f)) continue
-      seen.add(f)
-      garages += roomShape(r, faces)?.area ?? 0
-    }
-  }
-  return { gross, garages, conditioned: Math.max(0, gross - garages) }
+  const { inside, garages } = grossFloorArea(plan)
+  return { inside, garages, conditioned: Math.max(0, inside - garages) }
 }
 
 /** Everything the checklist reads off the plan. */
@@ -276,7 +263,8 @@ export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[
     {
       id: 'floor-area',
       item: 'Conditioned floor area',
-      value: `${m2(facts.floor.conditioned)} (${m2(facts.floor.gross)} to the outside of the walls, garages ${m2(facts.floor.garages)} left out)`,
+      // Floor areas to 2 decimals, as the checks and the strip write them.
+      value: `${floorM2(facts.floor.conditioned)} (${floorM2(facts.floor.inside)} inside the outside walls, garages ${floorM2(facts.floor.garages)} left out)`,
       why: 'The heated and cooled floor area, which the energy and water targets are set against.',
       fromPlan: true,
     },

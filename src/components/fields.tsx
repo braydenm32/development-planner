@@ -49,6 +49,10 @@ interface NumProps {
   check?: (v: number) => string | null
   /** The value is already in the unit shown (no metres to mm), shown to at most this many decimals. */
   decimals?: number
+  /** Rewrites what was typed before it is read, for a box that takes more than one way of writing a value ("33.9 S", "-33.9"). */
+  tidy?: (typed: string) => string
+  /** The range in words, said instead of "Max 44 °" when the value is outside it. */
+  range?: string
 }
 
 /**
@@ -56,7 +60,7 @@ interface NumProps {
  * where a bare number is mm and "0.9" or "9m" are metres (said back as "= 900 mm" while typing). A value
  * that can't be used stays in the box, in red with a reason, until it's fixed or Esc puts the old one back.
  */
-export function Num({ label, value, unit, onCommit, min, max, check, decimals }: NumProps) {
+export function Num({ label, value, unit, onCommit, min, max, check, decimals, tidy, range }: NumProps) {
   const exact = decimals !== undefined
   const shown = exact
     ? String(Number(value.toFixed(decimals)))
@@ -75,7 +79,11 @@ export function Num({ label, value, unit, onCommit, min, max, check, decimals }:
   // The box to select the text of once Enter's value has been drawn.
   const kept = useRef<HTMLInputElement | null>(null)
   const hintId = useId()
-  const reading = editing === null ? null : readNumber(editing, unit, exact, min, max, check)
+  const read = (typed: string) => {
+    const r = readNumber(tidy ? tidy(typed) : typed, unit, exact, min, max, check)
+    return !r.ok && range && /^(Min|Max) /.test(r.hint) ? { ok: false as const, hint: range } : r
+  }
+  const reading = editing === null ? null : read(editing)
   // A box still being typed in only says what it will do; once it's left (or Enter is pressed), a bad value is flagged.
   const bad = reading && !reading.ok && (!focused || tried)
   /** Keep what was typed, if it can be used. */
@@ -85,7 +93,7 @@ export function Num({ label, value, unit, onCommit, min, max, check, decimals }:
       setEditing(null)
       return true
     }
-    const r = readNumber(editing, unit, exact, min, max, check)
+    const r = read(editing)
     // Unusable: keep the text and the reason showing.
     if (!r.ok) return false
     setEditing(null)

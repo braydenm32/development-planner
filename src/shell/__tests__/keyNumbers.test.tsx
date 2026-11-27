@@ -142,7 +142,8 @@ describe('floor area and FFL', () => {
     expect(words(strip(n))).toContain('Floor, all levels 228.78 m²')
     // Each level's floor level, not the lowest alone (C33).
     expect(n.floors.map(f => f.name)).toEqual(['Ground floor', 'First floor'])
-    expect(words(strip(n))).toContain(`Floor levels (FFL) ${n.floors.map(f => f.rl.toFixed(2)).join(' / ')}`)
+    // With RL first, as levels are written everywhere else (AX-35).
+    expect(words(strip(n))).toContain(`Floor levels (FFL) RL ${n.floors.map(f => f.rl.toFixed(2)).join(' / ')}`)
     // Drawing on one level, the strip says that level's floor first.
     const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} level={n.levels[1].id} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
     expect(words(html)).toContain('Floor, First floor 114.39 m² of 228.78 m²')
@@ -445,7 +446,7 @@ describe('roof height above the ground', () => {
     expect(strip(n)).toContain('The highest point of the roof or walls above the natural ground under it')
     // One roof: the total roof area is its own.
     expect(n.roofs).toHaveLength(1)
-    expect(n.roofArea).toBeCloseTo(n.roof!.area, 9)
+    expect(n.roofArea).toBe(Math.round(n.roof!.area * 10) / 10)
   })
 
   it('has no roof to show without one, and gives the height of the walls', () => {

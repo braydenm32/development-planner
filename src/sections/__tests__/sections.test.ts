@@ -17,7 +17,7 @@ import { earthFrom, earthInputs } from '../../plan/useEarthworks'
 import { planSetPdf } from '../../share/plans'
 import { spansInside, type Pt } from '../common'
 import { elevationDrawing, elevationSides, highestPoint, SIDES } from '../elevation'
-import { addSection, flipSection, nextLabel, removeSection, sectionsOf, snapEnd } from '../lines'
+import { addSection, flipSection, nextLabel, removeSection, sectionAlong, sectionsOf, snapEnd } from '../lines'
 import { paintDrawing, spread, type Painter } from '../paint'
 import { roofCutShape, roofProfile, sectionDrawing } from '../section'
 import { textWidth, type PdfPage } from '../../share/pdfWriter'
@@ -83,6 +83,14 @@ describe('section lines kept with the plan', () => {
     expect(sectionsOf(flipSection(p, first.id))[0]).toMatchObject({ a: [5, 0], b: [0, 0] })
     p = removeSection(p, first.id)
     expect(nextLabel(p)).toBe('A')
+  })
+
+  it('tells whether a cut is already kept as a section line, either way round (LD-25)', () => {
+    const { plan, line } = addSection(sample, [-12, 7], [24, 7])
+    expect(sectionAlong(sample, { a: [-12, 7], b: [24, 7] })).toBeNull()
+    expect(sectionAlong(plan, { a: [-12, 7], b: [24, 7] })?.id).toBe(line.id)
+    expect(sectionAlong(plan, { a: [24, 7.004], b: [-12, 7] })?.id).toBe(line.id)
+    expect(sectionAlong(plan, { a: [-12, 7.5], b: [24, 7.5] })).toBeNull()
   })
 
   it('snaps a line square to the house unless Shift is held', () => {

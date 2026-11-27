@@ -273,6 +273,14 @@ describe('the strip', () => {
     expect(html).toContain('Fold away')
   })
 
+  it('is the live section, with Add to drawings until its line is a section line (LD-25)', () => {
+    const html = render(true)
+    expect(html).toContain('<h2>Live section</h2>')
+    expect(html).toContain('Add to drawings')
+    // A viewer can't add drawings.
+    expect(render(false)).not.toContain('Add to drawings')
+  })
+
   it('draws the floors, the stairs and the roofs, with an eave to drag on each roof', () => {
     const html = render(true)
     expect(html).toContain('sec-stair-cut')

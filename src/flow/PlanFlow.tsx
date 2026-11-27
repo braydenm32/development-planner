@@ -20,6 +20,7 @@ import type { SiteFeature } from '../site/model'
 import { useSiteFeatures } from '../site/store'
 import { useRouter } from '../nav/router'
 import { usePhone } from '../phone/device'
+import { useProjects } from '../projects/session'
 import { QuestionTray } from './QuestionTray'
 import { EarthSide, Tag } from './PlanMarks'
 import { cancelContourPick, pickContour, setFlowGround, startContourPick, useFlow } from './store'
@@ -97,6 +98,7 @@ export function usePlanFlow(a: PlanFlowArgs) {
   const sidePick = useRetaining(s => s.sidePick)
   const features = useSiteFeatures()
   const phone = usePhone()
+  const sketch = !!useProjects().opened?.survey?.sketch
   // The questions are about the house: they wait in Design and Earthworks, where it's drawn.
   const drawing = useRouter(s => s.route.kind === 'app' && (s.route.area === 'design' || s.route.area === 'earthworks'))
   const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null)
@@ -262,7 +264,8 @@ export function usePlanFlow(a: PlanFlowArgs) {
     </>
   )
 
-  const chipAction = (
+  // A sketch block's contours are the app's own, from a rough fall: Pick a contour waits in Design › Levels for who asks.
+  const chipAction = sketch ? undefined : (
     <button type="button" className="flow-chip-btn" onClick={() => startContourPick(level)} title="Click a contour to put this floor at its level">
       Pick a contour
     </button>

@@ -12,7 +12,7 @@ export const goToStreetSide = () => navigate(tabRoute(useRouter.getState().route
 
 const SIDE_NAME: Record<Exclude<StreetSide, 'auto'>, string> = { N: 'North side', E: 'East side', S: 'South side', W: 'West side' }
 
-/** The picker's words for each choice: "Auto (low side: east)" until one is set. */
-export function streetSideLabel(side: StreetSide, low: string): string {
-  return side === 'auto' ? `Auto (low side: ${low})` : SIDE_NAME[side]
+/** The picker's words for each choice: "Auto (low side: east)" until one is set; a level block has no low side, so it says which side is taken. */
+export function streetSideLabel(side: StreetSide, low: string, level = false): string {
+  return side === 'auto' ? (level ? `Auto (taken as ${low})` : `Auto (low side: ${low})`) : SIDE_NAME[side]
 }

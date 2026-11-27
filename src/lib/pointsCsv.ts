@@ -230,6 +230,15 @@ export function readPointsCsv(name: string, text: string, confirmed?: { roles: C
     table.header = confirmed.header
     return surveyFromPoints(name, pointsFromTable(table, confirmed.roles))
   }
+  // Easting, northing and RL are three columns of numbers. With fewer, no choice in the columns
+  // step could ever be used: say the file is the problem instead of asking.
+  const body = table.rows.slice(table.header ? 1 : 0)
+  const width = Math.max(...table.rows.map(r => r.length))
+  const numeric = Array.from({ length: width }, (_, c) => columnStats(body, c)).filter(s => s.isNumeric).length
+  if (numeric < 3) {
+    const found = !body.length ? 'it has a heading row and nothing under it' : numeric === 0 ? 'none of its columns are numbers' : `only ${numeric} of its columns ${numeric === 1 ? 'is' : 'are'} numbers`
+    throw new Error(`${name} has no spot levels in it: easting, northing and RL need three columns of numbers, and ${found}. Ask your surveyor for the points as a CSV (easting, northing, RL), or for a DXF.`)
+  }
   const g = guessColumns(table)
   if (!g.sure) throw new NeedColumns(name, table, g.roles)
   return surveyFromPoints(name, pointsFromTable(table, g.roles))

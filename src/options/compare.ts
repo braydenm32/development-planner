@@ -56,7 +56,7 @@ export const ROWS: Row[] = [
     best: 'low',
   },
   { id: 'deepest-cut', label: 'Deepest cut', text: n => (n.earth ? `${n.earth.deepestCut.toFixed(2)} m` : dash), value: n => n.earth?.deepestCut ?? null, best: 'low' },
-  { id: 'deepest-fill', label: 'Highest fill', text: n => (n.earth ? `${n.earth.deepestFill.toFixed(2)} m` : dash), value: n => n.earth?.deepestFill ?? null, best: 'low' },
+  { id: 'deepest-fill', label: 'Deepest fill', text: n => (n.earth ? `${n.earth.deepestFill.toFixed(2)} m` : dash), value: n => n.earth?.deepestFill ?? null, best: 'low' },
   { id: 'retaining', label: 'Retaining walls', text: n => (n.retainingLength === null ? 'None' : `${n.retainingLength.toFixed(1)} m`), value: n => n.retainingLength ?? 0, best: 'low' },
   {
     id: 'cost',

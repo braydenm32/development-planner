@@ -6,7 +6,8 @@ import { wallText } from './suggest'
 
 /** The tag's label, and its width (px) with and without its Add and Dismiss buttons. An implied wall is no question, and can't be dismissed. */
 export function tagSize(height: number, buttons: boolean, implied = false) {
-  const label = implied ? `Implied ${wallText(height)} wall` : `${wallText(height)} wall?`
+  // An implied wall's tag gives the earth it holds back, to 10 mm as its row and the strip do; a suggestion rounds up to a height to build to.
+  const label = implied ? `Implied ${height.toFixed(2)} m wall` : `${wallText(height)} wall?`
   const w = label.length * 6.4 + 30
   return { label, w, total: w + (buttons ? (implied ? 38 : 68) : 0) }
 }

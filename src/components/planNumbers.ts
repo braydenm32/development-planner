@@ -2,7 +2,7 @@
 // PlanSections so its file holds only components.
 
 import { useMemo } from 'react'
-import type { Vec2 } from '../lib/geom'
+import { signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
@@ -16,6 +16,12 @@ import type { Earth } from '../plan/useEarthworks'
 
 /** Ground held back (ground to ground) and the wall's height, which adds the upstand: "2.74 m · wall 2.84 m high". */
 export const retainedText = (h: number) => `${h.toFixed(2)} m · wall ${(h + RETAINING_FREEBOARD).toFixed(2)} m high`
+
+/** An outdoor area's size for its card: "37.33 m² · 24.60 m around", as Rooms & areas lists its m². */
+export function areaSizeText(pts: Vec2[]): string {
+  const around = pts.reduce((t, p, i) => t + Math.hypot(pts[(i + 1) % pts.length][0] - p[0], pts[(i + 1) % pts.length][1] - p[1]), 0)
+  return `${Math.abs(signedArea(pts)).toFixed(2)} m² · ${around.toFixed(2)} m around`
+}
 
 /** Every retaining wall, measured against the finished ground. */
 export function useRetainingWalls(plan: Plan, survey: Survey, terrain: Terrain, earth: Earth | null) {

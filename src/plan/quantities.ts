@@ -351,7 +351,8 @@ export function designQuantities(
     // A roof with a storey built over all of it isn't a roof that gets built (Design › Roofs flags it).
     if (g.error || roofCoveredBy(plan, r)) continue
     roofs.count++
-    roofs.area += g.area
+    // Each roof as it is shown (to 0.1 m², the Overview and the PDF roof plan), so the priced total is their sum (LF-21).
+    roofs.area = Math.round((roofs.area + Math.round(g.area * 10) / 10) * 10) / 10
     roofs.ids.push(r.id)
     roofs.first ??= r
   }

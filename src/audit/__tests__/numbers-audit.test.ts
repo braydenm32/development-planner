@@ -1267,7 +1267,7 @@ describe('site coverage and the PDF sheets', () => {
     const row = (k: string) => (tx.includes(k) ? tx[tx.indexOf(k) + 1] : undefined)
     expect(row('Site area')).toBe('1328 m²')
     // One storey: the footprint is the floor area to the outside of the walls, to the same 2 dp as the Areas panel.
-    expect(row('Building footprint (all levels)')).toBe('114.39 m²')
+    expect(row('Building footprint, seen from above (all levels)')).toBe('114.39 m²')
     expect(row('Site coverage')).toBe(`${((114.39 / 1328) * 100).toFixed(1)}%`) // 8.6 %
     expect(row('Ground floor FFL')).toBe('RL 63.20')
     expect(tx).toContain('FFL RL 63.20') // the label on the house
@@ -1357,7 +1357,7 @@ describe('site coverage and the PDF sheets', () => {
     const [site] = pdfPages(planSetPdf({ ...input('A3', 'house'), plan: two }))
     const union = 114.39 + 114.39 - 8.3 * 9.3 // 151.59 m²
     const row = (k: string) => site.texts[site.texts.indexOf(k) + 1]
-    expect(row('Building footprint (all levels)')).toBe(`${union.toFixed(2)} m²`)
+    expect(row('Building footprint, seen from above (all levels)')).toBe(`${union.toFixed(2)} m²`)
     expect(row('Site coverage')).toBe(`${((union / 1328) * 100).toFixed(1)}%`) // 11.4 %
   })
 
@@ -1380,7 +1380,7 @@ describe('site coverage and the PDF sheets', () => {
     // The overlap is a regular octagon with inradius 5 m: area 8 r² tan(22.5°).
     const union = 2 * 100 - 8 * 25 * Math.tan(22.5 * D2R) // 117.16 m²
     const [site] = pdfPages(planSetPdf({ ...input('A3', 'house'), plan: crossed, earthworks: null }))
-    expect(site.texts[site.texts.indexOf('Building footprint (all levels)') + 1]).toBe(`${union.toFixed(2)} m²`)
+    expect(site.texts[site.texts.indexOf('Building footprint, seen from above (all levels)') + 1]).toBe(`${union.toFixed(2)} m²`)
   })
 })
 
@@ -1813,7 +1813,7 @@ describe('sample survey and plan (made up)', () => {
           const coverage = (areaOf(OUTLINE) / areaOf(boundaryW)) * 100
           expect(row('Site area')).toBe(`${areaOf(boundaryW).toFixed(0)} m²`)
           // One storey, so the footprint is the floor area to the outside of the walls (2 dp, as the Areas panel).
-          expect(row('Building footprint (all levels)')).toBe(`${areaOf(OUTLINE).toFixed(2)} m²`)
+          expect(row('Building footprint, seen from above (all levels)')).toBe(`${areaOf(OUTLINE).toFixed(2)} m²`)
           expect(row('Site coverage')).toBe(`${coverage.toFixed(1)}%`)
           // The ground floor's "Above ground floor" is 0, so its FFL is the placement's.
           expect(sortedLevels(plan)[0].elevation).toBe(0)
@@ -1822,7 +1822,7 @@ describe('sample survey and plan (made up)', () => {
           expect(row('Cut / fill')).toBe(`${result.cut.toFixed(1)} / ${result.fill.toFixed(1)} m³`)
           // No driveway is drawn, so no grade row.
           expect(tx).not.toContain('Average grade along the drive')
-          out.keyNumbers = ['Site area', 'Building footprint (all levels)', 'Site coverage', 'Ground floor FFL', 'Cut / fill'].map(k => `${k}: ${row(k)}`)
+          out.keyNumbers = ['Site area', 'Building footprint, seen from above (all levels)', 'Site coverage', 'Ground floor FFL', 'Cut / fill'].map(k => `${k}: ${row(k)}`)
           out.coveragePct = coverage
           out.floorSheetNote = pages[1].texts.find(t => t.startsWith('Ground floor: FFL'))
           out.sheetNames = pages.map(p => p.texts[p.texts.indexOf('House plan') + 1])

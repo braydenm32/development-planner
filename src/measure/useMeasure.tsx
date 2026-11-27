@@ -204,7 +204,11 @@ export function useMeasureNotes(a: MeasureArgs) {
 
   // The chain so far, and on to the pointer while it's still being made (or the one just kept).
   const shownPts = kept && kept.key === key && !placed.length ? kept.pts : placed
-  const live = !done && placed.length > 0 && cursor ? [...placed, cursor] : shownPts
+  // Straight after a click the pointer is still on the point just put down: the card keeps the piece
+  // just finished until the pointer moves, where it used to read 0 for the piece not yet begun.
+  const lastPlaced = placed.at(-1)
+  const still = !!cursor && !!lastPlaced && Math.hypot(cursor[0] - lastPlaced[0], cursor[1] - lastPlaced[1]) < 0.005
+  const live = !done && placed.length > 0 && cursor && !still ? [...placed, cursor] : shownPts
   const from = live.length >= 2 ? live[live.length - 2] : null
   const end = live.length >= 2 ? live[live.length - 1] : null
   const m = from && end ? measure(from, end, plan.placement, survey, terrain.grid) : null

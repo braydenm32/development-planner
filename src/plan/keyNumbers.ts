@@ -5,9 +5,10 @@ import { balancingShift, type EarthworksResult, type PreparedEarthworks } from '
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { buildingOutline, faceAround, levelFloorAreas, planarFaces, roomShape, type Face } from './geometry'
+import { buildingOutline, faceAround, levelFloorAreas, offsetPolygon, planarFaces, roomShape, type Face } from './geometry'
 import { floorRL, houseWalls, slabBedOf, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
+import { roomIsGarage } from './roomTypes'
 import { roofGeometry, type RoofGeometry } from './roof'
 import { roofEavesRL, wallTopRL } from './roofline'
 
@@ -24,6 +25,18 @@ export interface LevelSummary {
    * (a split level) is counted in that level's area, not twice (levelFloorAreas).
    */
   gross: { outlines: Vec2[][]; area: number }
+  /** The same floor to the inside of its outside walls, the walls between rooms included (m²): what gross floor area counts. */
+  inside: number
+}
+
+/** The level's floor inside its outside walls: the outline's inner face, where `outside` is to its outer face. */
+function insideArea(faces: Face[], rawOutside: number, floorArea: number): number {
+  let inside = 0
+  // The outer face runs clockwise, so a negative offset moves the centreline in to the walls' inside face.
+  for (const f of faces) if (f.area < 0) inside += Math.abs(signedArea(offsetPolygon(f.pts, f.thickness.map(t => -t / 2))))
+  // A wall shared with a split level beside it is inside the house: its strip was taken off `floorArea`, and counts here
+  // (with its two ends, 0.1 m² or so more than the wall between the inside faces).
+  return Math.min(floorArea, Math.max(0, inside + (rawOutside - floorArea)))
 }
 
 /** Rooms, outdoor areas and floor area of each level, lowest first. */
@@ -42,12 +55,51 @@ export function levelSummaries(plan: Plan): LevelSummary[] {
         return { room: r, area: roomShape(r, faces)?.area ?? null, ...(first ? { sameAs: first } : {}) }
       })
     const areas = plan.areas.filter(a => a.level === l.id).map(a => ({ area: a, size: Math.abs(signedArea(a.pts)) }))
-    return { level: l, rooms, areas, gross: { outlines: buildingOutline(faces).outlines, area: floor.get(l.id) ?? 0 } }
+    const outline = buildingOutline(faces)
+    const area = floor.get(l.id) ?? 0
+    return { level: l, rooms, areas, gross: { outlines: outline.outlines, area }, inside: insideArea(faces, outline.area, area) }
   })
 }
 
-/** All the rooms on a level together (m²), each enclosed space counted once however many labels sit in it. */
-export const roomsTotal = (rooms: LevelSummary['rooms']): number => rooms.reduce((t, r) => t + (r.sameAs ? 0 : (r.area ?? 0)), 0)
+/** One car space of a garage or carport stays out of gross floor area, up to this much (m²): the Housing Code's definition. */
+export const GFA_CAR_SPACE = 18
+
+export interface FloorAreas {
+  /** Every level to the outside of its walls (m²): the app's "Floor area", which Costs price. */
+  outside: number
+  /** Every level to the inside of its outside walls, the walls between rooms included (m²). */
+  inside: number
+  /** Rooms that are a garage or carport, inside their own walls (m²). */
+  garages: number
+  /** The part of the garages gross floor area leaves out: one car space, up to GFA_CAR_SPACE. */
+  carSpace: number
+  /**
+   * Gross floor area as the planning rules count it: inside the outside walls, less one car space.
+   * The one figure for the floor area check, the floor space ratio and (less the whole garage)
+   * BASIX's conditioned area. Stairs and voids over a floor below aren't taken off: the plan
+   * doesn't say which they are, and leaving them in errs on the safe side.
+   */
+  gfa: number
+}
+
+/** The house's floor areas on each basis, from its level summaries. */
+export function floorAreasOf(summaries: LevelSummary[]): FloorAreas {
+  const outside = summaries.reduce((t, s) => t + s.gross.area, 0)
+  const inside = summaries.reduce((t, s) => t + s.inside, 0)
+  const garages = summaries.reduce((t, s) => t + s.rooms.reduce((a, r) => a + (roomIsGarage(r.room) && !r.sameAs ? (r.area ?? 0) : 0), 0), 0)
+  const carSpace = Math.min(garages, GFA_CAR_SPACE)
+  return { outside, inside, garages, carSpace, gfa: Math.max(0, inside - carSpace) }
+}
+
+/** Gross floor area and the areas it comes from (see FloorAreas). */
+export const grossFloorArea = (plan: Plan): FloorAreas => floorAreasOf(levelSummaries(plan))
+
+/**
+ * All the rooms on a level together (m²), each enclosed space counted once however many labels sit
+ * in it. Each room goes in as it is shown, to 0.01 m², so the total is the sum of the list above it
+ * and the levels' totals add to the house's (169.55 used to sit over 70.43 + 99.11).
+ */
+export const roomsTotal = (rooms: LevelSummary['rooms']): number => Math.round(rooms.reduce((t, r) => t + (r.sameAs ? 0 : Math.round((r.area ?? 0) * 100)), 0)) / 100
 
 /** The room label that already names the space this one sits in (the first drawn there), or null when it has the space to itself. */
 export function sameSpaceAs(plan: Plan, room: Room): Room | null {
