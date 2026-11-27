@@ -26,6 +26,8 @@ export interface WallStrip {
   b: Vec2
   /** Half the wall's thickness. */
   half: number
+  /** A pool's shell, not a retaining wall: the ground steps inside it, but it doesn't stop the cut and fill. */
+  shell?: boolean
 }
 
 interface EdgePoint {

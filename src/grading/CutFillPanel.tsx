@@ -16,6 +16,8 @@ import { navigate } from '../nav/router'
 import { balancedFloorRL, crossedBoundaries, slabBedOnly } from '../plan/keyNumbers'
 import { earthworksOf, floorRL, slabBedOf, type Earthworks, type Plan } from '../plan/model'
 import { housePadRL } from '../plan/platforms'
+import { isPieceId } from '../plan/groundPieces'
+import { volumesWithout } from '../lib/earthworks'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { useProjects } from '../projects/session'
@@ -46,7 +48,11 @@ export function CutFillPanel({ plan, survey, terrain, earth }: Props) {
   const crossed = has ? crossedBoundaries(r, survey) : null
   // What runs into the boundary: one line for each part of the design, so it's clear what to change.
   // The earth left over is only the slab's own bed (the site scrape): said plainly, not as a warning.
-  const bedOnly = useMemo(() => !!earth && has && slabBedOnly(balancedFloorRL(plan, earth.prep), floorRL(plan), slabBedOf(plan), earth.platforms.some(p => p.pad)), [plan, earth, has])
+  // A pool's or tank's own dig is earth to take away too, so it's never just the bed.
+  const bedOnly = useMemo(
+    () => !!earth && has && !earth.prep.platforms.some(p => isPieceId(p.id)) && slabBedOnly(balancedFloorRL(plan, earth.prep), floorRL(plan), slabBedOf(plan), earth.platforms.some(p => p.pad)),
+    [plan, earth, has],
+  )
   const culprits = useMemo(() => (crossed && earth ? worksNearBoundary(plan, earth.prep, earth.result, survey.boundary, earth.prep.natural.cell * 1.5) : []), [crossed, plan, earth, survey.boundary])
   return (
     <>
@@ -118,8 +124,20 @@ function Results({ plan, earth }: { plan: Plan; earth: Earth }) {
       <Row label="Fill" value={`${r.fill.toFixed(1)} m³`} strong />
       <Row label={net >= 0 ? 'Left over to take away' : 'Extra fill to bring in'} value={`${Math.abs(net).toFixed(1)} m³`} />
       <Row label="Deepest cut · fill" value={`${r.maxCut.toFixed(2)} · ${r.maxFill.toFixed(2)} m`} />
+      <PiecesRow earth={earth} />
     </dl>
   )
+}
+
+/** How much of the cut and fill is the pools' and tanks' own (in the totals above), when there are any in or on the ground. */
+function PiecesRow({ earth }: { earth: Earth }) {
+  const own = useMemo(() => {
+    if (!earth.prep.platforms.some(p => isPieceId(p.id))) return null
+    const rest = volumesWithout(earth.prep, p => isPieceId(p.id))
+    return { cut: Math.max(0, earth.result.cut - rest.cut), fill: Math.max(0, earth.result.fill - rest.fill) }
+  }, [earth])
+  if (!own) return null
+  return <Row label="Of that, pools and tanks" value={`${own.cut.toFixed(1)} cut · ${own.fill.toFixed(1)} fill m³`} />
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -282,7 +300,8 @@ function HowItWorks() {
     <div className="cf-how">
       <p className="muted small">
         The ground is levelled under slab floors and concrete slabs, cut back under floors on piers to leave room underneath, and brought to a level where you paint it
-        with the grading brush. Batters slope from there back to the natural ground.
+        with the grading brush. Batters slope from there back to the natural ground. A pool or tank set in the ground is dug straight down to its floor; one above the
+        ground stands on a level base of its own.
       </p>
       <p className="muted small">
         Volumes are in the ground; dug soil bulks up by roughly a quarter once it is loose. Retaining walls stop the batters, so the ground behind them stays as it is,

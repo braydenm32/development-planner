@@ -235,3 +235,14 @@ body:has(.app-shell.phone) .drive-chip {
 .drive-profile figcaption {
   margin-top: 4px;
 }
+
+/* A pool's or tank's card: Sits above ground or in the ground, and its levels. */
+.piece-ground {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.piece-ground p {
+  margin: 0;
+}

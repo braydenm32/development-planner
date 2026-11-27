@@ -95,7 +95,7 @@ The **Furniture** tool (U) places furniture and fittings in common Australian si
 - **Laundry**: washing machine, dryer, laundry tub.
 - **Bathroom**: toilet, vanity basin, 900 × 900 shower, 1700 bath.
 - **Study**: desk, L-shaped corner desk and desk chair.
-- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ, 5000 L rainwater tank, 7 × 3.5 m swimming pool. The tank and pool are only drawn: they don't count in the checks, the cut and fill or the costs.
+- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ, 5000 L rainwater tank, 7 × 3.5 m swimming pool. Outside the house on the lowest level, the pool and tank **Sit** in the ground (dug straight down from the ground to their depth below the top edge, which follows the ground at the highest corner or takes a typed RL) or above ground on a level base (the mean ground under it, or a typed RL). A new pool starts in the ground and a tank above it; one from an older project stays as drawn until you pick. Their cut and fill is in the volumes, 3D, sections and costs, but not in the earthworks checks.
 
 Handed pieces (the corner sofa, the L-shaped bench and desk, the bath and the pool) can be mirrored left to right: **Mirror** on the piece's card, the right-click menu, or H.
 

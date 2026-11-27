@@ -7,12 +7,13 @@ import { groundSourceAt, type EarthworksResult, type GroundSource, type Prepared
 import type { Vec2 } from '../lib/geom'
 import { BENCH_PREFIX, isPadId, isPiersId, PAD_ID, PIERS_ID } from '../plan/platforms'
 import { levelById, sortedLevels, type Plan } from '../plan/model'
+import { isPieceId, PIECE_PREFIX } from '../plan/groundPieces'
 
 /** What a platform is, for the earthworks checks: the part of the design that makes it, and where it's changed. */
 export interface EarthSource {
   /** The platform's id in the earthworks. */
   id: string
-  kind: 'pad' | 'piers' | 'slab' | 'bench' | 'driveway' | 'painted' | 'other'
+  kind: 'pad' | 'piers' | 'slab' | 'bench' | 'driveway' | 'painted' | 'piece' | 'other'
   /** Its level ground, one of its batters, or (a house pad's) the level margin outside the walls. */
   how: GroundSource['how'] | 'margin'
   /** The thing in the design, in words: "the Garage floor's pad". */
@@ -43,6 +44,11 @@ export function earthSource(plan: Plan, id: string | undefined, how: EarthSource
     return { id, kind: 'bench', how, name: 'the level ground beside a retaining wall', wallId }
   }
   if (id.startsWith('grade:')) return { id, kind: 'painted', how, name: 'ground painted with the Cut or Fill brush' }
+  if (isPieceId(id)) {
+    const f = plan.furniture.find(x => x.id === id.slice(PIECE_PREFIX.length))
+    const what = f?.kind === 'tank' ? 'tank' : 'pool'
+    return { id, kind: 'piece', how, name: f?.ground?.sits === 'above' ? `the level base under the ${what}` : `the hole dug for the ${what}` }
+  }
   const drive = plan.areas.find(a => a.id === id)
   if (drive) return { id, kind: 'driveway', how, name: `the driveway “${drive.name}”`, areaId: drive.id }
   return { id, kind: 'other', how, name: 'other levelled ground' }

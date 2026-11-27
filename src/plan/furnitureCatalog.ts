@@ -48,6 +48,8 @@ export interface CatalogItem {
   solids?: (w: number, d: number, h: number) => Solid[]
   /** It has a left and a right hand (a corner sofa's return, a bath's tap end), so it can be mirrored. */
   handed?: boolean
+  /** Outside on the ground, it can be set in the ground or on a level base (src/plan/groundPieces.ts): how a new one sits. */
+  sits?: 'in' | 'above'
 }
 
 // ---- drawing helpers ----
@@ -615,24 +617,26 @@ const ITEMS: CatalogItem[] = [
   },
 
   {
-    // A round 5000 L tank on its pad. Like everything here it's only drawn: it isn't counted in the checks or the costs.
+    // A round 5000 L tank on its pad. Outside the house it stands on a level base of its own, or goes in the ground.
     key: 'tank',
     name: 'Rainwater tank (5000 L)',
     group: 'outdoor',
     size: [1.85, 1.85, 2.1],
     wall: true,
+    sits: 'above',
     code: 'RWT',
     draw: (w, d) => [ellipse(0, 0, w / 2, d / 2), circle(0, 0, Math.min(w, d) * 0.12)],
     solids: (w, d, h) => [{ pts: ellipsePts(0, 0, w / 2, d / 2, 20), z0: 0, z1: h }],
   },
   {
-    // The water inside its coping, with steps down at one end. Drawn only: it digs nothing and costs nothing.
+    // The water inside its coping, with steps down at one end. Outside the house it's dug into the ground (or stands on a base).
     key: 'pool',
     name: 'Swimming pool (7 × 3.5 m)',
     group: 'outdoor',
     size: [7, 3.5, 0.1],
     wall: false,
     handed: true,
+    sits: 'in',
     draw: (w, d) => {
       const c = Math.min(0.3, w / 6, d / 6)
       const step = Math.min(0.3, (d - 2 * c) / 4)

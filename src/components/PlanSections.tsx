@@ -70,6 +70,7 @@ import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from '../plan/roomTypes'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
+import { PieceGroundFields } from './PieceGroundFields'
 import { GlassDoorField, OpeningKindField, ToolOpeningKind } from './OpeningKind'
 import { rememberOpening } from './openingMemory'
 import { openingName, openingStyle } from '../plan/openingStyles'
@@ -672,7 +673,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
 
   if (selection.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === selection.id)
-    return f ? <FurnitureSelection item={f} del={del} /> : null
+    return f ? <FurnitureSelection item={f} del={del} ground={<PieceGroundFields plan={plan} item={f} survey={survey} terrain={terrain} earth={earth} />} /> : null
   }
 
   if (selection.type === 'stair') {

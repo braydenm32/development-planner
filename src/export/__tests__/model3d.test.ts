@@ -11,6 +11,9 @@ import { buildTerrain } from '../../lib/terrain'
 import { garageFloor } from '../../plan/__tests__/fixtures'
 import { normalizePlan } from '../../plan/model'
 import { buildModel, modelGlb, modelObj, modelParts } from '../model3d'
+import { newFurniture } from '../../plan/furniture'
+import { levelsOf } from '../../plan/groundPieces'
+import { earthFrom, earthInputs } from '../../plan/useEarthworks'
 
 // GLTFExporter reads its Blob with FileReader, which the browser has and node doesn't.
 beforeAll(() => {
@@ -141,6 +144,26 @@ describe('the 3D model as OBJ', () => {
     m.dispose()
     expect(vertices).toBe(expected)
     expect(f.mtl).toMatch(/newmtl Ground_floor_window_glass_\d+\nKd [\d. ]+\nKa 0 0 0\nKs [\d. ]+\nNs \d+\nd 0\.550/)
+  })
+})
+
+describe('a pool in the ground', () => {
+  it('comes through in its hole, with its water, at its own levels', async () => {
+    const pool = { ...newFurniture('pool', plan.levels[0].id, [-3.5, 6], 90)!, ground: { sits: 'in' as const } }
+    const withPool = { ...plan, furniture: [...plan.furniture, pool] }
+    const earth = earthFrom(terrain.grid, survey.boundary, earthInputs(withPool, survey))
+    const m = await buildModel({ plan: withPool, survey, terrain, earth })
+    const names: string[] = []
+    m.root.traverse(o => names.push(o.name))
+    expect(names).toContain(`${level} pool water`)
+    const lv = levelsOf(withPool, pool, survey.origin, terrain.grid)!
+    const water = m.root.getObjectByName(`${level} pool water`) as THREE.Mesh
+    const box = new THREE.Box3().setFromObject(water)
+    // The lowest furniture is the pool's floor, 1.5 m under its coping; the water is 150 mm under the coping.
+    const furn = new THREE.Box3().setFromObject(m.root.getObjectByName(`${level} furniture`)!)
+    expect(lv.sits).toBe('in')
+    expect(box.max.y - furn.min.y).toBeCloseTo(1.5 - 0.15, 2)
+    m.dispose()
   })
 })
 
