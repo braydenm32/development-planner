@@ -172,7 +172,7 @@ export function useMeasureNotes(a: MeasureArgs) {
     return true
   }
 
-  /** Enter finishes the measurement; Esc finishes it and ends the tool. True when this took the key. */
+  /** Enter finishes the measurement; Esc finishes it, then ends the tool. True when this took the key. */
   const onKey = (e: KeyboardEvent): boolean => {
     if (!active) return false
     if (e.key === 'Enter' && tool === 'measure' && placed.length >= 2 && !done) {
@@ -180,6 +180,12 @@ export function useMeasureNotes(a: MeasureArgs) {
       return true
     }
     if (e.key === 'Escape') {
+      // As in every drawing tool: the first Esc ends the measurement under way, the next goes back to Select.
+      if (tool === 'measure' && placed.length && !done) {
+        if (placed.length >= 2) finishMeasure()
+        else setPts({ key: '', pts: [] })
+        return true
+      }
       finishMeasure()
       setPts({ key: '', pts: [] })
       setEditing(null)

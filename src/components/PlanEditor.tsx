@@ -1768,6 +1768,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         if (chain.length) finishChain()
         else if (areaPts.length) setAreaPts([])
         else if (stairStart) updateDraft(() => ({ stairStart: null }))
+        // With nothing under way, Esc goes back to Select from any tool; from Select it clears the selection.
+        else if (tool !== 'select') st.setTool('select')
         else st.select(null)
         return
       }
