@@ -242,7 +242,8 @@
 }
 
 .sstrip-band .rl {
-  color: var(--muted);
+  /* A step darker than --muted, which is 4.4:1 on the chosen level's pale blue. */
+  color: #5f656c;
   font-variant-numeric: tabular-nums;
 }
 

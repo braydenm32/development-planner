@@ -185,6 +185,11 @@ export function between(a: Pose, b: Pose, t: number): Pose {
   return { position: add(target, fromSpherical(r, phi, theta)), target }
 }
 
+/** Whether the person has asked their system for less motion: the view then cuts to a preset instead of swinging round. */
+export function lessMotion(match: ((q: string) => { matches: boolean }) | undefined = globalThis.matchMedia?.bind(globalThis)): boolean {
+  return !!match && match('(prefers-reduced-motion: reduce)').matches
+}
+
 /** How long the move between two poses takes, in ms: longer for bigger turns, never sluggish. */
 export function moveDuration(a: Pose, b: Pose): number {
   const sa = toSpherical(sub(a.position, a.target))

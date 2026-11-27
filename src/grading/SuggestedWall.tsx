@@ -25,16 +25,17 @@ export function Suggested({ n, s, at, readOnly, onAdd, onDismiss }: { n: number;
         </text>
         {!readOnly && (
           <>
-            <g className="grade-suggest-btn add" role="button" aria-label={implied ? `Add implied wall ${n} as a retaining wall` : `Add suggested wall ${n}`} transform={`translate(${w / 2 + 4} -10)`} onPointerDown={stop} onPointerUp={stop} onClick={onAdd}>
-              <rect width={34} height={20} rx={3} />
-              <text x={17} y={11} textAnchor="middle" dominantBaseline="middle">
+            <g className="grade-suggest-btn add" role="button" aria-label={implied ? `Add implied wall ${n} as a retaining wall` : `Add suggested wall ${n}`} transform={`translate(${w / 2 + 4} -12)`} onPointerDown={stop} onPointerUp={stop} onClick={onAdd}>
+              {/* 24 px high, and Dismiss 24 px square: the least a pointer target should be (WCAG 2.5.8). */}
+              <rect width={34} height={24} rx={3} />
+              <text x={17} y={13} textAnchor="middle" dominantBaseline="middle">
                 Add
               </text>
             </g>
             {!implied && (
-            <g className="grade-suggest-btn" role="button" aria-label={`Dismiss suggested wall ${n}`} transform={`translate(${w / 2 + 42} -10)`} onPointerDown={stop} onPointerUp={stop} onClick={onDismiss}>
-              <rect width={20} height={20} rx={3} />
-              <text x={10} y={11} textAnchor="middle" dominantBaseline="middle">
+            <g className="grade-suggest-btn" role="button" aria-label={`Dismiss suggested wall ${n}`} transform={`translate(${w / 2 + 42} -12)`} onPointerDown={stop} onPointerUp={stop} onClick={onDismiss}>
+              <rect width={24} height={24} rx={3} />
+              <text x={12} y={13} textAnchor="middle" dominantBaseline="middle">
                 ×
               </text>
             </g>

@@ -19,6 +19,14 @@ export function shortcutText(s: string, mac = isMac()): string {
   return mac ? parts.join('') : parts.join('+')
 }
 
+/**
+ * A button's spoken name with its key: "Search (Ctrl+K)", or "Search (⌘K)" on a Mac, so it
+ * matches the hint the button shows. On a phone, with no keyboard, the name alone.
+ */
+export function nameWithKey(name: string, shortcut: string, phone = false, mac = isMac()): string {
+  return phone ? name : `${name} (${shortcutText(shortcut, mac)})`
+}
+
 /** Whether a key event is the ⌘ key on a Mac or Ctrl elsewhere, held down. */
 export const modKey = (e: { metaKey: boolean; ctrlKey: boolean }, mac = isMac()): boolean => (mac ? e.metaKey : e.ctrlKey)
 
@@ -80,6 +88,9 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   window.addEventListener('keydown', e => e.key === 'Tab' && (tabbing = true), true)
   window.addEventListener('pointerdown', () => (tabbing = false), true)
 }
+
+/** Whether the keyboard, not the pointer, last moved the focus (src/nav/arrowKeys.ts asks). */
+export const tabbingNow = () => tabbing
 
 const SINGLE_KEYS = 'single-key-shortcuts-v1'
 let singleKeys: boolean | null = null

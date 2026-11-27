@@ -5,21 +5,24 @@
 import { Icon } from '../nav/icons'
 import { commentActions, useComments } from './store'
 
-/** Add a comment, in the top bar: to the plan, then the next tap pins it. */
+/** Add a comment, in the top bar: to the plan, then the next tap pins it, or "Comment on the whole floor" does without one. */
 export function AddCommentButton({ phone, toPlan }: { phone: boolean; toPlan: () => void }) {
   const mode = useComments(s => s.mode)
   const placing = useComments(s => s.placing)
   if (mode === 'off') return null
-  const go = () => {
+  const go = (keyboard: boolean) => {
     if (placing) return commentActions.cancel()
     toPlan()
     commentActions.startPlacing()
+    // From the keyboard there is no spot to click: on to "Comment on the whole floor", once the plan has drawn its bar.
+    if (keyboard) requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLElement>('.cm-bar.placing .cm-whole')?.focus()))
   }
   return (
     <button
       type="button"
       className={`${phone ? 'labelled-icon' : 'secondary'} cm-add${placing ? ' on' : ''}`}
-      onClick={go}
+      // A click with no pointer (Enter, Space) is the keyboard's.
+      onClick={e => go(e.detail === 0)}
       aria-pressed={placing}
       title="Pin a comment on the plan for the person who shared it"
     >

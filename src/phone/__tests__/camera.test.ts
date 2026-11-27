@@ -8,6 +8,7 @@ import {
   edgeNormals,
   fitDistance,
   forgetPose,
+  lessMotion,
   loadPose,
   loadStreetSide,
   moveDuration,
@@ -205,6 +206,13 @@ describe('the move between presets', () => {
     expect(near).toBeGreaterThanOrEqual(450)
     expect(far).toBeGreaterThan(near)
     expect(far).toBeLessThanOrEqual(900)
+  })
+
+  it('is skipped when the system asks for less motion (the view cuts to the preset)', () => {
+    expect(lessMotion(q => ({ matches: q === '(prefers-reduced-motion: reduce)' }))).toBe(true)
+    expect(lessMotion(() => ({ matches: false }))).toBe(false)
+    // No matchMedia at all (tests, old browsers): the move plays as before.
+    expect(lessMotion(undefined)).toBe(false)
   })
 })
 

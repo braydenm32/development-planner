@@ -167,10 +167,14 @@ export function CommentsKey({ on, fresh }: { on: boolean; fresh: number }) {
 }
 
 /** Add a comment, waiting for the spot: what to do, and Cancel. */
-export function PlacingBar() {
+export function PlacingBar({ onWhole }: { onWhole: () => void }) {
   return (
     <div className="flow-bar cm-bar placing" role="status">
       <span>{fine() ? 'Click' : 'Tap'} the spot on the plan your comment is about.</span>
+      {/* The way in without pointing at a spot: from the keyboard, or with a screen reader. */}
+      <button type="button" className="cm-whole" onClick={onWhole}>
+        Comment on the whole floor
+      </button>
       <button type="button" onClick={() => commentActions.cancel()}>
         Cancel <kbd>Esc</kbd>
       </button>

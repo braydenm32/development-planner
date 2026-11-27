@@ -5,7 +5,7 @@ import { useFrame, useThree, type RootState } from '@react-three/fiber'
 import { useContext, useEffect, useState } from 'react'
 import type * as THREE from 'three'
 import { CanvasFrame } from '../components/canvasFrame'
-import { between, levelLens, loadPose, moveDuration, northUp, presetPose, savePose, toSpherical, type CameraCommand, type Frame, type Pose, type Preset, type Vec3 } from './camera'
+import { between, lessMotion, levelLens, loadPose, moveDuration, northUp, presetPose, savePose, toSpherical, type CameraCommand, type Frame, type Pose, type Preset, type Vec3 } from './camera'
 import { useCamera } from './cameraStore'
 import { openArea } from './frame'
 
@@ -87,7 +87,8 @@ class Rig {
     const fov = (2 * Math.atan(Math.tan((camera.fov * Math.PI) / 360) * this.live.freeHeight) * 180) / Math.PI
     const target = to === 'north' ? northUp(from) : presetPose(to, this.live.frame, fov, this.live.aspect)
     const preset = to === 'north' ? null : to
-    if (!animate) {
+    // Reduce motion: cut to the view; a swing of the whole picture is what the setting asks not to see.
+    if (!animate || lessMotion()) {
       this.apply(target)
       useCamera.getState().setActive(preset)
       return

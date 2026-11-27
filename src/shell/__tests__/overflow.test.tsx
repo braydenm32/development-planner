@@ -5,7 +5,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { areaRoute } from '../../nav/route'
-import { overflowOf, pageTo, type Span } from '../overflow'
+import { moreText, overflowOf, pageTo, type Span } from '../overflow'
 import { SummaryStrip } from '../SummaryStrip'
 
 vi.mock('../../site/sync', () => ({
@@ -133,6 +133,12 @@ describe('a row with more than fits', () => {
     expect(o.cut[0]).toBe(true)
     expect(o.cut[1]).toBe(false)
     expect(o.before).toBe(1)
+  })
+
+  it('names its arrows in good English: "1 more tab", "3 more tabs" (AX-36)', () => {
+    expect(moreText(1, 'tabs')).toBe('1 more tab')
+    expect(moreText(3, 'tabs')).toBe('3 more tabs')
+    expect(moreText(1, 'numbers')).toBe('1 more number')
   })
 })
 

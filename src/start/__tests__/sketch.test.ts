@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readSite } from '../../safety/files'
-import { ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
+import { ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
 
 const block = (b: Partial<SketchBlock> = {}): SketchBlock => ({ width: 15, depth: 30, fall: 0, street: 'S', ...b })
 
@@ -62,5 +62,19 @@ describe('a sketch block', () => {
     expect(() => readSketchSize('2', '30', '', 'S')).toThrow(/between 5 and 500/)
     expect(() => readSketchSize('15', 'abc', '', 'S')).toThrow(/depth/)
     expect(() => readSketchSize('15', '30', '45', 'S')).toThrow(/fall/)
+  })
+
+  it('says what is wrong with every box at once, not just the first (AX-17)', () => {
+    expect(sketchProblems('abc', '-5', '999')).toEqual({
+      width: 'The block’s width needs to be between 5 and 500 m.',
+      depth: 'The block’s depth needs to be between 5 and 500 m.',
+      fall: 'The fall needs to be within 30 m.',
+    })
+    // Only the empty one of the pair is marked, and a good set has nothing to say.
+    expect(sketchProblems('15', '', '')).toEqual({ depth: 'Type both the width and the depth, or leave both empty to set them later.' })
+    expect(sketchProblems('15', '30', '1,5')).toEqual({})
+    expect(sketchProblems('', '', '')).toEqual({})
+    // A sheet with no size still can't take an absurd fall.
+    expect(sketchProblems('', '', '999')).toEqual({ fall: 'The fall needs to be within 30 m.' })
   })
 })

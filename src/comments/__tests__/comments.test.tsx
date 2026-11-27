@@ -28,6 +28,7 @@ import {
   numbered,
   ownerOrder,
   planToSurvey,
+  wholeFloorSpot,
   SOMEONE,
   spotAt,
   surveyToPlan,
@@ -249,13 +250,30 @@ describe('comments on the plan', () => {
     expect(drawLayer(plan).layer.click([1, 2])).toBe(false)
     commentActions.startPlacing()
     const { html, layer } = drawLayer(plan)
-    expect(words(html)).toContain('the spot on the plan your comment is about. Cancel Esc')
+    expect(words(html)).toContain('the spot on the plan your comment is about. Comment on the whole floor Cancel Esc')
     expect(layer.click([1, 2])).toBe(true)
     expect(useComments.getState()).toMatchObject({ placing: false, draft: { floor: 'level_ground', x: 5007, y: 8006 } })
     const writing = drawLayer(plan).html
     expect(writing).toContain('aria-label="Add a comment"')
     expect(words(writing)).toContain('Only the person who shared this sees it, and you, on this device.')
     expect(buttons(writing)).toEqual(['Cancel the comment', 'Cancel', 'Send'])
+  })
+
+  it('takes a comment on the whole floor with no tap on the plan, pinned at the middle of that floor (AX-38)', () => {
+    const plan = placed()
+    useComments.setState({ side: 'viewer', mode: 'own', token: 't' })
+    commentActions.startPlacing()
+    expect(buttons(drawLayer(plan).html)).toContain('Comment on the whole floor')
+    // What the button does: the middle of the floor's walls, as a spot on the block like any pin.
+    const spot = wholeFloorSpot(plan, 'level_ground')
+    const walls = plan.walls.filter(w => w.level === 'level_ground').flatMap(w => [w.a, w.b])
+    const mid = (i: 0 | 1) => (Math.min(...walls.map(p => p[i])) + Math.max(...walls.map(p => p[i]))) / 2
+    expect(spot).toEqual(spotAt([mid(0), mid(1)], 'level_ground', plan.placement))
+    commentActions.place(spot)
+    expect(useComments.getState()).toMatchObject({ placing: false, draft: spot })
+    expect(drawLayer(plan).html).toContain('aria-label="Add a comment"')
+    // A floor with no walls of its own still gets a spot: the middle of the house.
+    expect(wholeFloorSpot(plan, 'level_none')).toMatchObject({ floor: 'level_none', x: spot.x, y: spot.y })
   })
 
   it('adds nothing on a link that takes no comments', () => {

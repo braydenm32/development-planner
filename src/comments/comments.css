@@ -65,6 +65,18 @@
   cursor: crosshair;
 }
 
+/* Three things in the bar on a narrow screen: the words take the first row, the two buttons the next. */
+.cm-bar.placing {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  /* Room for all three on one row where the plan is wide enough. */
+  max-width: min(640px, calc(100% - 32px));
+}
+
+.cm-bar.placing > span {
+  flex: 1 1 220px;
+}
+
 .cm-bar span {
   display: inline-flex;
   align-items: center;

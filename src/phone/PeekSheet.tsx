@@ -113,9 +113,10 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onSi
     <div
       ref={ref}
       className={`peek-sheet${slim ? ' slim' : ''}${warn ? ' warned' : ''}${pull ? ' pulling' : ''}`}
-      role="button"
-      tabIndex={0}
-      aria-label={`${title}: key numbers. Open every number`}
+      // A region, not one big button: a button flattens the heading and the list inside it for a
+      // screen reader. A tap or a pull anywhere still opens it; the handle is the button by name.
+      role="region"
+      aria-label={title}
       style={pull ? { transform: `translateY(${-pull}px)` } : undefined}
       onPointerDown={down}
       onPointerMove={move}
@@ -124,14 +125,9 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onSi
         start.current = null
         setPull(0)
       }}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen()
-        }
-      }}
     >
-      <div className="sheet-grab" aria-hidden="true" />
+      {/* A click with no pointer (Enter, Space, a switch) is the keyboard's; a tap is already the sheet's own. */}
+      <button type="button" className="sheet-grab" aria-label={`${title}. Open the overview`} onClick={e => e.detail === 0 && onOpen()} />
       <div className="peek-line" aria-hidden={!slim}>
         {warn && <i className="peek-dot" title={warnTitle} />}
         <span>

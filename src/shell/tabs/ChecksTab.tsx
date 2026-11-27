@@ -11,9 +11,10 @@ import type { Measures } from '../../checks/measure'
 import { CDC_LAND, CDC_LAND_MAPPED, controlCount, NEED_FRONT, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, checkSettingsOf, COUNCILS, type Council } from '../../checks/councils'
-import { checkedAgainst, mapCouncil, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
+import { checkedAgainst, mapCouncil, PATHWAY_LABEL, PATHWAY_MEANS, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
 import type { CheckResult, CheckSettings, Pathway } from '../../checks/types'
 import { useChecks, type Checks as ChecksData } from '../../checks/useChecks'
+import { Termed } from '../../guide/Term'
 import { foldedText, groupBadges, groupChecks, isLoud, pinNumbers, verdictOf, WORD_OF, WORD_TEXT, type Group } from '../../checks/topics'
 import { fixOf, targetOf, type CheckTarget } from '../../checks/targets'
 import { routeDifferences } from '../../checks/differ'
@@ -102,7 +103,7 @@ function Checks({ d }: { d: Loaded }) {
       <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />
       <RouteControl c={c} />
       <section className="checks-verdict" aria-live="polite" aria-label="What the checks say">
-        <h4>
+        <h3>
           <span className="cv-route">{route}:</span>{' '}
           {verdict.head.map((h, i) => (
             <span key={h.word} className={`cv-${h.word}`}>
@@ -110,14 +111,15 @@ function Checks({ d }: { d: Loaded }) {
               {h.text}
             </span>
           ))}
-        </h4>
+        </h3>
         <p className="muted">{verdict.rest.join(' · ')}</p>
         <MiniPlan ms={c.measures} />
         {pins.length > 0 && <p className="muted small checks-mini-hint">Tap a pin to see that check in the list.</p>}
       </section>
       {c.pathway === 'cdc' && (
         <p className="checks-land" role="note">
-          {c.planning ? CDC_LAND_MAPPED : CDC_LAND}
+          {/* "section 10.7 planning certificate" explains itself on hover, focus or a tap. */}
+          <Termed text={c.planning ? CDC_LAND_MAPPED : CDC_LAND} only={['planning-certificate']} />
         </p>
       )}
       <div className="check-groups" ref={list}>
@@ -260,7 +262,8 @@ export function CheckRow({ r, n, placed = false, differ, children }: { r: CheckR
           {r.value && r.limit && <span className="muted"> · </span>}
           {r.limit && (
             <span className="check-limit">
-              <span className="muted">Allowed </span>
+              {/* "Rule:", not "Allowed": several limits are sentences ("Over 600 mm needs an engineer…") that read as their opposite after "Allowed". */}
+              <span className="muted">Rule: </span>
               {r.limit}
             </span>
           )}
@@ -318,7 +321,7 @@ function RouteControl({ c }: { c: ChecksData }) {
               onClick={() => (p === 'cdc' ? setRoute('cdc') : chooseDa())}
               title={pathwayLong(p, p === 'da' ? (c.council ?? fromMap) : null)}
             >
-              {p.toUpperCase()}
+              {PATHWAY_LABEL[p]}
             </button>
           ))}
         </div>
@@ -335,6 +338,7 @@ function RouteControl({ c }: { c: ChecksData }) {
           </select>
         </label>
       </div>
+      <p className="muted small">{PATHWAY_MEANS[c.pathway]}</p>
       <p className="muted small">
         {checkedAgainst(c.pathway, c.council)}
         {c.pathway === 'da' && coverage && coverage.have < coverage.of ? `: ${coverage.have} of its ${coverage.of} controls so far` : ''}.

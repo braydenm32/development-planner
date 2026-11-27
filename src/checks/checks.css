@@ -259,7 +259,8 @@
 
 .app-shell .cr-council select {
   min-width: 0;
-  max-width: 150px;
+  /* As wide as its longest name, up to the panel: a fixed 150 px cut "Pick your council" short once letters are spaced out (WCAG 1.4.12). */
+  max-width: 100%;
   padding: 5px 6px;
   border: 1px solid var(--field-line);
   border-radius: var(--r);
@@ -276,11 +277,14 @@
   background: #ffffff;
 }
 
-.app-shell .checks-verdict h4 {
+/* An h3, straight under the panel's h2 (no skipped level); the longer selector beats the float card's small grey h3. */
+.app-shell .checks-verdict h3,
+.app-shell .float-card .checks .checks-verdict h3 {
   margin: 0;
   font-size: 18px;
   line-height: 1.3;
   font-weight: 600;
+  color: var(--text);
 }
 
 .app-shell .checks-verdict p {
@@ -427,7 +431,8 @@
   font-weight: 600;
   white-space: nowrap;
   background: var(--line-soft);
-  color: var(--muted);
+  /* A step darker than --muted: 11.5 px on the grey pill needs 4.5:1 (was 4.4). */
+  color: #5f656c;
 }
 
 .app-shell .check-badge.fix {
@@ -442,7 +447,8 @@
 
 .app-shell .check-badge.ok {
   background: #e8f3ec;
-  color: #2e7d4f;
+  /* A step darker than the tick's green, for 4.5:1 on the pale pill (was 4.4). */
+  color: #27704a;
 }
 
 .app-shell .check-badge.fact {
@@ -480,8 +486,9 @@
   font-weight: 700;
 }
 
+/* Darker than the amber dot: a white 11 px number on it needs 4.5:1 (--warn-dot gives 3.2). */
 .app-shell .check-pin.confirm {
-  background: var(--warn-dot);
+  background: #a85f00;
 }
 
 .app-shell .check-pin + .check-title {
@@ -555,7 +562,14 @@
 
 .checks-layer .ck-pin.confirm circle,
 .checks-mini .ck-pin.confirm circle {
-  fill: var(--warn-dot, #d07a12);
+  fill: #a85f00;
+}
+
+/* The room round a small pin that takes the tap: there, never seen. */
+.checks-mini .ck-pin circle.ck-hit,
+.checks-mini .ck-pin.on circle.ck-hit {
+  fill: transparent;
+  stroke: none;
 }
 
 .checks-layer .ck-pin.on circle,

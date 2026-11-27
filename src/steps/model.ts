@@ -379,7 +379,7 @@ function checksStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       if (WORD_OF[r.status] !== word) continue
       // The street side is asked once, under Block.
       if (!i.site.streetSet && r.note === NEED_FRONT) continue
-      const detail = [r.value, r.limit && `allowed ${r.limit}`].filter(Boolean).join(' · ') || r.note
+      const detail = [r.value, r.limit && `rule: ${r.limit}`].filter(Boolean).join(' · ') || r.note
       items.push({ id: `check:${r.id}`, text: r.title, detail, tone: CHECK_TONE[word]!, go: { to: 'check', id: r.id, fix: word === 'fix' ? fixOf(r) : null } })
     }
   return { id: 'checks', title: STEP_TITLES.checks, headline: `${c.name} · ${c.head}`, items, started: true, word: c.word }

@@ -445,7 +445,7 @@ export function driveChecks(d: DriveCrossing, suffix = ''): CheckResult[] {
       title: title('drive-scrape'),
       status: hits ? 'fail' : 'pass',
       value: hits ? `A car’s underside would scrape by ${mm(s.clearance)} ${where} (${PART[s.part]})` : `A car clears by ${mm(s.clearance)}; tightest ${where}`,
-      limit: `A large car with ${mm(B99.clearance)} under it, driving in and reversing in`,
+      limit: `A large car that rides ${mm(B99.clearance)} off the ground must not scrape, driving in or reversing in`,
       note: [
         hits && fixAt ? `The change of grade there needs easing with a transition (see Changes of grade), which is what fixes it.` : null,
         hits && !fixAt ? 'Ease the change of grade there, or ask the designer to run the council’s template.' : null,
@@ -494,7 +494,7 @@ function turnCheck(d: DriveCrossing, id: string, title: string): CheckResult {
     title,
     status,
     value: fails.length ? `${fails[0][0].toUpperCase()}${fails[0].slice(1)}` : 'Check with the designer',
-    limit: `An ordinary car (${B85.length.toFixed(1)} × ${B85.width.toFixed(1)} m) in from the road and into the garage; driveways at least ${MIN_WIDTH.toFixed(1)} m wide`,
+    limit: `An ordinary car (${B85.length.toFixed(1)} × ${B85.width.toFixed(1)} m) can turn in from the road and into the garage; driveways at least ${MIN_WIDTH.toFixed(1)} m wide`,
     note: [
       ...fails.slice(1).map(f => `Also, ${f}.`),
       ...checks,

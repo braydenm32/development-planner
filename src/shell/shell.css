@@ -438,6 +438,11 @@ body:has(.app-shell) {
 }
 
 /* No hover on a phone: a tap would leave the tip hanging. */
+/* Put away with Esc (src/shell/tips.ts), until the pointer or the focus moves on. */
+.app-shell button[data-tip][data-tip-off]::after {
+  display: none;
+}
+
 .app-shell.phone button[data-tip]::after {
   display: none;
 }
@@ -602,6 +607,12 @@ body:has(.app-shell) {
 .menu-item:focus-visible {
   background: var(--line-soft);
   outline: none;
+}
+
+/* The fill alone is the hover look and too faint to find (1.1:1): the keyboard's row gets the usual ring. */
+.menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .menu-item .ic {
@@ -924,7 +935,8 @@ button.chip:hover .chip-label {
 .app-shell .canvas-plan .readout > .notice,
 .app-shell .canvas-plan .readout > .ground-readout {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* Two lines as written; the third is for wider letter and word spacing set by the reader (WCAG 1.4.12), which used to cut the hint short. */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   white-space: normal;
 }
@@ -1169,6 +1181,8 @@ button.chip:hover .chip-label {
 }
 
 .plain.small {
+  /* Done, Options, Fold away: small words, but 24 px of height to hit (WCAG 2.5.8). */
+  min-height: 24px;
   font-size: 12.5px;
 }
 
@@ -1664,7 +1678,14 @@ button.ov-verdict:hover {
   align-content: start;
 }
 
-.ov-group > h3 {
+/* Beats the float card's small grey h3. */
+.app-shell .ov-group > .ov-head > h3 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.ov-group > .ov-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1678,7 +1699,7 @@ button.ov-verdict:hover {
 }
 
 /* Open, at the end of each group's heading: a whole finger's worth on a phone. */
-.app-shell.phone .ov-group > h3 > button.link {
+.app-shell.phone .ov-group > .ov-head > button.link {
   min-width: 44px;
   min-height: 44px;
   padding: 0 4px;

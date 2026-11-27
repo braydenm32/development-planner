@@ -450,7 +450,8 @@ button.ph-thumb {
   border: 1px solid var(--ph-accent);
   border-radius: var(--ph-r);
   outline: 0;
-  box-shadow: 0 0 0 3px var(--ph-accent-soft);
+  /* A second accent line: the soft glow on its own was too faint to count as a focus ring. */
+  box-shadow: 0 0 0 1px var(--ph-accent), 0 0 0 4px var(--ph-accent-soft);
   font: inherit;
   font-size: 15px;
   font-weight: 500;

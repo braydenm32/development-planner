@@ -32,6 +32,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* 24 px of height to hit (WCAG 2.5.8). */
+  min-height: 24px;
   font-size: 12.5px;
 }
 

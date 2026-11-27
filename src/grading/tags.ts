@@ -8,7 +8,7 @@ import { wallText } from './suggest'
 export function tagSize(height: number, buttons: boolean, implied = false) {
   const label = implied ? `Implied ${wallText(height)} wall` : `${wallText(height)} wall?`
   const w = label.length * 6.4 + 30
-  return { label, w, total: w + (buttons ? (implied ? 38 : 64) : 0) }
+  return { label, w, total: w + (buttons ? (implied ? 38 : 68) : 0) }
 }
 
 interface Box {
