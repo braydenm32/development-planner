@@ -10,7 +10,7 @@ import { readsTheHouse } from '../../nav/route'
 import { usePlan } from '../../plan/store'
 import { useSiteStore } from '../../site/store'
 import { canEdit, readMode, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
-import { ViewLock } from '../ViewLock'
+import { READS, ViewLock } from '../ViewLock'
 import { house, loadBlock, words } from './block'
 
 function memory(init: Record<string, string> = {}) {
@@ -127,6 +127,21 @@ describe('a panel in View', () => {
     )
     expect(html).toContain('<fieldset class="view-lock" disabled="">')
     expect(words(html)).toContain('View: one finger pans, nothing moves. Tap Edit to change the plan. Edit Balance')
+  })
+
+  it('leaves a reading panel (Approvals) open to read: no blanket lock, and its own line (PH-07)', () => {
+    const html = renderToStaticMarkup(
+      <ViewLock reading>
+        <button aria-expanded="false">+ 3 OK</button>
+      </ViewLock>,
+    )
+    // Not a disabled fieldset, which would lock the "+ 3 OK" that only unfolds the passes.
+    expect(html).not.toContain('<fieldset')
+    expect(html).toContain('<div class="view-lock reading">')
+    expect(html).not.toContain('disabled')
+    expect(words(html)).toContain('View: everything here opens to read. Tap Edit to change an answer. Edit')
+    // What stays live: what unfolds, links, and what a panel marks as reading (the CDC / DA route, a download).
+    expect(READS.split(', ')).toEqual(['button[aria-expanded]', 'button.link', '[data-view-reads]', '[data-view-reads] *'])
   })
 
   it('puts the line after the numbers in the selection sheet', () => {

@@ -56,7 +56,7 @@ import { PresetBar, ViewEditSwitch } from '../phone/CanvasBits'
 import { canEdit, TouchCanvas, usePhone, usePhoneMode } from '../phone/device'
 import { useNativeFeel } from '../phone/native'
 import { PeekSheet } from '../phone/PeekSheet'
-import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../phone/reach'
+import { inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows } from '../phone/reach'
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
@@ -622,7 +622,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                   <div className="panel-body">
                     <ErrorBoundary variant="inline">
                       {locked ? (
-                        <ViewLock>
+                        <ViewLock reading={panelReads(tabKey)}>
                           <Body />
                         </ViewLock>
                       ) : (

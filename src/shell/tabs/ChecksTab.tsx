@@ -304,7 +304,8 @@ function RouteControl({ c }: { c: ChecksData }) {
   }
   const coverage = c.council ? controlCount(c.council) : null
   return (
-    <div className="checks-route">
+    // The route is a way of reading the checks, not a change to the plan: it stays live in a phone's View.
+    <div className="checks-route" data-view-reads>
       <div className="cr-row">
         <span className="cr-label">Approval route</span>
         <div className="segmented-choice" role="radiogroup" aria-label="Approval route">

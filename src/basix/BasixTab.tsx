@@ -120,7 +120,7 @@ function Basix({ d }: { d: Loaded }) {
       </ul>
 
       <div className="row">
-        <button className="secondary" onClick={download}>
+        <button className="secondary" onClick={download} data-view-reads>
           Download the checklist (CSV)
         </button>
       </div>

@@ -42,6 +42,12 @@ export interface Screen {
 export const panelLocked = (phone: boolean, editing: boolean, tabKey: string) =>
   phone && !editing && tabKey !== 'design/sections' && tabKey !== 'approvals/da-pack' && (tabKey.startsWith('design/') || tabKey.startsWith('earthworks/') || tabKey.startsWith('approvals/') || tabKey === 'site/features')
 
+/**
+ * Approvals is read: its locked panels keep what opens and lists live (a check's passes, a group,
+ * the CDC / DA route to compare), and lock only the answers typed into them (PH-07).
+ */
+export const panelReads = (tabKey: string) => tabKey.startsWith('approvals/')
+
 /** A phone's 3D view needs the whole screen, so there a tab's panel starts folded away as a pill. */
 export const panelStartsHidden = (phone: boolean, canvas: Canvas) => phone && canvas === '3d'
 
