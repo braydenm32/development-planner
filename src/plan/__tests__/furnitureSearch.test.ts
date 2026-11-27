@@ -16,12 +16,16 @@ describe('searching the furniture list', () => {
   })
 
   it('finds them by the other words people use, and by room', () => {
-    expect(keys('couch')).toEqual(['sofa-2', 'sofa-3'])
+    expect(keys('couch')).toEqual(['sofa-2', 'sofa-3', 'sofa-corner'])
     expect(keys('refrigerator')).toEqual(['fridge'])
     expect(keys('loo')).toEqual(['toilet'])
     expect(keys('barbecue')).toEqual(['bbq'])
     expect(keys('laundry')).toEqual(expect.arrayContaining(['washer', 'dryer', 'tub']))
-    expect(keys('pantry')).toEqual([CUSTOM_BOX])
+    // The pantry, tank and pool have their own pieces now; the custom box still stands in for a shed.
+    expect(keys('pantry')).toEqual(['pantry'])
+    expect(keys('water tank')).toEqual(['tank'])
+    expect(keys('pool')).toEqual(['pool'])
+    expect(keys('shed')).toEqual([CUSTOM_BOX])
   })
 
   it('puts pieces whose own name matches first', () => {

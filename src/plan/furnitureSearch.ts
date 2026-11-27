@@ -30,7 +30,13 @@ const ALSO: Record<string, string> = {
   car: 'vehicle parking garage ute',
   'outdoor-table': 'patio table deck alfresco',
   bbq: 'barbecue barbeque grill',
-  box: 'custom anything other pantry linen cupboard storage shelf shelves tank water tank clothesline pool spa shed piano',
+  'sofa-corner': 'couch lounge modular chaise l-shaped',
+  'bench-l': 'kitchen bench counter corner l-shaped return',
+  pantry: 'larder cupboard storage shelves',
+  'desk-l': 'study table office corner l-shaped workstation',
+  tank: 'water tank rainwater rain',
+  pool: 'swimming pool plunge',
+  box: 'custom anything other linen cupboard storage shelf shelves clothesline spa shed piano',
 }
 
 const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)

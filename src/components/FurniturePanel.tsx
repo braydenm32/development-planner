@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { CATALOG, catalogItem, furnitureName, furnitureSymbol, FURNITURE_GROUPS, normDeg, type CatalogItem, type FurnitureGroup } from '../plan/furniture'
+import { CATALOG, catalogItem, furnitureName, furnitureSymbol, FURNITURE_GROUPS, isHanded, mirrorFurniture, normDeg, type CatalogItem, type FurnitureGroup } from '../plan/furniture'
 import { CUSTOM_BOX } from '../plan/furnitureCatalog'
 import { searchCatalog } from '../plan/furnitureSearch'
 import type { Furniture } from '../plan/model'
@@ -170,6 +170,11 @@ export function FurnitureSelection({ item: f, del }: { item: Furniture; del: Rea
         <button className="secondary" onClick={() => turn(f.rotation - 90)} title="Turn a quarter turn clockwise (Q)">
           Turn 90°
         </button>
+        {isHanded(f) && (
+          <button className="secondary" aria-pressed={!!f.mirrored} onClick={() => st.commit(p => mirrorFurniture(p, f.id))} title="Mirror it left to right (H)">
+            Mirror
+          </button>
+        )}
         {item && original && (
           <button className="secondary" onClick={() => size({ width: item.size[0], depth: item.size[1], height: item.size[2] })}>
             Usual size

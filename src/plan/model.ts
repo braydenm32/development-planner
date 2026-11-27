@@ -374,6 +374,8 @@ export interface Furniture {
   height: number
   /** Shown instead of the catalog name. */
   label?: string
+  /** Mirrored left to right, for a handed piece (a corner sofa, a bath's tap end). Missing in older plans: as drawn. */
+  mirrored?: boolean
 }
 
 /** A short text label on the plan, on one level, at a point in the house's frame (m). */

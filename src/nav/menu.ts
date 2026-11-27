@@ -277,6 +277,7 @@ export const AREAS: Area[] = [
           'orbit-3d',
           'house-model-3d',
           'furniture-3d',
+          'opening-kinds-3d',
           'terrain-elevation-colours',
           'survey-markers-3d',
           'walk-through-3d',
@@ -481,8 +482,8 @@ export const AREAS: Area[] = [
         label: 'Furniture',
         icon: 'furniture',
         subtitle: 'Pick a piece, then click on the plan to place it.',
-        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank'],
-        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room'],
+        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank', 'rainwater tank', 'swimming pool', 'corner sofa'],
+        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room', 'furniture-outdoor-fixtures'],
       },
       {
         id: 'sections',
@@ -514,7 +515,7 @@ export const AREAS: Area[] = [
           'council drawings',
           'stairs in section',
         ],
-        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs'],
+        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs', 'opening-kinds-elevation'],
       },
       {
         id: 'options',
@@ -1928,6 +1929,7 @@ export const HOMES: Home[] = [
       },
       { id: 'kbd-close', label: 'Enter closes an outline', keywords: ['finish area', 'close roof'], features: ['kbd-enter-close'], shortcut: '↵', hint: 'Enter closes the area or roof outline you are drawing.' },
       { id: 'kbd-turn', label: 'Turn furniture', keywords: ['rotate', 'quarter turn'], features: ['kbd-furniture-turn'], shortcut: 'Q', hint: 'Q turns the piece you are placing, or the selected one, a quarter turn; Shift+Q turns it back.' },
+      { id: 'kbd-mirror', label: 'Mirror furniture', keywords: ['flip furniture', 'mirror furniture', 'handed', 'left hand', 'right hand', 'corner sofa'], features: ['furniture-mirror'], shortcut: 'H', hint: 'H mirrors the selected corner sofa, L-shaped bench or desk, bath or pool left to right.' },
     ],
   },
 ]

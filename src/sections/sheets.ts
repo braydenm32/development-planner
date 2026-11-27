@@ -71,6 +71,7 @@ const LINES: Record<LineStyle, { stroke: RGB; width: number; dash?: number[] }> 
   axis: { stroke: [0.54, 0.56, 0.6], width: 0.18 },
   'roof-edge': { stroke: DARK, width: 0.25 },
   detail: { stroke: DARK, width: 0.12 },
+  swing: { stroke: DARK, width: 0.12, dash: [0.8, 0.6] },
   height: { stroke: INKS.accent, width: 0.3 },
 }
 

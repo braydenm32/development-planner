@@ -6,7 +6,7 @@ import type { Vec2 } from '../lib/geom'
 import { askName } from '../components/nameFocus'
 import { copySelected, cutSelected, deleteSelected, duplicateSelected, hasCopied, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { copySelection } from '../plan/editing'
-import { normDeg } from '../plan/furniture'
+import { isHanded, mirrorFurniture, normDeg } from '../plan/furniture'
 import { isRetaining, type Plan } from '../plan/model'
 import { setWallKind, updateFurniture, updateOpening, updateStair } from '../plan/ops'
 import { openingStyle } from '../plan/openingStyles'
@@ -95,6 +95,7 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
   } else if (s.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === s.id)
     if (f) own.push({ id: 'turn', label: 'Turn 90°', keys: 'Q', run: () => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation - 90) })) })
+    if (f && isHanded(f)) own.push({ id: 'mirror', label: 'Mirror left to right', keys: 'H', run: () => st.commit(p => mirrorFurniture(p, f.id)) })
   } else if (s.type === 'stair') {
     const stair = plan.stairs.find(x => x.id === s.id)
     if (stair) own.push({ id: 'turn', label: 'Rotate 90°', run: () => st.commit(p => updateStair(p, stair.id, { angle: (stair.angle + 90) % 360 })) })

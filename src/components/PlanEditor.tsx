@@ -5,7 +5,7 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, wallPolygons, type Face } from '../plan/geometry'
 import { cornerOffsets, floorVsGround, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
-import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
+import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, isHanded, mirrorFurniture, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
   areaKind,
   fromSite,
@@ -2127,6 +2127,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         const f = sel?.type === 'furniture' ? st.plan?.furniture.find(x => x.id === sel.id) : undefined
         if (ghost) st.setFurnitureDefaults({ ...st.furnitureDefaults, rotation: normDeg(st.furnitureDefaults.rotation + turn) })
         else if (f) st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation + turn) }))
+        return
+      }
+      // H mirrors a handed piece (a corner sofa, a bath) left to right.
+      if (e.key.toLowerCase() === 'h' && !e.altKey && st.selection?.type === 'furniture') {
+        const id = st.selection.id
+        const f = st.plan?.furniture.find(x => x.id === id)
+        if (f && isHanded(f)) st.commit(p => mirrorFurniture(p, id))
         return
       }
       if ((e.key === 'Delete' || e.key === 'Backspace') && st.selection) {

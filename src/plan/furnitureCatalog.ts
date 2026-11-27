@@ -46,6 +46,8 @@ export interface CatalogItem {
   code?: string
   /** The 3D shape; one box of the full size when missing. */
   solids?: (w: number, d: number, h: number) => Solid[]
+  /** It has a left and a right hand (a corner sofa's return, a bath's tap end), so it can be mirrored. */
+  handed?: boolean
 }
 
 // ---- drawing helpers ----
@@ -229,6 +231,92 @@ const bowl = (w: number, d: number, tap: boolean): SymbolPart[] => [
   ...(tap ? [circle(0, d / 2 - 0.06, 0.025)] : []),
 ]
 
+/**
+ * An L: a run `a` deep along the back (+y) the full width, and a return `b` wide down the left
+ * side to the front. Mirroring the piece (Furniture.mirrored) puts the return on the right.
+ */
+const lPts = (w: number, d: number, a: number, b: number): Vec2[] => [
+  [-w / 2, -d / 2],
+  [-w / 2 + b, -d / 2],
+  [-w / 2 + b, d / 2 - a],
+  [w / 2, d / 2 - a],
+  [w / 2, d / 2],
+  [-w / 2, d / 2],
+]
+
+/** A corner sofa: seats along the back and down a return on the left, with a back on both and an arm at the open end. */
+const cornerSofa: Pick<CatalogItem, 'draw' | 'solids'> = {
+  draw: (w, d) => {
+    const seat = Math.min(0.95, w / 2, d / 2)
+    const b = Math.min(0.2, seat / 4)
+    const a = Math.min(0.2, w / 10)
+    const run = w - seat
+    const seats = Math.max(1, Math.round((run - a) / 0.75))
+    return [
+      { pts: lPts(w, d, seat, seat), closed: true },
+      rect(-w / 2, d / 2 - b, w / 2, d / 2),
+      rect(-w / 2, -d / 2, -w / 2 + b, d / 2 - b),
+      rect(w / 2 - a, d / 2 - seat, w / 2, d / 2 - b),
+      line([-w / 2 + b, d / 2 - seat], [-w / 2 + seat, d / 2 - seat], [-w / 2 + seat, d / 2 - b]),
+      ...Array.from({ length: seats - 1 }, (_, i) => {
+        const x = -w / 2 + seat + ((i + 1) * (run - a)) / seats
+        return line([x, d / 2 - seat], [x, d / 2 - b])
+      }),
+    ]
+  },
+  solids: (w, d, h) => {
+    const seat = Math.min(0.95, w / 2, d / 2)
+    const b = Math.min(0.2, seat / 4)
+    const a = Math.min(0.2, w / 10)
+    const sh = Math.min(0.42, h)
+    return [
+      box(-w / 2 + b, d / 2 - seat, w / 2 - a, d / 2 - b, 0, sh),
+      box(-w / 2 + b, -d / 2, -w / 2 + seat, d / 2 - seat, 0, sh),
+      box(-w / 2, d / 2 - b, w / 2, d / 2, 0, h),
+      box(-w / 2, -d / 2, -w / 2 + b, d / 2 - b, 0, h),
+      box(w / 2 - a, d / 2 - seat, w / 2, d / 2 - b, 0, Math.min(0.6, h)),
+    ]
+  },
+}
+
+/** A bench or desk in an L, `run` deep along the back and its return down the left; doors drawn along a bench's front. */
+function lBench(run: number, doors: boolean): Pick<CatalogItem, 'draw' | 'solids'> {
+  const deep = (w: number, d: number) => Math.min(run, w / 2, d / 2)
+  return {
+    draw: (w, d) => {
+      const a = deep(w, d)
+      const parts: SymbolPart[] = [{ pts: lPts(w, d, a, a), closed: true }]
+      if (doors) {
+        // The kickboard line along the front of each leg, and a door every 600 or so.
+        parts.push(line([-w / 2 + a - 0.03, -d / 2], [-w / 2 + a - 0.03, d / 2 - a + 0.03], [w / 2, d / 2 - a + 0.03]))
+        const along = Math.max(1, Math.round((w - a) / 0.6))
+        for (let i = 1; i < along; i++) parts.push(line([-w / 2 + a + (i * (w - a)) / along, d / 2 - a + 0.03], [-w / 2 + a + (i * (w - a)) / along, d / 2]))
+        const down = Math.max(1, Math.round((d - a) / 0.6))
+        for (let i = 1; i < down; i++) parts.push(line([-w / 2, -d / 2 + (i * (d - a)) / down], [-w / 2 + a - 0.03, -d / 2 + (i * (d - a)) / down]))
+      } else {
+        // The desk's corner, where the two tops meet.
+        parts.push(line([-w / 2, d / 2 - a], [-w / 2 + a, d / 2 - a]))
+      }
+      return parts
+    },
+    solids: (w, d, h) => {
+      const a = deep(w, d)
+      if (doors) return [box(-w / 2, d / 2 - a, w / 2, d / 2, 0, h), box(-w / 2, -d / 2, -w / 2 + a, d / 2 - a, 0, h)]
+      // A desk: its tops on legs at the corners.
+      const top = Math.max(0, h - 0.03)
+      const leg = 0.05
+      return [
+        box(-w / 2, d / 2 - a, w / 2, d / 2, top, h),
+        box(-w / 2, -d / 2, -w / 2 + a, d / 2 - a, top, h),
+        box(w / 2 - leg, d / 2 - a, w / 2, d / 2 - a + leg, 0, top),
+        box(-w / 2, -d / 2, -w / 2 + leg, -d / 2 + leg, 0, top),
+        box(-w / 2 + a - leg, -d / 2, -w / 2 + a, -d / 2 + leg, 0, top),
+        box(-w / 2, d / 2 - leg, -w / 2 + leg, d / 2, 0, top),
+      ]
+    },
+  }
+}
+
 /** The catalogue key of the box that stands in for anything. */
 export const CUSTOM_BOX = 'box'
 
@@ -271,6 +359,7 @@ const ITEMS: CatalogItem[] = [
   // Living
   { key: 'sofa-2', name: '2-seat sofa', group: 'living', size: [1.6, 0.9, 0.85], wall: true, ...sofa(2) },
   { key: 'sofa-3', name: '3-seat sofa', group: 'living', size: [2.1, 0.9, 0.85], wall: true, ...sofa(3) },
+  { key: 'sofa-corner', name: 'Corner sofa', group: 'living', size: [2.7, 1.9, 0.85], wall: true, handed: true, ...cornerSofa },
   { key: 'armchair', name: 'Armchair', group: 'living', size: [0.85, 0.85, 0.85], wall: false, ...sofa(1) },
   {
     key: 'coffee-table',
@@ -317,6 +406,22 @@ const ITEMS: CatalogItem[] = [
         ...Array.from({ length: doors - 1 }, (_, i) => line([-w / 2 + ((i + 1) * w) / doors, -d / 2 + 0.03], [-w / 2 + ((i + 1) * w) / doors, d / 2])),
       ]
     },
+  },
+  { key: 'bench-l', name: 'Bench run with a return (L)', group: 'kitchen', size: [3, 2.4, 0.9], wall: true, handed: true, ...lBench(0.6, true) },
+  {
+    key: 'pantry',
+    name: 'Pantry cupboard',
+    group: 'kitchen',
+    size: [0.9, 0.6, 2.1],
+    wall: true,
+    code: 'PAN',
+    // Two doors across the front, and the shelves behind them.
+    draw: (w, d) => [
+      outline(w, d),
+      line([-w / 2, -d / 2 + 0.04], [w / 2, -d / 2 + 0.04]),
+      line([0, -d / 2], [0, -d / 2 + 0.04]),
+      line([-w / 2 + 0.03, d / 2 - Math.min(0.35, d * 0.6)], [w / 2 - 0.03, d / 2 - Math.min(0.35, d * 0.6)]),
+    ],
   },
   {
     key: 'island',
@@ -436,6 +541,7 @@ const ITEMS: CatalogItem[] = [
     group: 'bathroom',
     size: [1.7, 0.75, 0.55],
     wall: true,
+    handed: true,
     draw: (w, d) => [outline(w, d), roundRect(-w / 2 + 0.07, -d / 2 + 0.07, w / 2 - 0.07, d / 2 - 0.07, Math.min(0.22, d * 0.3)), circle(-w / 2 + 0.22, 0, 0.03)],
   },
 
@@ -448,6 +554,7 @@ const ITEMS: CatalogItem[] = [
     wall: true,
     draw: (w, d) => [outline(w, d), rect(-Math.min(0.3, w * 0.25), d / 2 - 0.2, Math.min(0.3, w * 0.25), d / 2 - 0.15), rect(-0.22, -d / 2 + 0.12, 0.22, -d / 2 + 0.27)],
   },
+  { key: 'desk-l', name: 'Corner desk (L)', group: 'study', size: [1.6, 1.5, 0.75], wall: true, handed: true, ...lBench(0.7, false) },
   {
     // Drawn facing +y, so at the same angle as a desk it sits in front of it facing the desk.
     key: 'desk-chair',
@@ -507,8 +614,50 @@ const ITEMS: CatalogItem[] = [
     },
   },
 
-  // Anything else: a plain box to name and size, for whatever the catalogue hasn't got (a pantry, a
-  // linen cupboard, a water tank). Its name is written on it (see furnitureSymbol in ./furniture).
+  {
+    // A round 5000 L tank on its pad. Like everything here it's only drawn: it isn't counted in the checks or the costs.
+    key: 'tank',
+    name: 'Rainwater tank (5000 L)',
+    group: 'outdoor',
+    size: [1.85, 1.85, 2.1],
+    wall: true,
+    code: 'RWT',
+    draw: (w, d) => [ellipse(0, 0, w / 2, d / 2), circle(0, 0, Math.min(w, d) * 0.12)],
+    solids: (w, d, h) => [{ pts: ellipsePts(0, 0, w / 2, d / 2, 20), z0: 0, z1: h }],
+  },
+  {
+    // The water inside its coping, with steps down at one end. Drawn only: it digs nothing and costs nothing.
+    key: 'pool',
+    name: 'Swimming pool (7 × 3.5 m)',
+    group: 'outdoor',
+    size: [7, 3.5, 0.1],
+    wall: false,
+    handed: true,
+    draw: (w, d) => {
+      const c = Math.min(0.3, w / 6, d / 6)
+      const step = Math.min(0.3, (d - 2 * c) / 4)
+      const sw = Math.min(1.2, (w - 2 * c) / 3)
+      return [
+        outline(w, d),
+        rect(-w / 2 + c, -d / 2 + c, w / 2 - c, d / 2 - c),
+        ...[1, 2, 3].map(i => line([-w / 2 + c, -d / 2 + c + i * step], [-w / 2 + c + sw, -d / 2 + c + i * step])),
+        line([-w / 2 + c + sw, -d / 2 + c], [-w / 2 + c + sw, -d / 2 + c + 3 * step]),
+      ]
+    },
+    solids: (w, d, h) => {
+      const c = Math.min(0.3, w / 6, d / 6)
+      return [
+        box(-w / 2, -d / 2, w / 2, -d / 2 + c, 0, h),
+        box(-w / 2, d / 2 - c, w / 2, d / 2, 0, h),
+        box(-w / 2, -d / 2 + c, -w / 2 + c, d / 2 - c, 0, h),
+        box(w / 2 - c, -d / 2 + c, w / 2, d / 2 - c, 0, h),
+        box(-w / 2 + c, -d / 2 + c, w / 2 - c, d / 2 - c, 0, Math.min(0.02, h)),
+      ]
+    },
+  },
+
+  // Anything else: a plain box to name and size, for whatever the catalogue hasn't got (a linen
+  // cupboard, a shed). Its name is written on it (see furnitureSymbol in ./furniture).
   {
     key: CUSTOM_BOX,
     name: 'Custom box',

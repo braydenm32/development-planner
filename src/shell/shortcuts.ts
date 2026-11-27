@@ -63,6 +63,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['arrows'], what: 'Nudge the selection 10 mm' },
       { keys: ['shift+arrows'], what: 'Nudge it 100 mm' },
       { keys: ['Q'], what: 'Turn furniture a quarter turn clockwise (Shift+Q the other way)' },
+      { keys: ['H'], what: 'Mirror a corner sofa, L-shaped bench or desk, bath or pool left to right' },
       { keys: ['mod+C'], what: 'Copy' },
       { keys: ['mod+X'], what: 'Cut: copy, then take it away (paste puts it back where it was)' },
       { keys: ['mod+V'], what: 'Paste (in place on another level)' },

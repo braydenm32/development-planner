@@ -28,6 +28,7 @@ import { houseCaps, retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
+import { OpeningDetail3D } from './OpeningDetail3D'
 
 interface Props {
   plan: Plan
@@ -348,6 +349,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
           <meshStandardMaterial color="#8fb7d6" roughness={0.1} metalness={0.1} transparent opacity={0.55} />
         </mesh>
       )}
+      <OpeningDetail3D plan={plan} origin={origin} refZ={refZ} showLevels={showLevels} />
       {geoms.roofs && (
         <mesh name="roof" geometry={geoms.roofs} castShadow receiveShadow>
           <meshStandardMaterial color="#5d646d" roughness={0.7} metalness={0.15} />

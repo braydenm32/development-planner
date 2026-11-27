@@ -5,7 +5,7 @@
 
 import type { Vec2 } from '../lib/geom'
 import { translateSelection } from './editing'
-import { furnitureCorners, normDeg } from './furniture'
+import { furnitureCorners, isHanded, mirrored, normDeg } from './furniture'
 import type { Plan, Roof } from './model'
 import { houseBounds } from './ops'
 import { stairLayout } from './stairs'
@@ -110,8 +110,10 @@ function apply(plan: Plan, pick: Picked, t: Rigid): Plan {
     stairs: pick.stairs.size
       ? plan.stairs.map(s => (pick.stairs.has(s.id) ? { ...s, at: map(s.at), angle: dir(s.angle), ...(mirror ? { turn: other(s.turn) } : {}) } : s))
       : plan.stairs,
-    // A piece's back faces 90° on from its turn.
-    furniture: pick.furniture.size ? plan.furniture.map(f => (pick.furniture.has(f.id) ? { ...f, at: map(f.at), rotation: normDeg(dir(f.rotation + 90) - 90) } : f)) : plan.furniture,
+    // A piece's back faces 90° on from its turn; a handed one (a corner sofa) is mirrored too, so it is the mirror image.
+    furniture: pick.furniture.size
+      ? plan.furniture.map(f => (pick.furniture.has(f.id) ? { ...(mirror && isHanded(f) ? mirrored(f) : f), at: map(f.at), rotation: normDeg(dir(f.rotation + 90) - 90) } : f))
+      : plan.furniture,
     ...(pick.sketch.size && plan.sketch ? { sketch: plan.sketch.map(s => (pick.sketch.has(s.id) ? { ...s, pts: s.pts.map(map) } : s)) } : {}),
     ...(pick.notes && plan.notes?.length ? { notes: plan.notes.map(n => ({ ...n, at: map(n.at) })) } : {}),
     ...(pick.sections && plan.sections?.length ? { sections: plan.sections.map(s => ({ ...s, a: map(s.a), b: map(s.b) })) } : {}),
