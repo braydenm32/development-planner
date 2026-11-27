@@ -25,6 +25,7 @@ import {
   STREET_ROOM,
   STREET_MARGIN,
   STREET_REACH,
+  STREET_REACH_UPRIGHT,
   HOUSE_ELEVATION,
   HOUSE_TURN,
   LEVEL_FOV,
@@ -126,8 +127,13 @@ describe('the presets', () => {
     expect(dist(desk)).toBeGreaterThan(13 - STREET_INSET)
     // Upright phone: back across the road, as far as it goes, and most of the front shows (it was 4 m of 13.4).
     const phone = presetPose('street', wide, FOV, 0.46)
-    expect(dist(phone)).toBeCloseTo(13 + STREET_REACH, 6)
-    expect(shows(phone, 0.46).width).toBeGreaterThan(12.5)
+    expect(dist(phone)).toBeGreaterThan(13 + STREET_REACH)
+    expect(dist(phone)).toBeLessThanOrEqual(13 + STREET_REACH_UPRIGHT + 1e-6)
+    expect(shows(phone, 0.46).width).toBeGreaterThanOrEqual(13.4 * STREET_MARGIN - 1e-6)
+    // A wide screen never goes further than across the road, however wide the house.
+    expect(dist(presetPose('street', { ...wide, width: 60 }, FOV, 1.6))).toBeCloseTo(13 + STREET_REACH, 6)
+    // With bars over the top and bottom of the view, the open part shows less of the wide lens: it stands back further.
+    expect(dist(presetPose('street', wide, FOV, 1.6, 0.7))).toBeGreaterThan(dist(desk))
     // A small house well back from the street still stands just inside the boundary, as before.
     const small = presetPose('street', { ...frame, streetEdge: 30, houseEdge: 3, width: 6, top: frame.target[1] - 1.5 + 3 }, FOV, 1.6)
     expect(dist(small)).toBeCloseTo(30 - STREET_INSET, 6)

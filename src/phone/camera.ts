@@ -57,6 +57,8 @@ export const STREET_ROOM = 6
 export const STREET_MARGIN = 1.15
 /** The furthest Street view steps out past the block's boundary to fit the house in (m): about across the road, where the footpath's ground still reads. */
 export const STREET_REACH = 15
+/** An upright phone is so narrow that across the road still shows half a house: there it may step out this far (m). */
+export const STREET_REACH_UPRIGHT = 30
 /** The opening view: a little higher than Street view, turned off square so two sides of the house show. */
 export const HOUSE_ELEVATION = 28
 export const HOUSE_TURN = 35
@@ -75,15 +77,19 @@ export function fitDistance(r: number, fovDeg: number, aspect: number): number {
   return r / Math.sin(Math.min(v, h))
 }
 
-/** Where a preset puts the camera. */
-export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: number): Pose {
+/**
+ * Where a preset puts the camera. `fovDeg` and `aspect` are the open part of the view's (what no
+ * panel covers); `freeHeight` is how much of the view's height that part is, which Street view
+ * needs to know how much its wider, level lens shows there.
+ */
+export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: number, freeHeight = 1): Pose {
   const t = f.target
   if (preset === 'above') {
     // Straight down, a hair south of the target, so north is at the top of the screen.
     const d = fitDistance(f.blockRadius * 1.02, fovDeg, aspect)
     return { position: [t[0], t[1] + d, t[2] + d * 1e-3], target: [...t] }
   }
-  if (preset === 'street') return streetPose(f, fovDeg, aspect)
+  if (preset === 'street') return streetPose(f, fovDeg, aspect, freeHeight)
   if (preset === 'house') {
     // The house filling the view, with a little of the ground round it: the block is a tap away (From above).
     const d = fitDistance(f.radius * 1.25, fovDeg, aspect)
@@ -112,7 +118,7 @@ export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: num
  * front of yet), it stands back to take it all in. Without the ground (no survey under it), it
  * stands at the floor's level. It never looks up past level: the 3D view can't orbit below its target.
  */
-function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
+function streetPose(f: Frame, fovDeg: number, aspect: number, freeHeight: number): Pose {
   const t = f.target
   const exag = f.exaggeration ?? 1
   const dir = towards(f.street)
@@ -130,14 +136,15 @@ function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
     // Then back until the whole front fits the view, sides and top, with a margin: a two-storey
     // house 9 m behind its boundary was one blank wall, and a door and a strip of wall on a phone
     // held upright. Looking level the lens is the wide one and the eye line sits low (levelLens).
-    const v = Math.tan((Math.max(fovDeg, LEVEL_FOV) / 2) * RAD)
+    // The wide lens is the whole view's; the open part of it shows `freeHeight` of that.
+    const v = Math.max(Math.tan((fovDeg / 2) * RAD), Math.tan((LEVEL_FOV / 2) * RAD) * freeHeight)
     const h = v * Math.max(aspect, 0.1)
     const forWidth = f.width !== undefined ? ((f.width / 2) * STREET_MARGIN) / h : 0
     const forTop = (at: number) => (f.top !== undefined ? (((f.top - (groundAt(at) + EYE_HEIGHT * exag)) / exag) * STREET_MARGIN) / (2 * v * (0.5 + RISE_SHARE)) : 0)
     // The ground where it stands sets how tall the house looks: settle on it in two goes.
     for (let i = 0; i < 2; i++) d = Math.max(inside, front + Math.max(STREET_ROOM, forWidth, forTop(d)))
     // No further than across the road: past that the survey's ground is long gone.
-    d = Math.min(d, Math.max(inside, f.streetEdge + STREET_REACH))
+    d = Math.min(d, Math.max(inside, f.streetEdge + (aspect < 1 ? STREET_REACH_UPRIGHT : STREET_REACH)))
   }
   const x = t[0] + dir[0] * d
   const z = t[2] + dir[2] * d
