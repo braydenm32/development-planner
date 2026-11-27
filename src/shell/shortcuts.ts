@@ -59,7 +59,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Q'], what: 'Turn furniture a quarter turn (Shift+Q the other way)' },
       { keys: ['mod+C'], what: 'Copy' },
       { keys: ['mod+X'], what: 'Cut: copy, then take it away (paste puts it back where it was)' },
-      { keys: ['mod+V'], what: 'Paste (in place on another floor)' },
+      { keys: ['mod+V'], what: 'Paste (in place on another level)' },
       { keys: ['mod+shift+V'], what: 'Paste in place' },
       { keys: ['mod+D'], what: 'Duplicate' },
       { keys: ['Delete'], what: 'Delete the selection (the toast has Undo)' },
