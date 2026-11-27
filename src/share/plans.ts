@@ -1,4 +1,5 @@
 import { pageKey } from './pages'
+import { houseOnSite } from './siteHouse'
 import { CAVEAT_LINE } from '../legal/caveat'
 import { DRIVE_RUN, driveVerdict, drivewayGrade, gradeText } from '../lib/drape'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
@@ -276,6 +277,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   const rho = planTurn(input.up, plan.placement.rotation)
   const levels = sortedLevels(plan)
   const outlineOf = (l: Level) => buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).outlines
+  // The building on the block: every level on the ground, and the upper storeys (./siteHouse.ts).
+  const house = houseOnSite(plan)
   const roofs = plan.roofs.map(r => ({ roof: r, g: roofGeometry(r) })).filter(x => !x.g.error && x.g.outline.length >= 3)
   const retaining = plan.walls.filter(isRetaining)
   const retainingPolys = wallPolygons(retaining)
@@ -329,8 +332,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
     const ground = levels[0]
-    const outlines = ground ? outlineOf(ground) : []
-    const view = makeView([...boundary, ...outlines.flat()], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat()], rho, area, 100)
     const features = input.site ? sheetFeatures(input.site.features, survey.boundary) : []
     const marks: SheetArgs = {
       pg,
@@ -352,20 +354,9 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       pg.text(c[0], c[1], a.name, { size: 2.4, align: 'center', baseline: 'middle', color: GREY })
     }
 
+    houseOutline(pg, view, [0.8, 0.8, 0.8])
+    // Over the house, so a wall between two split levels still shows with what it holds back.
     retainingWalls(pg, view, retaining, true)
-
-    // The house: ground floor solid, upper floors and roofs dashed.
-    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
-    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
-    pg.dash([3, 1.2])
-    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
-    pg.dash()
-    if (outlines.length) {
-      const c = view.P(centroidOf(outlines[0]))
-      pg.text(c[0], c[1] + 1.5, 'House', { size: 3, font: 'bold', align: 'center' })
-      pg.text(c[0], c[1] - 3, `FFL RL ${floorRL(plan).toFixed(2)}`, { size: 2.6, align: 'center' })
-    }
 
     drawFeatureMarks(marks, features)
 
@@ -378,8 +369,9 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       along(pg, view, ccw ? p : q, ccw ? q : p, `${len.toFixed(2)} m`, -3, 2.6)
     })
 
-    // Setbacks: a dimension line from the house to each side, ticked at both ends (the plan draws the same ones).
-    for (const c of setbackDims(outlines, plan.placement, survey)) {
+    // Setbacks: a dimension line from the house to each side, ticked at both ends. From every level's
+    // outline, as Earthworks › Place and the checks measure them (the plan draws the same ones).
+    for (const c of setbackDims(house.rings, plan.placement, survey)) {
       const a = tf(c.from)
       const b = tf(c.to)
       const pa = view.P(a)
@@ -400,7 +392,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       ['Site area', `${input.siteArea.toFixed(0)} m²`],
       ['Building footprint (all floors)', `${footprint.toFixed(2)} m²`],
       ['Site coverage', `${((footprint / Math.max(input.siteArea, 1)) * 100).toFixed(1)}%`],
-      ['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`],
+      ...fflRows(),
     ]
     if (input.earthworks) rows.push(['Cut / fill', `${input.earthworks.cut.toFixed(1)} / ${input.earthworks.fill.toFixed(1)} m³`])
     if (profiles.length) {
@@ -552,19 +544,29 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     }
   }
 
-  /** The house's ground floor, filled, with its upper floors and roofs dashed. */
-  function houseOutline(pg: PdfPage, view: View, fill: RGB) {
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
-    pg.lineWidth(0.5).stroke(INK).fill(fill).shape(outlines.map(r => ring(view, r)), 'both')
+  /** The floor level of each level on the ground: one row for a house on one level, a row each for split levels. */
+  function fflRows(): [string, string][] {
+    if (house.ground.length < 2) return [['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`]]
+    return house.ground.map(g => [`${g.level.name} FFL`, `RL ${g.rl.toFixed(2)}`])
+  }
+
+  /**
+   * The house: every level on the ground filled, each named with its floor level (a split level
+   * beside the lowest is part of the footprint), and only the storeys over them, and the roofs, dashed.
+   */
+  function houseOutline(pg: PdfPage, view: View, fill: RGB, label = true) {
+    pg.lineWidth(0.5).stroke(INK).fill(fill)
+    for (const g of house.ground) pg.shape(g.rings.map(r => ring(view, r)), 'both')
     pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
+    for (const r of house.upper) pg.shape([ring(view, r)], 'stroke')
     pg.dash([3, 1.2])
     for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
     pg.dash()
-    if (outlines.length) {
-      const c = view.P(centroidOf(outlines[0]))
-      pg.text(c[0], c[1] + 1.5, 'House', { size: 3, font: 'bold', align: 'center' })
-      pg.text(c[0], c[1] - 3, `FFL RL ${floorRL(plan).toFixed(2)}`, { size: 2.6, align: 'center' })
+    if (!label) return
+    for (const g of house.ground) {
+      const c = view.P(centroidOf(g.rings[0]))
+      pg.text(c[0], c[1] + 1.5, house.ground.length > 1 ? g.level.name : 'House', { size: 3, font: 'bold', align: 'center' })
+      pg.text(c[0], c[1] - 3, `FFL RL ${g.rl.toFixed(2)}`, { size: 2.6, align: 'center' })
     }
   }
 
@@ -589,8 +591,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   function blockView(extra: Vec2[] = []) {
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
-    const view = makeView([...boundary, ...outlines.flat(), ...extra], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat(), ...extra], rho, area, 100)
     return { tf, boundary, view }
   }
 
@@ -613,8 +614,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
       pg.restore()
     }
     const fc = drawContours(pg, view, tf)
-    retainingWalls(pg, view, retaining, true)
     houseOutline(pg, view, [0.93, 0.93, 0.93])
+    retainingWalls(pg, view, retaining, true)
     pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
 
     const e = input.earthworks!
@@ -626,7 +627,7 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     ]
     if (e.maxCut !== undefined) rows.push(['Deepest cut', `${e.maxCut.toFixed(2)} m`])
     if (e.maxFill !== undefined) rows.push(['Deepest fill', `${e.maxFill.toFixed(2)} m`])
-    rows.push(['Ground floor FFL', `RL ${floorRL(plan).toFixed(2)}`])
+    rows.push(...fflRows())
     if (profiles.length) {
       rows.push(['Retaining walls', `${profiles.reduce((t, p) => t + p.length, 0).toFixed(1)} m`])
       rows.push(['Tallest retaining wall', `holds back ${mm(Math.max(...profiles.map(p => p.maxHeight)))} mm`])
@@ -710,9 +711,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
   function shadowSheet(pg: PdfPage, d: ShadowDiagram): View {
     const tf = (p: Vec2) => fromSite(p, plan.placement, survey.origin)
     const boundary = survey.boundary.map(tf)
-    const outlines = levels[0] ? outlineOf(levels[0]) : []
     const cast = d.shadows.flatMap(x => x.shadow?.rings.flat() ?? []).map(tf)
-    const view = makeView([...boundary, ...outlines.flat(), ...cast], rho, area, 100)
+    const view = makeView([...boundary, ...house.rings.flat(), ...cast], rho, area, 100)
     const args = { pg, toPaper: (p: Vec2) => view.P(tf(p)) }
     const box: [number, number][] = [
       [area.x, area.y],
@@ -722,13 +722,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     ]
     pg.save().clip([box])
     drawShadows(args, d)
-    // The house over its shadows: ground floor solid, upper floors and roofs dashed.
-    pg.lineWidth(0.5).stroke(INK).fill([0.8, 0.8, 0.8]).shape(outlines.map(r => ring(view, r)), 'both')
-    pg.lineWidth(0.25).stroke(GREY).dash([1.5, 1])
-    for (const l of levels.slice(1)) for (const r of outlineOf(l)) pg.shape([ring(view, r)], 'stroke')
-    pg.dash([3, 1.2])
-    for (const { g } of roofs) pg.shape([ring(view, g.outline)], 'stroke')
-    pg.dash()
+    // The house over its shadows: the levels on the ground solid, upper storeys and roofs dashed.
+    houseOutline(pg, view, [0.8, 0.8, 0.8], false)
     pg.lineWidth(0.6).stroke(INK).shape([ring(view, boundary)], 'stroke')
     drawShadowLabels(args, d)
     pg.restore()

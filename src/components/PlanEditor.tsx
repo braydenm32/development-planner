@@ -66,6 +66,7 @@ import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
 import { RetainingMarks } from './RetainingMarks'
 import { floorToFirstWalls } from './placeActions'
+import { houseOutline } from './planNumbers'
 import { useWallFocus } from '../plan/wallFocus'
 import { nextInStack, pickFromStack, stackNotice, wallStackAt } from '../plan/wallStack'
 import { garageDoorSymbol } from '../plan/garageDoor'
@@ -390,11 +391,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const wallOutlines = useMemo(() => [...polys.values()], [polys])
   const selFurniture = !group && selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
 
-  // Setbacks: how far the ground floor is from each side of the block, while moving the house and wherever they're switched on.
+  // Setbacks: how far the house is from each side of the block, while moving the house and wherever they're switched on.
+  // From every level's outline, as Earthworks › Place measures them: a split level can be the nearest.
   const setbacks = useMemo(() => {
-    const lowest = sortedLevels(plan)[0]
-    if ((tool !== 'move' && !showSetbacks) || !lowest) return []
-    return setbackDims(buildingOutline(planarFaces(plan.walls.filter(w => w.level === lowest.id))).outlines, plan.placement, survey, { over: true })
+    if (tool !== 'move' && !showSetbacks) return []
+    return setbackDims(houseOutline(plan).rings, plan.placement, survey, { over: true })
   }, [tool, showSetbacks, plan, survey])
 
   // Site boundary and contours in the house's frame.
