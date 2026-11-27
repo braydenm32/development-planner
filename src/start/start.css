@@ -339,6 +339,21 @@
   box-shadow: 0 0 0 1px var(--st-accent);
 }
 
+/* A number that can't be used: red round the box, with the reason listed above the button. */
+.st-field.bad {
+  border-color: var(--st-danger);
+  box-shadow: 0 0 0 1px var(--st-danger);
+}
+
+.st-field.bad:focus-within {
+  box-shadow: 0 0 0 1px var(--st-danger), 0 0 0 3px var(--st-accent);
+}
+
+.st-errors {
+  display: grid;
+  gap: 2px;
+}
+
 /* The field shows the focus ring, so the input inside doesn't draw a second one. */
 .start-screen .st-field input:focus-visible {
   outline: none;

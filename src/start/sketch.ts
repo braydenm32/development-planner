@@ -35,21 +35,39 @@ export const SKETCH_LAYERS: Record<string, LayerRole> = {
   SKETCH_CONTOURS: 'contour',
 }
 
-/** Check typed numbers; `null` for a blank width and depth (no size given). Throws a plain message. */
-export function readSketchSize(width: string, depth: string, fall: string, street: StreetSide): SketchBlock {
-  const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')))
-  const w = num(width)
-  const d = num(depth)
-  const f = num(fall) ?? 0
-  if (w === null && d === null) return { ...ROUGH_SIZE, fall: f, street, rough: true }
-  if (w === null || d === null) throw new Error('Type both the width and the depth, or leave both empty to set them later.')
-  for (const [v, name] of [
-    [w, 'width'],
-    [d, 'depth'],
-  ] as const) {
-    if (!Number.isFinite(v) || v < LIMITS.min || v > LIMITS.max) throw new Error(`The block’s ${name} needs to be between ${LIMITS.min} and ${LIMITS.max} m.`)
+const typed = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')))
+
+/** The start screen's number boxes, in the order they are read. */
+export const SKETCH_FIELDS = ['width', 'depth', 'fall'] as const
+export type SketchField = (typeof SKETCH_FIELDS)[number]
+
+/**
+ * What is wrong with each typed number, box by box, so every bad box is marked at once and not
+ * only the first; empty when the block can be made. A blank width and depth is no size given.
+ */
+export function sketchProblems(width: string, depth: string, fall: string): Partial<Record<SketchField, string>> {
+  const out: Partial<Record<SketchField, string>> = {}
+  const size = { width: typed(width), depth: typed(depth) }
+  for (const name of ['width', 'depth'] as const) {
+    const v = size[name]
+    const other = size[name === 'width' ? 'depth' : 'width']
+    if (v === null) {
+      if (other !== null) out[name] = 'Type both the width and the depth, or leave both empty to set them later.'
+    } else if (!Number.isFinite(v) || v < LIMITS.min || v > LIMITS.max) out[name] = `The block’s ${name} needs to be between ${LIMITS.min} and ${LIMITS.max} m.`
   }
-  if (!Number.isFinite(f) || Math.abs(f) > LIMITS.fall) throw new Error(`The fall needs to be within ${LIMITS.fall} m.`)
+  const f = typed(fall) ?? 0
+  if (!Number.isFinite(f) || Math.abs(f) > LIMITS.fall) out.fall = `The fall needs to be within ${LIMITS.fall} m.`
+  return out
+}
+
+/** Check typed numbers; `null` for a blank width and depth (no size given). Throws a plain message: the first box's. */
+export function readSketchSize(width: string, depth: string, fall: string, street: StreetSide): SketchBlock {
+  const problems = sketchProblems(width, depth, fall)
+  for (const name of SKETCH_FIELDS) if (problems[name]) throw new Error(problems[name])
+  const w = typed(width)
+  const d = typed(depth)
+  const f = typed(fall) ?? 0
+  if (w === null || d === null) return { ...ROUGH_SIZE, fall: f, street, rough: true }
   return { width: w, depth: d, fall: f, street }
 }
 
