@@ -159,22 +159,37 @@ export function stem(w: string): string {
   return w
 }
 
-/** How well an item matches, or 0. Every query word must start a word of the item, or (a little weaker) share its stem. */
-function score(item: SearchItem, q: string[], phrase: string): number {
-  const label = item.tiers[0].join(' ')
-  if (label === phrase) return 100
-  if (label.startsWith(phrase)) return 80
-  const tiers = (hit: (query: string, word: string) => boolean) => {
-    const has = (pool: string[]) => q.every(w => pool.some(t => hit(w, t)))
-    if (has(item.tiers[0])) return 60
-    if (has([...item.tiers[0], ...item.tiers[1]])) return 40
-    if (has([...item.tiers[0], ...item.tiers[1], ...item.tiers[2]])) return 20
-    return 0
+/** An item's words as the scorer reads them, worked out once: its label, its tiers pooled (each pool holds the one before), and every word's stem. */
+interface Prepared {
+  label: string
+  pools: [string[], string[], string[]]
+  stems: [string[], string[], string[]]
+}
+
+const prepared = new WeakMap<SearchItem, Prepared>()
+
+function prep(item: SearchItem): Prepared {
+  let p = prepared.get(item)
+  if (!p) {
+    const [a, b, c] = item.tiers
+    const pools: Prepared['pools'] = [a, [...a, ...b], [...a, ...b, ...c]]
+    p = { label: a.join(' '), pools, stems: [pools[0].map(stem), pools[1].map(stem), pools[2].map(stem)] }
+    prepared.set(item, p)
   }
-  const exact = tiers((w, t) => t.startsWith(w))
+  return p
+}
+
+/** How well an item matches, or 0. Every query word must start a word of the item, or (a little weaker) share its stem. */
+function score(item: SearchItem, q: string[], phrase: string, qStems: string[]): number {
+  const p = prep(item)
+  if (p.label === phrase) return 100
+  if (p.label.startsWith(phrase)) return 80
+  // The widest pool first: most items miss there, and a miss there is a miss in the narrower ones.
+  const tiers = (has: (pool: 0 | 1 | 2) => boolean) => (!has(2) ? 0 : has(0) ? 60 : has(1) ? 40 : 20)
+  const exact = tiers(k => q.every(w => p.pools[k].some(t => t.startsWith(w))))
   if (exact) return exact
   // "removal" for "remove": found, just under the same words typed as they're written.
-  const loose = tiers((w, t) => t.startsWith(w) || (w.length >= 5 && stem(t) === stem(w)))
+  const loose = tiers(k => q.every((w, i) => p.pools[k].some((t, j) => t.startsWith(w) || (w.length >= 5 && p.stems[k][j] === qStems[i]))))
   return loose ? loose - 5 : 0
 }
 
@@ -183,8 +198,9 @@ export function search(index: SearchItem[], query: string, limit = 40): SearchIt
   const q = words(query)
   if (!q.length) return []
   const phrase = q.join(' ')
+  const qStems = q.map(stem)
   const ranked = index
-    .map(item => ({ item, s: score(item, q, phrase) }))
+    .map(item => ({ item, s: score(item, q, phrase, qStems) }))
     .filter(r => r.s > 0)
     .map(r => ({ ...r, s: r.s + KIND_WEIGHT[r.item.kind] }))
     .sort((a, b) => b.s - a.s || KIND_ORDER[b.item.kind] - KIND_ORDER[a.item.kind] || a.item.label.length - b.item.label.length)
