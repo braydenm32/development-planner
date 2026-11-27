@@ -4,8 +4,8 @@
 
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, type Face } from '../plan/geometry'
-import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Wall } from '../plan/model'
-import { isGarageRoom } from '../plan/quantities'
+import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
+import { roomIsGarage, roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
 import { roofCatchments, tankRoofs, totalCatchment } from '../drainage/stormwater'
 import { basixOf, type BasixAnswers, type BasixItemId, type Cooling, type Heating, type HotWater, type Lighting } from './model'
@@ -119,13 +119,19 @@ export interface LivingOrientation {
   main: Facade | null
 }
 
+/** A living area for the orientation line: a living type, or (no type) a name that reads as one. */
+export function isBasixLiving(r: Pick<Room, 'name' | 'type'>): boolean {
+  const t = roomTypeInfo(r)
+  return t ? !!t.basix : LIVING_ROOM.test(r.name)
+}
+
 /** Which way each living area looks: its windows by facade. */
 export function livingOrientations(plan: Plan): LivingOrientation[] {
   const facings = windowFacings(plan)
   const facesByLevel = new Map<string, Face[]>()
   for (const l of plan.levels) facesByLevel.set(l.id, planarFaces(plan.walls.filter(w => w.level === l.id)))
   return plan.rooms
-    .filter(r => LIVING_ROOM.test(r.name))
+    .filter(isBasixLiving)
     .map(r => {
       const face = faceAround(r.at, facesByLevel.get(r.level) ?? [])
       const windows: Record<Facade, number> = { N: 0, E: 0, S: 0, W: 0 }
@@ -154,7 +160,7 @@ export function floorAreas(plan: Plan): FloorAreas {
     gross += buildingOutline(faces).area
     const seen = new Set<Face>()
     for (const r of plan.rooms) {
-      if (r.level !== l.id || !isGarageRoom(r.name)) continue
+      if (r.level !== l.id || !roomIsGarage(r)) continue
       const f = faceAround(r.at, faces)
       if (!f || seen.has(f)) continue
       seen.add(f)
@@ -253,7 +259,7 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`
 export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[] {
   const living = facts.living.length
     ? facts.living.map(l => `${l.room}: ${l.main ? `mostly ${FACADE_NAMES[l.main].toLowerCase()}` : 'no outside windows yet'}`).join('; ')
-    : 'No living, kitchen or dining room named yet'
+    : 'No living, kitchen or dining room yet'
   const windows = FACADES.map(f => `${FACADE_NAMES[f]} ${m2(facts.windows[f])}`).join(', ')
   return [
     { id: 'orientation', item: 'Living areas face', value: living, why: 'The tool asks which way each living area’s glass faces; north-facing living gets winter sun.', fromPlan: true },

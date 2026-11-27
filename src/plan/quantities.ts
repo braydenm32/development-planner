@@ -13,24 +13,12 @@ import { levelSummaries } from './keyNumbers'
 import { areaKind, floorRL, type AreaKind, type Opening, type Plan, type Roof } from './model'
 import type { RetainingProfile } from './retaining'
 import type { ImpliedTotals } from '../grading/implied'
+import { isGarageRoom, roomIsGarage, roomWet, WET_ROOMS, wetRoomOf, type WetRoom } from './roomTypes'
 import { roofGeometry } from './roof'
 import { insideEdgeMid, wallTopAt } from './roofline'
 
-/** Rooms that need their own fit-out and plumbing, found by their names. */
-export type WetRoom = 'kitchen' | 'bathroom' | 'laundry' | 'toilet'
-
-export const WET_ROOMS: { id: WetRoom; label: string; plural: string; test: RegExp }[] = [
-  { id: 'kitchen', label: 'kitchen', plural: 'kitchens', test: /kitchen/i },
-  { id: 'bathroom', label: 'bathroom', plural: 'bathrooms', test: /bath|ensuite|en-suite|shower/i },
-  { id: 'laundry', label: 'laundry', plural: 'laundries', test: /laundry/i },
-  { id: 'toilet', label: 'toilet', plural: 'toilets', test: /\b(wc|toilet|powder)\b/i },
-]
-
-/** Which wet room a room is, by its name (the first that fits: "Laundry and WC" is a laundry); null for a dry room. */
-export const wetRoomOf = (name: string): WetRoom | null => WET_ROOMS.find(w => w.test.test(name))?.id ?? null
-
-/** Garages and carports have a bare concrete floor: no floor finish. */
-export const isGarageRoom = (name: string) => /garage|carport/i.test(name)
+// A room's kind (wet rooms, garages) is its type's, or for a room with none its name's: src/plan/roomTypes.ts.
+export { isGarageRoom, WET_ROOMS, wetRoomOf, type WetRoom }
 
 /** Retaining walls thinner than this (the 150 mm sleeper preset) are sleeper walls; thicker ones (the 200 mm preset) are concrete block (m). */
 export const SLEEPER_MAX_THICKNESS = 0.175
@@ -70,6 +58,11 @@ export interface DesignQuantities {
   slabUnder: Counted & { names: string[]; areas: string[] }
   /** Rooms with a floor finish: every enclosed room except garages and carports (room areas, inside the walls). */
   finishes: Counted
+  /**
+   * Spaces the walls enclose with no room in them yet (their areas, inside the walls): they have a
+   * floor to finish all the same. Missing in quantities made before it was counted.
+   */
+  unroomed?: Counted
   /** Rooms with a fit-out of their own, by kind, with their names. */
   wet: Record<WetRoom, Counted & { names: string[] }>
   /** The outside walls: the outline's perimeter times each level's height, less the openings in them (m, m²). */
@@ -208,12 +201,12 @@ export function designQuantities(
   for (const s of summaries)
     for (const r of s.rooms) {
       if (r.area === null) continue
-      if (!isGarageRoom(r.room.name)) {
+      if (!roomIsGarage(r.room)) {
         finishes.count++
         finishes.area += r.area
         finishes.ids.push(r.room.id)
       }
-      const kind = wetRoomOf(r.room.name)
+      const kind = roomWet(r.room)
       if (kind) {
         wet[kind].count++
         wet[kind].area += r.area
@@ -221,6 +214,23 @@ export function designQuantities(
         wet[kind].names.push(r.room.name)
       }
     }
+
+  // A space nobody has put a room in is still floor: without it, a house with two rooms labelled
+  // had floor finishes for those two alone.
+  const unroomed = counted()
+  for (const s of summaries) {
+    const faces = planarFaces(plan.walls.filter(w => w.level === s.level.id))
+    const taken = new Set(s.rooms.map(r => faceAround(r.room.at, faces)))
+    for (const f of faces) {
+      if (f.area <= 0 || taken.has(f)) continue
+      const inner = offsetPolygon(
+        f.pts,
+        f.thickness.map(t => t / 2),
+      )
+      unroomed.count++
+      unroomed.area += Math.abs(signedArea(inner))
+    }
+  }
 
   // The outside walls and the openings in them, level by level.
   const walls = { perimeter: 0, gross: 0, openings: 0, net: 0, ids: [] as string[] }
@@ -304,6 +314,7 @@ export function designQuantities(
     upper,
     slabUnder,
     finishes,
+    unroomed,
     wet,
     walls,
     windows,

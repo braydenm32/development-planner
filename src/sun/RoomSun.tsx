@@ -1,6 +1,6 @@
 // The selected room's sun: whether it's a living area, and for one, the hours of direct sun on
-// its windows from 9 am to 3 pm on 21 June. Rooms have no type, so a name like Living or Family
-// counts until the tick says otherwise.
+// its windows from 9 am to 3 pm on 21 June. The tick follows the room's type (or, with none, a
+// name like Living or Family) until someone sets it, and says what it is for.
 
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -27,8 +27,9 @@ export function RoomSun({ plan, room, survey, terrain, earth }: Props) {
     <div className="sun-room">
       <label className="check">
         <input type="checkbox" checked={living} onChange={e => usePlan.getState().commit(p => updateRoom(p, room.id, { living: e.target.checked }))} />
-        Living area
+        Living area: check its winter sun
       </label>
+      <p className="muted small">Site › Sun works out the midwinter sun on each living area. The tick follows the room’s type until you change it.</p>
       {living && <RoomHours plan={plan} room={room} survey={survey} terrain={terrain} earth={earth} />}
     </div>
   )

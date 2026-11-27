@@ -359,7 +359,14 @@ function costsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boole
   const c = i.cost
   const ready = !!c?.ready
   if (c?.ready && c.missing.length)
-    items.push({ id: 'estimate', text: `The estimate has nothing for the ${andList(c.missing)} yet`, detail: 'Draw them and their lines fill in.', tone: 'todo', go: place('costs', 'estimate') })
+    items.push({
+      id: 'estimate',
+      text: `The estimate has nothing for the ${andList(c.missing)} yet`,
+      // A bathroom or a kitchen is a room given that type, not something else to draw.
+      detail: c.missing.every(m => m === 'bathroom' || m === 'kitchen') ? 'Give a room that type on its card and its line fills in.' : 'Draw them and their lines fill in.',
+      tone: 'todo',
+      go: place('costs', 'estimate'),
+    })
   if (!i.da.address) items.push({ id: 'address', text: 'Add the site’s address', detail: 'For the DA pack’s title blocks. It stays on this device.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-address' }) })
   if (!i.da.lot) items.push({ id: 'lot', text: 'Add the Lot and DP', detail: 'For the DA pack’s title blocks.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-lot' }) })
   if (!i.da.preparedBy) items.push({ id: 'by', text: 'Say who prepared the plans', detail: 'Your name or business, on the DA pack.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-by' }) })

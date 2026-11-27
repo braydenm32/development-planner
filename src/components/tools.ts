@@ -38,4 +38,4 @@ export const TOOLS: ToolDef[] = [
 ]
 
 /** Tools whose options show next to the rail. */
-export const TOOLS_WITH_OPTIONS: Tool[] = ['wall', 'retaining', 'door', 'window', 'opening', 'garage', 'area', 'roof', 'stair', 'furniture', 'sketch']
+export const TOOLS_WITH_OPTIONS: Tool[] = ['wall', 'retaining', 'door', 'window', 'opening', 'garage', 'room', 'area', 'roof', 'stair', 'furniture', 'sketch']

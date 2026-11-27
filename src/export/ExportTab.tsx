@@ -64,20 +64,24 @@ export function ExportTab() {
         <p className="muted small">No doors or windows yet. Add some with the Door and Window tools and they list here.</p>
       ) : (
         <div className="schedule-wrap">
+          {/* A caption, header scopes and the unit on each size, so a screen reader ties every figure to its column (AX-24). */}
           <table className="schedule">
+            <caption>Door and window schedule: each door and window, where it is and its size in millimetres</caption>
             <thead>
               <tr>
-                <th>Mark</th>
-                <th>Type</th>
-                <th>Where</th>
-                <th>W × H</th>
-                <th>Sill</th>
+                <th scope="col">Mark</th>
+                <th scope="col">Type</th>
+                <th scope="col">Where</th>
+                <th scope="col">
+                  <abbr title="Width by height">W × H</abbr> (mm)
+                </th>
+                <th scope="col">Sill (mm)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(r => (
                 <tr key={r.id}>
-                  <td>{r.id}</td>
+                  <th scope="row">{r.id}</th>
                   <td>{r.type}</td>
                   <td>
                     {r.room}

@@ -226,6 +226,13 @@ describe('Costs & share', () => {
     expect(c.items[1].go).toEqual({ to: 'place', area: 'approvals', tab: 'da-pack', field: 'da-address' })
     expect(c.headline).toBe('About $438k')
   })
+
+  it('flags a house with no bathroom or kitchen, and says a room’s type is what fills it in (HO-07)', () => {
+    const c = step(stepsOf(input(finished(), { cost: { ready: true, total: 438_000, low: 400_000, high: 480_000, missing: ['bathroom', 'kitchen'] } })), 'costs')
+    expect(c.items[0]).toMatchObject({ text: 'The estimate has nothing for the bathroom and kitchen yet', detail: 'Give a room that type on its card and its line fills in.' })
+    const both = step(stepsOf(input(finished(), { cost: { ready: true, total: 438_000, low: 400_000, high: 480_000, missing: ['roof', 'bathroom'] } })), 'costs')
+    expect(both.items[0]).toMatchObject({ text: 'The estimate has nothing for the roof and bathroom yet', detail: 'Draw them and their lines fill in.' })
+  })
 })
 
 describe('asking the question list for a question', () => {

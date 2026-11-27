@@ -188,4 +188,18 @@ describe('the summary strip', () => {
     expect(at('Estimate')).toBeLessThan(at('Floor level (FFL)'))
     expect(at('Floor level (FFL)')).toBeLessThan(at('Out of balance'))
   })
+
+  it('says an estimate under the guide for custom-built houses is a floor: "or more", with the range on a hover (HO-08)', () => {
+    const cost = { ready: true, total: 560_837, low: 448_670, high: 673_005, missing: [] }
+    const chip = (c: typeof cost & { under?: { low: number; high: number } }) =>
+      /<button class="chip" title="([^"]*)">(<span class="chip-label">Estimate.*?)<\/button>/.exec(
+        renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} cost={c} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />),
+      )!
+    const under = chip({ ...cost, under: { low: 1_058_766, high: 1_468_000 } })
+    expect(words(under[2])).toBe('Estimate $561k or more')
+    expect(under[1]).toBe('Likely $449k to $673k. A floor, not a budget: custom-built houses like it run $1.06M to $1.47M (Costs › Estimate)')
+    const plain = chip(cost)
+    expect(words(plain[2])).toBe('Estimate $561k')
+    expect(plain[1]).toBe('Likely $449k to $673k')
+  })
 })

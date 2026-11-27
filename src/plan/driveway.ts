@@ -13,6 +13,7 @@ import type { SurveyPoint } from '../lib/survey'
 import { floorTypeInfo, levelBuildsAs, roomFloorType } from './floorTypes'
 import { buildingOutline, planarFaces } from './geometry'
 import { areaKind, earthworksOf, floorRL, houseWalls, pointOnWall, sortedLevels, toSite, type Area, type DriveLevels, type Plan } from './model'
+import { roomIsGarage } from './roomTypes'
 
 export { MAX_DRIVE_GRADE }
 
@@ -203,9 +204,9 @@ function squareToEnds(poly: Vec2[], d: Vec2): Vec2 | null {
   return (out[0] * d[0] + out[1] * d[1]) / l < Math.cos((2 * Math.PI) / 180) ? out : null
 }
 
-/** The garage's slab: the floor of the level a room called Garage is on, or the ground floor's. */
+/** The garage's slab: the floor of the level the garage (by its type, or a room called Garage) is on, or the ground floor's. */
 export function garageSlab(plan: Plan): { rl: number; name: string } {
-  const garage = plan.rooms.find(r => /garage|carport/i.test(r.name))
+  const garage = plan.rooms.find(roomIsGarage)
   return garage ? { rl: floorRL(plan, garage.level), name: `${garage.name} slab` } : { rl: floorRL(plan), name: 'Ground floor slab' }
 }
 

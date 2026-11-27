@@ -6,6 +6,7 @@ import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId, type LevelFloor } from './floorTypes'
+import type { RoomTypeId } from './roomTypes'
 import { linkStairs } from './stairs'
 
 /**
@@ -200,8 +201,10 @@ export interface Room {
   at: Vec2
   /** This room's own floor type, on a level built on the ground. Missing follows its level's (see roomFloorType). */
   foundation?: Foundation
-  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's name (see isLiving). */
+  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's type, else its name (see isLiving). */
   living?: boolean
+  /** What kind of room it is (src/plan/roomTypes.ts). Missing in rooms drawn before types: those go by their name. */
+  type?: RoomTypeId
 }
 
 /**

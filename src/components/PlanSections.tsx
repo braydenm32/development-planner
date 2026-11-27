@@ -60,6 +60,7 @@ import { nameAsked, useNameAsk } from './nameFocus'
 import { RoomFloorType } from './FloorTypeFields'
 import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
+import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from '../plan/roomTypes'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
@@ -101,6 +102,7 @@ export function ToolOptions({ tool: shown }: { tool?: Tool }) {
   if (tool === 'retaining') return <RetainingToolOptions />
   if (isOpeningTool(tool)) return <OpeningOptions kind={tool} />
   if (tool === 'area') return <AreaOptions />
+  if (tool === 'room') return <RoomOptions />
   if (tool === 'roof') return <RoofOptions />
   if (tool === 'stair') return <StairOptions />
   if (tool === 'furniture') return <FurniturePicker />
@@ -197,6 +199,48 @@ export function AreaOptions() {
       <Select label="Type" value={areaDefault} options={AREA_KINDS} onChange={k => st.setAreaDefault(k)} />
       <p className="muted small">{AREA_NOTES[areaDefault]}</p>
     </div>
+  )
+}
+
+/** The Type list's first line: no type, so a room goes by its name. */
+const NO_ROOM_TYPE = ''
+
+/** The Room tool's card: the type the next room gets, which also names it. It can be picked after placing instead. */
+export function RoomOptions() {
+  const type = usePlan(s => s.roomTypeDefault)
+  const st = usePlan.getState()
+  return (
+    <div className="tool-options">
+      <Select
+        label="Type"
+        value={type ?? NO_ROOM_TYPE}
+        options={[{ id: NO_ROOM_TYPE, label: 'Choose after placing' }, ...ROOM_TYPES.map(t => ({ id: t.id as string, label: t.label }))]}
+        onChange={id => st.setRoomTypeDefault(isRoomType(id) ? id : null)}
+      />
+      <p className="muted small">
+        {type
+          ? 'Click inside the walls to place it. The type names the room and tells the estimate, the sun and BASIX what it is.'
+          : 'Click inside the walls to place a room, then pick its type on its card. Or pick the type here first.'}
+      </p>
+    </div>
+  )
+}
+
+/** A room's type, under its name on the Room card, with what that makes it in the estimate. */
+function RoomTypeField({ room }: { room: Room }) {
+  const typed = roomTypeInfo(room) !== null
+  return (
+    <>
+      <Select
+        label="Type"
+        value={typed ? (room.type as string) : NO_ROOM_TYPE}
+        options={[...(typed ? [] : [{ id: NO_ROOM_TYPE, label: 'Choose a type' }]), ...ROOM_TYPES.map(t => ({ id: t.id as string, label: t.label }))]}
+        onChange={id => {
+          if (isRoomType(id)) usePlan.getState().commit(p => setRoomType(p, room.id, id))
+        }}
+      />
+      <p className="muted small">{roomCountsAs(room)}</p>
+    </>
   )
 }
 
@@ -433,6 +477,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           <b>{area === null ? 'not enclosed' : `${area.toFixed(2)} m²`}</b>
         </div>
         <RoomName room={r} />
+        <RoomTypeField room={r} />
         <RoomFloorType key={r.id} plan={plan} room={r} />
         <RoomGround plan={plan} room={r} survey={survey} terrain={terrain} />
         <RoomSun plan={plan} room={r} survey={survey} terrain={terrain} earth={earth} />

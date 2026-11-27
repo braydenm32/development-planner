@@ -8,14 +8,19 @@
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { faceAround, planarFaces } from '../plan/geometry'
 import { floorRL, houseWalls, pointOnWall, toSite, wallDir, type Plan, type Room } from '../plan/model'
+import { roomTypeInfo } from '../plan/roomTypes'
 import { compassPoint } from './solar'
 import type { Ground, SunRay } from './shadow'
 
-/** Names that read as living areas when a room hasn't been ticked one way or the other. */
+/** Names that read as living areas, for a room with no type that hasn't been ticked one way or the other. */
 const LIVING_NAMES = /\b(living|lounge|family|rumpus|dining|sitting|meals|great room)\b/i
 
-/** A living area: ticked as one, or (unticked) named like one. */
-export const isLiving = (r: Pick<Room, 'living' | 'name'>) => r.living ?? LIVING_NAMES.test(r.name)
+/** A living area: ticked as one, or (unticked) of a living type, or (no type) named like one. */
+export function isLiving(r: Pick<Room, 'living' | 'name' | 'type'>): boolean {
+  if (r.living !== undefined) return r.living
+  const t = roomTypeInfo(r)
+  return t ? !!t.sun : LIVING_NAMES.test(r.name)
+}
 
 export interface RoomWindow {
   opening: string
