@@ -68,6 +68,7 @@ import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } fro
 import { LevelMenu } from './LevelMenu'
 import { askName } from './nameFocus'
 import { nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
+import { floorStack, nextOnFloor } from '../plan/floorPick'
 import { useWallMode } from '../plan/wallMode'
 import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
@@ -181,7 +182,7 @@ const VIEW_HINT = {
 }
 
 const HINTS: Record<Tool, string> = {
-  select: 'Click to select. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag empty space to pan.',
+  select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes. Drag to pan.',
   wall: 'Click to start a wall, click again for each corner. Type a length in mm and press Enter. Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to turn off snapping. For a whole room in one go, Shift+W.',
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
@@ -1089,6 +1090,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     return null
   }
 
+  /** What lies flat under a point (src/plan/floorPick.ts): the next of them to pick if this press turns out a click, and when a floor was last pressed. */
+  const floorNext = useRef<Selection | null>(null)
+  const lastFloorPress = useRef(0)
+
   /** What every drawing tool snaps a point to: the walls it can see and the sketch layer. */
   const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) => snap(raw, { walls: snapWalls, guides, tol, ...o })
 
@@ -1099,6 +1104,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const world = W(sx, sy)
     downAt.current = { x: sx, y: sy }
     shift.current = e.shiftKey
+    floorNext.current = null
     svgRef.current!.setPointerCapture(e.pointerId)
     if (!view || view.token !== fitToken) setView(v) // freeze the fitted view once the user interacts
 
@@ -1227,6 +1233,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       beginGesture()
       drag.current = { type: 'group', start: plan, startWorld: world, sels: selectedList(usePlan.getState()), solo: { type: hit.type, id: hit.item.id } }
       return
+    }
+    // On a floor (no wall, door, furniture or label there): the room it's in is picked, then on
+    // another click what lies with it, a slab under it or the roof over it. A drag still pans.
+    if (!hit || hit.type === 'area' || hit.type === 'roof') {
+      const under = floorStack(plan, level, faces, roofs, world, 6 / v.k)
+      if (under.length) {
+        if (group || !under.some(u => isSel(u.type, u.id))) select(under[0])
+        // Not the second click of a double-click, which is for the room's name.
+        else if (under.length > 1 && e.timeStamp - lastFloorPress.current > 500) floorNext.current = nextOnFloor(under, u => isSel(u.type, u.id))
+        lastFloorPress.current = e.timeStamp
+        drag.current = { type: 'pan', sx, sy, start: v }
+        return
+      }
     }
     switch (hit?.type) {
       case 'opening': {
@@ -1659,6 +1678,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     if (mn.click(world, e.shiftKey)) return
     if (sk.click(world, e.shiftKey)) return
     if (rectRoom.click(world, e.shiftKey)) return
+    if (tool === 'select' && floorNext.current) {
+      // A click on the floor of what's already picked: the next thing under it (the room, a slab, the roof).
+      select(floorNext.current)
+      return
+    }
     if (tool === 'wall') {
       const s = snapHere(world, { anchor: chain.at(-1) ?? null, points: chain.slice(0, 1), free: e.shiftKey })
       placeWallPoint(s.p)

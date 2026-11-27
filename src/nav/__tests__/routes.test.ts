@@ -122,6 +122,7 @@ describe('features.json', () => {
       // rooms from walls and the rectangle room (usability audit, wave 2)
       'rooms-from-walls',
       'rectangle-room',
+      'click-room-floor',
       'new-tool-settings-kept',
       'roof-click-inside',
       'setback-dimensions-plan',
