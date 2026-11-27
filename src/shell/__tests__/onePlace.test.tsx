@@ -29,7 +29,7 @@ describe('an outdoor area', () => {
 
 describe('a DA with no council picked', () => {
   it('says why the switch stays on CDC and what to do', () => {
-    expect(NEED_COUNCIL).toMatch(/^Still on CDC: a DA is checked against your council’s rules, so pick your council/)
+    expect(NEED_COUNCIL).toMatch(/^Still on CDC\. A DA is checked against your council’s rules: pick your council/)
     expect(NEED_COUNCIL).toMatch(/isn’t listed/)
   })
 })

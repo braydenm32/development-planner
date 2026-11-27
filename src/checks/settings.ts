@@ -25,7 +25,7 @@ export function checkedAgainst(pathway: Pathway, council: Council | null): strin
  * rules to check against, so the switch stays on CDC and says why (LF-22, PH-32).
  */
 export const NEED_COUNCIL =
-  'Still on CDC: a DA is checked against your council’s rules, so pick your council in the list beside DA first. If yours isn’t listed, only the state-wide Housing Code (CDC) checks are here so far; your council’s DCP has its own rules to check by hand.'
+  'Still on CDC. A DA is checked against your council’s rules: pick your council in the list first. If yours isn’t listed, only the state-wide Housing Code (CDC) checks are here so far.'
 
 /** Change the checks' settings as one undoable step. */
 export function setCheckSettings(patch: Partial<CheckSettings>) {
