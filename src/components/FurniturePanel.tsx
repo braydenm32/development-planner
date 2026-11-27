@@ -4,6 +4,7 @@ import type { Furniture } from '../plan/model'
 import { resizeFurniture, updateFurniture } from '../plan/ops'
 import { usePlan } from '../plan/store'
 import { Num, Select, TextField } from './fields'
+import { forTouch } from '../phone/words'
 
 const mm = (m: number) => Math.round(m * 1000)
 
@@ -51,7 +52,7 @@ export function FurniturePicker() {
           </button>
         ))}
       </div>
-      <p className="muted small">Click on the plan to place it. Press Q to turn the next piece a quarter turn before you click.</p>
+      <p className="muted small">{forTouch('Click on the plan to place it. Press Q to turn the next piece a quarter turn before you click.')}</p>
     </div>
   )
 }

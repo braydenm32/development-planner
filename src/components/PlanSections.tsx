@@ -81,6 +81,7 @@ import { colourSketch } from '../sketch/actions'
 import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
 import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
+import { forTouch } from '../phone/words'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -198,7 +199,7 @@ export function OpeningOptions({ kind: tool }: { kind: OpeningKind }) {
         <p className="muted small">
           A garage door?{' '}
           <button className="link" onClick={() => st.setTool('garage')}>
-            Use the Garage door tool (G)
+            {forTouch('Use the Garage door tool (G)')}
           </button>
           , which draws it without a swing.
         </p>
@@ -617,7 +618,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
         {r.type !== 'flat' && <Num label="Pitch" unit="°" value={r.pitch} min={1} max={MAX_PITCH} onCommit={pitch => set({ pitch })} />}
         <Num label="Overhang" unit="mm" value={r.overhang} min={0} max={MAX_OVERHANG} onCommit={overhang => set({ overhang })} />
         <RoofLineFields plan={plan} roof={r} />
-        {r.type === 'gable' && <p className="muted small">Click the G and H markers on the plan to choose which ends are gables (G) and which are hipped (H).</p>}
+        {r.type === 'gable' && <p className="muted small">{forTouch('Click')} the G and H markers on the plan to choose which ends are gables (G) and which are hipped (H).</p>}
         {r.type === 'skillion' && <p className="muted small">Click a marker on the plan to choose the low side. The roof rises away from it.</p>}
         {g.error ? (
           <p className="notice small">{g.error}</p>

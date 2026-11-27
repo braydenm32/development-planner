@@ -39,6 +39,7 @@ import { holdsBackSentence, levelLabel, SIDE_WORDS, sideLabel as sideWords } fro
 import { WallsHere } from './WallsHere'
 import { keepAndStay, settled } from './fieldKeys'
 import './retaining.css'
+import { forTouch } from '../phone/words'
 
 interface Props {
   wall: Wall
@@ -206,7 +207,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         <h2>{isNew ? (pieces > 1 ? `New retaining wall · ${pieces} pieces` : 'New retaining wall') : 'Retaining wall'}</h2>
         <p>
           {picking
-            ? 'Click the plan on the side the earth is on.'
+            ? forTouch('Click the plan on the side the earth is on.')
             : isNew
               ? `${pieces > 1 ? 'Drawn end to end: the answers here go to every piece. ' : ''}Say how high the earth behind it is, then keep it.`
               : `${len.toFixed(1)} m long${split ? ` · beside the ${levelLabel(levelById(plan, wl)?.name ?? 'house')}` : ''}.`}

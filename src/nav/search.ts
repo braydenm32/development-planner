@@ -95,6 +95,13 @@ export function withoutCloud(index: SearchItem[]): SearchItem[] {
   })
 }
 
+const KEYBOARD_FEATURES = new Set(['keyboard-shortcuts-overlay', 'single-key-shortcuts'])
+
+/** The index for a touch screen: the list of keyboard shortcuts and its switch are no use without keys (PH-13). */
+export function withoutKeyboard(index: SearchItem[]): SearchItem[] {
+  return index.filter(item => item.action !== 'keyboard-help' && !KEYBOARD_FEATURES.has(item.featureId ?? ''))
+}
+
 /** A feature as a short row: its name without the asides in brackets, cut at a word near 60 characters. */
 export function featureLabel(name: string): string {
   const plain = name.replace(/\s*\([^)]*\)?/g, '').replace(/\s+/g, ' ').trim() || name

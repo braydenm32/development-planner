@@ -12,8 +12,8 @@ interface Props {
   maxHeight: number
   /** Laid out at least this wide (px), scrolling sideways when the space is narrower. */
   minWidth?: number
-  /** Smaller type, for the panel. */
-  compact?: boolean
+  /** Smaller type, for the panel; `'phone'` for a phone's panel, where nothing goes under 12 px. */
+  compact?: boolean | 'phone'
 }
 
 /** The drawing, fitted to the width of its box. */

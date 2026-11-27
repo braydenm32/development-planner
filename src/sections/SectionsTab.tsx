@@ -20,6 +20,7 @@ import { sectionDrawing } from './section'
 import { beginSectionLine, SECTION_KEY } from './SectionMarks'
 import { showDrawing, showLarge, stopSectionLine, useSections, type Shown } from './store'
 import './sections.css'
+import { forTouch } from '../phone/words'
 
 /** Every drawing of the house: its sections, then its four elevations. */
 function useDrawings(d: Loaded): Drawing[] {
@@ -91,7 +92,7 @@ function Sections({ d }: { d: Loaded }) {
           <p className="muted small sec-empty">Draw some walls to see the elevations.</p>
         ) : (
           <button className="sec-open" onClick={() => showLarge(true)} aria-label={`Open ${shown.title} large`} title="Open large">
-            <DrawingSvg drawing={shown} maxHeight={phone ? 200 : 300} compact />
+            <DrawingSvg drawing={shown} maxHeight={phone ? 200 : 300} compact={phone ? 'phone' : true} />
           </button>
         )}
       </figure>
@@ -121,7 +122,7 @@ function Sections({ d }: { d: Loaded }) {
       <h3>Section lines</h3>
       {drawing ? (
         <div className="sec-drawing-now">
-          <p className="small">{drawing.a ? 'Now click where the section ends.' : 'Click on the plan where the section starts, then where it ends.'}</p>
+          <p className="small">{forTouch(drawing.a ? 'Now click where the section ends.' : 'Click on the plan where the section starts, then where it ends.')}</p>
           <button className="secondary" onClick={stopSectionLine}>
             Stop
           </button>

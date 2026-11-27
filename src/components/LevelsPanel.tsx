@@ -21,6 +21,7 @@ import { LevelFloorType } from './FloorTypeFields'
 import { CeilingLineUp } from './RoofLineFields'
 import { FragmentRow } from './PlanSections'
 import './levels.css'
+import { forTouch } from '../phone/words'
 
 /** The highest a ceiling can be typed (m). */
 const MAX_CEILING = 8
@@ -118,10 +119,10 @@ export function LevelsBody({ plan, beforePick, survey, terrain }: { plan: Plan; 
                         startContourPick(l.id)
                       }}
                     >
-                      {picking?.level === l.id ? 'Picking a contour… (Esc)' : 'Pick a contour'}
+                      {picking?.level === l.id ? forTouch('Picking a contour… (Esc)') : 'Pick a contour'}
                     </button>
                   </div>
-                  <p className="muted small">Click a contour line on the plan to put {l.name}’s floor at its RL.</p>
+                  <p className="muted small">{forTouch('Click')} a contour line on the plan to put {l.name}’s floor at its RL.</p>
                 </>
               )}
             </div>
