@@ -132,16 +132,19 @@ describe('the fall of the sample block', () => {
     expect(low.rl).toBeGreaterThanOrEqual(terrain.stats.minRL - 0.05)
   })
 
-  it("takes the street as the low side until the plan's street side is set, then follows it", () => {
-    const auto = streetEdgeOf(plan, survey, terrain.stats.fallBearing)!
-    expect(auto.from).toBe('low-side')
-    expect(auto.edge).toBe(edgeFacing(survey.boundary, terrain.stats.fallBearing))
-    const set = streetEdgeOf({ ...plan, checks: { pathway: 'cdc', battleAxe: false, frontEdge: 2 } }, survey, terrain.stats.fallBearing)!
+  it("assumes no street until the plan's street side is set, then follows it: the same one the driveway uses (DB-32)", () => {
+    expect(streetEdgeOf(plan, survey)).toBeNull()
+    const waiting = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey))
+    expect(waiting.verdict).toBe('no-street')
+    expect(waiting.street).toBeNull()
+    expect(verdictText(waiting)).toMatch(/isn’t known yet/)
+    const set = streetEdgeOf({ ...plan, checks: { pathway: 'cdc', battleAxe: false, frontEdge: 2 } }, survey)!
     expect(set).toEqual({ edge: 2, from: 'set' })
   })
 
   it('drains to the street by gravity when the street is the low side', () => {
-    const r = fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, terrain.stats.fallBearing))
+    const low = edgeFacing(survey.boundary, terrain.stats.fallBearing)!
+    const r = fallReport(plan, survey, terrain, { edge: low, from: 'set' })
     expect(r.verdict).toBe('street')
     expect(r.house).not.toBeNull()
     expect(r.street!.rl).toBeLessThan(r.house!.rl)
@@ -168,7 +171,7 @@ describe('the fall of the sample block', () => {
 
   it('has no discharge point without walls', () => {
     const empty = { ...plan, walls: [], openings: [], rooms: [], roofs: [] }
-    const r = fallReport(empty, survey, terrain, streetEdgeOf(empty, survey, terrain.stats.fallBearing))
+    const r = fallReport(empty, survey, terrain, { edge: 0, from: 'set' })
     expect(r.verdict).toBe('no-house')
     expect(r.house).toBeNull()
     expect(r.path).toEqual([])
