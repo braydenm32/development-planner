@@ -664,8 +664,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail earthworks={area.id === 'earthworks'} />}
           <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>
-            {/* In Earthworks the tab's panel is the subject: a tool's card above it stays one line. */}
-            {toolCard && <ToolCard compact={showPanel && route.kind === 'app' && route.area === 'earthworks'} />}
+            {/* The tab's panel is the subject: a tool's card above it stays one line, its options a tap away, rather than push the panel down. */}
+            {toolCard && <ToolCard compact={showPanel} />}
             {hasPanel &&
               (showPanel ? (
                 // Keyed by tab, so a new tab's panel starts at its top.
