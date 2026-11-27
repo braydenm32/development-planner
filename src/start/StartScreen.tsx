@@ -193,11 +193,14 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               Open an example
             </button>
             <button className="st-link" onClick={() => openGuide()}>
-              How it works
+              Getting started
             </button>
           </figcaption>
         </figure>
         <p className="st-says">Draw a house on your sloping block and see it in 3D on the real ground, with the cut and fill, the planning checks and a rough cost as you go.</p>
+        <p className="st-for">
+          For house blocks in NSW, Australia: the planning rules and prices are NSW’s. The drawing, 3D view, earthworks and 3D print work on any block. It’s a concept planner (a planning aid, not advice), not a decorating or photo-render tool.
+        </p>
         <p className="st-step">Choose how to start</p>
         <h1>Start with your block</h1>
         <p className="st-lede">Bring in the survey if you have it. If it hasn’t arrived, sketch the block now and add the survey later. Your plan is kept either way.</p>
@@ -322,7 +325,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               <AddressArt />
             </div>
             <h2 id="st-address">No survey yet? Start from the address</h2>
-            <p>Find the lot by its address, or its Lot and DP. The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
+            <p>Find the lot by its address, or its Lot and DP (the lot and plan numbers on your rates notice). The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
             <AddressStart into={into} />
           </section>
         </div>
