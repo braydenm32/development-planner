@@ -6,6 +6,7 @@
 // then sharing. Rare things live under each area's More. Nothing is removed.
 
 import { TOOLS } from '../components/tools'
+import { SHORTCUTS } from '../shell/shortcuts'
 import { TERMS } from '../guide/glossary'
 import type { Tool } from '../plan/store'
 import type { IconName } from './icons'
@@ -1093,6 +1094,14 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   sketch: ['sketch', 'construction line', 'guide', 'guide line', 'arc', 'curve', 'circle', 'setout', 'kept measurement', 'dimension', 'clear sketch'],
 }
 
+/**
+ * The single-letter tool keys, from the list the keyboard help shows, so the Tool keys hint
+ * can't leave one out (LD-22): "V select", "X section line", "B grading brush".
+ */
+const TOOL_KEYS = SHORTCUTS.find(g => g.title === 'Tools')!
+  .rows.filter(r => r.keys.length === 1 && /^[A-Z]$/.test(r.keys[0]))
+  .map(r => ({ key: r.keys[0], what: r.what.split(':')[0].toLowerCase() }))
+
 export const HOMES: Home[] = [
   {
     id: 'top-bar',
@@ -1809,9 +1818,9 @@ export const HOMES: Home[] = [
       {
         id: 'kbd-tools',
         label: 'Tool keys',
-        keywords: ['shortcuts', 'V W T D N O G R A F S U M'],
+        keywords: ['shortcuts', TOOL_KEYS.map(k => k.key).join(' ')],
         features: ['kbd-tool-shortcuts'],
-        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A outdoor area, F roof, S stair, U furniture, M move. X draws a section line.',
+        hint: `On the plan, press a tool’s letter: ${TOOL_KEYS.map(k => `${k.key} ${k.what}`).join(', ')}.`,
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo', 'undo-keeps-selection', 'undo-shows-level'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change, and what you had selected stays selected.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
