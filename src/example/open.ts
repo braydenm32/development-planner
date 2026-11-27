@@ -26,8 +26,8 @@ export async function openExample(): Promise<void> {
   navigate({ kind: 'app', area: 'design', tab: 'plan', view: '3d' })
   const id = meta.id
   showToast({
-    // Short, so it stays a line or two beside its two actions on a phone.
-    text: 'Opened the example: a made-up house on a made-up block. Your own projects aren’t touched.',
+    // Short: on a phone it is two lines above its two actions (PH-05).
+    text: 'Opened the example, a made-up house. Your own projects aren’t touched.',
     link: { label: 'Getting started', go: () => openGuide() },
     undo: async () => {
       await projectActions.archive(id)
