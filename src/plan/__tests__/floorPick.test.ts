@@ -2,7 +2,7 @@
 // clicks go through it. Uses the made-up split level in fixtures.ts.
 
 import { describe, expect, it } from 'vitest'
-import { floorStack, nextOnFloor } from '../floorPick'
+import { floorStack, menuPick, nextOnFloor } from '../floorPick'
 import { planarFaces } from '../geometry'
 import { addRoof } from '../ops'
 import type { Selection } from '../store'
@@ -50,5 +50,22 @@ describe('a click on a floor', () => {
     }
     expect(seen).toEqual(['room', 'area', 'roof', 'room'])
     expect(nextOnFloor([], () => false)).toBeNull()
+  })
+})
+
+describe('a right-click on a floor', () => {
+  const none = () => false
+  it('opens the room’s menu, as a left click picks it, not the empty-space menu', () => {
+    expect(menuPick(null, at(1, 7), none)).toEqual({ type: 'room', id: 'r_mid' })
+    // The roof over it or the slab under it is what pickAt found: still the room, as a left click.
+    expect(menuPick({ type: 'roof', id: roof.id }, at(1, 7), none)).toEqual({ type: 'room', id: 'r_mid' })
+  })
+  it('keeps the slab or roof already picked there, and anything else that was hit', () => {
+    const slab = { type: 'area' as const, id: 'mid_slab' }
+    expect(menuPick(slab, at(1, 7), s => s.id === 'mid_slab')).toEqual(slab)
+    expect(menuPick({ type: 'wall', id: 'w1' }, at(1, 7), none)).toEqual({ type: 'wall', id: 'w1' })
+  })
+  it('is bare ground beyond the house', () => {
+    expect(menuPick(null, at(12, 9), none)).toBeNull()
   })
 })
