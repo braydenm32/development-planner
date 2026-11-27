@@ -17,6 +17,7 @@ import { designQuantities } from '../../plan/quantities'
 import { estimate } from '../../costs/estimate'
 import { emptyCosts } from '../../costs/model'
 import { runChecks } from '../rules'
+import { encroachment } from '../trees'
 import { fixOf, targetOf } from '../targets'
 import { L0, PLACEMENT, site } from './sample'
 
@@ -200,6 +201,21 @@ describe('pools and tanks in the earthworks', () => {
     const alone = run(withSplit(base())).ms.earth!
     expect(ms.earth!.closestWorks).toBeCloseTo(alone.closestWorks!, 6)
     expect(ms.earth!.fillOutside).toBeCloseTo(alone.fillOutside, 6)
+  })
+
+  it('still counts a pool dug inside a tree’s protection zone in that tree’s check', () => {
+    // A made-up tree 2 m north of the pool's end: the dig is cut and fill inside its zone.
+    const tree = { id: 't', label: 'Gum', at: toSite([-3.5, 12], PLACEMENT, s.survey.origin), trunk: 0.4, remove: false }
+    const check = (plan: Plan) => {
+      const earth = earthFrom(s.terrain.grid, s.survey.boundary, earthInputs(plan, s.survey))
+      const ms = measure({ plan, survey: s.survey, terrain: s.terrain, earth, trees: [tree] })
+      return { share: encroachment(tree, ms).share, row: runChecks(ms, 'cdc').find(x => x.id === 'tree:t')! }
+    }
+    const alone = check(base())
+    const pool = check(withPool(base()))
+    expect(pool.share).toBeGreaterThan(alone.share + 0.02)
+    expect(pool.row.status).not.toBe('pass')
+    expect(pool.row.value).toMatch(/% of its .* protection zone/)
   })
 
   it('names the hole dug for a pool', () => {

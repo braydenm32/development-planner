@@ -113,7 +113,7 @@ describe('which faces get which finish', () => {
     expect(meshes.every(m => m.geometry.getAttribute('uv') && m.geometry.groups.length === 2)).toBe(true)
   })
 
-  it('gives a gable end over a wall with its own finish that finish, and leaves the others as they were', () => {
+  it('gives each gable end the finish of the wall below it: that wall’s own, or the house’s', () => {
     // A 6 x 4 box with gable ends on its short (east and west) sides.
     const walls: Wall[] = (
       [
@@ -134,17 +134,31 @@ describe('which faces get which finish', () => {
     const ext = new OutsideWalls(p)
     const rest = ext.takeGables(roof, mesh, flat.toNonIndexed())
     const meshes = ext.build(() => false)
-    // One gable (east, over w1) went to weatherboard; the west one stays with the roof.
-    expect(meshes.map(m => m.name)).toEqual(['outside walls, weatherboard, white'])
-    const taken = meshes[0].geometry.getAttribute('position').count / 3
-    expect(taken).toBeGreaterThan(0)
-    expect(rest.getAttribute('position').count / 3).toBe(tris - taken)
-    const xs = Array.from(meshes[0].geometry.getAttribute('position').array as Float32Array).filter((_, i) => i % 3 === 0)
-    expect(Math.min(...xs)).toBeGreaterThan(6)
-    // With no wall of its own finish, the roof is left alone.
+    // The east gable (over w1) went to weatherboard, the west one to the house's finish.
+    expect(meshes.map(m => m.name)).toEqual(['outside walls', 'outside walls, weatherboard, white'])
+    const count = (k: number) => meshes[k].geometry.getAttribute('position').count / 3
+    const xsOf = (k: number) => Array.from(meshes[k].geometry.getAttribute('position').array as Float32Array).filter((_, i) => i % 3 === 0)
+    expect(count(0)).toBeGreaterThan(0)
+    expect(count(1)).toBe(count(0))
+    expect(rest.getAttribute('position').count / 3).toBe(tris - count(0) - count(1))
+    expect(Math.max(...xsOf(0))).toBeLessThan(0)
+    expect(Math.min(...xsOf(1))).toBeGreaterThan(6)
+    // With no wall finish set anywhere, both gables still leave the roof, for the house's finish.
     const plain = new OutsideWalls(clearWallFinishes(p))
-    const same = flat.toNonIndexed()
-    expect(plain.takeGables(roof, mesh, same)).toBe(same)
+    const left = plain.takeGables(roof, mesh, flat.toNonIndexed())
+    expect(plain.build(() => false).map(m => m.name)).toEqual(['outside walls'])
+    expect(left.getAttribute('position').count / 3).toBe(tris - count(0) - count(1))
+    // A gable end with no wall under it takes the house's finish too.
+    const bare = new OutsideWalls({ ...p, walls: [] })
+    bare.takeGables(roof, mesh, flat.toNonIndexed())
+    expect(bare.build(() => false).map(m => m.name)).toEqual(['outside walls'])
+    // A hip roof has no gable end, and is handed back as it came.
+    const hip = { ...roof, type: 'hip' as const }
+    const hipMesh = roofGeometry(hip).mesh
+    const hipFlat = new THREE.BufferGeometry()
+    hipFlat.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hipMesh.pos), 3))
+    const same = hipFlat
+    expect(new OutsideWalls(p).takeGables(hip, hipMesh, same)).toBe(same)
   })
 })
 

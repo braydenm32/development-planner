@@ -236,7 +236,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
           const g = new THREE.BufferGeometry()
           g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
           g.setIndex(rg.mesh.tris)
-          // A gable end over a wall with its own finish is drawn in that finish.
+          // A gable end is drawn in the finish of the wall below it.
           roofs.push(ext.takeGables(r, rg.mesh, g.toNonIndexed()))
           g.dispose()
         }

@@ -1,7 +1,7 @@
 // The outside walls in 3D sorted by finish (a wall's own, or the house's): each piece of wall
 // between its doors and windows is cut where its two finishes change over, and the faces are
-// gathered into one mesh per finish and colour, however many walls share it. Gable ends above a
-// wall with its own finish take that wall's (upper) finish. Built once with the house's 3D.
+// gathered into one mesh per finish and colour, however many walls share it. A gable end takes
+// the (upper) finish of the wall below it, as a built one does. Built once with the house's 3D.
 
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -82,15 +82,15 @@ export class OutsideWalls {
   }
 
   /**
-   * Take the gable ends of a roof (its upright faces above the eaves) that stand over an outside
-   * wall with its own finish out of the roof's geometry, into that finish. `mesh` is the roof in
-   * plan metres; `flat` is the same triangles in the scene, in order. Returns what's left of the
-   * roof (`flat` itself when nothing is taken). Gables over walls on the house's finish stay as
-   * they have always been drawn, so older projects look the same.
+   * Take the gable ends of a roof (its upright faces above the eaves) out of the roof's geometry,
+   * into the wall finish: the upper finish of the outside wall each stands over (that wall's own,
+   * or the house's), and the house's where no wall is under it. `mesh` is the roof in plan
+   * metres; `flat` is the same triangles in the scene, in order. Returns what's left of the roof
+   * (`flat` itself when it has no gable end).
    */
   takeGables(roof: Roof, mesh: RoofMesh, flat: THREE.BufferGeometry): THREE.BufferGeometry {
-    const walls = this.plan.walls.filter(w => w.level === roof.level && w.kind === 'external' && w.finish)
-    if (roof.type !== 'gable' || !walls.length) return flat
+    if (roof.type !== 'gable') return flat
+    const walls = this.plan.walls.filter(w => w.level === roof.level && w.kind === 'external')
     const P = mesh.pos
     let zMin = Infinity
     for (let i = 2; i < P.length; i += 3) zMin = Math.min(zMin, P[i])
@@ -122,8 +122,7 @@ export class OutsideWalls {
           bestOverlap = overlap
         }
       }
-      if (!best) continue
-      bandOf.set(k, wallBands(this.plan.finishes, best.finish, Infinity).upper)
+      bandOf.set(k, best ? wallBands(this.plan.finishes, best.finish, Infinity).upper : this.house)
     }
     if (!bandOf.size) return flat
     const rest: number[] = []
