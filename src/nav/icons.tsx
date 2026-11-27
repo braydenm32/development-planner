@@ -72,6 +72,8 @@ const ICONS = {
   cloud: '<path d="M7 18.5h10.3a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-11-1.1A4.4 4.4 0 0 0 7 18.5z"/>',
   cloudOff: '<path d="M7 18.5h10.3a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-11-1.1A4.4 4.4 0 0 0 7 18.5z"/><path d="m4 4 16 16"/>',
   key: '<circle cx="8" cy="15.5" r="3.7"/><path d="M10.7 12.8 19 4.5M15.6 7.9l2.6 2.6M17.6 5.9l2 2"/>',
+  /** Panels docked beside the canvas: a window with a fixed column at its left. */
+  dock: '<rect x="3.5" y="4.5" width="17" height="15" rx="1"/><path d="M9.5 4.5v15"/><path d="M5.5 8h2M5.5 11h2" stroke-width="1.4"/>',
   mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4 6.5 8 6 8-6"/>',
   link: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.3 1.3"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.3-1.3"/>',
   ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/>',

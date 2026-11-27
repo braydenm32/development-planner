@@ -75,6 +75,8 @@ import { useAnnounceResults } from '../a11y/announceResults'
 import { SkipLinks } from '../a11y/SkipLinks'
 import { netText } from './format'
 import { StepsPanel } from '../steps/StepsPanel'
+import { dockedWidth, toggleDocked, useDock, useDockable, useDocked } from './dock'
+import { DockHandle } from './DockHandle'
 import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
 import './fonts.css'
 import './shell.css'
@@ -505,6 +507,20 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   // On a phone, a tab's panel pulled up to full height stays so from tab to tab (src/phone/sheetDrag.ts).
   const tall = useSheetSize(s => s.tall) && phone
   const wideInspector = selRetaining
+  // Docked (DB-21): the panels sit beside the canvas, which takes the space left, so the plan and
+  // the 3D view frame what they show in that, with nothing over it. A computer only.
+  const dockable = useDockable(phone)
+  const docked = useDocked(phone) && !presenting
+  const dockExtra = useDock(s => s.extra)
+  const colBase = report ? COSTS_W : wide ? WIDE_W : PANEL_W
+  const dockCol = docked && (showPanel || !!toolCard)
+  const dockPanelW = dockedWidth(colBase, dockExtra)
+  // With Check everything open too, the selection's card floats over the canvas beside it, as it
+  // does undocked: three columns would leave the drawing too little room.
+  const dockInsp = docked && inspector && !steps
+  const dockRight = dockInsp ? (wideInspector ? WIDE_W : INSPECTOR_W) : 0
+  const dockSteps = docked && steps ? STEPS_W : 0
+  const dockRail = docked && rail ? RAIL_CLEAR.desk - 6 : 0
   // What floats on the right of the plan for this tab (Costs › Estimate's materials), on a window wide enough.
   const Aside = TAB_ASIDES[tabKey]
   const wideWindow = useWideForAside()
@@ -518,10 +534,11 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
     // Turned sideways, a phone's panel and selection dock at the right (phone.css): the plan fits beside them.
     const side = phone && sideways && !report && (showPanel || toolCard || inspector) ? Math.min(360, (typeof window === 'undefined' ? 800 : window.innerWidth) * 0.46) : 0
     if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: (presenting ? 0 : 60) + side, t: 62, b: Math.max((peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear, canvasKind === 'print' ? sheetH + 8 : canvasKind === 'plan' ? panelClear : 0) }
+    if (docked) return { l: 14, r: inspector && !dockInsp ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : 16, t: 56, b: Math.max(56, sunClear) }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
     const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
     return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways, sheetH, panelClear, canvasKind])
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways, sheetH, panelClear, canvasKind, docked, dockInsp])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
   // The rail brings you back to the tab an area was left on, where the area remembers (Earthworks).
@@ -645,11 +662,28 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       )}
       <main
         ref={setMainEl}
-        className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px`, ...(phone ? {} : { ['--free-right' as string]: `${insets.r}px` }), ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px', ['--sheet-h' as string]: `${sheetH}px` }}
+        // Docked, nothing floats over the canvas, so the classes that make room for what does are left off.
+        className={`shell-main viewport canvas-${canvasKind}${docked ? ` docked${dockInsp ? ' dock-insp' : inspector ? ' has-inspector' : ''}` : `${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}`}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
+        style={{
+          ['--free-left' as string]: `${insets.l}px`,
+          ...(phone ? {} : { ['--free-right' as string]: `${insets.r}px` }),
+          ['--steps-w' as string]: `${STEPS_W}px`,
+          ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px',
+          ['--sheet-h' as string]: `${sheetH}px`,
+          ...(docked
+            ? {
+                ['--dock-rail' as string]: `${dockRail}px`,
+                // The canvas keeps 360 px however wide the panel was dragged.
+                ['--dock-panel' as string]: dockCol ? `min(${dockPanelW}px, max(240px, calc(100% - ${dockRail + dockRight + dockSteps + 360}px)))` : '0px',
+                ['--dock-panel-px' as string]: dockCol ? `${dockPanelW}px` : '0px',
+                ['--dock-right' as string]: `${dockRight}px`,
+                ['--dock-steps' as string]: `${dockSteps}px`,
+              }
+            : {}),
+        }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0, sheet: sheetH }}>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail && !docked ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0, sheet: sheetH }}>
             <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
           </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
@@ -663,7 +697,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           )}
           {canvasKind === '3d' && loaded && !presenting && <SunCard plan={loaded.plan} onHeight={setSunH} />}
           {rail && <ToolRail earthworks={area.id === 'earthworks'} />}
-          <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}`}>
+          <div className={`float-col${wide ? ' wide' : ''}${report ? ' report' : ''}${tall ? ' tall' : ''}${dockCol ? ' docked-col' : ''}`}>
             {/* The tab's panel is the subject: a tool's card above it stays one line, its options a tap away, rather than push the panel down. */}
             {toolCard && <ToolCard compact={showPanel} />}
             {hasPanel &&
@@ -681,6 +715,17 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                       <h2>{tab.label}</h2>
                       {!inTab && subtitle && <p className="muted">{subtitle}</p>}
                     </div>
+                    {dockable && (
+                      <button
+                        className={`icon-button panel-dock${docked ? ' on' : ''}`}
+                        onClick={toggleDocked}
+                        aria-pressed={docked}
+                        aria-label="Dock panels beside the plan"
+                        title={docked ? 'Float the panels over the plan' : 'Dock the panels beside the plan'}
+                      >
+                        <Icon name="dock" size={16} />
+                      </button>
+                    )}
                     {!(phone && report) && (
                       <button
                         className="icon-button panel-hide"
@@ -720,6 +765,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                 </button>
               ))}
           </div>
+          {dockCol && showPanel && <DockHandle base={colBase} width={dockPanelW} />}
           {aside && Aside && <Aside />}
           {inspector && loaded && (
             <ErrorBoundary variant="float">
