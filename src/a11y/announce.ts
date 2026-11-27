@@ -110,3 +110,9 @@ export function saveWords(was: { label: string } | null, now: { label: string; d
 
 /** How many search results, for the palette: "No results", "1 result", "12 results". */
 export const resultCountWords = (n: number) => (n === 0 ? 'No results' : n === 1 ? '1 result' : `${n} results`)
+
+/** A typed change, kept: "Length set to 9000 mm.", "Floor level set to RL 45.34." */
+export function typedWords(label: string, value: string, unit: string): string {
+  const v = unit === 'RL' ? `RL ${value}` : unit === ':1' ? `${value}:1` : `${value} ${unit}`
+  return `${label.replace(/[:.]\s*$/, '')} set to ${v}.`
+}

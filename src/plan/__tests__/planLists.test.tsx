@@ -64,7 +64,7 @@ describe('the lists', () => {
     expect(html).toContain('<h3>Stairs (0)</h3>')
     expect(html).toMatch(/<ul class="pick-list plan-rows" aria-label="Walls">/)
     expect(html).toMatch(/<ul class="pick-list plan-rows" aria-label="Doors and windows">/)
-    expect([...html.matchAll(/<button class="" aria-pressed="false">/g)]).toHaveLength(15)
+    expect([...html.matchAll(/<button class="" aria-pressed="false" data-row="[^"]+">/g)]).toHaveLength(15)
     // A space between the name and the size, so they aren't read as one word.
     expect(html).toMatch(/Study<\/span><\/span> <span class="muted">4500 mm<\/span>/)
     expect(html).toContain('aria-expanded="false">Add a wall by typing…</button>')

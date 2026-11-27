@@ -3,11 +3,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useModal } from '../nav/useModal'
+import { useRouter } from '../nav/router'
 import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
 import { LayersSheet } from './LayersSheet'
 import { OtherTabSheet } from '../projects/OtherTab'
-import { chooseInReview, dismissToast, pickedFor, registerPicker, undoToast, useSafety, type Toast } from './store'
+import { chooseInReview, dismissToast, pickedFor, registerPicker, toastSpot, undoToast, useSafety, type Toast } from './store'
 import { sayFileError } from './surveyor'
 import './safety.css'
 
@@ -121,6 +122,31 @@ function ReviewSheet() {
   )
 }
 
+/** Over the plan beside the open panel, on a computer's layout (./store.ts toastSpot). */
+function useToastSpot() {
+  const [spot, setSpot] = useState<{ left: number; maxWidth: number } | null>(null)
+  // Again when the place changes: a panel opens or closes with it.
+  const route = useRouter(s => s.route)
+  useLayoutEffect(() => {
+    const place = () => {
+      const main = document.querySelector<HTMLElement>('.app-shell:not(.phone) .shell-main')
+      if (!main) return setSpot(null)
+      const css = getComputedStyle(main)
+      const px = (name: string) => parseFloat(css.getPropertyValue(name)) || 0
+      setSpot(toastSpot(main.getBoundingClientRect(), px('--free-left'), px('--free-right')))
+    }
+    place()
+    // And once the new place has drawn.
+    const frame = requestAnimationFrame(place)
+    window.addEventListener('resize', place)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', place)
+    }
+  }, [route])
+  return spot
+}
+
 function UndoToast() {
   const toast = useSafety(s => s.toast)
   // Keyed, so each toast starts with its own full time.
@@ -129,6 +155,7 @@ function UndoToast() {
 
 export function ToastNote({ toast }: { toast: Toast }) {
   const [held, setHeld] = useState(false)
+  const spot = useToastSpot()
   // Time runs only while the toast isn't being pointed at or focused, and starts again in full after.
   // An error has no time limit: it goes when it's dismissed.
   useEffect(() => {
@@ -139,6 +166,7 @@ export function ToastNote({ toast }: { toast: Toast }) {
   return (
     <div
       className={`sf-toast${toast.error ? ' sf-error' : ''}`}
+      style={spot ? { left: spot.left, maxWidth: spot.maxWidth } : undefined}
       role={toast.error ? 'alert' : 'status'}
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}

@@ -13,6 +13,20 @@ export const UNDO_MS = 12_000
 /** A message without Undo. */
 export const NOTE_MS = 6_000
 
+/** Room the toast needs beside the panel to sit over the plan instead of over it (px). */
+const TOAST_MIN_W = 360
+
+/**
+ * Where a toast sits on a computer: in the middle of the plan's free part, clear of the panel
+ * on its left and the cards on its right, so it never covers a field (final check, problem 11).
+ * Null where that part is too narrow, and the toast keeps the middle of the window.
+ */
+export function toastSpot(main: { left: number; width: number }, freeLeft: number, freeRight: number): { left: number; maxWidth: number } | null {
+  const room = main.width - freeLeft - freeRight
+  if (room < TOAST_MIN_W) return null
+  return { left: Math.round(main.left + freeLeft + room / 2), maxWidth: Math.min(600, room - 32) }
+}
+
 export interface ReviewChoice {
   id: string
   label: string

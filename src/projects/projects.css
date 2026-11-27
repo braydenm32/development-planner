@@ -853,6 +853,28 @@ button.ph-thumb {
   transform: translateX(-50%);
 }
 
+/* The narrowest phones (320 px): the three buttons keep to the one row, closer up and without
+   the two plain ones' icons, rather than pushing New project past the screen's edge (final check, problem 5). */
+@media (max-width: 380px) {
+  .ph-top {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .ph-top-actions {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .ph-top-actions .ph-btn {
+    padding: 0 9px;
+  }
+
+  .ph-top-actions .ph-btn:not(.primary) .ph-ic {
+    display: none;
+  }
+}
+
 /* ---- Inside the app's frame (src/shell), which brings its own top bar ---- */
 
 .projects-home.in-shell .ph-head {

@@ -2,6 +2,7 @@
 // sits (move it, turn it, centre it, square it to the block) and its distance to each boundary.
 
 import { useMemo } from 'react'
+import { forTouch } from '../phone/words'
 import { cancelContourPick, startContourPick, useFlow } from '../flow/store'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -30,7 +31,7 @@ export function FloorLevel({ plan, info }: { plan: Plan; info: PlacementInfo | n
             Picking a contour… (Esc stops)
           </button>
         ) : (
-          <button className="secondary" onClick={() => startContourPick(lowest?.id)} title="Click a contour on the plan to put this floor at its level">
+          <button className="secondary" onClick={() => startContourPick(lowest?.id)} title={forTouch('Click a contour on the plan to put this floor at its level')}>
             Pick a contour
           </button>
         )}

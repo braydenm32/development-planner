@@ -12,7 +12,7 @@ export function tagSize(height: number, buttons: boolean, implied = false) {
   return { label, w, total: w + (buttons ? (implied ? 38 : 68) : 0) }
 }
 
-interface Box {
+export interface Box {
   x0: number
   y0: number
   x1: number
@@ -26,7 +26,7 @@ const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 &
  * ends, on the batter side first and then the other, the first spot that's free; where none is,
  * the spot that overlaps the others least.
  */
-export function placeTags(lines: { A: Vec2; B: Vec2; height: number; implied?: boolean }[], buttons: boolean): Vec2[] {
+export function placeTags(lines: { A: Vec2; B: Vec2; height: number; implied?: boolean }[], buttons: boolean, view?: Box): Vec2[] {
   const placed: Box[] = []
   return lines.map(({ A, B, height, implied }) => {
     const { w, total } = tagSize(height, buttons, implied)
@@ -36,13 +36,25 @@ export function placeTags(lines: { A: Vec2; B: Vec2; height: number; implied?: b
     // The levelled ground is on the left of a→b on the site; on the screen (y down) that's the right.
     const n: Vec2 = [-dy / l, dx / l]
     const box = (c: Vec2): Box => ({ x0: c[0] - w / 2 - 2, y0: c[1] - 12, x1: c[0] - w / 2 + total + 2, y1: c[1] + 12 })
+    // Kept inside the part of the plan nothing covers, so Add and Dismiss are never under the
+    // view buttons or off the screen (final check, problem 4): it slides along, away from its line a little.
+    const inView = (c: Vec2): Vec2 => {
+      if (!view) return c
+      const b = box(c)
+      // Right and bottom first, then left and top: a tag wider than the view keeps its start in sight.
+      let x = c[0] - Math.max(0, b.x1 - view.x1)
+      x += Math.max(0, view.x0 - (b.x0 + x - c[0]))
+      let y = c[1] - Math.max(0, b.y1 - view.y1)
+      y += Math.max(0, view.y0 - (b.y0 + y - c[1]))
+      return [x, y]
+    }
     // The first spot clear of every tag so far; failing that, the one that overlaps least.
     let best: Vec2 | null = null
     let least = Infinity
     for (const t of [0.5, 0.35, 0.65, 0.2, 0.8, 0.05, 0.95]) {
       for (const side of [1, -1]) {
         for (const off of [16, 40, 64]) {
-          const c: Vec2 = [A[0] + dx * t + n[0] * off * side, A[1] + dy * t + n[1] * off * side]
+          const c = inView([A[0] + dx * t + n[0] * off * side, A[1] + dy * t + n[1] * off * side])
           const b = box(c)
           const hit = placed.reduce((sum, p) => sum + (overlaps(p, b) ? (Math.min(p.x1, b.x1) - Math.max(p.x0, b.x0)) * (Math.min(p.y1, b.y1) - Math.max(p.y0, b.y0)) : 0), 0)
           if (hit < least) {
@@ -55,7 +67,7 @@ export function placeTags(lines: { A: Vec2; B: Vec2; height: number; implied?: b
       }
       if (!least) break
     }
-    const at = best ?? [(A[0] + B[0]) / 2 + n[0] * 16, (A[1] + B[1]) / 2 + n[1] * 16]
+    const at = best ?? inView([(A[0] + B[0]) / 2 + n[0] * 16, (A[1] + B[1]) / 2 + n[1] * 16])
     placed.push(box(at))
     return at
   })

@@ -1,7 +1,8 @@
 // What floats on the canvas: the tool rail with the current tool's options beside it, the
 // selection inspector, and the fit and orientation controls.
 
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { withKey } from '../phone/words'
 import { RoofModeSwitch } from '../components/RoofModeSwitch'
 import { WallModeSwitch } from '../components/WallModeSwitch'
 import { SelectionPanel, ToolOptions } from '../components/PlanSections'
@@ -16,6 +17,8 @@ import { ViewLock } from '../phone/ViewLock'
 import { useTouchCanvas } from '../phone/device'
 import { useSun } from '../sun/store'
 import { TurnButtons } from '../a11y/SceneKeys'
+import { focusLost } from '../a11y/rowFocus'
+import { PLAN_NAME_ID } from '../a11y/planCanvas'
 import { toolbarStep } from '../a11y/toolbar'
 import { useCamera } from '../phone/cameraStore'
 import { findSelection } from './selection'
@@ -109,7 +112,7 @@ export function ToolRail({ earthworks = false }: { earthworks?: boolean }) {
       {buttons.map((b, i) => (
         // A line between one group of tools and the next.
         <span key={b.id} className={i > 0 && buttons[i - 1].group !== b.group ? 'tool-gap' : undefined}>
-          <button tabIndex={b.id === stop ? 0 : -1} className={b.on ? 'on' : ''} aria-pressed={b.on} onClick={b.pick} data-tip={`${b.label}: ${b.tip} (${b.key})`} aria-label={`${b.label} tool (${b.key})`} aria-description={b.tip}>
+          <button tabIndex={b.id === stop ? 0 : -1} className={b.on ? 'on' : ''} aria-pressed={b.on} onClick={b.pick} data-tip={`${b.label}: ${b.tip} (${b.key})`} aria-label={withKey(`${b.label} tool`, b.key)} aria-description={b.tip}>
             <Icon name={(b.icon ?? 'select') as IconName} size={17} />
             <span className="tool-name">{b.short ?? b.label}</span>
           </button>
@@ -180,16 +183,36 @@ export function ToolCard({ compact = false }: { compact?: boolean }) {
 }
 
 /**
+ * When the panel closes (its thing deleted, the selection put down) with focus in it, focus goes
+ * to the plan the thing was on rather than to the page. A list's row that can take it first does
+ * (src/a11y/PlanLists.tsx): this looks a frame after that.
+ */
+function useFocusBackToPlan(shown: boolean) {
+  useEffect(() => {
+    if (!shown) return
+    return () => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (focusLost()) document.querySelector<HTMLElement>(`[aria-labelledby="${PLAN_NAME_ID}"]`)?.focus({ preventScroll: true })
+        }),
+      )
+    }
+  }, [shown])
+}
+
+/**
  * The selected item's settings and numbers, floating on the right of the plan (a sheet on
  * a phone). On a phone in View they read but can't be changed; nor in Approvals and Share
  * (`elsewhere`), which say where the thing is changed and go there with it still selected.
  */
 export function Inspector({ d, readOnly = false, wide = false, elsewhere }: { d: Loaded; readOnly?: boolean; wide?: boolean; elsewhere?: { text: string; label: string; go: () => void } }) {
   const selection = usePlan(s => s.selection)
-  if (!selection || !findSelection(d.plan, selection.id)) return null
+  const shown = !!selection && !!findSelection(d.plan, selection.id)
+  useFocusBackToPlan(shown)
+  if (!selection || !shown) return null
   const panel = <SelectionPanel plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} />
   return (
-    <aside className={`float-card inspector${wide ? ' wide' : ''}${readOnly ? ' read-only' : ''}`} aria-label="Selection">
+    <aside className={`float-card inspector${wide ? ' wide' : ''}${readOnly ? ' read-only' : ''}`} aria-label="Selection" tabIndex={-1} data-esc-owner>
       <div className="sheet-grab" aria-hidden="true" />
       <button className="icon-button inspector-close" onClick={() => usePlan.getState().select(null)} aria-label="Close (clear the selection)" title="Close (Esc)">
         <Icon name="x" size={16} />

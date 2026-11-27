@@ -11,7 +11,7 @@ import { resumeRoute } from '../nav/route'
 import { usePhoneMode } from '../phone/device'
 import { projectActions, projectsNow } from '../projects/session'
 import { forgetFileStep, rememberFileStep } from '../safety/fileUndo'
-import { showToast, useSafety } from '../safety/store'
+import { NOTE_MS, showToast, useSafety } from '../safety/store'
 import type { ProjectMeta } from '../projects/types'
 import { EXAMPLE_NAME } from './examplePlan'
 import { exampleProjectText } from './exampleProject'
@@ -63,6 +63,8 @@ export async function openExample(opts: { fresh?: boolean } = {}): Promise<void>
     text: 'Opened the example, a made-up house. Your own projects aren’t touched.',
     link: { label: 'Getting started', go: () => openGuide() },
     undo: putAway,
+    // A note's time, not Undo's: Undo for this stays on the top bar (below), so the toast needn't sit over the page.
+    ms: NOTE_MS,
   })
   // The toast goes after a few seconds; Undo stays on the top bar until something is changed.
   rememberFileStep({ label: 'Open the example', opened: true, undo: putAway })
