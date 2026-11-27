@@ -1,6 +1,7 @@
 import type { ViewSettings } from '../lib/storage'
 import { DEFAULT_PRINT, withCurrentBed } from '../print/build'
 import type { PrintPrefs } from '../print/prefs'
+import { floorScaleOf } from '../share/plans'
 import type { ProjectPrefs } from './session'
 
 /**
@@ -27,10 +28,14 @@ export function viewToSave(v: ViewSettings): Partial<ViewSettings> {
 export function printFor(prefs: ProjectPrefs | undefined, device: PrintPrefs): PrintPrefs {
   const p = prefs?.print
   if (!p) return device
+  // Every key of PrintPrefs is carried here: one left out is forgotten each time the project opens.
   return {
     settings: withCurrentBed({ ...DEFAULT_PRINT, ...device.settings, ...p.settings }),
     paper: p.paper === 'A4' || p.paper === 'A3' ? p.paper : device.paper,
     pdfFurniture: typeof p.pdfFurniture === 'boolean' ? p.pdfFurniture : device.pdfFurniture,
+    pdfSketch: typeof p.pdfSketch === 'boolean' ? p.pdfSketch : device.pdfSketch,
     apart: typeof p.apart === 'boolean' ? p.apart : device.apart,
+    leaveOut: Array.isArray(p.leaveOut) ? p.leaveOut.filter((k): k is string => typeof k === 'string') : device.leaveOut,
+    floorScale: p.floorScale === undefined ? device.floorScale : floorScaleOf(p.floorScale),
   }
 }

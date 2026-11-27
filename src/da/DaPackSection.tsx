@@ -4,7 +4,7 @@
 
 import { useState } from 'react'
 import { TextField } from '../components/fields'
-import { saveDaPack, type PdfInput } from '../components/printFiles'
+import { saveDaPack, toastDownloaded, type PdfInput } from '../components/printFiles'
 import { useMap } from '../map/store'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
@@ -42,7 +42,7 @@ export function DaPackSection(p: PdfInput) {
   const download = () => {
     setError(null)
     try {
-      saveDaPack(p)
+      toastDownloaded(saveDaPack(p))
     } catch (err) {
       setError((err as Error).message || 'The DA pack could not be drawn.')
     }

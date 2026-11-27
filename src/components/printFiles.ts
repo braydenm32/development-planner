@@ -11,7 +11,8 @@ import { driveGround } from '../plan/driveway'
 import type { Earth } from '../plan/useEarthworks'
 import type { PrintModel, PrintSettings } from '../print/build'
 import { fileSafe, to3mf, toStlZip } from '../print/export'
-import { planSetPdf, type Paper, type PlanSetInput } from '../share/plans'
+import { planSetPdf, type FloorScale, type Paper, type PlanSetInput } from '../share/plans'
+import { showToast } from '../safety/store'
 import { useOptions } from '../options/store'
 import { projectFileText, projectTitle } from '../share/project'
 import { costsForProject } from '../costs/persist'
@@ -67,7 +68,21 @@ export interface PdfInput {
   pdfSketch?: boolean
   /** Pages left out of the plan set (not the DA pack), by key. */
   leaveOut?: readonly string[]
+  /** The scale of the floor and roof plans (missing: Auto). */
+  floorScale?: FloorScale
 }
+
+/** What the plan set and the DA pack take from the print choices kept in this browser (src/print/prefs.ts). */
+export const pdfChoices = (p: { paper: Paper; pdfFurniture: boolean; pdfSketch?: boolean; leaveOut?: readonly string[]; floorScale?: FloorScale }) => ({
+  paper: p.paper,
+  pdfFurniture: p.pdfFurniture,
+  pdfSketch: p.pdfSketch,
+  leaveOut: p.leaveOut,
+  floorScale: p.floorScale,
+})
+
+/** Say a file went to the browser's downloads, by name, so a click on Download is seen to have worked. */
+export const toastDownloaded = (name: string) => showToast({ text: `Downloaded ${name}` })
 
 /** A file to hand over: saved, or shared on a phone. */
 export interface OutFile {
@@ -76,10 +91,11 @@ export interface OutFile {
   type: string
 }
 
-/** Draw the plan set and save it as a PDF. Throws if the plans can't be drawn. */
-export function savePlansPdf(p: PdfInput) {
+/** Draw the plan set and save it as a PDF; returns the file's name. Throws if the plans can't be drawn. */
+export function savePlansPdf(p: PdfInput): string {
   const f = plansPdfFile(p)
   saveFile(f.name, f.data, f.type)
+  return f.name
 }
 
 /** What the plan set and the DA pack both draw from. */
@@ -99,6 +115,7 @@ function planSetInput(p: PdfInput): PlanSetInput {
     furniture: p.pdfFurniture,
     sketch: p.pdfSketch === true,
     leaveOut: p.leaveOut,
+    floorScale: p.floorScale,
     title,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }),
     site: { features: localFeatures(), warnings: siteWarningsNow() },
@@ -145,10 +162,11 @@ export function daPackFile(p: PdfInput): OutFile {
   return { name: `${fileSafe(base.title)}-DA-pack.pdf`, data: pdf, type: 'application/pdf' }
 }
 
-/** Draw the DA pack and save it to this device. Throws if the plans can't be drawn. */
-export function saveDaPack(p: PdfInput) {
+/** Draw the DA pack and save it to this device; returns the file's name. Throws if the plans can't be drawn. */
+export function saveDaPack(p: PdfInput): string {
   const f = daPackFile(p)
   saveFile(f.name, f.data, f.type)
+  return f.name
 }
 
 /** Save the project file: the survey, the plan, the site features (with the drawings ticked to go in) and the costs. */

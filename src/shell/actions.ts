@@ -4,7 +4,7 @@
 import { cloudActions } from '../cloud/state'
 import { askBalance } from '../grading/balanceAsk'
 import { downloadPlan, startNewPlan } from '../components/planFile'
-import { save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
+import { pdfChoices, save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls, toastDownloaded } from '../components/printFiles'
 import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
 import { openExample } from '../example/open'
 import { startContourPick } from '../flow/store'
@@ -159,7 +159,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
   switch (a) {
     case 'download-pdf':
       try {
-        savePlansPdf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, paper: shell.printPrefs.paper, pdfFurniture: shell.printPrefs.pdfFurniture })
+        toastDownloaded(savePlansPdf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, ...pdfChoices(shell.printPrefs) }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The plans could not be drawn.')
@@ -167,7 +167,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       }
     case 'download-da-pack':
       try {
-        saveDaPack({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, paper: shell.printPrefs.paper, pdfFurniture: shell.printPrefs.pdfFurniture })
+        toastDownloaded(saveDaPack({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, ...pdfChoices(shell.printPrefs) }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The DA pack could not be drawn.')

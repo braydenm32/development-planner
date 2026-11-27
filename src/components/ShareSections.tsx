@@ -1,16 +1,21 @@
 // Share's sections: the 3D print settings and parts, the PDF plans, and sending the project
 // file. Share › Plans, Send, 3D print and Share's More render them (src/shell/tabs).
 
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fitsBed, type PrintSettings } from '../print/build'
 import { LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
 import { pointAtParts, usePrintHover } from '../print/hover'
 import { planPages } from '../share/pages'
-import type { Paper } from '../share/plans'
+import { autoFloorScale, FLOOR_SCALES, floorScaleOf, sheetFrame, type FloorScale, type Paper } from '../share/plans'
+import { projectsNow } from '../projects/session'
+import { showToast } from '../safety/store'
+import { keepStripSection } from '../sectionStrip/keep'
+import { sectionName } from '../sections/lines'
+import { usePlan } from '../plan/store'
 import { Num, Select } from './fields'
-import { printReady, save3mf, savePlansPdf, saveProjectFile, saveStls, type DownloadProps, type PdfInput, type PrintState } from './printFiles'
+import { printReady, save3mf, savePlansPdf, saveProjectFile, saveStls, toastDownloaded, type DownloadProps, type PdfInput, type PrintState } from './printFiles'
 import '../share/share.css'
 
 export type { PrintState }
@@ -273,11 +278,39 @@ export function PlansContents() {
   )
 }
 
+const scaleLabel = (s: FloorScale) => (s === 'auto' ? 'Auto' : `1:${s}`)
+
+/** The scale of the floor and roof plans: Auto fits them all at one scale; a picked scale prints that, and says when it won't fit. */
+export function FloorScaleSelect(p: Pick<PdfInput, 'plan' | 'up' | 'paper' | 'pdfFurniture' | 'floorScale'> & { onFloorScale: (s: FloorScale) => void }) {
+  const picked = p.floorScale ?? 'auto'
+  const auto = useMemo(() => autoFloorScale(p.plan, p.up, sheetFrame(p.paper).area, p.pdfFurniture), [p.plan, p.up, p.paper, p.pdfFurniture])
+  return (
+    <>
+      <label className="pdf-paper">
+        <span>Floor plan scale</span>
+        <select value={String(picked)} onChange={e => p.onFloorScale(floorScaleOf(Number(e.target.value)))}>
+          {FLOOR_SCALES.map(s => (
+            <option key={s} value={String(s)}>
+              {s === 'auto' ? `Auto (1:${auto})` : scaleLabel(s)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {picked !== 'auto' && picked < auto && (
+        <p className="muted small pdf-scale-note">
+          At 1:{picked} the house is bigger than the {p.paper} sheet, so the floor plans will be cut off at its edges. Auto prints them at 1:{auto}.
+        </p>
+      )}
+    </>
+  )
+}
+
 /**
  * Share › Plans: the caveat first, the pages as ticks (a page with nothing drawn says so and
- * can't be ticked), then Paper beside Download PDF, and what the set holds behind a fold.
+ * can't be ticked), then Paper and the floor plan scale beside Download PDF, and what the set
+ * holds behind a fold.
  */
-export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; furniture: ReactNode }) {
+export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; onFloorScale: (s: FloorScale) => void; furniture: ReactNode }) {
   const [pdfError, setPdfError] = useState<string | null>(null)
   const leaveOut = p.leaveOut ?? []
   const pages = useMemo(() => planPages(p.plan), [p.plan])
@@ -286,10 +319,24 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
   const downloadPdf = () => {
     setPdfError(null)
     try {
-      savePlansPdf(p)
+      toastDownloaded(savePlansPdf(p))
     } catch (err) {
       setPdfError((err as Error).message || 'The plans could not be drawn.')
     }
+  }
+  // The section under the plan (in Design and Earthworks) is a way of looking, not a section line:
+  // one click keeps it as Section A–A, which the PDF then draws.
+  const hasHouse = pages.some(x => x.key === 'elevation' && x.drawn)
+  const useStripSection = () => {
+    const line = keepStripSection(p.survey, projectsNow().opened?.id ?? null)
+    if (!line) return
+    const after = usePlan.getState().plan
+    showToast({
+      text: `${sectionName(line)} added where the section under the plan cuts. Move it in Design › Sections.`,
+      undo: () => {
+        if (usePlan.getState().plan === after) usePlan.getState().undo()
+      },
+    })
   }
   return (
     <>
@@ -299,13 +346,20 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
       <fieldset className="pdf-pages">
         <legend>Pages</legend>
         {pages.map(x => (
-          <label key={x.key} className={`check${x.drawn ? '' : ' undrawn'}`}>
-            <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
-            <span>
-              {x.label}
-              {!x.drawn && <span className="muted"> (not drawn yet)</span>}
-            </span>
-          </label>
+          <Fragment key={x.key}>
+            <label className={`check${x.drawn ? '' : ' undrawn'}`}>
+              <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
+              <span>
+                {x.label}
+                {!x.drawn && <span className="muted"> {x.key === 'section' ? '(no section line yet)' : '(not drawn yet)'}</span>}
+              </span>
+            </label>
+            {x.key === 'section' && !x.drawn && hasHouse && (
+              <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the section shown under the plan in Design as Section A–A, so it prints">
+                Use the section under the plan
+              </button>
+            )}
+          </Fragment>
         ))}
         {p.furniture}
       </fieldset>
@@ -320,6 +374,7 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
             ))}
           </select>
         </label>
+        <FloorScaleSelect {...p} />
         <button className="secondary" onClick={downloadPdf} disabled={ticked === 0}>
           Download PDF
         </button>
