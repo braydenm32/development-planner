@@ -82,7 +82,7 @@ describe('Costs › Estimate', () => {
     const cut = e.lines.find(l => l.id === 'cut')!
     expect(html).toMatch(
       new RegExp(
-        `<div role="row" class="ce-ln-main"><span role="rowheader" class="ce-what"><button class="ce-fold" aria-expanded="false"[^>]*>Dig out \\(cut\\)<small>From Cut &amp; fill</small></button></span><span role="cell" class="ce-qty tnum">${cut.qty.toFixed(1)} m³</span><span role="cell" class="ce-rate tnum">\\$55/m³</span><span role="cell" class="ce-amt tnum">\\${money(cut.amount)}</span></div>`,
+        `<div role="row" class="ce-ln-main"><span role="rowheader" class="ce-what"><button class="ce-fold" aria-expanded="false"[^>]*>Dig out \\(cut\\)<small>From Cut &amp; fill</small></button></span><span role="cell" class="ce-qty tnum">${cut.qty.toFixed(1)} m³</span><span role="cell" class="ce-rate tnum">\\$85/m³</span><span role="cell" class="ce-amt tnum">\\${money(cut.amount)}</span></div>`,
       ),
     )
     // The totals are rows of the same table.
