@@ -62,7 +62,7 @@ const STEP_X = X_SPLIT - EXT / 2 - 0.1
 
 const levels: Level[] = [
   { id: LIVING, name: 'Living level', elevation: 0, height: 2.7, floorType: 'slab' },
-  { id: BEDROOMS, name: 'Bedroom level', elevation: SPLIT, height: 2.7 },
+  { id: BEDROOMS, name: 'Bedroom level', elevation: SPLIT, height: 2.7, floorType: 'framed' },
 ]
 
 const walls: Wall[] = [
@@ -202,6 +202,8 @@ export function examplePlan(frontEdge: number): Plan {
   return {
     version: 1,
     name: EXAMPLE_NAME,
+    // Each level's floor type is its own answer, so the finished example opens with no question waiting.
+    floorsByLevel: true,
     levels: levels.map(l => ({ ...l })),
     walls: walls.map(w => ({ ...w })),
     openings: openings.map(o => ({ ...o })),
