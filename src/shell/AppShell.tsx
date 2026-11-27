@@ -64,6 +64,9 @@ import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
 import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
+import { Announcer } from '../a11y/Announcer'
+import { useAnnounceResults } from '../a11y/announceResults'
+import { netText } from './format'
 import { StepsPanel } from '../steps/StepsPanel'
 import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
 import './fonts.css'
@@ -347,6 +350,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <AreaNav route={route} go={r => navigate(r)} variant="bottom" />
         {fileInputs}
         <KeyboardHelp />
+        <Announcer />
         {palette && <CommandPalette choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
         {toast && (
           <div key={toast.n} className="toast" role="status">
@@ -758,6 +762,13 @@ function NumbersHost({
   useEffect(() => setQuestionFacts(facts), [facts])
   const estimate = useEstimate(d)
   const cost = useMemo(() => costHeadline(estimate), [estimate])
+  // What changed after an edit is said to screen readers, once it holds still (src/a11y/announce.ts).
+  useAnnounceResults(
+    drawn
+      ? { checks: `${verdict.name} checks: ${verdict.head}`, balance: numbers.earth?.outOfBalance ? `Out of balance, ${netText(numbers.earth.net)}` : null, batters: numbers.batters ?? null, site: siteChecks }
+      : null,
+    projectsNow().opened?.id ?? '',
+  )
   const shown: Partial<Record<NumberId, string>> = {}
   if (showPanel) for (const id of tabShows ?? []) shown[id] = 'in the panel'
   // The level chip on the plan shows the ground floor's RL while you draw on it.

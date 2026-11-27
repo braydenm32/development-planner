@@ -39,6 +39,7 @@ import { DemChip } from './map/DemNotes'
 import { isSketch } from './start/sketch'
 import { StartScreen } from './start/StartScreen'
 import { LegalPage } from './legal/LegalPage'
+import { usePageTitle } from './a11y/title'
 import './App.css'
 
 export default function App() {
@@ -58,6 +59,8 @@ export default function App() {
   useEffect(() => startMapRecords(), [])
   // Where you are lives in the address (src/nav): the area, tab, view, level and selection.
   const route = useRouter(s => s.route)
+  // The browser tab says the tab, area and project (src/a11y/title.ts).
+  usePageTitle()
   useEffect(() => {
     // `?projects` is the easy link to the Projects home.
     if (!location.hash && new URLSearchParams(location.search).has('projects')) history.replaceState(history.state, '', formatHash(PROJECTS))
