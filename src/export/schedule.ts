@@ -9,6 +9,8 @@ import { EXPORT_CAVEAT } from './exportCaveat'
 export interface ScheduleRow {
   /** The mark: D1, W1, … numbered in order down the schedule, by kind, so a builder can call one out. */
   id: string
+  /** The opening it is, by its id on the plan, so a list's row can pick it (src/plan/planLists.ts). */
+  opening: string
   floor: string
   type: string
   /** Rooms either side of its wall, "Hall / Study"; "Outside" for a wall with no room behind it. */
@@ -52,6 +54,7 @@ export function doorWindowSchedule(plan: Plan): ScheduleRow[] {
     count[o.kind]++
     rows.push({
       id: `${MARK[o.kind]}${count[o.kind]}`,
+      opening: o.id,
       floor: levelById(plan, w.level)?.name ?? '',
       type: OPENING_NAMES[o.kind],
       room: names.length ? names.join(' / ') : 'Outside',
