@@ -34,6 +34,12 @@ import { defaultGables, levelOutlines, roofGeometry } from '../../plan/roof'
 import { riserCount, stairComfort, stairCounts, stairLayout } from '../../plan/stairs'
 import { buildPrintModel, DEFAULT_PRINT, fitsBed, type PrintModel, type PrintSettings } from '../../print/build'
 import { planSetPdf, type Paper, type PlanSetInput } from '../../share/plans'
+import { daPackPdf, type DaPackInput } from '../../da/pack'
+import { exampleProjectText } from '../../example/exampleProject'
+import { levelSummaries } from '../../plan/keyNumbers'
+import { designQuantities } from '../../plan/quantities'
+import { readSite } from '../../safety/files'
+import { parseProjectFile } from '../../share/project'
 
 // ===========================================================================
 // Independent helpers. None of these call app code.
@@ -1989,5 +1995,42 @@ describe('sample survey and plan (made up)', () => {
     record('levels', sortedLevels(plan).map(l => ({ name: l.name, rl: (plan.placement.ffl + l.elevation).toFixed(2), ceiling_mm: show.mm(l.height) })))
     console.log(JSON.stringify(values, null, 2))
     if (process.env.AUDIT_OUT) writeFileSync(process.env.AUDIT_OUT, JSON.stringify(values, null, 2))
+  })
+})
+
+// The example's split levels share a wall. The app counts that wall once, on the lower level
+// (levelSummaries, which the strip, Overview, Rooms & areas and Costs all read); the floor sheets'
+// level note once measured each level's own outline, so the Bedroom level printed 82.69 m² beside
+// the app's 79.70 m².
+describe('the example: each level’s floor area is the same on the PDF floor sheets, the DA pack and in the app', () => {
+  const opened = parseProjectFile(exampleProjectText())
+  const ex = readSite(opened.survey)
+  const exPlan = opened.plan
+  const app = new Map(levelSummaries(exPlan).map(s => [s.level.name, s.gross.area.toFixed(2)]))
+  const base: PlanSetInput = { plan: exPlan, survey: ex.survey, siteArea: ex.terrain.stats.area, earthworks: null, terrain: ex.terrain, up: 'house', paper: 'A3', title: 'Example', date: 'd' }
+  const notes = (bytes: Uint8Array) =>
+    new Map(
+      pdfPages(bytes)
+        .flatMap(p => p.texts)
+        .map(t => /^(.+): FFL RL [\d.]+, ceiling \d+ mm, ([\d.]+) m² to the outside of the walls$/.exec(t))
+        .filter((m): m is RegExpExecArray => !!m)
+        .map(m => [m[1], m[2]]),
+    )
+
+  it('has a level with a shared wall, so the two ways of measuring differ', () => {
+    expect(app.size).toBeGreaterThan(1)
+    const own = sortedLevels(exPlan).map(l => buildingOutline(planarFaces(exPlan.walls.filter(w => w.level === l.id))).area.toFixed(2))
+    expect(own).not.toEqual([...app.values()])
+  })
+
+  it('the plan set prints the app’s figure for every level', () => {
+    expect(notes(planSetPdf(base))).toEqual(app)
+  })
+
+  it('the DA pack prints the app’s figure for every level, and they add to the Costs floor area', () => {
+    const da: DaPackInput = { ...base, revision: 'A', place: null, planning: null, council: null, checks: [], notChecked: [] }
+    expect(notes(daPackPdf(da))).toEqual(app)
+    const total = [...levelSummaries(exPlan)].reduce((t, s) => t + s.gross.area, 0)
+    expect(designQuantities(exPlan, null, []).floorArea).toBeCloseTo(total, 9)
   })
 })

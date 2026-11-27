@@ -6,6 +6,7 @@ import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import { furnitureCorners, furnitureSymbol } from '../plan/furniture'
+import { levelSummaries } from '../plan/keyNumbers'
 import { buildingFootprint, buildingOutline, planarFaces, roomShape, sliceAlong, wallPolygons } from '../plan/geometry'
 import {
   areaKind,
@@ -883,7 +884,8 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     // Labels are kept off each other where they can be. The ones that always print take their
     // places first: the level note, the room names and the overall sizes. The rest (outdoor
     // areas, retaining walls, wall lengths) move or are left off where they would print over one.
-    const gross = buildingOutline(faces).area
+    // The app's one figure for the level (the strip, Overview, Rooms & areas, Costs): a wall shared with a split level beside it counts once.
+    const gross = levelSummaries(plan).find(s => s.level.id === level.id)?.gross.area ?? 0
     const levelNote = `${level.name}: FFL RL ${floorRL(plan, level.id).toFixed(2)}, ceiling ${mm(level.height)} mm, ${gross.toFixed(2)} m² to the outside of the walls`
     const nb = textBox(area.x + 2, area.y + area.h - 2, levelNote, 2.8)
     const taken: Box[] = [nb]
