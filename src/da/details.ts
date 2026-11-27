@@ -1,34 +1,16 @@
 // The DA pack's site details, typed above its Download button: the street address, the Lot and DP,
 // and who prepared it. They're kept as the project's own "da-details" record, not in the plan, so
-// they never ride along on a share link or a project file: they go only onto the downloaded PDF's
-// title blocks. Blank fields fall back to the map placement (Site › Map), as before.
+// they never ride along on a share link. They go onto the downloaded PDF's title blocks, and into
+// the project file (the backup), which restores them when it's opened (src/share/project.ts).
+// Blank fields fall back to the map placement (Site › Map), as before.
 
 import { create } from 'zustand'
 import { registerRecordKind } from '../projects/session'
+import { cleanDaDetail, daDetailsForFile, DA_DETAILS_KIND, emptyDaDetails, normalizeDaDetails, type DaDetails } from './detailsModel'
 
-export interface DaDetails {
-  /** The site's street address. */
-  address: string
-  /** "Lot 12 DP 34567". */
-  lot: string
-  /** Who prepared the pack: a name, a business, or blank to write in. */
-  preparedBy: string
-}
+export { DA_DETAILS_KIND, daDetailsForFile, emptyDaDetails, normalizeDaDetails, type DaDetails } from './detailsModel'
 
-export const DA_DETAILS_KIND = 'da-details'
-
-export const emptyDaDetails = (): DaDetails => ({ address: '', lot: '', preparedBy: '' })
-
-/** Longest a detail can be: a title block has room for a line or two. */
-const MAX = 120
-
-const clean = (v: unknown) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, MAX) : '')
-
-/** A stored record, made safe: anything missing or odd is blank. */
-export function normalizeDaDetails(raw: unknown): DaDetails {
-  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  return { address: clean(r.address), lot: clean(r.lot), preparedBy: clean(r.preparedBy) }
-}
+const clean = cleanDaDetail
 
 export const useDaDetails = create<{ details: DaDetails }>(() => ({ details: emptyDaDetails() }))
 
@@ -47,3 +29,9 @@ export function packDetails(d: DaDetails, place: { address: string | null; lot: 
   const lot = d.lot || place?.lot || null
   return { place: address || lot ? { address, lot } : null, preparedBy: d.preparedBy || null }
 }
+
+/** The open project's details, for its project file; undefined when nothing was typed. */
+export const daForProject = (): DaDetails | undefined => daDetailsForFile(useDaDetails.getState().details)
+
+/** A project's details from its saved records, for its project file. */
+export const daFromRecords = (records: Record<string, unknown> | null): DaDetails | undefined => daDetailsForFile(records?.[DA_DETAILS_KIND])

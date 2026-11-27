@@ -101,7 +101,7 @@ export function DaPackSection(p: PdfInput) {
         <TextField label="Revision" value={daOf(p.plan).revision} onCommit={setDaRevision} />
       </div>
       <p className="muted small">
-        {lot ? 'Left blank, the address and Lot/DP come from Site › Map. ' : ''}These go on the PDF’s title blocks only: they’re kept with this project, not sent with share links.
+        {lot ? 'Left blank, the address and Lot/DP come from Site › Map. ' : ''}These go on the PDF’s title blocks. They’re kept with this project and in the project file you download as a backup; share links never carry them.
       </p>
       <div className="row">
         <button className="secondary" onClick={download}>

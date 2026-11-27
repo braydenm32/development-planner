@@ -255,6 +255,10 @@ export interface ProjectReviewInput {
   costs?: string | null
   /** The project open now, which stays. */
   current: string | null
+  /** What in the file's plan couldn't be read and is left out, in words: "1 wall and 1 door". */
+  dropped?: string
+  /** The file carries the DA pack's site details (address, Lot/DP, prepared by). */
+  daDetails?: boolean
 }
 
 /** What a project file holds besides its plan, in words: "12 site features · 2 levels · block 480 m²". */
@@ -280,7 +284,10 @@ export function projectReview(i: ProjectReviewInput): Review {
       { label: 'Plan', value: planLine(i.plan) },
       { label: 'With', value: holds(i) },
       ...(i.costs ? [{ label: 'Costs', value: i.costs }] : []),
+      ...(i.daDetails ? [{ label: 'DA pack', value: 'site address, Lot and DP, prepared by' }] : []),
     ],
+    // A file with broken entries still opens, but never silently.
+    warning: i.dropped ? `Part of this file couldn’t be read: ${i.dropped} will be left out. The rest opens as it was saved.` : null,
     changes: [`Adds “${i.name}” to your projects and opens it.`],
     kept: [i.current ? `“${i.current}” stays as it is, under All projects.` : 'Nothing is replaced.'],
     confirm: 'Open as a new project',

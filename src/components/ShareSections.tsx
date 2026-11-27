@@ -397,8 +397,9 @@ export function SendProject({ plan, project, onOpenProject, download = true }: {
       <details className="sh-whats">
         <summary>What’s in it</summary>
         <p className="muted small">
-          The survey, the plan and the site features. Drawings go in only where you ticked that under Site features. A project file you open
-          here becomes a new project; this one stays as it is under All projects.
+          The survey, the plan, the site features and your costs, and the site address, Lot and DP and Prepared by from Approvals › DA pack if you
+          typed them. Drawings go in only where you ticked that under Site features. Your print and view settings stay on this device. A
+          project file you open here becomes a new project; this one stays as it is under All projects.
         </p>
       </details>
       <div className="row">
