@@ -81,6 +81,8 @@ const ICONS = {
   sketch: '<path d="M3.5 19.5 20.5 6" stroke-dasharray="2.6 2"/><path d="M5 8.5a9 9 0 0 1 11.5 11"/><circle cx="5" cy="19" r="1.6"/>',
   note: '<path d="M4.5 4.5h15v11h-6l-3.5 4v-4h-5.5z"/><path d="M8 9h8M8 12h5"/>',
   map: '<path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+  // Someone walking: Walk through in 3D.
+  walk: '<circle cx="13.5" cy="4.8" r="1.8"/><path d="m10 21 2.2-5.6 2.6 2.4V21"/><path d="m12.2 15.4 1.2-6.6-3.6 1.6-1.6 3.4"/><path d="m13.4 8.8 1.8 3 3 1.2"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',
 }
 

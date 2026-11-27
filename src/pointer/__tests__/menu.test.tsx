@@ -60,6 +60,8 @@ describe('the right-click menu (CB-09)', () => {
   it('offers a room Rename, and furniture a quarter turn', () => {
     const room = plan().rooms[0]
     expect(ids([{ type: 'room', id: room.id }])[0]).toBe('rename')
+    // And a walk through the house in 3D, starting in it.
+    expect(item([{ type: 'room', id: room.id }], 'walk').label).toBe('Walk through from here')
     const f = plan().furniture[0]
     if (f) expect(ids([{ type: 'furniture', id: f.id }])[0]).toBe('turn')
   })

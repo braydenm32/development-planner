@@ -50,6 +50,7 @@ export type ActionId =
   | 'north-up'
   | 'dock-panels'
   | 'reset-camera'
+  | 'walk-through'
   | 'camera-street'
   | 'camera-above'
   | 'camera-rear'
@@ -278,6 +279,7 @@ export const AREAS: Area[] = [
           'furniture-3d',
           'terrain-elevation-colours',
           'survey-markers-3d',
+          'walk-through-3d',
         ],
       },
       {
@@ -1403,6 +1405,7 @@ export const HOMES: Home[] = [
       { id: 'cmd-model-obj', label: 'Save the 3D model as OBJ', icon: 'download', keywords: ['obj', 'mtl', 'model export', '3d model', 'sketchup', 'blender', 'render', 'export'], features: [], action: 'download-obj', run: 'offer', at: 'share/export' },
       { id: 'cmd-3mf', label: 'Download 3MF for printing', icon: 'download', keywords: ['3D print', 'model'], features: [], action: 'download-3mf', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-stl', label: 'Download STL files for printing', icon: 'download', keywords: ['stl', 'zip', 'slicer', '3D print'], features: [], action: 'download-stls', run: 'offer', at: 'share/3d-print' },
+      { id: 'cmd-walk-through', label: 'Walk through the house in 3D', icon: 'walk', keywords: ['walk-through', 'walkthrough', 'eye height', 'inside', 'first person', 'virtual visit', 'stand in a room', 'tour'], features: [], action: 'walk-through', run: 'now', at: 'site/3d' },
       { id: 'cmd-reset-camera', label: 'Reset the 3D camera', icon: 'rotate', keywords: ['view', 'orbit', 'home'], features: [], action: 'reset-camera', run: 'now', at: 'site/3d' },
     ],
   },

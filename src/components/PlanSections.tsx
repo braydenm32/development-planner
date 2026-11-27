@@ -87,6 +87,7 @@ import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
 import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 import { forTouch } from '../phone/words'
+import { WalkFromHere } from '../walk/WalkPanel'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -592,7 +593,10 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           The room's shape comes from the walls around its label. Drag the label to move it.
           {onNaturalGround(plan, r) && ` ${piersGroundNote(earthworksOf(plan))}`}
         </p>
-        <div className="row">{del}</div>
+        <div className="row">
+          {area !== null && <WalkFromHere room={r.id} />}
+          {del}
+        </div>
       </section>
     )
   }

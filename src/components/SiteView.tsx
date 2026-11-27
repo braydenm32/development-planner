@@ -23,6 +23,11 @@ import { SnapshotGrab } from '../export/SnapshotGrab'
 import { sceneProps } from '../a11y/scene'
 import { SceneKeys } from '../a11y/SceneKeys'
 import { sceneSummary } from '../a11y/summary'
+import { streetBearingOf } from '../plan/streetSide'
+import type { Vec2 } from '../lib/geom'
+import { WalkRig } from '../walk/WalkRig'
+import { WalkPanel } from '../walk/WalkPanel'
+import { useWalk } from '../walk/walkStore'
 
 export interface HoverInfo {
   e: number
@@ -69,6 +74,8 @@ export function SiteView(props: Props) {
     [touch, props.plan, props.survey, terrain, refZ, props.view.exaggeration],
   )
   const [pin, setPin] = useState<Pin | null>(null)
+  // Walk-through starts at the door that faces the street (src/walk).
+  const street = useMemo(() => streetBearingOf(props.plan, props.survey.boundary as Vec2[], terrain.stats.fallBearing), [props.plan, props.survey, terrain])
   // A camera view starts clean: the level read off the ground goes with the old view.
   useEffect(() => useCamera.subscribe((s, prev) => s.command !== prev.command && setPin(null)), [])
 
@@ -76,6 +83,7 @@ export function SiteView(props: Props) {
     <>
     {/* Arrows turn and tilt, + and − zoom; the view is a named picture that Tab stops on (src/a11y). */}
     <SceneKeys />
+    <WalkPanel />
     <Canvas
       {...sceneProps(sceneSummary(props.plan, terrain.stats))}
       camera={{ position: camPos, fov: 40, near: 0.1, far: span * 50 }}
@@ -99,6 +107,9 @@ export function SiteView(props: Props) {
       {touch && frame && <CameraRig frame={frame} storageKey={touch.projectKey} phone={touch.phone} upBearing={props.upBearing} hasPlan={!!props.plan} />}
       <Site {...props} refZ={refZ} onPin={touch ? setPin : undefined} />
       {pin && <GroundPin pin={pin} />}
+      {props.plan && (
+        <WalkRig plan={props.plan} origin={props.survey.origin} refZ={refZ} exag={props.view.exaggeration} ground={props.ground} boundary={props.survey.boundary as Vec2[]} street={street} />
+      )}
     </Canvas>
     </>
   )
@@ -106,10 +117,13 @@ export function SiteView(props: Props) {
 
 function Compass({ compassRef }: { compassRef: RefObject<HTMLDivElement | null> }) {
   const controls = useThree(s => s.controls) as unknown as { getAzimuthalAngle(): number } | null
+  const camera = useThree(s => s.camera)
+  const look = useMemo(() => new THREE.Vector3(), [])
   useFrame(() => {
     if (!controls || !compassRef.current) return
     // Azimuth 0 means the camera looks towards -z (north); the needle turns to match (the N stays upright: App.css).
-    const az = controls.getAzimuthalAngle()
+    // Walking through turns the camera without the orbit (src/walk): read it off the camera then.
+    const az = useWalk.getState().active ? Math.atan2(-camera.getWorldDirection(look).x, -look.z) : controls.getAzimuthalAngle()
     compassRef.current.style.setProperty('--az', `${(-az * 180) / Math.PI}deg`)
   })
   return null
@@ -124,6 +138,8 @@ const FILL = new THREE.Color().setRGB(...FILL_RGB, THREE.SRGBColorSpace)
 export function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground, cutFill, onPin }: Props & { refZ: number; onPin?: (p: Pin) => void }) {
   const { grid, stats } = terrain
   const exag = view.exaggeration
+  // Survey markers and contour numbers poke up through the floors: not while walking through.
+  const walking = useWalk(s => s.active)
   // The levels the Show menu leaves on (null: all of them), kept stable so the house isn't rebuilt each frame.
   const hidden = view.hiddenLevels.join(',')
   const levelsShown = useMemo(() => {
@@ -280,11 +296,11 @@ export function Site({ survey, terrain, solid, view, onHover, refZ, plan, ground
         )}
       </group>
       {/* Outside the stretched group, so the numbers keep their shape; they place themselves at the stretched height. */}
-      {view.showContours && <ContourLabels3D labels={contourLabels} refZ={refZ} exag={exag} />}
-      {view.showLevels && (
+      {view.showContours && !walking && <ContourLabels3D labels={contourLabels} refZ={refZ} exag={exag} />}
+      {view.showLevels && !walking && (
         <Markers points={survey.levels} color={SPOT_LEVEL} kind="Spot level" {...{ survey, terrain, refZ, exag, onHover }} />
       )}
-      {view.showReference && (
+      {view.showReference && !walking && (
         <Markers points={survey.reference} color={REFERENCE_POINT} kind="Reference point" {...{ survey, terrain, refZ, exag, onHover }} />
       )}
     </>

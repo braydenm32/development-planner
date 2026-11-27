@@ -23,6 +23,8 @@ The app has six areas down the left (along the bottom on a phone):
 
 Each area has its tabs across the top and a **More** tab for its rarer settings; the tab's panel floats over the plan or the 3D view, and the arrow at its top tucks it away. On a computer, the panel's dock button (or search for "dock") sets the panels beside the canvas instead, with the drawing in the space left; drag the docked panel's edge to make it wider. The **2D | 3D** switch in the top bar swaps the plan for the 3D view in any area. The key numbers sit on one line under the tabs, with **Overview** for the rest, and **Check everything** in the top bar walks the project as six steps (Block, Levels & rooms, Roof, Ground & walls, Checks, Costs & share). Search (Ctrl+K or ⌘K) finds any area, tab, setting or command, and **Help › Getting started guide** walks through the lot. The address keeps where you are, so Back, Forward and reload land in the same place. On a phone a project opens in **View**, for showing people; **Edit** brings back the tools.
 
+**Walk through** in the 3D view's bar (or on a room's card and right-click menu) puts you inside the house at eye height: drag to look round, walk with the arrow keys or W A S D (Q and E turn; on a touch screen, the arrow pad), or click the floor to walk there. Walls stop you and doorways let you through; **Go up** and **Go down** change level, and Esc puts the camera back where it was.
+
 ## Starting a project
 
 The start screen offers two ways in, plus a third for a block with no survey yet:

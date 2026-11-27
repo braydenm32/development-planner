@@ -13,6 +13,7 @@ import { openingStyle } from '../plan/openingStyles'
 import { usePlan, type Selection, type Tool } from '../plan/store'
 import { editWallLength } from './dimStore'
 import { useSnapping } from './snapping'
+import { walkThrough } from '../walk/start'
 
 export interface MenuItem {
   id: string
@@ -90,6 +91,7 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
     }
   } else if (s.type === 'room') {
     own.push({ id: 'rename', label: 'Rename', run: () => askName(s.id) })
+    own.push({ id: 'walk', label: 'Walk through from here', run: () => walkThrough(s.id) })
   } else if (s.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === s.id)
     if (f) own.push({ id: 'turn', label: 'Turn 90°', keys: 'Q', run: () => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation - 90) })) })

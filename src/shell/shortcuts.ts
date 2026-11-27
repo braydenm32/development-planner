@@ -42,6 +42,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Space+drag'], what: 'Move the plan, whatever is under the pointer (two fingers on a trackpad move it too)' },
       { keys: ['PageUp', 'PageDown'], what: 'Draw on the level above or below' },
       { keys: ['Tab'], what: 'From the top of the page: skip to the panel, the plan tools, the plan or the selection. The tool rail is one stop; arrows move along it' },
+      { keys: ['W', 'A', 'S', 'D'], what: 'Walking through in 3D: walk and step sideways (the arrows too); Q and E turn; Esc leaves' },
       { keys: ['mod+K'], what: 'Search everything' },
       { keys: ['?'], what: 'This list' },
     ],
