@@ -469,7 +469,7 @@ export const AREAS: Area[] = [
         icon: 'roof',
         subtitle: 'New roofs, and the roofs on the plan.',
         keywords: ['pitch', 'hip', 'gable', 'skillion', 'eaves', 'overhang'],
-        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang'],
+        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang', 'roofs-on-plan', 'roofs-building-height'],
       },
       {
         id: 'furniture',
@@ -1327,7 +1327,7 @@ export const HOMES: Home[] = [
         label: 'Summary strip',
         icon: 'list',
         keywords: ['key numbers', 'chips'],
-        features: ['summary-strip', 'checks-chip'],
+        features: ['summary-strip', 'checks-chip', 'strip-more-numbers'],
         hint: 'The line of key numbers under the tabs. Each one opens the panel it comes from.',
       },
       {
@@ -1655,6 +1655,14 @@ export const HOMES: Home[] = [
         keywords: ['sidebar', 'fold', 'collapse', 'more room'],
         features: ['sidebar-hide', 'sidebar-show', 'sidebar-fold-section'],
         hint: 'The arrow at the top of each panel tucks it away; the tab’s name brings it back. Headings under More fold too.',
+      },
+      {
+        id: 'more-tabs',
+        label: 'Tabs that don’t fit',
+        icon: 'chevD',
+        keywords: ['more tabs', 'hidden tabs', 'overflow', 'tab bar'],
+        features: ['tab-bar-more-tabs'],
+        hint: 'When an area’s tabs don’t fit, the +N button at the end of the tab bar lists the rest. On a phone the tabs scroll.',
       },
     ],
   },
