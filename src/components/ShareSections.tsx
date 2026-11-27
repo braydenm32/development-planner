@@ -4,8 +4,8 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
-import { fitsBed, type PrintSettings } from '../print/build'
-import { LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
+import { fitsBed, type PrintInput, type PrintSettings } from '../print/build'
+import { aroundHouseVolume, LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
 import { pointAtParts, usePrintHover } from '../print/hover'
 import { planPages } from '../share/pages'
 import type { Paper } from '../share/plans'
@@ -96,7 +96,7 @@ const box = (b: readonly number[]) => `${b.map(size).join(' × ')} mm`
  * and a smaller scale above a litre, the largest scale that prints the terrain in one piece, and
  * what doesn't fit.
  */
-export function PrintParts({ print, settings }: { print: PrintState; settings: PrintSettings }) {
+export function PrintParts({ print, settings, input }: { print: PrintState; settings: PrintSettings; input?: Pick<PrintInput, 'plan' | 'survey' | 'ground'> }) {
   const model = print.model
   const groups = useMemo(() => (model ? partGroups(model) : []), [model])
   const hot = usePrintHover(s => s.ids)
@@ -107,6 +107,8 @@ export function PrintParts({ print, settings }: { print: PrintState; settings: P
   const tooBig = groups.filter(g => !fitsBed(g.biggest[0], g.biggest[1], settings))
   const whole = model.terrainSize ? scaleThatFits(model.terrainSize, settings.scale, settings) : null
   const under = scaleUnder(total, settings.scale)
+  // What the smaller terrain would really take, so the hint never promises a litre it can't keep.
+  const around = total > LITRE && settings.terrain === 'block' && input ? aroundHouseVolume(model, input, settings) : null
   const point = (g: PartGroup | null) => pointAtParts(g ? g.ids : [])
   return (
     <>
@@ -163,7 +165,9 @@ export function PrintParts({ print, settings }: { print: PrintState; settings: P
           That’s over a litre of plastic.{' '}
           {under ? `At 1:${under} it comes under a litre.` : 'Even the smallest scale takes more than that.'}
           {!settings.hollow ? ' Hollowing the terrain underneath saves a lot.' : ''}
-          {settings.terrain === 'block' ? ' So does printing only the ground around the house.' : ''}
+          {around !== null && around < total - 1
+            ? ` Printing only the ground around the house, out to ${Number(settings.margin.toFixed(1))} m, would take about ${Math.round(around).toLocaleString('en-AU')} cm³, ${around > LITRE ? 'still over a litre' : 'under a litre'}.`
+            : ''}
         </p>
       )}
       {model.terrainSize && (

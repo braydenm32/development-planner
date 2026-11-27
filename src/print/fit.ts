@@ -3,7 +3,10 @@
 // brings it under. Plastic goes with the cube of the scale (the base and thinnest walls don't
 // scale, so it's a little rough); a footprint goes with the scale.
 
-import { fitsBed, type PrintModel, type PrintSettings } from './build'
+import { pointInPolygon } from '../lib/geom'
+import { fromSite } from '../plan/model'
+import { planBounds } from '../plan/ops'
+import { fitsBed, type PrintInput, type PrintModel, type PrintSettings } from './build'
 
 /** The scales the panel offers, largest model first. */
 export const PRINT_SCALES = [50, 75, 100, 150, 200, 250]
@@ -26,6 +29,57 @@ export function scaleUnder(volume: number, scale: number, limit = LITRE): number
 
 /** The plastic in every part, cm³. */
 export const plasticOf = (m: Pick<PrintModel, 'parts'>) => m.parts.reduce((t, p) => t + p.volume, 0)
+
+// How build.ts hollows the terrain, near enough for an estimate: pockets cover about this share of
+// the ground (20 mm cells with 1.6 mm ribs), each roofed this far (m, on the ground) below it.
+const HOLLOW_POCKETS = 0.85
+const HOLLOW_SKIN = 0.25
+
+/**
+ * About how much plastic the model would take with only the ground around the house (out to the
+ * settings' margin), worked out from the model built with the whole block: the house's parts are
+ * the same, and the terrain's plastic goes with the ground it covers and how thick it stands above
+ * its own lowest point. So the panel's hint says what the smaller terrain really saves, not that
+ * it comes under a litre when it doesn't. Null when there's no terrain or nothing drawn to crop to.
+ */
+export function aroundHouseVolume(model: Pick<PrintModel, 'parts'>, input: Pick<PrintInput, 'plan' | 'survey' | 'ground'>, settings: Pick<PrintSettings, 'scale' | 'base' | 'margin' | 'hollow'>): number | null {
+  const terrain = model.parts.filter(p => p.kind === 'terrain').reduce((t, p) => t + p.volume, 0)
+  const b = planBounds(input.plan)
+  if (!(terrain > 0) || !b) return null
+  const m = Math.max(0, settings.margin)
+  const f = input.ground
+  const o = input.survey.origin
+  const all: number[] = []
+  const near: number[] = []
+  for (let j = 0; j < f.ny; j++) {
+    for (let i = 0; i < f.nx; i++) {
+      const p: [number, number] = [f.x0 + i * f.cell, f.y0 + j * f.cell]
+      if (!pointInPolygon(p[0], p[1], input.survey.boundary)) continue
+      const z = f.z[j * f.nx + i]
+      all.push(z)
+      const h = fromSite(p, input.plan.placement, o)
+      if (h[0] >= b.minX - m && h[0] <= b.maxX + m && h[1] >= b.minY - m && h[1] <= b.maxY + m) near.push(z)
+    }
+  }
+  if (!all.length || !near.length) return null
+  // Each stands on a solid base under its own lowest point (m, on the ground). Hollowed, the
+  // pockets take out most of what lies deeper than the skin under the ground, between the ribs.
+  const mm = settings.scale / 1000
+  const base = settings.base * mm
+  const skin = HOLLOW_SKIN + 2 * mm
+  const plastic = (zs: number[]) => {
+    let low = Infinity
+    for (const z of zs) low = Math.min(low, z)
+    let v = 0
+    for (const z of zs) {
+      const h = z - low + base
+      v += settings.hollow && h - skin >= 3 * mm ? h - HOLLOW_POCKETS * (h - skin) : h
+    }
+    return v
+  }
+  const share = plastic(near) / plastic(all)
+  return plasticOf(model) - terrain + terrain * Math.min(1, share)
+}
 
 /** A part and the pieces it was cut into, as the panel lists them. */
 export interface PartGroup {

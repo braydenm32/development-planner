@@ -14,7 +14,7 @@ import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { levelOutlines } from '../../plan/roof'
 import { ceilingRL, matchRoofline, setEavesRL } from '../../plan/roofline'
 import { BED_SLACK, buildPrintModel, DEFAULT_PRINT, fitsBed, longSideTurn, type PrintModel, type PrintPart } from '../build'
-import { partGroups, plasticOf, scaleThatFits, scaleUnder } from '../fit'
+import { aroundHouseVolume, partGroups, plasticOf, scaleThatFits, scaleUnder } from '../fit'
 
 let wasm: ManifoldToplevel
 
@@ -187,6 +187,20 @@ describe('print model', () => {
     expect(m.status()).toBe('NoError')
     m.delete()
     for (let i = 1; i < near.parts.length; i++) expect(near.parts[i].volume).toBeCloseTo(model100.parts[i].volume, 3)
+  })
+
+  it('says from the whole-block model about what printing only the ground around the house takes', () => {
+    // The hint beside "over a litre" quotes this figure, so it has to land near the real build.
+    for (const s of [{ ...SOLID, tiles: false, margin: 3 }, { ...DEFAULT_PRINT, tiles: false, margin: 3 }]) {
+      const whole = s.hollow ? buildPrintModel(wasm, input, s) : model100
+      const real = plasticOf(buildPrintModel(wasm, input, { ...s, terrain: 'house' }))
+      const guess = aroundHouseVolume(whole, input, s)!
+      expect(guess).toBeLessThan(plasticOf(whole))
+      expect(Math.abs(guess - real) / real).toBeLessThan(0.05)
+    }
+    // A margin wider than the block saves nothing; a model with no terrain has nothing to crop.
+    expect(aroundHouseVolume(model100, input, { ...SOLID, margin: 500 })).toBeCloseTo(plasticOf(model100), 6)
+    expect(aroundHouseVolume({ parts: model100.parts.slice(1) }, input, SOLID)).toBeNull()
   })
 
   it('stacks without the parts running into each other', () => {
