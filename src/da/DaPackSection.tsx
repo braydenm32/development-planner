@@ -10,6 +10,7 @@ import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import { setDaDetail, useDaDetails, type DaDetails } from './details'
 import { daOf, setDaRevision } from './model'
+import { packRoute } from './route'
 
 /** A detail typed as it should read on the title block; it can be cleared to fall back to the map's. */
 function DetailField({ id, label, hint, field }: { id: string; label: string; hint: string; field: keyof DaDetails }) {
@@ -54,6 +55,11 @@ export function DaPackSection(p: PdfInput) {
     const r = useRouter.getState().route
     if (r.kind === 'app') navigate(tabRoute(r, 'site', 'map'))
   }
+  const route = packRoute(p.plan)
+  const toChecks = () => {
+    const r = useRouter.getState().route
+    if (r.kind === 'app') navigate(tabRoute(r, 'approvals', 'checks'))
+  }
   return (
     <>
       <h3>DA pack (PDF)</h3>
@@ -67,6 +73,16 @@ export function DaPackSection(p: PdfInput) {
           stormwater concept and a table of the planning controls, each sheet with a title block. Every page is in it, whatever is ticked above.
         </p>
       </details>
+      {route.pick ? (
+        <div className="sh-callout da-route" role="note">
+          <p>{route.text}</p>
+          <button className="secondary" onClick={toChecks}>
+            Pick your council
+          </button>
+        </div>
+      ) : (
+        <p className="muted small da-route">{route.text}</p>
+      )}
       {!hasAddress && (
         <div className="sh-callout" role="note">
           <p>

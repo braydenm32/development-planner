@@ -16,6 +16,10 @@ import { checklistRows, DA_ITEMS, sheetRange, type ChecklistInput } from '../che
 import { cleanRevision, daOf } from '../model'
 import { setDaDetail } from '../details'
 import { controlLines, daPackLayout, daPackPdf, type DaPackInput } from '../pack'
+import { packRoute } from '../route'
+import { checksFor } from '../../checks/useChecks'
+import { countsWords } from '../../checks/rules'
+import { keptSunFacts, winterDay } from '../../sun/facts'
 import { NOT_SET, sheetOf, titleText, type TitleInfo } from '../titleBlock'
 
 const text = (b: Uint8Array) => new TextDecoder('latin1').decode(b)
@@ -173,28 +177,60 @@ describe('the DA pack', () => {
     notChecked: [],
   })
 
-  it('builds for an empty plan: a cover, a site plan and a checks summary, the rest not drawn yet', () => {
+  it('builds for an empty plan: a cover and a site plan, the rest not drawn yet, and no empty controls sheet', () => {
     const input = base(emptyPlan(placement))
     const { pages, rows } = daPackLayout(input)
+    // With nothing checked, the Planning controls sheet is left out, not printed empty (LF-04).
     expect(pages.map(p => [p.number, p.kind])).toEqual([
       ['DA-01', 'cover'],
       ['DA-02', 'site'],
-      ['DA-03', 'checks'],
     ])
     expect(rows.find(r => r.id === 'floor-plans')?.status).toBe('not-drawn')
+    expect(rows.find(r => r.id === 'controls')).toMatchObject({ status: 'not-drawn', detail: 'Switch on your council under Approvals › Checks, so its controls can be checked.' })
     const pdf = text(daPackPdf(input))
-    expect(pdf).toContain('/Count 3')
+    expect(pdf).toContain('/Count 2')
     expect(pdf).toContain('(DA document pack) Tj')
-    expect(pdf).toContain('(DA-01 of 03) Tj')
+    expect(pdf).toContain('(DA-01 of 02) Tj')
     expect(pdf).toContain(`(${NOT_SET}) Tj`)
-    expect(pdf.match(/\(Concept only: not for construction\) Tj/g)).toHaveLength(3)
+    expect(pdf.match(/\(Concept only: not for construction\) Tj/g)).toHaveLength(2)
     expect(pdf).toContain('(Not drawn yet) Tj')
-    expect(pdf).toContain('(There are no checks to show yet.) Tj')
+    expect(pdf).not.toContain('There are no checks to show yet')
+    expect(pdf).not.toContain('(Planning controls) Tj')
+  })
+
+  it('with no council on, carries the Housing Code checks Approvals › Checks shows, named as CDC', () => {
+    const plan: Plan = { ...garageFloor(), placement }
+    // The route as a new project has it: CDC, no council.
+    expect(packRoute(plan)).toMatchObject({ pick: true })
+    expect(packRoute(plan).text).toContain('Housing Code (CDC) checks')
+    const pdf = text(daPackFile({ plan, survey, terrain, earth: null, up: 'house', paper: 'A3', pdfFurniture: true }).data as Uint8Array)
+    expect(pdf).toContain('(Planning controls: Housing Code \\(CDC\\)) Tj')
+    expect(pdf).toContain('Housing Code checks for complying development')
+    expect(pdf).not.toContain('There are no checks to show yet')
+    // The same rows and counts as the Checks tab on the CDC route.
+    const cdc = checksFor({ plan, survey, terrain, earth: null, sun: keptSunFacts({ plan, boundary: survey.boundary, origin: survey.origin, ground: terrain.grid, date: winterDay() }) })
+    expect(cdc.pathway).toBe('cdc')
+    expect(cdc.results.length).toBeGreaterThan(5)
+    expect(pdf).toContain(`(${countsWords(cdc.counts, true).join(' \\267 ')}) Tj`)
+    // The cover says which checks they are.
+    expect(pdf).toContain('The Housing Code \\(CDC\\) checks, as no council is switched on.')
+  })
+
+  it('with a council on, is for a DA with that council, whichever route the checks are on', () => {
+    const on = (pathway: 'cdc' | 'da'): Plan => ({ ...garageFloor(), placement, checks: { pathway, battleAxe: false, councils: { wollongong: true } } })
+    expect(packRoute(on('da'))).toEqual({ pick: false, text: 'This pack is for a DA with Wollongong City Council: its planning controls sheet checks Wollongong LEP 2009 and DCP 2009.' })
+    expect(packRoute(on('cdc')).text).toContain('Your checks are on the CDC route')
+    const pdf = text(daPackFile({ plan: on('cdc'), survey, terrain, earth: null, up: 'house', paper: 'A3', pdfFurniture: true }).data as Uint8Array)
+    expect(pdf).toContain('(Planning controls) Tj')
+    expect(pdf).toContain('(Checked against Wollongong LEP 2009 and DCP 2009 for a development application.) Tj')
+    expect(pdf).not.toContain('Housing Code \\(CDC\\)')
   })
 
   it('puts the sheets in DA order and numbers them, with the address on every title block', () => {
     const plan: Plan = { ...garageFloor(), placement, sections: [{ id: 's1', label: 'A', a: [-1, 2], b: [12, 2] }] }
-    const input: DaPackInput = { ...base(plan), place: { address: '1 Example Street Sampleton 2000', lot: 'Lot 12 DP1000001' } }
+    // One control checked, so the pack has its controls sheet (with none it is left out).
+    const height: CheckResult = { id: 'da-height', title: 'Building height', status: 'pass', value: '5.2 m', limit: '9 m', source: { clause: 'Test DCP 1.1', confidence: 'read', asAt: 'test' } }
+    const input: DaPackInput = { ...base(plan), checks: [height], council: COUNCIL_TABLES.wollongong, place: { address: '1 Example Street Sampleton 2000', lot: 'Lot 12 DP1000001' } }
     const { pages } = daPackLayout(input)
     const kinds = pages.map(p => p.kind)
     expect(kinds[0]).toBe('cover')

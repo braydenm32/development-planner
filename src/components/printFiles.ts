@@ -147,7 +147,11 @@ export function daPackFile(p: PdfInput): OutFile {
   const sun = keptSunFacts({ plan: p.plan, boundary: p.survey.boundary, origin: p.survey.origin, ground: e?.grid ?? p.terrain.grid, date: winterDay() })
   const measures = measure({ plan: p.plan, survey: p.survey, terrain: p.terrain, earth: p.earth, trees, sun, dem: !!projectsNow().opened?.survey?.dem })
   const council = activeCouncil(measures.settings)
-  const checks = [...(planning ? mapChecks(planning, 'da') : []), ...(council ? runChecks(measures, 'da', council.id) : [])]
+  // A DA is checked against a council's rules. With no council switched on there are none, so the
+  // pack carries the checks the app does have, the Housing Code's (as Approvals › Checks lists
+  // them on the CDC route), and its controls sheet is named for them, not left empty.
+  const rules = council ? 'da' : 'cdc'
+  const checks = [...(planning ? mapChecks(planning, rules) : []), ...runChecks(measures, rules, council?.id ?? null)]
   const pdf = daPackPdf({
     ...base,
     earthworks: base.earthworks && e ? { ...base.earthworks, maxCut: e.maxCut, maxFill: e.maxFill } : base.earthworks,
@@ -157,7 +161,8 @@ export function daPackFile(p: PdfInput): OutFile {
     planning,
     council,
     checks,
-    notChecked: notChecked('da', council),
+    rules,
+    notChecked: notChecked(rules, council),
   })
   return { name: `${fileSafe(base.title)}-DA-pack.pdf`, data: pdf, type: 'application/pdf' }
 }
