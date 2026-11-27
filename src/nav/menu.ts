@@ -273,6 +273,7 @@ export const AREAS: Area[] = [
           'orbit-3d',
           'house-model-3d',
           'furniture-3d',
+          'opening-kinds-3d',
           'terrain-elevation-colours',
           'survey-markers-3d',
         ],
@@ -509,7 +510,7 @@ export const AREAS: Area[] = [
           'council drawings',
           'stairs in section',
         ],
-        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs'],
+        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs', 'opening-kinds-elevation'],
       },
       {
         id: 'options',

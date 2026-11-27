@@ -183,6 +183,12 @@
   stroke-width: 0.6;
 }
 
+.sec-l-swing {
+  stroke: #2b3036;
+  stroke-width: 0.6;
+  stroke-dasharray: 3 2;
+}
+
 .sec-l-height {
   stroke: var(--accent, #2346d0);
   stroke-width: 1.3;

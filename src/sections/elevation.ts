@@ -22,14 +22,25 @@ import {
 } from '../plan/model'
 import { compassWord, postStations, stations, type Box, type DrawingInput, type LevelMark, type Pt } from './common'
 import { insideEdgeMid, roofEavesRL, wallTopAt, wallTopRL } from '../plan/roofline'
+import { openingStyle, type OpeningStyle } from '../plan/openingStyles'
 
 export type Side = 'north' | 'east' | 'south' | 'west'
 export const SIDES: Side[] = ['north', 'east', 'south', 'west']
 
 /** Something on an elevation, drawn far to near so the nearer hides what is behind it. */
 export type ElevationShape =
-  | { kind: 'wall'; depth: number; pts: Pt[]; openings: { kind: OpeningKind; box: Box }[] }
+  | { kind: 'wall'; depth: number; pts: Pt[]; openings: ElevationOpening[] }
   | { kind: 'roof'; depth: number; tris: Pt[][]; edges: [Pt, Pt][] }
+
+/** A door or window on a face: where it is, and what kind, so it's drawn with its own marks (paint.ts). */
+export interface ElevationOpening {
+  kind: OpeningKind
+  box: Box
+  /** Its kind of door or window (src/plan/openingStyles), when it has one. */
+  style?: OpeningStyle
+  /** Which side of the drawing its hinge (or a bifold's fold, or a slider's fixed panel) is on. */
+  hinge: 'left' | 'right'
+}
 
 export interface ElevationDrawing {
   kind: 'elevation'
@@ -175,7 +186,7 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
         if (n[0] * out[0] + n[1] * out[1] < 1e-6) continue
         // The face rises to meet a roof whose eaves sit above the ceiling.
         const top = wallTopAt(plan, level.id, insideEdgeMid(ring, i))
-        const openings: { kind: OpeningKind; box: Box }[] = []
+        const openings: ElevationOpening[] = []
         for (const o of plan.openings) {
           const w = walls.find(x => x.id === o.wall)
           if (!w) continue
@@ -189,7 +200,10 @@ export function elevationDrawing(side: Side, input: DrawingInput): ElevationDraw
           if (off > 0.01 || t < -0.01 || t > len + 0.01) continue
           const ua = U([face[0] - d[0] * (o.width / 2), face[1] - d[1] * (o.width / 2)])
           const ub = U([face[0] + d[0] * (o.width / 2), face[1] + d[1] * (o.width / 2)])
-          openings.push({ kind: o.kind, box: { s0: Math.min(ua, ub), s1: Math.max(ua, ub), z0: rl + o.sill, z1: Math.min(rl + o.sill + o.height, z1) } })
+          const style = openingStyle(o)
+          // The hinge is at the near end of the wall unless flipped; seen from outside that may be either side.
+          const hinge = (o.flipHinge ? ub < ua : ua < ub) ? 'left' : 'right'
+          openings.push({ kind: o.kind, box: { s0: Math.min(ua, ub), s1: Math.max(ua, ub), z0: rl + o.sill, z1: Math.min(rl + o.sill + o.height, z1) }, ...(style ? { style } : {}), hinge })
         }
         shapes.push({
           kind: 'wall',
