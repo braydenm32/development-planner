@@ -7,12 +7,16 @@
 // fees), the rest being labour. An owner-builder sees the two apart. Where a public guide gave
 // a range, the source line names it; where none was found it says so plainly ("Rough figure").
 //
-// Late in November 2026 the house-building rates that had no public guide behind them (prelims,
-// frame, upper floors, walls, windows and doors, fit-out, services, deck and garden) were raised
-// by half, to the nearest $5 under $1,000 and the nearest $50 above: estimates came in well under
-// what one-off houses cost to build. Fixed prices (fees, the owner-builder permit, site hire) and
-// rates with a public guide behind them (earthworks, retaining walls, slabs, metal and concrete
-// tile roofing, the driveway) were left where the guides put them.
+// Late in November 2026 the house-building rates that had no public guide behind them (frame,
+// upper floors, walls, windows and doors, fit-out, services, deck and garden) were raised by a
+// quarter, to the nearest $5 under $1,000 and the nearest $50 above: estimates came in well under
+// what one-off houses cost to build. Three of them were raised by half instead, because a quarter
+// still left them short of what they usually cost: preliminaries (a builder's own run at 8% or
+// more of a house), a suspended slab (formwork, propping and a pump) and drainage, connections
+// and hot water (sewer, stormwater, water and a tank on most new houses). Fixed prices (fees, the
+// owner-builder permit, site hire) and rates with a public guide behind them (earthworks,
+// retaining walls, slabs, metal and concrete tile roofing, the driveway) were left where the
+// guides put them.
 
 /** When the starting rates were set. */
 export const RATES_AS_AT = 'November 2026'
@@ -74,7 +78,8 @@ const OB_PERMIT = 'NSW owner-builder permit $233 (July 2026 to June 2027 fees, n
 // the guide below. Part of the gap is the guide itself (custom-built houses), part was items a
 // builder prices that no line counted: preliminaries and the fix-out. Those are lines now, and
 // the frame, slab, linings and electrical rates moved up to the middle of what trades quote.
-// The rates with no guide behind them were then raised by half (see the top of this file).
+// The rates with no guide behind them were then raised by a quarter, three of them by half (see
+// the top of this file).
 export const STARTING_RATES = [
   // Preliminaries
   { id: 'prelims', group: 'prelims', label: 'Preliminaries: supervision, insurance, scaffolding and cleaning', unit: 'm²', rate: 255, materials: 0.5, source: 'Rough figure per m² of floor: a builder’s site supervision, home warranty insurance (HBCF), scaffolding, cleaning and the like, often 6–10% of a house.' },
@@ -89,45 +94,45 @@ export const STARTING_RATES = [
   // Slab and floor
   { id: 'floor-slab', group: 'floor', label: 'Slab on ground', unit: 'm²', rate: 185, materials: 0.5, source: 'Yellow Pages slab guide, May 2026: $75–110/m², plus site preparation, steel, formwork, a pump and termite protection.' },
   { id: 'floor-waffle', group: 'floor', label: 'Waffle pod slab', unit: 'm²', rate: 155, materials: 0.5, source: 'Rough figure: a little under a slab on ground.' },
-  { id: 'floor-piers', group: 'floor', label: 'Bearers and joists on piers, with flooring', unit: 'm²', rate: 300, materials: 0.5, source: 'Rough figure.' },
+  { id: 'floor-piers', group: 'floor', label: 'Bearers and joists on piers, with flooring', unit: 'm²', rate: 250, materials: 0.5, source: 'Rough figure.' },
   { id: 'floor-suspended', group: 'floor', label: 'Suspended slab', unit: 'm²', rate: 570, materials: 0.45, source: 'Rough figure: formwork, propping and more steel.' },
-  { id: 'floor-upper', group: 'floor', label: 'Upper floor framing and flooring', unit: 'm²', rate: 240, materials: 0.5, source: 'Rough figure.' },
+  { id: 'floor-upper', group: 'floor', label: 'Upper floor framing and flooring', unit: 'm²', rate: 200, materials: 0.5, source: 'Rough figure.' },
   // Frame
-  { id: 'frame-timber', group: 'frame', label: 'Wall frames and roof trusses, timber', unit: 'm²', rate: 390, materials: 0.55, source: 'Rough figure per m² of floor, with the carpentry to lock-up: eaves, fascia and wrap.' },
-  { id: 'frame-steel', group: 'frame', label: 'Wall frames and roof trusses, steel', unit: 'm²', rate: 445, materials: 0.6, source: 'Rough figure: about 10–15% over timber.' },
-  { id: 'stairs', group: 'frame', label: 'Stairs, built and fixed', unit: 'each', rate: 9750, materials: 0.5, source: 'Rough figure.' },
+  { id: 'frame-timber', group: 'frame', label: 'Wall frames and roof trusses, timber', unit: 'm²', rate: 325, materials: 0.55, source: 'Rough figure per m² of floor, with the carpentry to lock-up: eaves, fascia and wrap.' },
+  { id: 'frame-steel', group: 'frame', label: 'Wall frames and roof trusses, steel', unit: 'm²', rate: 370, materials: 0.6, source: 'Rough figure: about 10–15% over timber.' },
+  { id: 'stairs', group: 'frame', label: 'Stairs, built and fixed', unit: 'each', rate: 8150, materials: 0.5, source: 'Rough figure.' },
   // Roof
   { id: 'roof-colorbond', group: 'roof', label: 'Roofing, Colorbond, with sarking and gutters', unit: 'm²', rate: 115, materials: 0.55, source: 'Yellow Pages Colorbond guide, May 2026: $80–150/m² installed.' },
   { id: 'roof-concrete-tile', group: 'roof', label: 'Roofing, concrete tile, with sarking and gutters', unit: 'm²', rate: 120, materials: 0.5, source: 'Rough figure: about the same as Colorbond.' },
-  { id: 'roof-terracotta', group: 'roof', label: 'Roofing, terracotta tile, with sarking and gutters', unit: 'm²', rate: 250, materials: 0.55, source: 'Rough figure.' },
+  { id: 'roof-terracotta', group: 'roof', label: 'Roofing, terracotta tile, with sarking and gutters', unit: 'm²', rate: 205, materials: 0.55, source: 'Rough figure.' },
   // Walls and cladding
-  { id: 'wall-brick', group: 'walls', label: 'External walls, brick veneer', unit: 'm²', rate: 285, materials: 0.45, source: 'Rough figure, with wrap and insulation.' },
-  { id: 'wall-weatherboard', group: 'walls', label: 'External walls, weatherboard', unit: 'm²', rate: 225, materials: 0.55, source: 'Rough figure, painted, with wrap and insulation.' },
-  { id: 'wall-fibre-cement', group: 'walls', label: 'External walls, fibre cement', unit: 'm²', rate: 180, materials: 0.5, source: 'Rough figure, painted, with wrap and insulation.' },
+  { id: 'wall-brick', group: 'walls', label: 'External walls, brick veneer', unit: 'm²', rate: 240, materials: 0.45, source: 'Rough figure, with wrap and insulation.' },
+  { id: 'wall-weatherboard', group: 'walls', label: 'External walls, weatherboard', unit: 'm²', rate: 190, materials: 0.55, source: 'Rough figure, painted, with wrap and insulation.' },
+  { id: 'wall-fibre-cement', group: 'walls', label: 'External walls, fibre cement', unit: 'm²', rate: 150, materials: 0.5, source: 'Rough figure, painted, with wrap and insulation.' },
   // Windows and doors
-  { id: 'win-aluminium', group: 'openings', label: 'Windows, aluminium', unit: 'm²', rate: 1150, materials: 0.8, source: 'Rough figure, supplied and installed.' },
-  { id: 'win-double', group: 'openings', label: 'Windows, double glazed', unit: 'm²', rate: 1600, materials: 0.8, source: 'Rough figure: about 40% over single glazed.' },
-  { id: 'win-timber', group: 'openings', label: 'Windows, timber', unit: 'm²', rate: 1950, materials: 0.75, source: 'Rough figure.' },
-  { id: 'door-external', group: 'openings', label: 'External doors, hung with locks', unit: 'each', rate: 2400, materials: 0.7, source: 'Rough figure.' },
-  { id: 'door-garage', group: 'openings', label: 'Garage door, sectional, with motor', unit: 'each', rate: 5100, materials: 0.8, source: 'Rough figure for a double door.' },
-  { id: 'door-internal', group: 'openings', label: 'Internal doors, hung with handles', unit: 'each', rate: 780, materials: 0.45, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'win-aluminium', group: 'openings', label: 'Windows, aluminium', unit: 'm²', rate: 940, materials: 0.8, source: 'Rough figure, supplied and installed.' },
+  { id: 'win-double', group: 'openings', label: 'Windows, double glazed', unit: 'm²', rate: 1300, materials: 0.8, source: 'Rough figure: about 40% over single glazed.' },
+  { id: 'win-timber', group: 'openings', label: 'Windows, timber', unit: 'm²', rate: 1650, materials: 0.75, source: 'Rough figure.' },
+  { id: 'door-external', group: 'openings', label: 'External doors, hung with locks', unit: 'each', rate: 2000, materials: 0.7, source: 'Rough figure.' },
+  { id: 'door-garage', group: 'openings', label: 'Garage door, sectional, with motor', unit: 'each', rate: 4250, materials: 0.8, source: 'Rough figure for a double door.' },
+  { id: 'door-internal', group: 'openings', label: 'Internal doors, hung with handles', unit: 'each', rate: 650, materials: 0.45, source: 'Rough figure, mid finish.', finish: true },
   // Fit-out
-  { id: 'linings', group: 'fitout', label: 'Linings, ceiling insulation, cornice and paint', unit: 'm²', rate: 190, materials: 0.4, source: 'Rough figure per m² of floor, mid finish: plasterboard to walls and ceilings, insulation, cornice and paint.', finish: true },
-  { id: 'fix-out', group: 'fitout', label: 'Fix-out: skirting, architraves, wardrobes and shelves', unit: 'm²', rate: 130, materials: 0.5, source: 'Rough figure per m² of floor, mid finish.', finish: true },
-  { id: 'floor-finishes', group: 'fitout', label: 'Floor finishes: tiles, timber or carpet', unit: 'm²', rate: 145, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
-  { id: 'kitchen', group: 'fitout', label: 'Kitchen: cabinets, benchtops and appliances', unit: 'room', rate: 42000, materials: 0.7, source: 'Rough figure, mid finish.', finish: true },
-  { id: 'bathroom', group: 'fitout', label: 'Bathroom, tiled and fitted out', unit: 'room', rate: 33000, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
-  { id: 'laundry', group: 'fitout', label: 'Laundry, fitted out', unit: 'room', rate: 11250, materials: 0.55, source: 'Rough figure, mid finish.', finish: true },
-  { id: 'toilet', group: 'fitout', label: 'Toilet, fitted out', unit: 'room', rate: 10500, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'linings', group: 'fitout', label: 'Linings, ceiling insulation, cornice and paint', unit: 'm²', rate: 155, materials: 0.4, source: 'Rough figure per m² of floor, mid finish: plasterboard to walls and ceilings, insulation, cornice and paint.', finish: true },
+  { id: 'fix-out', group: 'fitout', label: 'Fix-out: skirting, architraves, wardrobes and shelves', unit: 'm²', rate: 105, materials: 0.5, source: 'Rough figure per m² of floor, mid finish.', finish: true },
+  { id: 'floor-finishes', group: 'fitout', label: 'Floor finishes: tiles, timber or carpet', unit: 'm²', rate: 120, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'kitchen', group: 'fitout', label: 'Kitchen: cabinets, benchtops and appliances', unit: 'room', rate: 35000, materials: 0.7, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'bathroom', group: 'fitout', label: 'Bathroom, tiled and fitted out', unit: 'room', rate: 27500, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'laundry', group: 'fitout', label: 'Laundry, fitted out', unit: 'room', rate: 9400, materials: 0.55, source: 'Rough figure, mid finish.', finish: true },
+  { id: 'toilet', group: 'fitout', label: 'Toilet, fitted out', unit: 'room', rate: 8750, materials: 0.5, source: 'Rough figure, mid finish.', finish: true },
   // Services
-  { id: 'electrical', group: 'services', label: 'Electrical: wiring, lights and power points', unit: 'm²', rate: 165, materials: 0.4, source: 'Rough figure per m² of floor, with smoke alarms and the switchboard.' },
+  { id: 'electrical', group: 'services', label: 'Electrical: wiring, lights and power points', unit: 'm²', rate: 140, materials: 0.4, source: 'Rough figure per m² of floor, with smoke alarms and the switchboard.' },
   { id: 'drainage', group: 'services', label: 'Drainage, connections and hot water', unit: 'item', rate: 22500, materials: 0.45, source: 'Rough figure: sewer, stormwater and water to the house, and a hot water system.' },
-  { id: 'plumbing', group: 'services', label: 'Plumbing to each wet room', unit: 'room', rate: 6750, materials: 0.4, source: 'Rough figure.' },
+  { id: 'plumbing', group: 'services', label: 'Plumbing to each wet room', unit: 'room', rate: 5650, materials: 0.4, source: 'Rough figure.' },
   // Outside
   { id: 'driveway', group: 'outside', label: 'Driveway, plain concrete', unit: 'm²', rate: 125, materials: 0.45, source: 'Yellow Pages driveway guide, May 2026: $110–130/m², about $10/m² more on a slope.' },
   { id: 'outdoor-slab', group: 'outside', label: 'Outdoor concrete slabs', unit: 'm²', rate: 115, materials: 0.45, source: 'Yellow Pages slab guide, May 2026: $60–90/m² plain, $100–170/m² decorative.' },
-  { id: 'deck', group: 'outside', label: 'Decks on posts, hardwood', unit: 'm²', rate: 825, materials: 0.5, source: 'Rough figure.' },
-  { id: 'garden', group: 'outside', label: 'Garden and lawn', unit: 'm²', rate: 85, materials: 0.5, source: 'Rough figure: soil, turf or planting.' },
+  { id: 'deck', group: 'outside', label: 'Decks on posts, hardwood', unit: 'm²', rate: 690, materials: 0.5, source: 'Rough figure.' },
+  { id: 'garden', group: 'outside', label: 'Garden and lawn', unit: 'm²', rate: 70, materials: 0.5, source: 'Rough figure: soil, turf or planting.' },
   // Fees and allowances
   { id: 'fees', group: 'fees', label: 'Engineer, certifier, BASIX, surveys and approvals', unit: 'item', rate: 14000, materials: 1, source: 'Rough allowance.' },
   { id: 'permit', group: 'fees', label: 'Owner-builder permit and course', unit: 'item', rate: 500, materials: 1, source: OB_PERMIT },
