@@ -17,7 +17,7 @@ import { garageFloor } from '../../plan/__tests__/fixtures'
 import { sectionDrawing } from '../../sections/section'
 import { bearingToLineUp, defaultCut, draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, stairsOnLevel, stripFrame, topRL } from '../geometry'
 import { SectionStrip } from '../SectionStrip'
-import { clampHeight, DEFAULT_H, FOLDED_H, MAX_H, MIN_H, PHONE_H, readCuts, readPrefs, stripSpace, useStrip } from '../store'
+import { clampHeight, DEFAULT_H, FOLDED_H, MAX_H, MIN_H, opensItself, PHONE_H, phoneHeight, readCuts, readPrefs, setStripAuto, setStripOpen, stripSpace, useStrip } from '../store'
 import { steppedHouse } from './fixtures'
 
 const doc = parseDxf(readFileSync(new URL('../../../samples/sample-block.dxf', import.meta.url), 'utf8'))
@@ -191,10 +191,46 @@ describe('dragging a roof’s eaves', () => {
 
 describe('what the strip remembers', () => {
   it('reads its settings, falling back when they’re missing or broken', () => {
-    expect(readPrefs(null)).toEqual({ open: true, height: DEFAULT_H })
-    expect(readPrefs('{oops')).toEqual({ open: true, height: DEFAULT_H })
-    expect(readPrefs('{"open":false,"height":9999}')).toEqual({ open: false, height: MAX_H })
+    expect(readPrefs(null)).toEqual({ choice: null, height: DEFAULT_H })
+    expect(readPrefs('{oops')).toEqual({ choice: null, height: DEFAULT_H })
+    expect(readPrefs('{"open":false,"height":9999}')).toEqual({ choice: false, height: MAX_H })
     expect(clampHeight(10)).toBe(MIN_H)
+  })
+
+  it('takes folded as the viewer’s choice, and open only when they chose it', () => {
+    // Older settings saved "open" for everyone, asked for or not: that isn't a choice.
+    expect(readPrefs('{"open":true,"height":300}').choice).toBeNull()
+    expect(readPrefs('{"open":true,"chose":true,"height":300}').choice).toBe(true)
+    expect(readPrefs('{"height":300}').choice).toBeNull()
+  })
+
+  it('starts folded on a phone and on an empty project, and opens once there is a house (PH-03, HO-10, CB-37)', () => {
+    expect(opensItself(true, true)).toBe(false)
+    expect(opensItself(false, false)).toBe(false)
+    expect(opensItself(false, true)).toBe(true)
+    const was = useStrip.getState()
+    try {
+      useStrip.setState({ choice: null, auto: false, open: false })
+      setStripAuto(true)
+      expect(useStrip.getState().open).toBe(true)
+      setStripAuto(false)
+      expect(useStrip.getState().open).toBe(false)
+      // The viewer's own choice holds, whatever the plan has.
+      setStripOpen(true)
+      setStripAuto(false)
+      expect(useStrip.getState()).toMatchObject({ open: true, choice: true })
+      setStripOpen(false)
+      setStripAuto(true)
+      expect(useStrip.getState()).toMatchObject({ open: false, choice: false })
+    } finally {
+      useStrip.setState(was)
+    }
+  })
+
+  it('keeps to a third of a phone turned sideways, clear of the level chip', () => {
+    expect(phoneHeight(844)).toBe(PHONE_H)
+    expect(phoneHeight(342)).toBe(116)
+    expect(phoneHeight(200)).toBe(FOLDED_H + 60)
   })
 
   it('keeps only cuts that are cuts', () => {

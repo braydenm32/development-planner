@@ -74,7 +74,7 @@ function Stormwater({ d }: { d: Loaded }) {
           <ul className="pick-list">
             {roofs.map(r => (
               <li key={r.id}>
-                <button onClick={() => navigate({ kind: 'app', area: 'design', tab: 'roofs', view: 'plan', level: r.level, sel: r.id })}>
+                <button data-view-reads onClick={() => navigate({ kind: 'app', area: 'design', tab: 'roofs', view: 'plan', level: r.level, sel: r.id })}>
                   <span>
                     {ROOF_NAMES[r.type]} <span className="muted">· {levelById(plan, r.level)?.name}</span>
                   </span>

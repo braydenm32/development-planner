@@ -393,9 +393,10 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Above the canvas's hint bar, the layout's own notes, and on a phone the bottom bar and the peek
-   sheet (its height is --peek-size, set on the body by src/phone/PeekSheet.tsx). With a panel or the
-   inspector open as a sheet, it goes under the top bar instead, clear of the sheet's handle. */
+/* Above the canvas's hint bar and the layout's own notes. On a phone it sits just above the bottom
+   bar, over the key numbers rather than over the house (PH-05): it's there for a few seconds, and
+   the picture is what people came for. With a panel or the inspector open as a sheet, it goes under
+   the top bar instead, clear of the sheet's handle. */
 body:has(.app-shell) .sf-toast {
   bottom: 84px;
 }
@@ -405,7 +406,7 @@ body:has(.app-shell .toast) .sf-toast {
 }
 
 body:has(.app-shell.phone) .sf-toast {
-  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom));
+  bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
 body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .sf-toast {
@@ -619,6 +620,21 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
 
   .sf-toast > span {
     flex: 1;
+  }
+}
+
+/* A phone is too narrow for words beside a link and Undo (they left a 100 px column, seven lines
+   tall): the words take the full width, with the actions in a row under them. */
+@media (max-width: 760px) {
+  .sf-toast:has(.sf-link) {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 8px 6px 2px 14px;
+  }
+
+  .sf-toast:has(.sf-link) > span {
+    flex: 1 1 100%;
+    padding: 0 8px 0 0;
   }
 }
 

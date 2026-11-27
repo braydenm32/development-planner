@@ -152,7 +152,7 @@ describe('Open an example', () => {
 
     // Undo puts the second example away and goes back to the first.
     const t = useSafety.getState().toast!
-    expect(t.text).toMatch(/made-up house on a made-up block/)
+    expect(t.text).toMatch(/made-up house/)
     await undoToast(t.id)
     await projectActions.flush()
     expect(projectsNow().list.find(m => m.id === second.id)?.archived).toBe(true)

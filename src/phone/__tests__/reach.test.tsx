@@ -10,7 +10,7 @@ import { canvasOf, everyRoute, tabRoute, type AppRoute } from '../../nav/route'
 import { ShellContext } from '../../shell/context'
 import { OverviewSheet } from '../../shell/OverviewSheet'
 import { PeekSheet } from '../PeekSheet'
-import { arriveAt, inspectorShows, panelLocked, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
+import { arriveAt, inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
 import { earthOf, house, loadBlock, numbersOf, shellData, words } from './block'
 
 const appRoutes = everyRoute().filter((r): r is AppRoute => r.kind === 'app')
@@ -80,6 +80,10 @@ describe('two taps to every number on a phone', () => {
       expect(panelLocked(true, true, key), key).toBe(false)
       expect(panelLocked(false, false, key), key).toBe(false)
     }
+  })
+
+  it('keeps Approvals’ locked panels open to read: only those (PH-07)', () => {
+    for (const r of appRoutes) expect(panelReads(`${r.area}/${r.tab}`), `${r.area}/${r.tab}`).toBe(r.area === 'approvals')
   })
 
   it('covers every area', () => {

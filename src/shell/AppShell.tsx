@@ -22,7 +22,7 @@ import { shortcutText, typingIn } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
-import { canvasOf, carriesSelection, tabRoute, type AppRoute } from '../nav/route'
+import { canvasOf, carriesSelection, readsTheHouse, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
@@ -53,10 +53,11 @@ import { switchView, type Loaded } from './useSite'
 import { forgetPose, projectKey } from '../phone/camera'
 import { useCamera } from '../phone/cameraStore'
 import { PresetBar, ViewEditSwitch } from '../phone/CanvasBits'
-import { canEdit, TouchCanvas, usePhone, usePhoneMode } from '../phone/device'
+import { canEdit, TouchCanvas, usePhone, usePhoneMode, useSideways } from '../phone/device'
+import { usePeekSize, type PeekSize } from '../phone/peekSize'
 import { useNativeFeel } from '../phone/native'
 import { PeekSheet } from '../phone/PeekSheet'
-import { inspectorShows, panelLocked, panelStartsHidden, peekShows } from '../phone/reach'
+import { inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows } from '../phone/reach'
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
@@ -295,9 +296,10 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
           ))}
         </div>
       )}
-      <UndoRedo />
+      {/* View on a phone changes nothing (only Costs' prices can change there): the tabs get Undo and Redo's room (PH-34). */}
+      {!(phone && mode === 'view' && route.kind === 'app' && route.area !== 'costs') && <UndoRedo />}
       {route.kind === 'app' && !phone && <StepsButton />}
-      <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
+      <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
         <Icon name="search" size={16} />
         <span className="desk-only">Search</span>
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
@@ -360,7 +362,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
 function StepsButton() {
   const open = useStepsPanel(s => s.open)
   return (
-    <button className={`steps-button${open ? ' on' : ''}`} onClick={toggleSteps} aria-pressed={open}>
+    <button className={`steps-button${open ? ' on' : ''}`} onClick={toggleSteps} aria-pressed={open} aria-label="Check everything" title="Check everything">
       <Icon name="steps" size={16} />
       <span>Check everything</span>
     </button>
@@ -419,6 +421,9 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const view = loaded?.view
   // Costs reports on the design: the plan is for looking at, and on a phone the panel takes the screen.
   const report = !!area.report
+  // Approvals and Share read the house too: it's selected to read its numbers and changed in Design
+  // (LF-12, LD-36, LF-09). What those tabs set themselves (a check's facts, the plans' sheets) still changes.
+  const reads = readsTheHouse(area.id)
   const selection = usePlan(s => s.selection)
   const tool = usePlan(s => s.tool)
   // On a phone in View, the plan has no tools.
@@ -437,9 +442,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   // While the tab asks about a wall, the tool's own card steps aside.
   const toolCard = rail && hasToolCard(tool) && TAB_TOOL[tabKey] !== tool && !inTab
   const inspector = !report && inspectorShows(canvasKind, !!loaded, !!selection, inTab)
-  // A phone's numbers sit at the bottom of the canvas when nothing else is there; slim while editing or turned sideways.
-  const peek = peekShows({ phone, loaded: !!loaded, canvas: canvasKind, inspector, panel: showPanel, toolCard: !!toolCard, overview })
-  const slim = canvasKind === 'plan' && editing
+  // A phone's numbers sit at the bottom of the canvas when nothing else is there: one line while
+  // editing or turned sideways, and otherwise the line or the card as it was last pulled (PH-04).
+  // Showing people full screen shows the house alone: no cost on screen while presenting.
+  const peek = peekShows({ phone, loaded: !!loaded, canvas: canvasKind, inspector, panel: showPanel, toolCard: !!toolCard, overview }) && !presenting
+  const peekSize = usePeekSize(s => s.size)
+  const sideways = useSideways()
+  const oneLine = (canvasKind === 'plan' && editing) || sideways
+  const slim = oneLine || peekSize === 'line'
   // View on a phone locks the panels that change the plan, with a way to Edit.
   const locked = panelLocked(phone, editing, tabKey)
 
@@ -457,12 +467,14 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print' && !steps
   const insets: Insets = useMemo(() => {
-    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: presenting ? 0 : 60, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
+    // Turned sideways, a phone's panel and selection dock at the right (phone.css): the plan fits beside them.
+    const side = phone && sideways && !report && (showPanel || toolCard || inspector) ? Math.min(360, (typeof window === 'undefined' ? 800 : window.innerWidth) * 0.46) : 0
+    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: (presenting ? 0 : 60) + side, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
     const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
     return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps])
-  const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report, projectKey }), [phone, editing, projectKey, report])
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways])
+  const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
   // Since the panel can hide, a new tab brings it back. On a phone the 3D view needs the
   // whole screen, so there the panel starts tucked away as a pill.
@@ -572,6 +584,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           run={run}
           phone={phone}
           peek={peek ? (slim ? 'slim' : 'full') : null}
+          onPeekSize={oneLine ? undefined : usePeekSize.getState().setSize}
           onPeekHeight={setPeekH}
         />
       ) : (
@@ -579,7 +592,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       )}
       <main
         className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px` }}
+        style={{ ['--free-left' as string]: `${insets.l}px`, ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px' }}
       >
         <TouchCanvas.Provider value={touch}>
           <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0 }}>
@@ -618,7 +631,7 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                   <div className="panel-body">
                     <ErrorBoundary variant="inline">
                       {locked ? (
-                        <ViewLock>
+                        <ViewLock reading={panelReads(tabKey)}>
                           <Body />
                         </ViewLock>
                       ) : (
@@ -636,7 +649,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
           {aside && Aside && <Aside />}
           {inspector && loaded && (
             <ErrorBoundary variant="float">
-              <Inspector d={loaded} readOnly={phone && !editing} wide={wideInspector} />
+              <Inspector
+                d={loaded}
+                readOnly={(phone && !editing) || reads}
+                wide={wideInspector}
+                // A phone in View says how to Edit first; in Edit, and on a computer, where the thing is changed.
+                elsewhere={reads && editing ? changedIn(selRetaining) : undefined}
+              />
             </ErrorBoundary>
           )}
           {steps && loaded && (
@@ -649,6 +668,19 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
       </main>
     </>
   )
+}
+
+/** Where a thing read in Approvals or Share is changed, and the way there with it still selected. */
+function changedIn(retaining: boolean) {
+  const [area, tab] = retaining ? (['earthworks', 'retaining-walls'] as const) : (['design', 'plan'] as const)
+  return {
+    text: retaining ? 'This is for reading here. Retaining walls are changed in Earthworks.' : 'This is for reading here. The house is changed in Design.',
+    label: retaining ? 'Go to Earthworks' : 'Go to Design',
+    go: () => {
+      const r = useRouter.getState().route
+      if (r.kind === 'app') navigate({ ...tabRoute(r, area, tab), view: 'plan' })
+    },
+  }
 }
 
 /** The Overview's way to Check everything: one sheet at a time. */
@@ -669,6 +701,7 @@ function NumbersHost({
   run,
   phone,
   peek,
+  onPeekSize,
   onPeekHeight,
 }: {
   d: Loaded
@@ -682,6 +715,8 @@ function NumbersHost({
   /** A phone: the numbers sit in a sheet at the bottom of the canvas instead of the strip. */
   phone: boolean
   peek: 'full' | 'slim' | null
+  /** The sheet pulled to its line or its card; left out where it has to stay one line. */
+  onPeekSize?: (size: PeekSize) => void
   onPeekHeight: (h: number) => void
 }) {
   const numbers = useKeyNumbers(d.plan, d.survey, d.terrain, d.earth)
@@ -722,6 +757,7 @@ function NumbersHost({
             title="Key numbers"
             slim={peek === 'slim'}
             onOpen={() => setOverview(true)}
+            onSize={onPeekSize}
             onHeight={onPeekHeight}
             checks={siteChecks}
             verdict={drawn ? verdict : undefined}
