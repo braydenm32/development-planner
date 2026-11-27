@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Icon } from '../nav/icons'
-import { overflowOf, pageTo, type Span } from './overflow'
+import { moreText, overflowOf, pageTo, type Span } from './overflow'
 
 /** How wide an arrow is: an item under it hides. */
 export const ARROW_W = 28
@@ -167,7 +167,7 @@ export function ScrollCue({ className, label, count = false, free = false, keep,
       {mode === 'menu'
         ? hiddenCount > 0 && (
             <>
-              <button className="scroll-arrow after count menu" onClick={() => setOpen(!open)} aria-haspopup="true" aria-expanded={listing} aria-label={`${hiddenCount} more ${label}`} title={`${hiddenCount} more ${label}`}>
+              <button className="scroll-arrow after count menu" onClick={() => setOpen(!open)} aria-haspopup="true" aria-expanded={listing} aria-label={moreText(hiddenCount, label)} title={moreText(hiddenCount, label)}>
                 <span>+{hiddenCount}</span>
                 <Icon name="chevD" size={14} />
               </button>
@@ -189,12 +189,12 @@ export function ScrollCue({ className, label, count = false, free = false, keep,
             <>
               {before > 0 && (
                 // A click with no pointer (Enter, Space) is the keyboard's.
-                <button className="scroll-arrow before" onClick={e => page(-1, e.detail === 0)} aria-label={`Show ${before} more ${label}`} title={`${before} more ${label}`}>
+                <button className="scroll-arrow before" onClick={e => page(-1, e.detail === 0)} aria-label={`Show ${moreText(before, label)}`} title={moreText(before, label)}>
                   <Icon name="chevL" size={15} />
                 </button>
               )}
               {after > 0 && (
-                <button className={`scroll-arrow after${count ? ' count' : ''}`} onClick={e => page(1, e.detail === 0)} aria-label={`Show ${after} more ${label}`} title={`${after} more ${label}`}>
+                <button className={`scroll-arrow after${count ? ' count' : ''}`} onClick={e => page(1, e.detail === 0)} aria-label={`Show ${moreText(after, label)}`} title={moreText(after, label)}>
                   {count && <span>+{after}</span>}
                   <Icon name="chevR" size={15} />
                 </button>

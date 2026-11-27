@@ -295,6 +295,10 @@ body:has(.app-shell.phone) {
 
 .app-shell.phone .peek-sheet .sheet-grab {
   margin-bottom: 0;
+  /* The handle is a real button (it opens the overview from the keyboard): none of a button's own look. */
+  padding: 0;
+  border: 0;
+  cursor: pointer;
 }
 
 .peek-head {

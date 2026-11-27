@@ -75,3 +75,8 @@ export function pageTo(items: Span[], scrollLeft: number, clientWidth: number, s
   }
   return 0
 }
+
+/** "1 more tab", "3 more tabs": `label` is the plural ("tabs", "numbers"). */
+export function moreText(n: number, label: string): string {
+  return `${n} more ${n === 1 ? label.replace(/s$/, '') : label}`
+}

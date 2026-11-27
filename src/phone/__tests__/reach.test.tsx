@@ -110,6 +110,15 @@ describe('the numbers it reaches', () => {
     expect(overview).toContain(`RL ${n.ffl.toFixed(2)}`)
   })
 
+  it('are a region with a heading and a list, opened by one button that says what it opens (AX-36)', () => {
+    const html = renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} />)
+    // Not one big button, which would flatten the heading and the numbers for a screen reader.
+    expect(html).toMatch(/^<div class="peek-sheet[^"]*" role="region" aria-label="Key numbers"/)
+    expect(html).not.toContain('role="button"')
+    expect(html).toContain('<button type="button" class="sheet-grab" aria-label="Key numbers. Open the overview"></button>')
+    expect(html).toContain('<h2>Key numbers</h2>')
+  })
+
   it('lead in the peek sheet: floor, FFL and roof height, with the ground’s range', () => {
     const peek = words(renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))
     expect(peek).toContain('Showing people')
