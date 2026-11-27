@@ -616,12 +616,19 @@ async function showStored(id: string, stored: ProjectMeta) {
   clearTimeout(timer)
   if (pendingPlan?.id === id) pendingPlan = null
   await store.drop(id, new StaleProjectError(stored))
+  await reopen(id)
+}
+
+/** Show the open project as stored, staying on the floor being drawn on when it's still there. */
+async function reopen(id: string) {
+  const level = usePlan.getState().activeLevel
   reloading = true
   try {
     await openProject(id)
   } finally {
     reloading = false
   }
+  if (usePlan.getState().plan?.levels.some(l => l.id === level)) usePlan.getState().setActiveLevel(level)
 }
 
 /**
@@ -670,12 +677,10 @@ export const otherTab = {
     base = { id: c.id, edits: stored.edits ?? 0 }
     set({ conflict: null })
     await projectActions.flush()
-    reloading = true
-    try {
-      await openProject(c.id)
-    } finally {
-      reloading = false
-    }
+    // Still not written (the other tab saved again meanwhile, or the browser refused): what's on
+    // screen stays, with the question or the save notice, rather than showing a copy without it.
+    if (get().conflict || store.unsaved().includes(c.id)) return
+    await reopen(c.id)
   },
 }
 
