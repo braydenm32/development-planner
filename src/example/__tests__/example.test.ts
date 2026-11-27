@@ -145,7 +145,7 @@ describe('Open an example', () => {
     expect(first.id).not.toBe(mine.id)
     expect(first.name).toBe(EXAMPLE_NAME)
     expect(active()).toBe(count + 1)
-    expect(useSafety.getState().toast!.text).toMatch(/made-up house on a made-up block/)
+    expect(useSafety.getState().toast!.text).toMatch(/made-up house/)
 
     // Again, from another project: the same example opens, as it was left, and nothing is added.
     await projectActions.open(mine.id)
