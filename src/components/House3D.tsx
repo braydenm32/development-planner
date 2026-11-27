@@ -284,72 +284,72 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
   return (
     <group>
       {geoms.slabs && (
-        <mesh geometry={geoms.slabs} castShadow receiveShadow>
+        <mesh name="floor structure" geometry={geoms.slabs} castShadow receiveShadow>
           <meshStandardMaterial color="#bdb6aa" roughness={0.9} />
         </mesh>
       )}
       {geoms.concrete && (
-        <mesh geometry={geoms.concrete} castShadow receiveShadow>
+        <mesh name="concrete slabs" geometry={geoms.concrete} castShadow receiveShadow>
           <meshStandardMaterial color="#c4c2bc" roughness={0.95} />
         </mesh>
       )}
       {geoms.driveway && (
-        <mesh geometry={geoms.driveway} receiveShadow>
+        <mesh name="driveway" geometry={geoms.driveway} receiveShadow>
           <meshStandardMaterial color="#b3b1ab" roughness={0.95} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
         </mesh>
       )}
       {geoms.garden && (
-        <mesh geometry={geoms.garden} receiveShadow>
+        <mesh name="garden" geometry={geoms.garden} receiveShadow>
           <meshStandardMaterial color="#7fa36a" roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
       )}
       {geoms.timber && (
-        <mesh geometry={geoms.timber} castShadow receiveShadow>
+        <mesh name="decks" geometry={geoms.timber} castShadow receiveShadow>
           <meshStandardMaterial color="#a77b52" roughness={0.85} />
         </mesh>
       )}
       {geoms.posts && (
-        <mesh geometry={geoms.posts} castShadow receiveShadow>
+        <mesh name="posts" geometry={geoms.posts} castShadow receiveShadow>
           <meshStandardMaterial color="#8f8a82" roughness={0.9} />
         </mesh>
       )}
       {geoms.retaining && (
-        <mesh geometry={geoms.retaining} castShadow receiveShadow>
+        <mesh name="retaining walls" geometry={geoms.retaining} castShadow receiveShadow>
           <meshStandardMaterial color="#a89f90" roughness={0.95} />
         </mesh>
       )}
       {geoms.stairs && (
-        <mesh geometry={geoms.stairs} castShadow receiveShadow>
+        <mesh name="stairs" geometry={geoms.stairs} castShadow receiveShadow>
           <meshStandardMaterial color="#c9b79c" roughness={0.85} />
         </mesh>
       )}
       {geoms.ext && (
-        <mesh geometry={geoms.ext} castShadow receiveShadow>
+        <mesh name="outside walls" geometry={geoms.ext} castShadow receiveShadow>
           <meshStandardMaterial color="#f1ede6" roughness={0.85} />
         </mesh>
       )}
       {geoms.int && (
-        <mesh geometry={geoms.int} castShadow receiveShadow>
+        <mesh name="inside walls" geometry={geoms.int} castShadow receiveShadow>
           <meshStandardMaterial color="#ddd5c8" roughness={0.9} />
         </mesh>
       )}
       {geoms.furniture && (
-        <mesh geometry={geoms.furniture} castShadow receiveShadow>
+        <mesh name="furniture" geometry={geoms.furniture} castShadow receiveShadow>
           <meshStandardMaterial color="#9aa5b1" roughness={0.9} />
         </mesh>
       )}
       {geoms.garageDoors && (
-        <mesh geometry={geoms.garageDoors} castShadow receiveShadow>
+        <mesh name="garage doors" geometry={geoms.garageDoors} castShadow receiveShadow>
           <meshStandardMaterial color="#a7adb4" roughness={0.6} metalness={0.2} />
         </mesh>
       )}
       {geoms.glass && (
-        <mesh geometry={geoms.glass}>
+        <mesh name="window glass" geometry={geoms.glass}>
           <meshStandardMaterial color="#8fb7d6" roughness={0.1} metalness={0.1} transparent opacity={0.55} />
         </mesh>
       )}
       {geoms.roofs && (
-        <mesh geometry={geoms.roofs} castShadow receiveShadow>
+        <mesh name="roof" geometry={geoms.roofs} castShadow receiveShadow>
           <meshStandardMaterial color="#5d646d" roughness={0.7} metalness={0.15} />
         </mesh>
       )}

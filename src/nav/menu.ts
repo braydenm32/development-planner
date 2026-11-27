@@ -31,6 +31,8 @@ export type ActionId =
   | 'download-schedule'
   | 'save-picture'
   | 'download-stls'
+  | 'download-glb'
+  | 'download-obj'
   | 'save-project'
   | 'open-file'
   | 'open-project'
@@ -966,9 +968,9 @@ export const AREAS: Area[] = [
         id: 'export',
         label: 'Export',
         icon: 'download',
-        subtitle: 'A DXF for your surveyor, pictures, and a door and window list.',
-        keywords: ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'picture', 'schedule', 'doors', 'windows', 'door and window schedule', 'csv', 'spreadsheet', 'surveyor', 'engineer'],
-        features: ['download-dxf', 'download-plan-png', 'download-3d-png', 'door-window-schedule', 'download-schedule-csv'],
+        subtitle: 'A DXF for your surveyor, pictures, a door and window list, and the 3D model.',
+        keywords: ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'picture', 'schedule', 'doors', 'windows', 'door and window schedule', 'csv', 'spreadsheet', 'surveyor', 'engineer', '3d model', 'model export', 'obj', 'gltf', 'glb'],
+        features: ['download-dxf', 'download-plan-png', 'download-3d-png', 'door-window-schedule', 'download-schedule-csv', 'download-3d-model-glb', 'download-3d-model-obj', 'model-export-ground', 'model-export-furniture'],
       },
       {
         id: 'send',
@@ -1370,6 +1372,8 @@ export const HOMES: Home[] = [
       { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
       { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },
       { id: 'cmd-picture', label: 'Save a picture of the plan or 3D view', icon: 'download', keywords: ['png', 'image', 'screenshot', 'export'], features: [], action: 'save-picture', run: 'now' },
+      { id: 'cmd-model', label: 'Save the 3D model (.glb)', icon: 'download', keywords: ['gltf', 'glb', 'model export', '3d model', 'sketchup', 'blender', 'render', 'renderer', 'export'], features: [], action: 'download-glb', run: 'offer', at: 'share/export' },
+      { id: 'cmd-model-obj', label: 'Save the 3D model as OBJ', icon: 'download', keywords: ['obj', 'mtl', 'model export', '3d model', 'sketchup', 'blender', 'render', 'export'], features: [], action: 'download-obj', run: 'offer', at: 'share/export' },
       { id: 'cmd-3mf', label: 'Download 3MF for printing', icon: 'download', keywords: ['3D print', 'model'], features: [], action: 'download-3mf', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-stl', label: 'Download STL files for printing', icon: 'download', keywords: ['stl', 'zip', 'slicer', '3D print'], features: [], action: 'download-stls', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-reset-camera', label: 'Reset the 3D camera', icon: 'rotate', keywords: ['view', 'orbit', 'home'], features: [], action: 'reset-camera', run: 'now', at: 'site/3d' },

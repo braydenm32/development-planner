@@ -19,7 +19,7 @@ The app has six areas down the left (along the bottom on a phone):
 - **Earthworks**: **Place** the house on the block, **Cut & fill** (with a grading brush and suggested retaining walls), **Retaining walls** and the **Driveway**.
 - **Approvals**: the planning **Checks** for a CDC or a DA as you draw, the **BASIX** checklist, the **Stormwater** concept and the **DA pack**.
 - **Costs**: an **Estimate** from the design's own quantities, the **Materials** it's built from, and **Quotes** that replace a line's estimate.
-- **Share**: **Plans (PDF)**, **Export** (DXF, pictures, a door and window schedule), **Send** (a view-only link or the project file) and **3D print**.
+- **Share**: **Plans (PDF)**, **Export** (DXF, pictures, a door and window schedule, the 3D model), **Send** (a view-only link or the project file) and **3D print**.
 
 Each area has its tabs across the top and a **More** tab for its rarer settings; the tab's panel floats over the plan or the 3D view, and the arrow at its top tucks it away. The **2D | 3D** switch in the top bar swaps the plan for the 3D view in any area. The key numbers sit on one line under the tabs, with **Overview** for the rest, and **Check everything** in the top bar walks the project as six steps (Block, Levels & rooms, Roof, Ground & walls, Checks, Costs & share). Search (Ctrl+K or ⌘K) finds any area, tab, setting or command, and **Help › Getting started guide** walks through the lot. The address keeps where you are, so Back, Forward and reload land in the same place. On a phone a project opens in **View**, for showing people; **Edit** brings back the tools.
 
@@ -150,7 +150,7 @@ Parts key together so they sit square but lift off to look inside: the lowest fl
 
 **Plans (PDF).** A3 or A4 sheets with a title block, scale bar and north arrow (turned to match **Top of view**): a site plan with contours, boundary lengths, distances from the house to each boundary and the key numbers (site area, footprint, coverage, floor level, cut and fill); a floor plan for each level with wall lengths, overall dimensions, doors, windows, stairs, furniture and room areas; a roof plan; and, where there are any, sections and elevations, a shadow diagram for 21 June and the site features. Scales are chosen from the usual architectural ones so the drawing fits the sheet. The project's name (in the project menu) goes on the title block.
 
-**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV.
+**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV. **Download 3D model** saves the whole model as the 3D view shows it (ground, each level's walls, floors, roofs and stairs, outdoor areas, furniture) as a `.glb` for Blender, renderers or SketchUp, or as OBJ with its `.mtl` in a ZIP: real metres, Y up, the origin at the middle of the block, each part named and grouped by level.
 
 **Send.** **Download project file** saves the survey and the plan as one `.project.json`. Whoever you send it to opens it on the start screen (or with **Open a project file**) and sees exactly what you see. It holds the survey, so only send it to people you'd send the survey to.
 

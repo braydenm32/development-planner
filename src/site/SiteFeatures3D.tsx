@@ -20,8 +20,11 @@ export function SiteFeatures3D({ boundary, ground, refZ, trees = true }: { bound
   const shown = useMemo(() => features.filter(f => nearBlock(f, boundary) && (trees || f.type !== 'tree')), [features, boundary, trees])
   return (
     <group>
+      {/* Named, so a model file (src/export/model3d.ts) calls each part "Tree T3" and the like. */}
       {shown.map(f => (
-        <Feature key={f.id} f={f} boundary={boundary} ground={ground} refZ={refZ} />
+        <group key={f.id} name={f.label ? `${f.type} ${f.label}` : f.type}>
+          <Feature f={f} boundary={boundary} ground={ground} refZ={refZ} />
+        </group>
       ))}
     </group>
   )
