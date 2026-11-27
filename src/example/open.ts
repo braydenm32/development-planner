@@ -36,8 +36,9 @@ export async function openExample(opts: { fresh?: boolean } = {}): Promise<void>
   } finally {
     useSafety.setState({ busy: false })
   }
-  // A new project is for changing: a phone opens it in Edit.
-  usePhoneMode.getState().setMode('edit')
+  // One rule on a phone (PH-28): every project opens in View, the example like an import or a
+  // sketch, with Edit a tap away.
+  usePhoneMode.getState().setMode('view')
   navigate({ kind: 'app', area: 'design', tab: 'plan', view: '3d' })
   const id = meta.id
   // The toast's Undo and the top bar's (src/safety/fileUndo.ts) both put it away, once.

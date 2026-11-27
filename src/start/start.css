@@ -461,6 +461,16 @@
   .st-field input {
     font-size: 16px;
   }
+
+  /* The address search too: under 16 px iOS zooms the page on focus (PH-08), and 44 px to tap (PH-26). */
+  .st-wide .map-search :is(input[type='search'], button[type='submit']) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .st-seg button {
+    min-width: 44px;
+  }
 }
 
 @media (max-width: 760px) {

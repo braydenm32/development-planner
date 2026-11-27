@@ -1164,3 +1164,213 @@ body:has(.app-shell.phone) {
     min-height: 44px;
   }
 }
+
+/* The tab panel's handle is a button on a phone: a tap, a click or Enter makes the panel taller
+   or shorter, as dragging it does (AX-13). */
+.app-shell.phone .float-card > button.sheet-grab {
+  flex: none;
+  width: 100%;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  appearance: none;
+}
+
+.app-shell.phone .float-card > button.sheet-grab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+/* iOS zooms the page when a field under 16 px takes focus, and the page's own pinch is off, so
+   there is no way back out (PH-08). Every typed or picked field is 16 px on a phone. */
+.app-shell.phone :is(input, select, textarea):not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']) {
+  font-size: 16px !important;
+}
+
+/* The keyboard covers the foot of the screen without moving the layout: the shell stops above
+   it, so the open sheet and the field being typed in are lifted clear (src/phone/native.ts). */
+.app-shell.phone {
+  height: calc(100% - var(--keyboard-inset, 0px));
+}
+
+/* Checks leads with its verdict on a phone: the line under the title would push it off the sheet (PH-33). */
+.app-shell.phone .tab-panel[aria-label='Checks'] > header p {
+  display: none;
+}
+
+/* With a sheet open (a tool's card, a tab's panel, the selection) the tool rail stops above it
+   and scrolls, so the tools under the sheet can still be reached (PH-12). */
+.app-shell.phone .has-rail:is(.has-col, .has-inspector) .tool-rail {
+  max-height: calc(100% - var(--gap) * 2 - 56px - var(--sheet-h, 0px));
+}
+
+/* The plan keeps its scale bar on a phone, beside the compass (PH-29). */
+.app-shell.phone .canvas-plan .scalebar {
+  display: flex;
+  right: calc(var(--gap) + 56px);
+  bottom: calc(var(--peek-h) + var(--gap) + var(--section-strip-h, 0px) + 12px);
+  font-size: 12px;
+  color: var(--text);
+  text-shadow: 0 0 3px #ffffff, 0 0 3px #ffffff;
+}
+
+.app-shell.phone .canvas-plan .scalebar-units {
+  display: none;
+}
+
+/* The level of the ground where the plan was tapped in View, as the 3D view shows it. */
+.plan-ground-pin {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Its own width, so the pin centres on the spot rather than on the zero-wide anchor's left edge. */
+.plan-ground-pin .ground-pin {
+  width: max-content;
+}
+
+/* A plan message in the toast keeps to one line where it fits, rather than wrapping at half the screen. */
+.app-shell.phone .toast {
+  width: max-content;
+}
+
+/* ---- Thumb-sized targets (PH-26) ---- */
+
+/* A check's pin is 18 to 22 px across: on a touch screen an unseen 44 px square round it takes the tap. */
+.ck-pin .ck-hit {
+  display: none;
+  fill: transparent;
+  stroke: none;
+}
+
+@media (pointer: coarse) {
+  .ck-pin .ck-hit {
+    display: inline;
+    pointer-events: all;
+  }
+}
+
+/* Buttons that are a row of choices grow to 44 px. */
+.app-shell.phone .sec-picks button,
+.app-shell.phone .print-actions .segmented button,
+.app-shell.phone .print-crop .segmented button,
+.app-shell.phone .parts .part-group > button {
+  min-height: 44px;
+}
+
+.app-shell.phone .sec-picks button {
+  min-width: 44px;
+}
+
+/* A fold's own line is its handle: tall enough to tap, with its marker where it was. */
+.app-shell.phone .panel-body summary,
+.app-shell.phone .menu-pop summary {
+  padding-block: 11px;
+}
+
+/* Links in a line of text, and the small buttons along the section strip and Costs, keep their
+   look: an unseen margin round each takes the tap, so nothing on the page moves. */
+.app-shell.phone .panel-body button.link,
+.app-shell.phone .menu-pop button.link,
+.app-shell.phone .sstrip button.link,
+.app-shell.phone .sstrip-head .fold,
+.app-shell.phone .costs-strip .chip,
+.app-shell.phone .ce-fold,
+.app-shell.phone .ce-total button.link {
+  position: relative;
+}
+
+.app-shell.phone .panel-body button.link::after,
+.app-shell.phone .menu-pop button.link::after,
+.app-shell.phone .sstrip button.link::after,
+.app-shell.phone .sstrip-head .fold::after,
+.app-shell.phone .sstrip-band::after,
+.app-shell.phone .costs-strip .chip::after,
+.app-shell.phone .ce-fold::after,
+.app-shell.phone .ce-total button.link::after {
+  content: '';
+  position: absolute;
+  inset: -12px -4px;
+}
+
+.app-shell.phone .sstrip-band::after,
+.app-shell.phone .costs-strip .chip::after {
+  inset: -8px 0;
+}
+
+/* ---- Nothing meant to be read is under 12 px on a phone (PH-27): the page can't be pinched larger ---- */
+
+.app-shell.phone :is(.site-label, .stair-label, .stair-dest, .setback-label, .drainage-label, .grade-suggest-text, .sstrip-boundary text, .sstrip-cut .tag, .sstrip.phone .sstrip-band, .needle span, .map-credit, .parts .part-each, .check-pin, .drive-profile text, .grade-suggest-n-text, .ck-pin text, .ground-meets-label, .furniture-code, .drive-arrows text, .rw-htag text, .drainage-fall text) {
+  font-size: 12px;
+}
+
+/* The tools' names at 12 px need a slightly wider rail (RAIL_CLEAR.phone in src/shell/AppShell.tsx follows). */
+.app-shell.phone .tool-rail button {
+  width: 54px;
+}
+
+.app-shell.phone .tool-rail .tool-name {
+  max-width: 54px;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+}
+
+.app-shell.phone .has-rail .plan-actions {
+  left: calc(var(--gap) + 66px);
+}
+
+/* ---- The waiting questions on a phone (PH-14, PH-15) ---- */
+
+/* The pill sits above the Key and the scale bar rather than on them. */
+.app-shell.phone .plan-editor .q-pill {
+  bottom: calc(var(--peek-h, 0px) + var(--gap) + var(--section-strip-h, 0px) + 54px);
+}
+
+/* While the questions are open, the drawing tip steps aside: the block stays in sight for the answer. */
+.app-shell.phone .plan-editor:has(.q-tray) .plan-hint {
+  display: none;
+}
+
+/* Open, the questions take the foot of the screen: the key numbers and the section's bar wait
+   underneath, so the block has the room above (the answer to the street question is one of its sides). */
+.app-shell.phone .plan-editor .q-tray {
+  right: 12px;
+  bottom: var(--gap);
+  left: 12px;
+  width: auto;
+  max-height: 62%;
+}
+
+.app-shell.phone .shell-main:has(.q-tray) .peek-sheet,
+.app-shell.phone .plan-editor:has(.q-tray) .sstrip {
+  visibility: hidden;
+}
+
+/* The questions' own card for the street side fills the tray rather than floating a second card over the block. */
+.app-shell.phone .plan-editor .q-tray .flow-card.street-ask {
+  position: static;
+  width: auto;
+  max-height: none;
+  transform: none;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+/* View on a plan with nothing drawn (src/phone/EmptyPlanCard.tsx): short, and clear of the buttons down the right. */
+.app-shell.phone .plan-hint.phone-empty {
+  top: 66px;
+  left: var(--gap);
+  right: 66px;
+  width: auto;
+  font-size: 14px;
+}
+
+.app-shell.phone .plan-hint.phone-empty :is(.plan-hint-go, .plan-hint-link) {
+  min-height: 44px;
+  font-size: 15px;
+}
