@@ -290,11 +290,11 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   const topRight = (
     <div className="top-actions">
       {route.kind === 'app' && (
-        <div className="view-switch desk-only" role="group" aria-label="Canvas">
+        <div className="view-switch desk-only" role="group" aria-label="View">
           {(['plan', '3d'] as const).map(v => (
             <button key={v} className={canvasKind === v ? 'on' : ''} aria-pressed={canvasKind === v} onClick={() => run(v === 'plan' ? 'view-plan' : 'view-3d')}>
               <Icon name={v === 'plan' ? 'plan' : 'cube'} size={15} />
-              {v === 'plan' ? 'Plan' : '3D'}
+              {v === 'plan' ? '2D' : '3D'}
             </button>
           ))}
         </div>

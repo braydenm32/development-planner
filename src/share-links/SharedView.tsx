@@ -256,11 +256,11 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
             {by}
           </div>
           <div className="top-actions">
-            <div className="view-switch desk-only" role="group" aria-label="Canvas">
+            <div className="view-switch desk-only" role="group" aria-label="View">
               {(['plan', '3d'] as const).map(v => (
                 <button key={v} className={canvas === v ? 'on' : ''} aria-pressed={canvas === v} onClick={() => setView(v)}>
                   <Icon name={v === 'plan' ? 'plan' : 'cube'} size={15} />
-                  {v === 'plan' ? 'Plan' : '3D'}
+                  {v === 'plan' ? '2D' : '3D'}
                 </button>
               ))}
             </div>

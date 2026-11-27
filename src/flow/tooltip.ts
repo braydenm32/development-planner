@@ -54,7 +54,7 @@ export function tooltipText(s: TipSubject, ctx: TipContext): string {
     case 'area': {
       const a = s.item
       const kind = AREA_KINDS.find(k => k.id === areaKind(a))?.label
-      const name = a.name || kind || 'Area'
+      const name = a.name || kind || 'Outdoor area'
       return `${name} · ${Math.abs(signedArea(a.pts)).toFixed(2)} m²`
     }
     case 'roof': {

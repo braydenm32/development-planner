@@ -21,6 +21,12 @@ export interface ChecksHeadline {
   rest: string
 }
 
+/**
+ * The checks' one name, on the strip, the Overview and a phone's Key numbers: the plain word
+ * first, the planners' letters after it (the term tip says what CDC and DA stand for).
+ */
+export const checksName = (route: 'DA' | 'CDC'): string => (route === 'CDC' ? 'Fast-track (CDC) checks' : 'Council (DA) checks')
+
 export function checksHeadline(pathway: Pathway, results: CheckResult[]): ChecksHeadline {
   const verdict = verdictOf(results)
   const name = pathway === 'cdc' ? 'CDC' : 'DA'

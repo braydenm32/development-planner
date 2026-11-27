@@ -6,7 +6,7 @@ import { usePlan, type RoofMode } from '../plan/store'
 import './finishing.css'
 
 const ROOF_MODES: { id: RoofMode; label: string; help: string }[] = [
-  { id: 'building', label: 'Roof this building', help: 'Click inside the walls: the roof follows their outside, with its overhang, and covers every level whose ceiling lines up. Where another storey is built over them, the roof goes on that storey.' },
+  { id: 'building', label: 'Roof this building', help: 'Click inside the walls: the roof follows their outside, with its overhang, and covers every level whose ceiling lines up. Where another level is built over them, the roof goes on that level.' },
   { id: 'outline', label: 'Draw roof outline', help: 'Click each corner of the roof, then the first corner again (or press Enter) to close it.' },
 ]
 

@@ -44,7 +44,7 @@ export function ExportTab() {
         <p className="muted small">
           The block boundary, the survey’s contours and the finished contours once the ground is cut or filled. Each level’s walls, doors and windows, and
           stairs, on layers named after the level ({layers}, …). Roofs, retaining walls with their top RLs, the driveway
-          and other outdoor areas, section lines, your notes, and each floor and pad level as text. Saved as “your project-design.dxf”, so it can’t be
+          and other outdoor areas, section lines, your notes, and each floor level (FFL) and pad level as text. Saved as “your project-design.dxf”, so it can’t be
           mixed up with the survey file.
         </p>
       </details>

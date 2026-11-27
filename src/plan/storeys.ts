@@ -97,7 +97,7 @@ export function storeyWarnings(plan: Plan, levelId: string): StoreyWarning[] {
       const oCeiling = ceilingRL(plan, o.id)
       const gap = floor - oCeiling
       if (gap < -0.0005)
-        out.push({ id: `floor-in:${o.id}`, tone: 'bad', text: `Its floor (${rl(floor)}) is ${mm(-gap)} below ${o.name}’s ceiling (${rl(oCeiling)}): it’s set inside the storey under it. Raise it to ${rl(oCeiling + FLOOR_STRUCTURE)} or more, or lower ${o.name}’s ceiling.` })
+        out.push({ id: `floor-in:${o.id}`, tone: 'bad', text: `Its floor (${rl(floor)}) is ${mm(-gap)} below ${o.name}’s ceiling (${rl(oCeiling)}): it’s set inside the level under it. Raise it to ${rl(oCeiling + FLOOR_STRUCTURE)} or more, or lower ${o.name}’s ceiling.` })
       else if (gap < FLOOR_STRUCTURE - 0.0005)
         out.push({ id: `thin-under:${o.id}`, tone: 'warn', text: `Only ${mm(gap)} between ${o.name}’s ceiling below and this floor: its structure needs about ${mm(FLOOR_STRUCTURE)}. ${rl(oCeiling + FLOOR_STRUCTURE)} or more leaves room.` })
     }

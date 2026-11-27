@@ -38,7 +38,7 @@ function Options({ d }: { d: Loaded }) {
     if (!item) return
     const plan = id === rec.current ? d.plan : item.plan
     const parts = plan
-      ? [`${plan.levels.length} ${plan.levels.length === 1 ? 'floor' : 'floors'}`, `${plan.walls.length} ${plan.walls.length === 1 ? 'wall' : 'walls'}`, `${plan.rooms.length} ${plan.rooms.length === 1 ? 'room' : 'rooms'}`]
+      ? [`${plan.levels.length} ${plan.levels.length === 1 ? 'level' : 'levels'}`, `${plan.walls.length} ${plan.walls.length === 1 ? 'wall' : 'walls'}`, `${plan.rooms.length} ${plan.rooms.length === 1 ? 'room' : 'rooms'}`]
       : []
     const ok = await askReview({
       kind: 'delete-option',

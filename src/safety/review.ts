@@ -13,10 +13,10 @@ import type { Review, ReviewChoice } from './store'
 const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const rl = (v: number) => `RL ${v.toFixed(2)}`
 
-/** "2 floors: Ground floor, First floor". */
+/** "2 levels: Ground floor, First floor". */
 function floors(plan: Plan): string {
   const names = sortedLevels(plan).map(l => l.name)
-  return `${count(names.length, 'floor')}: ${names.join(', ')}`
+  return `${count(names.length, 'level')}: ${names.join(', ')}`
 }
 
 /** A plan in one line: "24 walls, 7 rooms, 2 roofs · 182.40 m²", or "nothing drawn yet". */
@@ -38,7 +38,7 @@ function planFacts(plan: Plan): Review['facts'] {
   const area = totalFloorArea(plan)
   return [
     { label: 'Floor area', value: area > 0 ? m2(area) : 'none enclosed yet' },
-    { label: 'Floors', value: floors(plan) },
+    { label: 'Levels', value: floors(plan) },
     { label: 'Drawn', value: planLine(plan).split(' · ')[0] },
   ]
 }
@@ -229,7 +229,7 @@ export function newPlanReview(plan: Plan, site: Site | null): Review {
     kind: 'new-plan',
     title: 'Start the plan again?',
     facts: [{ label: 'Now', value: planLine(plan) }],
-    changes: ['Clears the walls, rooms, roofs, stairs, areas and furniture on every floor of this project, and the cut and fill settings.'],
+    changes: ['Clears the walls, rooms, roofs, stairs, outdoor areas and furniture on every level of this project, and the cut and fill settings.'],
     kept: [
       `The survey, and the house’s spot on the block (floor at ${rl(floorRL(plan))}).`,
       'Undo puts this plan back. To keep it and draw another, use Duplicate under All projects, or New project for another block.',

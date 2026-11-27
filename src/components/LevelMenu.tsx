@@ -53,7 +53,7 @@ export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNo
           aria-expanded={many ? open : undefined}
           title={many ? 'Change level (Page Up, Page Down)' : undefined}
         >
-          Drawing on <b>{on.name}</b> · floor RL {on.rl.toFixed(2)}
+          Drawing on <b>{on.name}</b> · FFL RL {on.rl.toFixed(2)}
           {many && <Icon name={open ? 'chevU' : 'chevD'} size={13} />}
         </button>
         {action}

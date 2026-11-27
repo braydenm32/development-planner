@@ -380,7 +380,7 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
           </div>
         </dl>
         <div className="rw-size">
-          <Num label="Length (centreline)" unit="mm" value={len} min={0.05} max={200} check={l => wallLengthProblem(plan, w.id, l)} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
+          <Num label="Length" unit="mm" value={len} min={0.05} max={200} check={l => wallLengthProblem(plan, w.id, l)} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
           <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} max={1} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
           <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => setWallKind(p, w.id, kind))} />
         </div>

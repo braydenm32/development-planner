@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { ACCURACY_TITLE, CONTACT_EMAIL, STORAGE_LIMIT_MB } from './caveat'
 import type { PageId } from '../nav/route'
 import { ENGINEER_SOURCE, ENGINEER_TEXT } from '../checks/engineer'
+import { councilsSoFar } from './councils'
 
 /** A heading and what's under it, as one section, so a long page can be scanned. */
 const S = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
@@ -24,10 +25,10 @@ export function About() {
       <p className="lg-lede">Contour &amp; Gable is a planning aid for people building a house on a sloping block in New South Wales.</p>
       <S id="does" title="What it does">
         <ul>
-          <li>Reads your surveyor’s contour file (DXF) and builds the block in 3D, or lets you sketch a block without a survey.</li>
+          <li>Reads your surveyor’s file (DXF, LandXML or a CSV of points) and builds the block in 3D, or lets you sketch a block without a survey.</li>
           <li>Lets you draw a house plan on it: walls, doors, windows, floors, roofs, stairs, decks and retaining walls.</li>
           <li>Works out cut and fill for the pad, driveway and batters, and how much earth to move.</li>
-          <li>Checks the plan against NSW planning rules (the Housing Code and one council’s local rules so far).</li>
+          <li>Checks the plan against NSW planning rules: the state-wide Housing Code, and the local rules of {councilsSoFar()}.</li>
           <li>Gives a rough cost, line by line, from NSW figures you can change.</li>
           <li>Makes PDF plans and 3D-printable models, and view-only links you can send to a builder, a neighbour or your family.</li>
         </ul>
@@ -207,13 +208,14 @@ export function Accuracy() {
         <p><b>Limits:</b> heights are measured from the modelled ground. The planner flags any wall holding back over {ENGINEER_TEXT} as needing an engineer’s certificate, the {ENGINEER_SOURCE} figure, and uses it everywhere; a council’s own rule for a DA can differ, and Approvals › Checks says so where it does. Walls under that can still need design, drainage and, in some places, approval. We don’t design walls, footings or drainage.</p>
       </S>
       <S id="checks" title="Planning checks">
-        <p><b>Good for:</b> a first look at whether the plan is near the NSW Housing Code (Complying Development) limits, or one council’s local rules (Wollongong so far): setbacks, height, floor area, storeys, landscaping, earthworks and retaining walls, tree protection.</p>
+        <p><b>Good for:</b> a first look at whether the plan is near the NSW Housing Code (Complying Development) limits, or the local rules of {councilsSoFar()}: setbacks, height, floor area, storeys, landscaping, earthworks and retaining walls, tree protection, the driveway and its crossing, winter sun to your living rooms, and where your shadow falls on the neighbours.</p>
         <p><b>Limits:</b> the rules are written down from public sources at a point in time and can change. A check marked as passing is not an approval, and a council or certifier may read the rules differently. A check needs the right inputs (the lot type, the street side, the council), and some say “can’t check yet” until you give them. What they don’t cover, and the list under the checks says so:</p>
         <ul>
-          <li>whether your land can use a complying development certificate at all (zone, heritage, flood, bushfire and other exclusions);</li>
-          <li>council rules beyond the council(s) the planner knows, zoning maps, overlays and easements;</li>
-          <li>private open space, privacy, garages and parking, sun to neighbours, fences, pools;</li>
-          <li>BASIX, bushfire, flood, heritage, services and anything particular to your site.</li>
+          <li>whether your land can use a complying development certificate at all. With the block placed on the NSW map the planner reads the zone, heritage, bushfire, flood and landslide maps for your lot; other exclusions aren’t checked, and the council’s section 10.7 planning certificate says for sure;</li>
+          <li>the rules of any other council, the parts of a listed council’s rules the planner doesn’t have yet, and easements;</li>
+          <li>private open space, privacy, garage doors and parking spaces, fences, pools;</li>
+          <li>what your shadow falls on: the planner knows where it lands, not where the neighbours’ windows and open space are;</li>
+          <li>a BASIX certificate (the planner only lists what the BASIX tool will ask for), bushfire and flood design, services and anything particular to your site.</li>
         </ul>
       </S>
       <S id="costs" title="Costs">

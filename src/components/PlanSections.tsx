@@ -311,7 +311,7 @@ export function PlanFileBody({ plan }: { plan: Plan }) {
   const fileInput = useRef<HTMLInputElement>(null)
   return (
     <>
-      <p className="muted small">Your plan saves automatically in this browser. Export it to keep a copy or move it to another computer.</p>
+      <p className="muted small">Your plan saves automatically in this browser. This file holds the house plan only, without the survey, to move the house to another project. To keep a copy of everything, use Download a backup (project file) in the project menu.</p>
       <div className="row">
         <button className="secondary" onClick={() => downloadPlan(plan)}>
           Export
@@ -766,7 +766,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
   const kind = areaKind(a)
   return (
     <section className="selection">
-      <h2>Area</h2>
+      <h2>Outdoor area</h2>
       <TextField label="Name" value={a.name} onCommit={name => st.commit(p => updateArea(p, a.id, { name }))} />
       <Select<AreaKind> label="Type" value={kind} options={AREA_KINDS} onChange={k => st.commit(p => updateArea(p, a.id, { kind: k }))} />
       {(kind === 'slab' || kind === 'deck') && (
@@ -825,7 +825,7 @@ function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
   return (
     <div style={{ display: 'contents' }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
       <Num
-        label="Length (centreline)"
+        label="Length"
         unit="mm"
         value={wallLength(w)}
         min={MIN_WALL}
@@ -842,7 +842,7 @@ function WallLength({ plan, wall: w }: { plan: Plan; wall: Wall }) {
         ]}
         onChange={setPicked}
       />
-      <p className="muted small">The walls joined at that end slide with it, so the plan stays square.</p>
+      <p className="muted small">Length is measured along the middle of the wall, corner to corner. The walls joined at that end slide with it, so the plan stays square.</p>
     </div>
   )
 }
@@ -862,7 +862,7 @@ function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; ground
   return (
     <>
       <dl className="stats">
-        <FragmentRow label="On" value={`${level.name}, floor RL ${floor.toFixed(2)}`} />
+        <FragmentRow label="On" value={`${level.name}, FFL RL ${floor.toFixed(2)}`} />
         <FragmentRow
           label="Height"
           value={
@@ -871,7 +871,7 @@ function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; ground
               : `${Math.round(level.height * 1000)} mm, top RL ${(floor + level.height).toFixed(2)}`
           }
         />
-        {outside && <FragmentRow label="Ground against it" value={buried ? `up to ${Math.round(earth * 1000)} mm above the floor` : 'below the floor'} strong={buried} />}
+        {outside && <FragmentRow label="Earth against this wall" value={buried ? `up to ${Math.round(earth * 1000)} mm above the floor` : 'none: the ground outside is below the floor'} strong={buried} />}
       </dl>
       {buried && (
         <p className="notice small">
@@ -881,8 +881,8 @@ function WallFacts({ plan, wall: w, groundAt }: { plan: Plan; wall: Wall; ground
       )}
       <p className="muted small">
         {raised
-          ? `It runs up past ${level.name}’s ceiling to meet the roof, whose eaves sit higher; change where the roof sits in Roofs.`
-          : `Its height is ${level.name}’s ceiling height; change it in Floors.`}
+          ? `It runs up past ${level.name}’s ceiling to meet the roof, whose eaves sit higher; change where the roof sits in Design › Roofs.`
+          : `Its height is ${level.name}’s ceiling height; change it in Design › Levels.`}
       </p>
     </>
   )

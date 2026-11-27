@@ -359,8 +359,8 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
               </span>
             </label>
             {x.key === 'section' && !x.drawn && hasHouse && (
-              <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the section shown under the plan in Design as Section A–A, so it prints">
-                Use the section under the plan
+              <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the live section shown under the plan in Design as Section A–A, so it prints">
+                Use the live section under the plan
               </button>
             )}
           </Fragment>

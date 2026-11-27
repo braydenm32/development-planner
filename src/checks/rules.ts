@@ -880,7 +880,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
       value: `About ${m2(land)}`,
       limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
-      note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.',
+      note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as outdoor areas count against it.',
       source: cite(c, ls.source),
     })
   }
@@ -986,7 +986,7 @@ const DRAW: Record<Part, string> = {
   outline: 'Draw the outside walls as a closed outline to check this.',
   roof: 'Add a roof to check this.',
   rooms: 'Add rooms to check this.',
-  driveway: 'Draw a driveway (Area tool, kind Driveway) to check this.',
+  driveway: 'Draw a driveway (Outdoor area tool, type Driveway) to check this.',
 }
 
 /**

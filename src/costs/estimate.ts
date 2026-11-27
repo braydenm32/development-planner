@@ -227,13 +227,13 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
       const id = `floor-${p.type}` as `floor-${FloorTypeId}`
       add(id, id, p.area, {
         label: floorTypeInfo(p.type).label,
-        from: q.ground.parts.length > 1 ? `Part of the ${q.ground.name.toLowerCase()}, from Design › Floors` : `${q.ground.name}, from Design › Floors`,
+        from: q.ground.parts.length > 1 ? `Part of the ${q.ground.name.toLowerCase()}, from Design › Levels` : `${q.ground.name}, from Design › Levels`,
         dp: 2,
         target: { kind: 'ground' },
         at: 'design/floors',
       })
     }
-  else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Floors', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
+  else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Levels', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
   if (q.upper.area > 0) add('floor-upper', 'floor-upper', q.upper.area, { from: listOf(q.upper.names), dp: 2, target: { kind: 'floor' }, at: 'design/floors' })
   // A split level's slab poured on the ground under an upper level: once, as slab on ground.
   if (q.slabUnder.area > 0)

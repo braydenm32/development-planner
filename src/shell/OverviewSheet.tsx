@@ -16,7 +16,7 @@ import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
 import { shortMoney } from '../costs/format'
 import { m2, netText, slabBedText } from './format'
-import { balanceWords, type ChecksHeadline, type CostHeadline } from './headline'
+import { balanceWords, checksName, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers, RoofNumbers } from './useKeyNumbers'
 import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
@@ -92,7 +92,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
             {verdict && (
               <Verdict
                 className={`w-${verdict.word}`}
-                label={verdict.name === 'CDC' ? 'Complying development (CDC) checks' : 'Development application (DA) checks'}
+                label={checksName(verdict.name)}
                 term={verdict.term}
                 value={verdict.head}
                 note={verdict.rest}

@@ -183,8 +183,8 @@ describe('the summary strip', () => {
       expect(text).toContain(t)
       return text.indexOf(t)
     }
-    expect(at('Floor 203.52')).toBeLessThan(at('CDC checks'))
-    expect(at('CDC checks')).toBeLessThan(at('Estimate'))
+    expect(at('Floor 203.52')).toBeLessThan(at('Fast-track (CDC) checks'))
+    expect(at('Fast-track (CDC) checks')).toBeLessThan(at('Estimate'))
     expect(at('Estimate')).toBeLessThan(at('Floor level (FFL)'))
     expect(at('Floor level (FFL)')).toBeLessThan(at('Out of balance'))
   })

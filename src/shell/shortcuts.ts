@@ -59,7 +59,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Q'], what: 'Turn furniture a quarter turn (Shift+Q the other way)' },
       { keys: ['mod+C'], what: 'Copy' },
       { keys: ['mod+X'], what: 'Cut: copy, then take it away (paste puts it back where it was)' },
-      { keys: ['mod+V'], what: 'Paste (in place on another floor)' },
+      { keys: ['mod+V'], what: 'Paste (in place on another level)' },
       { keys: ['mod+shift+V'], what: 'Paste in place' },
       { keys: ['mod+D'], what: 'Duplicate' },
       { keys: ['Delete'], what: 'Delete the selection (the toast has Undo)' },
@@ -72,7 +72,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
     title: 'Drawing and typing',
     rows: [
       { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter' },
-      { keys: ['Enter'], what: 'Close an area or roof outline' },
+      { keys: ['Enter'], what: 'Close an outdoor area or roof outline' },
       { keys: ['shift+drag'], what: 'While dragging an item, turn snapping off' },
       { keys: ['Enter'], what: 'In a number box, keep the value and stay in the box (a bare number is mm; 0.9 or 9m is metres)' },
       { keys: ['Esc'], what: 'In a number box, put the old value back and leave the box' },

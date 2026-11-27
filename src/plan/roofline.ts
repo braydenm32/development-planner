@@ -189,7 +189,7 @@ export function moveRoofUp(plan: Plan, roofId: string): Plan {
 }
 
 /** What a roof under a storey is told, wherever it's listed. */
-export const coveredRoofWords = (over: Level) => `${over.name} is built over all of this roof, so it would be inside that storey. It’s left out of the estimate until it’s moved up or deleted.`
+export const coveredRoofWords = (over: Level) => `${over.name} is built over all of this roof, so it would be inside that level. It’s left out of the estimate until it’s moved up or deleted.`
 
 /** The roofs a storey above buries (see roofCoveredBy), each with the level over it. */
 export function coveredRoofs(plan: Plan): { roof: Roof; under: Level }[] {

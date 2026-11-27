@@ -6,9 +6,11 @@ import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { PAGE_IDS, formatHash, parseHash } from '../../nav/route'
 import { Caveat } from '../Caveat'
-import { ACCURACY_TITLE, CAVEAT, CAVEAT_LINE, CONTACT_EMAIL, LAST_UPDATED } from '../caveat'
+import { ACCURACY_TITLE, ACCURACY_UPDATED, CAVEAT, CAVEAT_LINE, CONTACT_EMAIL, LAST_UPDATED } from '../caveat'
 import { LegalFooter } from '../LegalFooter'
 import { LegalPage } from '../LegalPage'
+import { councilsSoFar } from '../councils'
+import { COUNCILS } from '../../checks/councils'
 import { startAtTop } from '../startAtTop'
 import { PAGE_TITLES } from '../titles'
 import { planSetPdf } from '../../share/plans'
@@ -58,8 +60,37 @@ describe('the pages', () => {
   })
 
   it('date the three that are documents', () => {
-    for (const page of ['privacy', 'terms', 'accuracy'] as const) expect(textOf(html(page))).toContain(`Last updated ${LAST_UPDATED}`)
+    for (const page of ['privacy', 'terms'] as const) expect(textOf(html(page))).toContain(`Last updated ${LAST_UPDATED}`)
     expect(LAST_UPDATED).toBe('9 November 2026')
+    // How accurate is this? changes with what the checks cover, so it has its own date.
+    expect(textOf(html('accuracy'))).toContain(`Last updated ${ACCURACY_UPDATED}`)
+  })
+
+  it('name every council the checks know, on About and on How accurate is this?', () => {
+    // Both pages said "one council (Wollongong so far)" while the picker offered four.
+    expect(COUNCILS.length).toBeGreaterThan(1)
+    expect(councilsSoFar(['Kiama'])).toBe('one council so far (Kiama)')
+    expect(councilsSoFar(['Kiama', 'Wollongong'])).toBe('two councils so far (Kiama and Wollongong)')
+    expect(councilsSoFar()).toBe('four councils so far (Blue Mountains, Central Coast, Kiama and Wollongong)')
+    for (const page of ['about', 'accuracy'] as const) {
+      const t = textOf(html(page))
+      expect(t, page).toContain(councilsSoFar())
+      for (const c of COUNCILS) expect(t, `${page}: ${c.name}`).toContain(c.name)
+      expect(t, page).not.toMatch(/one council/)
+    }
+  })
+
+  it('say what the surveyor’s file can be, and don’t list as missing what the checks now cover', () => {
+    const about = textOf(html('about'))
+    for (const s of ['DXF', 'LandXML', 'CSV']) expect(about, s).toContain(s)
+    const t = textOf(html('accuracy'))
+    const [good, limits] = t.slice(t.indexOf('Planning checks')).split('What they don’t cover')
+    // The checks have driveway rows and a shadow-on-the-neighbours row; the page lists them as covered.
+    for (const s of ['the driveway and its crossing', 'winter sun to your living rooms', 'where your shadow falls on the neighbours']) expect(good, s).toContain(s)
+    expect(limits).not.toContain('garages and parking')
+    expect(limits).not.toContain('sun to neighbours')
+    // What is still left out stays said.
+    for (const s of ['private open space', 'garage doors and parking spaces', 'where the neighbours’ windows and open space are', 'section 10.7 planning certificate']) expect(limits, s).toContain(s)
   })
 
   it('say what is kept, and what is not', () => {

@@ -138,7 +138,7 @@ describe('Share › Plans', () => {
     expect(planPages(before).find(x => x.key === 'section')!.drawn).toBe(false)
     const html = panel(before)
     expect(html).toContain('(no section line yet)')
-    expect(html).toContain('Use the section under the plan')
+    expect(html).toContain('Use the live section under the plan')
     expect(html).not.toContain('Sections<span class="muted"> (not drawn yet)')
 
     const line = keepStripSection(survey, null)!
@@ -146,7 +146,7 @@ describe('Share › Plans', () => {
     expect(line.label).toBe('A')
     expect([line.a, line.b]).toEqual([stripCut(before, survey, null).a, stripCut(before, survey, null).b])
     expect(planPages(after).find(x => x.key === 'section')!.drawn).toBe(true)
-    expect(panel(after)).not.toContain('Use the section under the plan')
+    expect(panel(after)).not.toContain('Use the live section under the plan')
     // One step of Undo takes it away again.
     usePlan.getState().undo()
     expect(usePlan.getState().plan!.sections ?? []).toHaveLength(0)

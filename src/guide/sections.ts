@@ -18,7 +18,7 @@ export const SECTIONS: Section[] = [
     title: 'Your block',
     picture: 'block',
     steps: [
-      'Import the survey your surveyor gave you: a DXF file with the boundary, contours and spot levels. Drop it on the start screen, or choose it.',
+      'Import the survey your surveyor gave you: a DXF file with the boundary, contours and spot levels (LandXML, or a CSV of points, works too). Drop it on the start screen, or choose it.',
       'No survey yet? Sketch the block instead: its width, depth and rough fall. Swap in the real survey later under Site › More › Replace survey.',
       'After an import, check the layers under Site › More › Survey layers: which one is the boundary, the contours and the levels.',
       'Say which side faces the street. The checks measure the setbacks from it, and the 3D Street view looks from it.',
@@ -58,7 +58,7 @@ export const SECTIONS: Section[] = [
     title: 'Levels',
     picture: 'levels',
     steps: [
-      'Each floor of the house is a level. Add them in Design › Floors, each with its height above the ground floor.',
+      'Each storey of the house, and each step of a split level, is a level. Add them in Design › Levels, each with its floor level (FFL): how high its floor sits.',
       'A split level is two levels side by side, one a step up the slope from the other.',
       'Each level is built as a slab on the ground or a framed floor on piers. That changes what’s dug out under it.',
     ],

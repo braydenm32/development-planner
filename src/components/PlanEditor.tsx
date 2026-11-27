@@ -854,7 +854,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         const over = roofCoveredBy(usePlan.getState().plan!, made)
         if (over)
           showToast({
-            text: `${over.name} is built over all of this roof, so it would be inside that storey.`,
+            text: `${over.name} is built over all of this roof, so it would be inside that level.`,
             link: {
               label: `Move it up to ${over.name}`,
               go: () => {

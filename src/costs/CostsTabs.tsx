@@ -482,7 +482,7 @@ function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
         <span className="cm-linked">
           {floor} · from{' '}
           <button className="link" onClick={() => goAt('design/floors')}>
-            Design › Floors
+            Design › Levels
           </button>
         </span>
       </div>
@@ -655,7 +655,7 @@ export function MaterialsTab() {
   return d ? (
     <>
       <MaterialRows d={d} detail />
-      <p className="muted small">Each choice shows what it adds or saves against the one picked now, with every other line as it is. How the floor is built is chosen in Design › Floors, where it also sets the earthworks.</p>
+      <p className="muted small">Each choice shows what it adds or saves against the one picked now, with every other line as it is. How the floor is built is chosen in Design › Levels, where it also sets the earthworks.</p>
     </>
   ) : (
     <Waiting />
