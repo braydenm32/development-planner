@@ -81,6 +81,9 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   window.addEventListener('pointerdown', () => (tabbing = false), true)
 }
 
+/** Whether focus was last moved with Tab: a button reached that way keeps Space for itself (src/pointer/spacePan.ts). */
+export const tabbingNow = (): boolean => tabbing
+
 const SINGLE_KEYS = 'single-key-shortcuts-v1'
 let singleKeys: boolean | null = null
 const singleKeyListeners = new Set<() => void>()

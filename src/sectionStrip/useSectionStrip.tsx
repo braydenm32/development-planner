@@ -14,6 +14,7 @@ import { SectionStrip } from './SectionStrip'
 import { opensItself, setCut, setStripAuto, useStrip, type Cut } from './store'
 import { floorDrawn } from '../shell/drawn'
 import { usePlan } from '../plan/store'
+import { FREE_KEY, snapFree } from '../pointer/snapping'
 
 export interface SectionStripArgs {
   /** The strip shows here: Design or Earthworks, in the app's frame. */
@@ -83,9 +84,9 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
       const dy = p[1] - d.from[1]
       next = { a: [d.start.a[0] + dx, d.start.a[1] + dy], b: [d.start.b[0] + dx, d.start.b[1] + dy] }
     } else {
-      // An end keeps the cut square to the house (or at 45°) unless Shift is held, as a section line does.
+      // An end keeps the cut square to the house (or at 45°) unless snapping is off (Alt), as a section line does.
       const other = d.end === 'a' ? d.start.b : d.start.a
-      const q = snapEnd(other, p, e.shiftKey)
+      const q = snapEnd(other, p, snapFree(e))
       if (Math.hypot(q[0] - other[0], q[1] - other[1]) < 2) return
       next = d.end === 'a' ? { a: q, b: other } : { a: other, b: q }
     }
@@ -115,7 +116,7 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
           const p = end === 'a' ? pa : pb
           return (
             <circle key={end} className="end" cx={p[0]} cy={p[1]} r={6} onPointerDown={e => down(e, end)} onPointerMove={e => move(e)} onPointerUp={up}>
-              <title>Drag to swing the section line (Shift for any angle)</title>
+              <title>Drag to swing the section line ({FREE_KEY} for any angle)</title>
             </circle>
           )
         })}

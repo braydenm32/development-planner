@@ -31,7 +31,7 @@ export const SECTIONS: Section[] = [
     steps: [
       'Press W (or pick Wall on the tool rail), then click each corner of the outside walls.',
       'Click the first corner again to close the outline. Double-click, or press Esc, to stop without closing it.',
-      'For an exact wall, type its length in mm and press Enter. Hold Shift to draw without snapping.',
+      'For an exact wall, type its length in mm and press Enter (3000<45 sets its angle too). Hold Shift to keep a wall square; hold Alt (Option on a Mac) to draw without snapping.',
       'With Select (V), drag a wall to move it, or its ends to reshape it. Delete removes what’s selected.',
     ],
   },
