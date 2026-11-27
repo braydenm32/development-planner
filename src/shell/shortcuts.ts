@@ -77,7 +77,9 @@ export const SHORTCUTS: ShortcutGroup[] = [
     title: 'Drawing and typing',
     rows: [
       { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter (3000<45 sets the angle too; 4.5m is metres)' },
-      { keys: ['0–9', 'X'], what: 'Rectangle room, after its first corner: type width x depth in mm (4000x3000), then Enter' },
+      { keys: ['0–9', 'X'], what: 'Rectangle room: type width x depth in mm (4000x3000), before or after its first corner, then Enter or click' },
+      // The plan is drawn with a pointer; the keyboard's way to add things is in the panels (AX-02).
+      { keys: ['Tab', 'Enter'], what: 'Without a mouse: add walls, doors and windows by typing in Design › Walls & doors, and furniture in Design › Furniture. The plan itself is drawn with a mouse, pen or finger' },
       { keys: ['Enter'], what: 'Close an outdoor area or roof outline' },
       { keys: ['Shift'], what: 'While drawing, keep the wall or line square to the house' },
       { keys: ['Alt'], what: 'While drawing or dragging, turn snapping off (Option on a Mac)' },

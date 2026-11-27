@@ -33,7 +33,7 @@ export function planSummary(plan: Plan, levelId: string): string {
 
 /** Where the plan's content is in text, and its keys. `changes`: the house can be changed here (not Approvals, Share or a phone in View). */
 export const planHelp = (changes: boolean) =>
-  `The plan is a drawing. Its rooms, walls, doors, windows, stairs and furniture are listed in Design, under Rooms and areas, Walls and doors, and Furniture${changes ? ', where each can be picked, changed and deleted' : ''}. With the plan in focus: arrow keys move the view${changes ? ', or what is picked' : ''}; plus and minus zoom; 0 fits the house.`
+  `The plan is a drawing. Its rooms, walls, doors, windows, stairs and furniture are listed in Design, under Rooms and areas, Walls and doors, and Furniture${changes ? ', where each can be picked, changed and deleted' : ''}. With the plan in focus: arrow keys move the view${changes ? ', or what is picked' : ''}; plus and minus zoom; 0 fits the house.${changes ? ' Walls, doors and windows aren’t drawn here from the keyboard: add them by typing in Design, Walls and doors, and furniture in Design, Furniture.' : ''}`
 
 /** "3D view of the block with the house on it: ground from RL 41.20 to RL 47.80; the house has 2 levels." */
 export function sceneSummary(plan: Plan | null, ground: { minRL: number; maxRL: number }): string {
