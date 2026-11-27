@@ -65,6 +65,28 @@
   font-size: 18px;
 }
 
+/* Single-key shortcuts on or off, above the list. */
+.kbd-single {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.kbd-single input {
+  margin: 3px 0 0;
+  flex: none;
+}
+
+.kbd-single b,
+.kbd-single .muted {
+  display: block;
+}
+
 .kbd-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

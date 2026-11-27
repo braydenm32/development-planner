@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { COLUMN_LABELS, type ColumnRole } from '../lib/pointsCsv'
+import { useModal } from '../nav/useModal'
 import { useColumns, type ColumnsAsk } from './columns'
 import '../safety/safety.css'
 import './formats.css'
@@ -13,26 +14,13 @@ const SHOWN = 6
 function Sheet({ ask }: { ask: ColumnsAsk }) {
   const [roles, setRoles] = useState(ask.roles)
   const [header, setHeader] = useState(ask.header)
-  const cancelRef = useRef<HTMLButtonElement>(null)
   const answer = useRef(ask.answer)
   useEffect(() => {
     answer.current = ask.answer
   })
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      e.stopPropagation()
-      answer.current(null)
-    }
-    window.addEventListener('keydown', esc, true)
-    return () => {
-      window.removeEventListener('keydown', esc, true)
-      opener?.focus?.()
-    }
-  }, [])
+  const sheet = useRef<HTMLDivElement>(null)
+  // Focus starts on Cancel and Tab stays in the sheet; Esc cancels (src/nav/useModal.ts).
+  useModal(sheet, true, () => answer.current(null))
 
   const set = (c: number, r: ColumnRole) =>
     setRoles(old => old.map((x, i) => (i === c ? r : r !== 'skip' && r !== 'code' && x === r ? 'skip' : x)))
@@ -42,7 +30,7 @@ function Sheet({ ask }: { ask: ColumnsAsk }) {
 
   return (
     <div className="sf-scrim" onPointerDown={e => e.target === e.currentTarget && ask.answer(null)}>
-      <div className="sf-sheet fm-columns" role="dialog" aria-modal="true" aria-labelledby="fm-title">
+      <div ref={sheet} className="sf-sheet fm-columns" role="dialog" aria-modal="true" aria-labelledby="fm-title">
         <div className="sf-grab" aria-hidden="true" />
         <header className="sf-head">
           <span className="sf-step">Check before it opens</span>
@@ -93,7 +81,7 @@ function Sheet({ ask }: { ask: ColumnsAsk }) {
           )}
         </div>
         <footer className="sf-actions">
-          <button ref={cancelRef} className="sf-btn" onClick={() => ask.answer(null)}>
+          <button className="sf-btn" onClick={() => ask.answer(null)} data-autofocus>
             Cancel
           </button>
           <button className="sf-btn primary" disabled={missing.length > 0} onClick={() => ask.answer({ roles, header })}>

@@ -1,4 +1,4 @@
-// What the plan's edit keys do (arrows, Delete, Ctrl/Cmd+A, C, V and D) and the level delete,
+// What the plan's edit keys do (arrows, Delete, Ctrl/Cmd+A, C, X, V and D) and the level delete,
 // with the toast that says what happened. The keys call these; so can anything else.
 
 import { askReview, dismissToast, showToast } from '../safety/store'
@@ -86,6 +86,29 @@ export function copySelected(): boolean {
   pastes = 0
   const n = clipCount(clip)
   showToast({ text: n === 1 ? 'Copied. Press Ctrl+V (⌘V on a Mac) to paste.' : `${n} items copied.` })
+  return true
+}
+
+/**
+ * Cut: copy what is selected, then take it away, as one undo step (the toast has Undo). The
+ * first paste on the same level puts it back exactly where it was.
+ */
+export function cutSelected(): boolean {
+  const st = usePlan.getState()
+  const sels = selectedList(st)
+  if (!st.plan || !sels.length) return false
+  const clip = copySelection(st.plan, sels)
+  if (!clip) {
+    showToast({ text: 'Doors and windows are cut with their wall. Pick the wall to cut it.' })
+    return true
+  }
+  clipboard = clip
+  copiedOn = st.activeLevel
+  pastes = -1
+  const name = selectionName(st.plan, sels)
+  st.commit(p => deleteSelections(p, sels))
+  st.select(null)
+  undoToastFor(`${name} cut. Press Ctrl+V (⌘V on a Mac) to paste.`, () => usePlan.getState().selectMany(sels))
   return true
 }
 

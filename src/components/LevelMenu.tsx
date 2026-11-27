@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../nav/icons'
+import { useModal } from '../nav/useModal'
 import { setGhost, type LevelRow } from '../plan/levelMenu'
 import { usePlan } from '../plan/store'
 import './levels.css'
@@ -31,6 +32,11 @@ function useDismiss(open: boolean, close: () => void) {
 export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNode }) {
   const [open, setOpen] = useState(false)
   const ref = useDismiss(open, () => setOpen(false))
+  // Open, the list has the keyboard: focus starts on the level being drawn on, Tab stays in the list,
+  // and Esc or a pick gives focus back to the chip (src/nav/useModal.ts).
+  const list = useRef<HTMLUListElement>(null)
+  const chip = useRef<HTMLButtonElement>(null)
+  useModal(list, open, () => setOpen(false), { returnTo: chip })
   const on = rows.find(r => r.active)
   const many = rows.length > 1
   const ghosts = rows.filter(r => r.ghost).length
@@ -39,6 +45,7 @@ export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNo
     <div className={`level-chip level-menu${open ? ' open' : ''}`} ref={ref}>
       <span className="level-menu-line">
         <button
+          ref={chip}
           type="button"
           className="level-menu-button"
           onClick={() => many && setOpen(!open)}
@@ -53,13 +60,14 @@ export function LevelMenu({ rows, action }: { rows: LevelRow[]; action?: ReactNo
       </span>
       {many && !open && ghosts > 0 && <span className="muted">Faint dashed lines: walls on {ghosts === 1 ? rows.find(r => r.ghost)!.name : `${ghosts} other levels`}</span>}
       {open && (
-        <ul className="level-menu-list" role="menu" aria-label="Levels">
+        <ul ref={list} className="level-menu-list" role="menu" aria-label="Levels">
           {rows.map(r => (
             <li key={r.id} className={r.active ? 'on' : ''}>
               <button
                 type="button"
                 role="menuitemradio"
                 aria-checked={r.active}
+                data-autofocus={r.active ? '' : undefined}
                 className="level-menu-pick"
                 onClick={() => {
                   usePlan.getState().setActiveLevel(r.id)

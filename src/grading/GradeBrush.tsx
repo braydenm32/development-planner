@@ -8,14 +8,15 @@ import { useCheckTrees } from '../checks/siteTrees'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { useRouter } from '../nav/router'
+import { navigate, useRouter } from '../nav/router'
 import { nearestContour, type ContourLine } from '../plan/contourPick'
 import type { ContourRun } from '../plan/finishedContours'
 import { fromSite, toSite, type Plan } from '../plan/model'
 import { usePlan, type Tool } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
+import { showToast } from '../safety/store'
 import { areaLabelAt, areaName, areaOutline, paintPlan, strokeCells } from './model'
-import { BRUSH_KEY, beginBrush, setBrushLevel, stepBrushRadius, stopBrush, stopLevelPick, useBrush } from './store'
+import { BRUSH_KEY, beginBrush, onCutFill, setBrushLevel, stepBrushRadius, stopBrush, stopLevelPick, useBrush } from './store'
 import { addSuggestion, dismissWall } from './actions'
 import { Suggested } from './SuggestedWall'
 import { placeTags } from './tags'
@@ -146,7 +147,22 @@ export function useGradeBrush(a: GradeBrushArgs) {
     if (e.metaKey || e.ctrlKey || e.altKey || viewOnly) return false
     if (e.key.toUpperCase() === BRUSH_KEY) {
       if (active) stopBrush()
-      else beginBrush()
+      else {
+        const from = useRouter.getState().route
+        beginBrush()
+        // One key took you to another area: say where, with the way back.
+        if (!onCutFill(from))
+          showToast({
+            text: 'Grading brush: you’re now in Earthworks › Cut & fill.',
+            link: {
+              label: 'Back',
+              go: () => {
+                stopBrush()
+                navigate(from)
+              },
+            },
+          })
+      }
       return true
     }
     if (!active) return false

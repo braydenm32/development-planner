@@ -48,7 +48,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['mod+click'], what: 'Add to or take from the selection' },
       { keys: ['shift+drag'], what: 'Box around empty ground: pick what is inside' },
       { keys: ['mod+A'], what: 'Pick everything on this floor' },
-      { keys: ['Esc'], what: 'Clear the selection, or finish what you are drawing' },
+      { keys: ['Esc'], what: 'End what you are drawing; press it again to go back to Select, and once more to clear the selection' },
     ],
   },
   {
@@ -58,6 +58,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['shift+arrows'], what: 'Nudge it 100 mm' },
       { keys: ['Q'], what: 'Turn furniture a quarter turn (Shift+Q the other way)' },
       { keys: ['mod+C'], what: 'Copy' },
+      { keys: ['mod+X'], what: 'Cut: copy, then take it away (paste puts it back where it was)' },
       { keys: ['mod+V'], what: 'Paste (in place on another floor)' },
       { keys: ['mod+shift+V'], what: 'Paste in place' },
       { keys: ['mod+D'], what: 'Duplicate' },
@@ -73,8 +74,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['0–9'], what: 'Type a wall or outline side’s length in mm, then Enter' },
       { keys: ['Enter'], what: 'Close an area or roof outline' },
       { keys: ['shift+drag'], what: 'While dragging an item, turn snapping off' },
-      { keys: ['Enter'], what: 'In a number box, keep the value (0.9 or 0.9m means 900 mm)' },
-      { keys: ['Esc'], what: 'In a number box, put the old value back' },
+      { keys: ['Enter'], what: 'In a number box, keep the value and stay in the box (0.9 or 0.9m means 900 mm)' },
+      { keys: ['Esc'], what: 'In a number box, put the old value back and leave the box' },
     ],
   },
 ]

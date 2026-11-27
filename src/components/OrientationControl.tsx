@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { keepAndStay, settled } from './fieldKeys'
 
 const CHOICES: { id: string; label: string; bearing: number | null }[] = [
   { id: 'house', label: 'Square to the house', bearing: null },
@@ -51,11 +52,11 @@ export function OrientationControl({ value, onChange }: { value: 'house' | numbe
           <input
             inputMode="decimal"
             value={editing ?? shown}
-            onFocus={() => setEditing(shown)}
             onChange={e => setEditing(e.target.value)}
             onBlur={commit}
+            data-settled={settled(editing, shown)}
             onKeyDown={e => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Enter') keepAndStay(e.target as HTMLInputElement)
             }}
           />
           <em>°</em>

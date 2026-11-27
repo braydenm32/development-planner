@@ -5,6 +5,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { Icon } from '../nav/icons'
 import { shortcutText } from '../nav/keys'
+import { useModal } from '../nav/useModal'
 import { buildIndex, search, suggestions, type Feature, type SearchItem } from '../nav/search'
 
 let loaded: Feature[] | null = null
@@ -47,7 +48,10 @@ export function CommandPalette({ choose, run, onClose }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const runButton = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLUListElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   const id = useId()
+  // Tab stays in the search (or its offer), and Esc closes it wherever focus is (src/nav/useModal.ts).
+  useModal(box, true, () => onClose(true), { focus: 'none' })
   const results = useMemo(() => (query.trim() ? search(index, query) : suggestions(index)), [index, query])
   const current = Math.min(active, results.length - 1)
 
@@ -68,11 +72,6 @@ export function CommandPalette({ choose, run, onClose }: Props) {
 
   const onKey = (e: KeyboardEvent) => {
     e.stopPropagation()
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      onClose(true)
-      return
-    }
     if (offer) return
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
@@ -88,11 +87,11 @@ export function CommandPalette({ choose, run, onClose }: Props) {
     }
   }
 
-  if (offer) return <PaletteOffer item={offer} run={run} onClose={onClose} onKeyDown={onKey} runButton={runButton} />
+  if (offer) return <PaletteOffer item={offer} run={run} onClose={onClose} onKeyDown={onKey} runButton={runButton} box={box} />
 
   return (
     <div className="palette-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKey}>
+      <div ref={box} className="palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKey}>
         <div className="palette-input">
           <Icon name="search" size={18} />
           <input
@@ -161,6 +160,7 @@ interface OfferProps {
   onClose: (restore: boolean) => void
   onKeyDown?: (e: KeyboardEvent) => void
   runButton?: Ref<HTMLButtonElement>
+  box?: Ref<HTMLDivElement>
 }
 
 /**
@@ -168,10 +168,10 @@ interface OfferProps {
  * not over the whole page. On a phone search fills the screen, so the offer drops to a bar
  * along the bottom with the place it means showing above it (shell.css, `.offering`).
  */
-export function PaletteOffer({ item, run, onClose, onKeyDown, runButton }: OfferProps) {
+export function PaletteOffer({ item, run, onClose, onKeyDown, runButton, box }: OfferProps) {
   return (
     <div className="palette-backdrop offering" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
-      <div className="palette offering" role="dialog" aria-modal="true" aria-label={`Run ${item.entry.label}?`} onKeyDown={onKeyDown}>
+      <div ref={box} className="palette offering" role="dialog" aria-modal="true" aria-label={`Run ${item.entry.label}?`} onKeyDown={onKeyDown}>
         <div className="palette-offer">
           <p>
             <b>{item.entry.label}</b>

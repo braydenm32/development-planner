@@ -51,9 +51,9 @@ import { roofAtPoint } from '../plan/roofPick'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining, waitingForSide } from '../plan/retainingSession'
 import { snap, type SnapResult } from '../plan/snap'
 import { stairArrivesAt, stairContains, stairLayout, stairMeetsNoFloor, stairPlanTag } from '../plan/stairs'
-import { deleteSelected, copySelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
+import { deleteSelected, copySelected, cutSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { itemsWhere, selectedList, translateSelection } from '../plan/editing'
-import { modKey } from '../nav/keys'
+import { modKey, shortcutAllowed, singleKeysOn } from '../nav/keys'
 import { isOpeningTool, usePlan, type RoofMode, type Selection, type Tool } from '../plan/store'
 import { CanvasFrame } from './canvasFrame'
 import type { Earth } from '../plan/useEarthworks'
@@ -61,6 +61,7 @@ import { finishedContours, finishedShown, planContours, readFinishedPref, saveFi
 import { ContoursKey, FinishedContourLayer } from './FinishedContours'
 import { CornerOffsets, GroundKey, GroundOverlay, GroundReadout, WorksTint } from './GroundOverlay'
 import { LevelMenu } from './LevelMenu'
+import { askName } from './nameFocus'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
 import { OrientationControl } from './OrientationControl'
@@ -1641,6 +1642,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       commit(p => addRoom(p, level, world, `Room ${n}`))
       const created = usePlan.getState().plan!.rooms.at(-1)
       if (created) select({ type: 'room', id: created.id })
+      // What is typed next names it (a phone would only have its keyboard cover the plan).
+      if (created && !touch?.phone) askName(created.id)
       notify(null)
       // A new room asks its level's floor type once, or offers a retaining wall where it cuts or fills.
       if (created) roomMade(created.id)
@@ -1653,6 +1656,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       return
     }
     if (mn.dblclick() || sk.dblclick()) return
+    // A double-click on a room goes to its name.
+    if (tool === 'select' && selection?.type === 'room' && !group && !viewOnly) askName(selection.id)
     if (tool === 'wall' || tool === 'retaining') finishChain()
     if (tool === 'area') closeArea(areaPts)
     if (tool === 'roof') closeRoof(areaPts)
@@ -1687,8 +1692,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // Keyboard: shortcuts, typed lengths, undo/redo, delete.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return
+      // The one rule every key handler shares: not behind a dialog or menu, not while typing (src/nav/keys.ts).
+      if (!shortcutAllowed(e)) return
       // While Costs is open, Undo and Redo work on costs.
       if (costsUndoKey(e)) {
         e.preventDefault()
@@ -1739,10 +1744,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (mod) {
-        // Select all, copy, paste and duplicate; any other Ctrl/⌘ key goes on to the browser or the app (Ctrl+S saves).
+        // Select all, copy, cut, paste and duplicate; any other Ctrl/⌘ key goes on to the browser or the app (Ctrl+S saves).
         const k = e.key.toLowerCase()
         if (e.altKey || viewOnly) return
-        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'v' ? pasteCopied(e.shiftKey) : k === 'd' ? duplicateSelected() : false
+        const handled = k === 'a' ? selectAllOnLevel() : k === 'c' ? copySelected() : k === 'x' ? cutSelected() : k === 'v' ? pasteCopied(e.shiftKey) : k === 'd' ? duplicateSelected() : false
         if (handled) e.preventDefault()
         return
       }
@@ -1783,6 +1788,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         if (chain.length) finishChain()
         else if (areaPts.length) setAreaPts([])
         else if (stairStart) updateDraft(() => ({ stairStart: null }))
+        // With nothing under way, Esc goes back to Select from any tool; from Select it clears the selection.
+        else if (tool !== 'select') st.setTool('select')
         else st.select(null)
         return
       }
@@ -1817,7 +1824,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       // 0 fits the house, Shift+0 the block (F is the roof tool).
-      if (e.code === 'Digit0' || e.code === 'Numpad0') {
+      if ((e.code === 'Digit0' || e.code === 'Numpad0') && singleKeysOn()) {
         e.preventDefault()
         st.requestFit(e.shiftKey ? 'block' : 'house')
         return

@@ -18,12 +18,13 @@ import { useCosts } from '../costs/store'
 import { useEstimate, useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
-import { shortcutText, typingIn } from '../nav/keys'
+import { shortcutAllowed, shortcutText } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
 import { canvasOf, carriesSelection, readsTheHouse, tabRoute, type AppRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { focusSoon } from '../nav/useModal'
 import type { SearchItem } from '../nav/search'
 import { isRetaining, sortedLevels } from '../plan/model'
 import { usePlan } from '../plan/store'
@@ -180,6 +181,8 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault()
+        // Not over another sheet that is waiting for an answer.
+        if (!palette && document.querySelector('[aria-modal="true"]')) return
         if (palette) closePalette(true)
         else openPalette()
         return
@@ -190,13 +193,13 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         if (!e.repeat) void saveNow().then(text => showToast({ text }))
         return
       }
-      // ? lists the keys, wherever you are (not while typing).
-      if (e.key === '?' && !mod && !palette && !typingIn(e.target)) {
+      // ? lists the keys, wherever a single key may fire (src/nav/keys.ts).
+      if (e.key === '?' && !mod && shortcutAllowed(e)) {
         e.preventDefault()
         openKeyboardHelp()
         return
       }
-      if (canvasKind === 'plan' || palette || typingIn(e.target) || !mod) return
+      if (canvasKind === 'plan' || !mod || !shortcutAllowed(e)) return
       const k = e.key.toLowerCase()
       if (k === 'z' || k === 'y') {
         e.preventDefault()
@@ -623,7 +626,16 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                       {!inTab && subtitle && <p className="muted">{subtitle}</p>}
                     </div>
                     {!(phone && report) && (
-                      <button className="icon-button" onClick={() => setPanelHidden(true)} aria-label={`Hide the ${tab.label} panel`} title="Hide the panel">
+                      <button
+                        className="icon-button panel-hide"
+                        onClick={() => {
+                          setPanelHidden(true)
+                          // The pill takes this button's place, and its focus.
+                          focusSoon('.panel-pill')
+                        }}
+                        aria-label={`Hide the ${tab.label} panel`}
+                        title="Hide the panel"
+                      >
                         <Icon name={phone ? 'chevD' : 'chevL'} size={16} />
                       </button>
                     )}
@@ -641,7 +653,13 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
                   </div>
                 </section>
               ) : (
-                <button className="float-card panel-pill" onClick={() => setPanelHidden(false)}>
+                <button
+                  className="float-card panel-pill"
+                  onClick={() => {
+                    setPanelHidden(false)
+                    focusSoon('.tab-panel .panel-hide')
+                  }}
+                >
                   <Icon name={phone ? 'chevU' : 'chevR'} size={15} /> {tab.label}
                 </button>
               ))}

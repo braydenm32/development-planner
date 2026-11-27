@@ -2,7 +2,7 @@
 // then Balance (with what it would move), the warnings, the slopes, and the grading brush, the
 // suggested walls and how it all works folded away underneath. On a phone the peek shows the numbers.
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { sourceWords, worksNearBoundary } from '../checks/earthSources'
 import { useCheckTrees } from '../checks/siteTrees'
 import { checksFor } from '../checks/useChecks'
@@ -149,6 +149,14 @@ function BalanceBlock({ plan, survey, terrain, earth }: Props) {
     // Worked out once each time it opens; a change to the plan closes it (./balanceAsk.ts).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+  // The card takes focus as it opens, and its button takes it back as it closes: never the page body.
+  const box = useRef<HTMLDivElement>(null)
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    const at = document.activeElement
+    if ((open || wasOpen.current) && (!at || at === document.body || box.current?.contains(at))) box.current?.querySelector<HTMLElement>('button')?.focus()
+    wasOpen.current = open
+  }, [open])
   const ew = earthworksOf(plan)
   const net = earth ? earth.result.cut - earth.result.fill : 0
   const apply = (p: BalancePreview) => {
@@ -165,7 +173,7 @@ function BalanceBlock({ plan, survey, terrain, earth }: Props) {
     })
   }
   return (
-    <div className="cf-balance">
+    <div ref={box} className="cf-balance">
       {!open ? (
         <div className="row">
           <button className="secondary" onClick={() => useBalanceAsk.setState({ open: true })}>

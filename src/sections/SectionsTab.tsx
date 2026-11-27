@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { useModal } from '../nav/useModal'
 import { canEdit, usePhone, usePhoneMode } from '../phone/device'
 import { usePlan } from '../plan/store'
 import { useLoaded, type Loaded } from '../shell/useSite'
@@ -187,21 +188,9 @@ function Key({ drawing }: { drawing: Drawing }) {
 function Large({ drawings, shown }: { drawings: Drawing[]; shown: Drawing }) {
   const ref = useRef<HTMLDivElement>(null)
   const phone = usePhone()
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    ref.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        showLarge(false)
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => {
-      window.removeEventListener('keydown', onKey, true)
-      before?.focus?.()
-    }
-  }, [])
+  // Tab stays in it, Esc closes it, and focus goes back where it was (src/nav/useModal.ts).
+  useModal(ref, true, () => showLarge(false), { focus: 'none' })
+  useEffect(() => ref.current?.focus(), [])
   const h = typeof window === 'undefined' ? 600 : window.innerHeight
   return createPortal(
     <div className="sec-scrim" onPointerDown={e => e.target === e.currentTarget && showLarge(false)}>

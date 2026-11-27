@@ -8,6 +8,7 @@ import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
+import { showToast } from '../safety/store'
 import { addSection, MIN_SECTION, sectionsOf, snapEnd } from './lines'
 import { Mark, Preview } from './MarkSvg'
 import { showDrawing, startSectionLine, stopSectionLine, useSections } from './store'
@@ -91,7 +92,20 @@ export function useSectionMarks({ plan, S, k, viewOnly }: SectionMarksArgs) {
       return true
     }
     if (e.key.toUpperCase() === SECTION_KEY && !e.metaKey && !e.ctrlKey && !e.altKey && !viewOnly) {
+      const from = useRouter.getState().route
       beginSectionLine()
+      // One key took you to another tab: say where, with the way back.
+      if (!onSectionsTab(from))
+        showToast({
+          text: 'Section line: you’re now in Design › Sections.',
+          link: {
+            label: 'Back',
+            go: () => {
+              stopSectionLine()
+              navigate(from)
+            },
+          },
+        })
       return true
     }
     return false

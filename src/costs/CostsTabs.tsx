@@ -38,6 +38,7 @@ import {
   type RateId,
 } from './rates'
 import { useCosts, type Pointed } from './store'
+import { keepAndStay, settled } from '../components/fieldKeys'
 import { useEstimate, useFeeContext, useQuantities } from './useEstimate'
 import './costs.css'
 
@@ -821,11 +822,11 @@ function RateRow({
           <input
             inputMode="decimal"
             value={editing ?? shown}
-            onFocus={() => setEditing(shown)}
             onChange={e => setEditing(e.target.value)}
             onBlur={commitText}
+            data-settled={settled(editing, shown)}
             onKeyDown={e => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Enter') keepAndStay(e.target as HTMLInputElement)
               if (e.key === 'Escape') {
                 setEditing(null)
                 ;(e.target as HTMLInputElement).blur()
