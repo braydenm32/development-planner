@@ -400,6 +400,7 @@ export const AREAS: Area[] = [
           'snapping',
           'draw-drag-hint',
           'wall-draw-by-face',
+          'drag-to-draw',
           'opening-gaps',
           'room-inside-size',
           'measure-face-snap',

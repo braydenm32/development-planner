@@ -377,5 +377,24 @@ export function useSketchLayer(a: SketchArgs) {
 
   const hint = active ? HINTS[mode] : null
 
-  return { active, move, click, dblclick, key: key_, hit, grabHandle, onHandle: (sx: number, sy: number) => handleAt(sx, sy) >= 0, grabItem, drag, release, under, over, hint, drawing: drawn.length > 0 || draft.pts.length > 0 }
+  return {
+    active,
+    move,
+    click,
+    dblclick,
+    key: key_,
+    hit,
+    grabHandle,
+    onHandle: (sx: number, sy: number) => handleAt(sx, sy) >= 0,
+    grabItem,
+    drag,
+    release,
+    under,
+    over,
+    hint,
+    drawing: drawn.length > 0 || draft.pts.length > 0,
+    /** The point a drag would draw on from (a line's last point, a circle's centre), and ending what's under way: src/pointer/dragDraw.ts. */
+    last: mode === 'circle' ? (draft.pts[0] ?? null) : (drawn[drawn.length - 1] ?? null),
+    end: finish,
+  }
 }

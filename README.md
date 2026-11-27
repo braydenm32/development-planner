@@ -64,6 +64,8 @@ A PDF survey or site plan can't be read for levels, but **Site › Features** la
 | Section line | X | Two clicks across the plan draw a section, square to the house unless you hold Alt. **Design › Sections** shows it, with the four elevations. |
 | Grading brush | B | In **Earthworks › Cut & fill**: paint ground to cut or fill to a level you type or pick from a contour ([ and ] change its size). |
 
+With Wall, Retaining wall, Measure, Stair, Sketch and a section line you can also press, drag and release to draw from one point to the other (with a finger, one finger draws and two move and zoom the plan); a click without moving works as before.
+
 Press **?** for every keyboard shortcut. The **live section** under the plan (in Design and Earthworks) is a cut through the house and the ground that follows the plan as you pan and zoom; drag a level band in it to move that floor up or down.
 
 **Top of view** (under **Site › More**) turns the plan and the 3D view so north, east, south, west or any bearing is at the top, or keeps the plan square to the house; **North up** in the view bar does the same in one click.

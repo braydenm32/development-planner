@@ -129,6 +129,8 @@ import { typedKey, typedLabel, typedPoint } from '../pointer/typedEntry'
 import { wheelPan } from '../pointer/wheel'
 import { dragHint, isDragHint } from '../pointer/dragHint'
 import { doorSwingAt } from '../plan/openingHit'
+import { continuesRun, DRAW_SLOP, dragDraws, pastSlop } from '../pointer/dragDraw'
+import { startSectionLine, useSections } from '../sections/store'
 import { faceGuides } from '../pointer/faceSnap'
 import { openingGapDims } from '../pointer/openingGaps'
 import './editing.css'
@@ -176,6 +178,12 @@ type Drag =
   | { type: 'rect' }
   /** A sketch line or kept measurement, or one of its points (src/sketch/useSketchLayer.tsx keeps which). */
   | { type: 'sketch' }
+  /**
+   * A press with a tool that draws point to point (src/pointer/dragDraw.ts): a click until it moves
+   * past `slop`, then a drag that draws from `world` to the release. `pending`: the run under way
+   * was ended, and the press point goes down on the next move; `placedFirst`: it went down.
+   */
+  | { type: 'draw'; sx: number; sy: number; world: Vec2; slop: number; started: boolean; pending: boolean; placedFirst: boolean }
 
 /**
  * Outside Design and Earthworks the plan is for looking at: a plain drag pans, and nothing moves
@@ -201,7 +209,7 @@ const VIEW_HINT = {
 
 const HINTS: Record<Tool, string> = {
   select: 'Click to select: a room by its floor, and again for its slab or roof. Where walls sit on one another, click again for the next. Drag a wall to move it, or its end handles to reshape. Delete removes; right-click for more. Drag empty space to pan.',
-  wall: `Click to start a wall, click again for each corner. Type a length in mm and press Enter (3000<45 sets the angle too). Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to keep it square, ${FREE_KEY} to turn off snapping. For a whole room in one go, Shift+W.`,
+  wall: `Click to start a wall, click again for each corner. Type a length in mm and press Enter (3000<45 sets the angle too). Double-click or Esc to finish. Walls that close round a space make a room. Hold Shift to keep it square, ${FREE_KEY} to turn off snapping. Or press and drag to draw a wall from end to end. For a whole room in one go, Shift+W.`,
   retaining: "Click the retaining wall's start, then each corner (or type a length in mm and press Enter). Double-click or Esc to finish. Its panel asks once which side it holds back and how high.",
   door: 'Click on a wall to add a door.',
   window: 'Click on a wall to add a window.',
@@ -370,6 +378,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const wallMode = useWallMode(s => s.mode)
   // Wall by wall, drawn by a face (src/plan/wallFace.ts): the points are that face, not the centreline.
   const wallFace = useWallFace(s => s.face)
+  // What a press and drag does with the Sketch tool depends on what it draws (src/pointer/dragDraw.ts).
+  const sketchMode = useSketch(s => s.mode)
   const faceFlipped = useWallFace(s => s.flipped)
   const byFace = tool === 'wall' && wallMode === 'line' && wallFace !== 'centre'
   const draftKey = `${tool === 'wall' ? `wall:${wallMode}:${wallFace}` : tool}|${level}`
@@ -1071,6 +1081,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     drag.current = null
     downAt.current = null
     setDragKind(null)
+    // A drag that was drawing: the first point it put down goes again.
+    if (d?.type === 'draw' && d.placedFirst) drawRun().drop()
     if (d?.type === 'brush') brush.cancel()
     else if (d && d.type !== 'pan') {
       const start = usePlan.getState().gestureStart
@@ -1249,6 +1261,62 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) =>
     snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' || byFace ? faceSnaps : guides, tol, ortho: shift.current, ...o })
 
+  /** The run a drag would draw on from, with the tool out now: its last point, ending it, and dropping a lone first point. */
+  const drawRun = (): { last: Vec2 | null; end: () => void; drop: () => void } => {
+    if (sections.active) return { last: useSections.getState().drawing?.a ?? null, end: startSectionLine, drop: startSectionLine }
+    if (tool === 'measure') return { last: mn.last, end: () => void mn.dblclick(), drop: mn.drop }
+    if (tool === 'sketch') return { last: sk.last, end: sk.end, drop: sk.end }
+    const clearStair = () => updateDraft(() => ({ stairStart: null }))
+    if (tool === 'stair') return { last: stairStart, end: clearStair, drop: clearStair }
+    return { last: chain.at(-1) ?? null, end: finishChain, drop: finishChain }
+  }
+
+  /**
+   * A drawing press moving: once past its slop it's a drag, and the press point goes down as a
+   * click would put it (unless the press was on the run's last point, which it carries on from).
+   * Pressed away from a run under way, the run ends first and the point goes down on the next move,
+   * once the plan has caught up.
+   */
+  const moveDrawDrag = (d: Extract<Drag, { type: 'draw' }>, sx: number, sy: number, free: boolean, shiftKey: boolean) => {
+    if (d.pending) {
+      d.pending = false
+      d.placedFirst = true
+      clickAt(d.world, free, shiftKey)
+      return
+    }
+    if (d.started || !pastSlop({ x: d.sx, y: d.sy }, { x: sx, y: sy }, d.slop)) return
+    d.started = true
+    const run = drawRun()
+    if (run.last && continuesRun({ x: d.sx, y: d.sy }, { x: S(run.last)[0], y: S(run.last)[1] })) return
+    if (run.last) {
+      run.end()
+      d.pending = true
+      return
+    }
+    d.placedFirst = true
+    clickAt(d.world, free, shiftKey)
+  }
+
+  /** The release of a drag that drew: the next click, at the release (a typed length still sets a wall's length). */
+  const endDrawDrag = (d: Extract<Drag, { type: 'draw' }>, world: Vec2, free: boolean, shiftKey: boolean) => {
+    shift.current = shiftKey
+    if (d.pending) {
+      // Let go before the plan caught up: the press point starts the next run.
+      clickAt(d.world, free, shiftKey)
+      return
+    }
+    const from = chain.at(-1)
+    if ((tool === 'wall' || tool === 'retaining') && typed && from) {
+      const end = typedEnd(from, snapHere(world, { anchor: from, points: chain.slice(0, 1), free }).p)
+      if (end) {
+        if (tool === 'wall') placeWallPoint(end)
+        else placeRetainingPoint(end)
+        return
+      }
+    }
+    clickAt(world, free, shiftKey)
+  }
+
   const startPointer = (e: ReactPointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect()
     const sx = e.clientX - rect.left
@@ -1266,7 +1334,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       drag.current = { type: 'pan', sx, sy, start: v }
       return
     }
-    if (e.button === 1 || e.button === 2 || habits.space.grab() || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
+    const spaceHeld = e.button !== 1 && e.button !== 2 && habits.space.grab()
+    // A press and drag with a tool that draws point to point draws, from here to the release (src/pointer/dragDraw.ts).
+    const drawDrag =
+      e.button === 0 && !spaceHeld && !site.active && !flow.active && !brush.active && dragDraws({ tool, wallMode, sketchMode, sectionLine: sections.active })
+    if (drawDrag) {
+      const slop = touch && e.pointerType === 'touch' ? TAP_SLOP : DRAW_SLOP
+      drag.current = { type: 'draw', sx, sy, world, slop, started: false, pending: false, placedFirst: false }
+      return
+    }
+    if (e.button === 1 || e.button === 2 || spaceHeld || site.active || flow.active || sections.active || (brush.active && !brush.painting)) {
       // With a site tool (or picking a contour or an earth side), a click acts on pointer-up and a drag pans.
       drag.current = { type: 'pan', sx, sy, start: v }
       return
@@ -1553,6 +1630,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     sections.move(world, free)
     brush.move(world)
     if (d?.type === 'brush') return
+    if (d?.type === 'draw') moveDrawDrag(d, sx, sy, free, e.shiftKey)
 
     if (d?.type === 'pan') {
       if (Math.hypot(sx - d.sx, sy - d.sy) < (e.pointerType === 'touch' ? TAP_SLOP : 4)) return
@@ -1753,7 +1831,9 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
     }
-    const d = drag.current
+    const pressed = drag.current
+    // A drawing press that never moved is a click, as any press that doesn't move is.
+    const d: Drag | null = pressed?.type === 'draw' && !pressed.started ? { type: 'pan', sx: pressed.sx, sy: pressed.sy, start: v } : pressed
     drag.current = null
     setDragKind(null)
     setBox(null)
@@ -1777,6 +1857,13 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       const dragged = !!downAt.current && Math.hypot(sx - downAt.current.x, sy - downAt.current.y) > 4
       downAt.current = null
       rectRoom.up(W(sx, sy), dragged, snapFree(e))
+      return
+    }
+    if (d?.type === 'draw' && d.started) {
+      const [sx, sy] = local(e)
+      downAt.current = null
+      habits.space.release()
+      endDrawDrag(d, W(sx, sy), snapFree(e), e.shiftKey)
       return
     }
     if (d?.type === 'box') {
@@ -1845,10 +1932,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       if (say) notify(say)
     }
     if (e.button !== 0 || moved > 4 || (d && d.type !== 'pan')) return
+    clickAt(W(sx, sy), snapFree(e), e.shiftKey)
+  }
 
-    const world = W(sx, sy)
-    const free = snapFree(e)
-    shift.current = e.shiftKey
+  /** A click on the plan at a point (or the press and the release of a drag that draws), with snapping held off or not. */
+  const clickAt = (world: Vec2, free: boolean, shiftKey: boolean) => {
+    shift.current = shiftKey
     if (isDragHint(notice)) notify(null)
     if (flow.click(world)) return
     if (sections.click(world, free)) return
