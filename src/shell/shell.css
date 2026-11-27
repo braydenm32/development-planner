@@ -2311,8 +2311,34 @@ button.ov-verdict:hover {
   background: var(--line);
 }
 
+/* The header stays put as the list scrolls, so Close and the handle are always there; no
+   subtitle on a phone (it wrapped to three lines), and a full 44 px Close (PH-17). */
 .app-shell.phone .overview-sheet > header {
-  padding: 8px 8px 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 6px 4px 6px 18px;
+  background: #ffffff;
+}
+
+.app-shell.phone .overview-sheet > header > .muted {
+  display: none;
+}
+
+.app-shell.phone .overview-sheet > header .ov-steps {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.app-shell.phone .overview-sheet > header .ov-steps + .icon-button {
+  margin-left: 0;
+}
+
+.app-shell.phone .overview-sheet > header .icon-button {
+  flex: none;
+  width: 44px;
+  height: 44px;
 }
 
 .app-shell.phone .ov-cols {
@@ -2346,6 +2372,23 @@ button.ov-verdict:hover {
 
 .app-shell.phone .palette-list li {
   min-height: 52px;
+}
+
+/* A feature's row is two lines on a phone, like the tabs' and commands': its name whole (it was cut
+   to 18 characters, so several rows read the same), with where it lives under it (PH-30). */
+.app-shell.phone .pi-feature .pi-text {
+  display: grid;
+  gap: 0;
+}
+
+.app-shell.phone .pi-feature .pi-label {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.app-shell.phone .pi-feature .pi-where {
+  max-width: none;
 }
 
 .app-shell.phone .palette-foot {
