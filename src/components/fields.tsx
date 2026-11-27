@@ -39,7 +39,7 @@ export function Select<T extends string | number>({
 }
 
 /** What takes focus when Esc leaves a box: the nearest form, panel or dialog round it that can hold focus. */
-export function escOwner(box: Element): HTMLElement | null {
+function escOwner(box: Element): HTMLElement | null {
   const owner = box.parentElement?.closest<HTMLElement>('[data-esc-owner], [role="dialog"], .tab-panel')
   if (owner && owner.tabIndex < 0 && !owner.hasAttribute('tabindex')) owner.tabIndex = -1
   return owner ?? null
