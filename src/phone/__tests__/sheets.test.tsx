@@ -158,7 +158,7 @@ describe('search on a phone, choosing an action', () => {
     expect(html).toMatch(/^<div class="palette-backdrop offering">/)
     expect(html).not.toContain('palette-input')
     expect(html).not.toContain('palette-list')
-    expect(words(html)).toContain('It’s here now. Run it? Run now Not now')
+    expect(words(html)).toContain('It’s here now. Do it? Do it now Not now')
   })
 
   it('shows the offer as a bar along the bottom, with the place it went to showing above it', () => {
