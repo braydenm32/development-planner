@@ -92,6 +92,8 @@ export function ChecksMarks(props: Props & { pins: Pin[]; targets: Record<string
           }}
         >
           <title>{`${p.n}. ${p.title}`}</title>
+          {/* A thumb-sized target round the pin on a touch screen (PH-26): a rect, so the pin's circle styles leave it alone. */}
+          <rect className="ck-touch" x={-22} y={-22} width={44} height={44} />
           {/* 24 px across: the least a pointer target should be (WCAG 2.5.8). */}
           <circle r={12} />
           <text dy="0.35em">{p.n}</text>

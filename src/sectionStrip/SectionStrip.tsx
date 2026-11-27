@@ -25,6 +25,7 @@ import { draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, sta
 import { FOLDED_H, MAX_H, MIN_H, phoneHeight, setStripHeight, setStripOpen, useStrip, type Cut } from './store'
 import '../sections/sections.css'
 import './strip.css'
+import { forTouch } from '../phone/words'
 
 /** Height of the strip's heading (px). */
 const HEAD_H = FOLDED_H
@@ -151,11 +152,12 @@ export function SectionStrip(props: SectionStripProps) {
 
   const painted = useMemo(() => {
     if (!open || bodyH <= 0) return null
-    const p = svgPainter(true)
+    // A phone's labels stay at 12 px (PH-27).
+    const p = svgPainter(phone ? 'phone' : true)
     paintSectionBody(p, drawing, s => x0 + s * k, z => (zTop - z) * k, bodyH, k)
     return p.els
     // The painter reads only these.
-  }, [open, bodyH, drawing, x0, k, zTop])
+  }, [open, bodyH, drawing, x0, k, zTop, phone])
 
   // ---- Level bands ----
   const levels = sortedLevels(plan)
@@ -421,7 +423,7 @@ export function SectionStrip(props: SectionStripProps) {
           </ul>
         )}
         <span className="grow" />
-        {open && editable && <span className="muted hint">Click a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
+        {open && editable && <span className="muted hint">{forTouch('Click')} a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
         {open && kept && <span className="muted hint">Kept as {sectionName(kept)}</span>}
         {open && editable && !kept && drawing.walls.length > 0 && (
           <button type="button" className="plain small" onClick={keepAsDrawing} title="Keep this line as a section drawing: it is listed in Design › Sections and prints with the PDF plans">

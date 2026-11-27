@@ -62,7 +62,10 @@ import { useNativeFeel } from '../phone/native'
 import { PeekSheet } from '../phone/PeekSheet'
 import { inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows } from '../phone/reach'
 import { ViewLock } from '../phone/ViewLock'
-import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
+import { toggleTall, useSheetDrag, useSheetSize } from '../phone/sheetDrag'
+import { usePlanNotices } from '../phone/notices'
+import { fitClearOf, PANEL_SELECTOR, useSheetHeight } from '../phone/sheetHeight'
+import { forTouch } from '../phone/words'
 import { projectsNow } from '../projects/session'
 import { projectTitle } from '../share/project'
 import { showToast } from '../safety/store'
@@ -80,7 +83,7 @@ import '../phone/phone.css'
 import '../a11y/reflow.css'
 
 /** The plan's tool rail and a little room beside it, from the canvas's left edge (px): shell.css's rail at its --gap. */
-const RAIL_CLEAR = { desk: 80, phone: 72 }
+const RAIL_CLEAR = { desk: 80, phone: 76 }
 
 const PROJECT_ITEMS = HOMES.find(h => h.id === 'project-menu')!.items
 
@@ -135,6 +138,8 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   useSheetDrag(shellRef, phone)
 
   const say = useCallback((text: string) => setToast(t => ({ text, n: (t?.n ?? 0) + 1 })), [])
+  // A phone has no status line under the plan: its messages come here (PH-11).
+  usePlanNotices(phone, say)
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 5000)
@@ -470,7 +475,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const Body = route.tab === MORE ? MorePanel : TAB_PANELS[tabKey]
   // Where the app has no cloud, a tab's line doesn't promise what only the cloud gives (Send's links).
   const noCloud = useCloud(s => s.phase === 'unavailable')
-  const subtitle = route.tab === MORE ? area.more.subtitle : noCloud && tab.offlineSubtitle ? tab.offlineSubtitle : tab.subtitle
+  // On a touch screen the line says Tap for Click (src/phone/words.ts).
+  const subtitle = forTouch((route.tab === MORE ? area.more.subtitle : noCloud && tab.offlineSubtitle ? tab.offlineSubtitle : tab.subtitle) ?? '')
   const hasPanel = !tab.noPanel && !!Body
   const showPanel = hasPanel && !panelHidden
   // A retaining wall's panel is the Retaining walls tab in Earthworks, and the inspector elsewhere.
@@ -503,14 +509,19 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   const Aside = TAB_ASIDES[tabKey]
   const wideWindow = useWideForAside()
   const aside = !!Aside && !phone && showPanel && wideWindow && !!loaded && canvasKind !== 'print' && !steps
+  // A phone's open sheet covers the foot of the canvas: measured, so what's drawn can keep clear of it.
+  const [mainEl, setMainEl] = useState<HTMLElement | null>(null)
+  const sheetH = useSheetHeight(mainEl, phone && !sideways && !report, `${tabKey}|${showPanel}|${!!toolCard}|${inspector}|${tall}|${selection?.type}`).sheet
+  const panel = useSheetHeight(mainEl, phone && !sideways && !report && showPanel, `${tabKey}|${tall}`, PANEL_SELECTOR)
+  const panelClear = fitClearOf(panel.sheet, panel.canvas)
   const insets: Insets = useMemo(() => {
     // Turned sideways, a phone's panel and selection dock at the right (phone.css): the plan fits beside them.
     const side = phone && sideways && !report && (showPanel || toolCard || inspector) ? Math.min(360, (typeof window === 'undefined' ? 800 : window.innerWidth) * 0.46) : 0
-    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: (presenting ? 0 : 60) + side, t: 62, b: (peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear }
+    if (phone) return { l: rail ? RAIL_CLEAR.phone - 4 : 0, r: (presenting ? 0 : 60) + side, t: 62, b: Math.max((peek ? (peekH || (slim ? 52 : 190)) + 12 : 16) + sunClear, canvasKind === 'print' ? sheetH + 8 : canvasKind === 'plan' ? panelClear : 0) }
     const col = showPanel || toolCard ? (report ? COSTS_W : wide ? WIDE_W : PANEL_W) + 14 : 0
     const right = inspector ? (wideInspector ? WIDE_W : INSPECTOR_W) + 30 : aside ? COSTS_ASIDE_W + 30 : 16
     return { l: (rail ? RAIL_CLEAR.desk : 14) + col, r: right + (steps ? STEPS_W + 14 : 0), t: 56, b: Math.max(56, sunClear) }
-  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways])
+  }, [phone, presenting, rail, showPanel, toolCard, inspector, wide, wideInspector, peek, slim, peekH, report, aside, sunClear, steps, sideways, sheetH, panelClear, canvasKind])
   const touch = useMemo(() => ({ phone, viewOnly: (phone && !editing) || report || reads, projectKey }), [phone, editing, projectKey, report, reads])
 
   // The rail brings you back to the tab an area was left on, where the area remembers (Earthworks).
@@ -633,11 +644,12 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
         !phone && <SummaryStrip route={route} numbers={null} shown={{}} onBalance={() => {}} onOverview={() => setOverview(!overview)} overviewOpen={false} />
       )}
       <main
+        ref={setMainEl}
         className={`shell-main viewport canvas-${canvasKind}${rail ? ' has-rail' : ''}${showPanel || toolCard ? ' has-col' : ''}${hasPanel && !showPanel && !toolCard ? ' has-pill' : ''}${inspector ? ' has-inspector' : ''}${steps ? ' has-steps' : ''}${peek ? (slim ? ' has-peek slim' : ' has-peek') : ''}${report ? ' report' : ''}`}
-        style={{ ['--free-left' as string]: `${insets.l}px`, ...(phone ? {} : { ['--free-right' as string]: `${insets.r}px` }), ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px' }}
+        style={{ ['--free-left' as string]: `${insets.l}px`, ...(phone ? {} : { ['--free-right' as string]: `${insets.r}px` }), ['--steps-w' as string]: `${STEPS_W}px`, ['--sun-clear' as string]: sunH > 0 && canvasKind === '3d' ? `${sunH + 10}px` : '0px', ['--sheet-h' as string]: `${sheetH}px` }}
       >
         <TouchCanvas.Provider value={touch}>
-          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0 }}>
+          <CanvasFrame.Provider value={{ insets, toolCard: !!toolCard, rail: rail ? (phone ? RAIL_CLEAR.phone : RAIL_CLEAR.desk) : 0, sheet: sheetH }}>
             <ErrorBoundary key={canvasKind}>{canvas}</ErrorBoundary>
           </CanvasFrame.Provider>
           {phone && canvasKind === 'plan' && loaded && !report && <ViewEditSwitch />}
@@ -658,7 +670,12 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
               (showPanel ? (
                 // Keyed by tab, so a new tab's panel starts at its top.
                 <section key={tabKey} className={`float-card tab-panel${report ? ' report' : ''}`} aria-label={tab.label}>
-                  <div className="sheet-grab" aria-hidden="true" />
+                  {phone && !report ? (
+                    // Pulling the sheet up by dragging also has a tap, a click and a key (AX-13).
+                    <button type="button" className="sheet-grab" aria-expanded={tall} aria-label={tall ? 'Make the panel shorter' : 'Make the panel taller'} onClick={toggleTall} />
+                  ) : (
+                    <div className="sheet-grab" aria-hidden="true" />
+                  )}
                   <header>
                     <div>
                       <h2>{tab.label}</h2>

@@ -4,6 +4,7 @@
 
 import { usePlan, type RoofMode } from '../plan/store'
 import './finishing.css'
+import { forTouch } from '../phone/words'
 
 const ROOF_MODES: { id: RoofMode; label: string; help: string }[] = [
   { id: 'building', label: 'Roof this building', help: 'Click inside the walls: the roof follows their outside, with its overhang, and covers every level whose ceiling lines up. Where another level is built over them, the roof goes on that level.' },
@@ -22,7 +23,7 @@ export function RoofModeSwitch() {
           </button>
         ))}
       </div>
-      <p className="muted small">{ROOF_MODES.find(m => m.id === mode)?.help}</p>
+      <p className="muted small">{forTouch(ROOF_MODES.find(m => m.id === mode)?.help ?? '')}</p>
     </div>
   )
 }

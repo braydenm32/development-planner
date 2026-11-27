@@ -39,6 +39,12 @@ export function nextHint(plan: Plan, level: string, prefs: HintPrefs): HintId | 
   return null
 }
 
+/**
+ * Whether a phone's View says "No house drawn yet" (src/phone/EmptyPlanCard.tsx): no house walls
+ * on any level, and the walls tip not hidden.
+ */
+export const emptyPlanCardShows = (plan: Pick<Plan, 'walls'>, hidden: boolean) => !hidden && !plan.walls.some(w => w.kind !== 'retaining')
+
 /** What each tip says, on a desktop and on a phone, the tool its button picks and its step of the guide. */
 export interface Tip {
   title: string

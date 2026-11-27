@@ -6,7 +6,8 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type R
 import { Icon } from '../nav/icons'
 import { shortcutText } from '../nav/keys'
 import { useModal } from '../nav/useModal'
-import { buildIndex, search, suggestions, withoutCloud, type Feature, type SearchItem } from '../nav/search'
+import { buildIndex, search, suggestions, withoutCloud, withoutKeyboard, type Feature, type SearchItem } from '../nav/search'
+import { isTouch } from '../phone/words'
 import { useCloud } from '../cloud/state'
 import { resultCountWords } from '../a11y/announce'
 import '../a11y/a11y.css'
@@ -62,7 +63,7 @@ export function CommandPalette({ things, only, placeholder, choose, run, onClose
   const noCloud = useCloud(c => c.phase === 'unavailable')
   const index = useMemo(() => {
     if (only) return only
-    const all = buildIndex(features ?? [])
+    const all = isTouch() ? withoutKeyboard(buildIndex(features ?? [])) : buildIndex(features ?? [])
     return [...(noCloud ? withoutCloud(all) : all), ...(things ?? [])]
   }, [features, noCloud, things, only])
   const [query, setQuery] = useState('')

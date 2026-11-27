@@ -4,7 +4,7 @@ import { planTurn } from '../lib/orientation'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, wallPolygons, type Face } from '../plan/geometry'
-import { cornerOffsets, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
+import { cornerOffsets, floorVsGround, groundAtPlan, groundOverlay, isNear, levelFloorRL, NEAR_HOUSE, nearShapes, worksOverlay } from '../plan/groundOverlay'
 import { fitFurniture, furnitureContains, furnitureName, furnitureSymbol, furnitureToPlan, newFurniture, normDeg, snapRotation, wallClearances } from '../plan/furniture'
 import {
   areaKind,
@@ -86,7 +86,7 @@ import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
 import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
 import { useTouchCanvas } from '../phone/device'
-import { boundsOf, clampToBounds, DOUBLE_TAP_ZOOM, isDoubleTap, panBy, pinchView, TAP_SLOP, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
+import { boundsOf, clampToBounds, clearOfSheet, DOUBLE_TAP_ZOOM, isDoubleTap, panBy, PHONE_FIT, pinchView, TAP_SLOP, TOUCH_PICK_PX, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
 import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan } from '../plan/viewMemory'
 import { centreWithBlockStill, draggedPlacement } from '../plan/placement'
 import { ZoomButtons } from './ZoomButtons'
@@ -103,8 +103,10 @@ import { useSketchGuides, useSketchLayer } from '../sketch/useSketchLayer'
 import { useSketch } from '../sketch/store'
 import { SketchKey } from '../sketch/SketchPanel'
 import { roomMade, wallsPlaced } from '../flow/store'
+import { useQuestionContext } from '../flow/questions'
 import { PlanHints } from '../guide/PlanHints'
-import { PHONE_LABELS_K, useLabelDeclutter } from './declutter'
+import { EmptyPlanCard } from '../phone/EmptyPlanCard'
+import { fitName, PHONE_LABELS_K, useLabelDeclutter } from './declutter'
 import { navigate, useRouter } from '../nav/router'
 import { readsTheHouse, tabRoute } from '../nav/route'
 import { chooseStreetEdge, edgeNear, hoverStreetEdge, streetChoices, useStreetAsk, useStreetAskOpen } from '../start/streetQuestion'
@@ -285,9 +287,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   const siteTool = useSiteStore(s => s.tool !== null)
   const noFloor = area === 'site' || siteTool
   // The live section strip under the plan, in Design and Earthworks (src/sectionStrip): fitting keeps the house above it.
-  const stripShows = !!frame && (area === 'design' || area === 'earthworks') && !noFloor
+  // A phone, short of room, waits for a wall to cut through before it gives the strip any (PH-14).
+  const stripShows = !!frame && (area === 'design' || area === 'earthworks') && !noFloor && !(touch?.phone && !plan.walls.some(w => !isRetaining(w)))
   const stripH = useStripSpace(stripShows, !!touch?.phone)
-  const insets = frame ? { ...frame.insets, b: frame.insets.b + stripH } : null
+  // A phone's open question list covers the foot of the plan too (src/flow/QuestionTray.tsx).
+  const questionsCover = useQuestionContext(q => q.covers)
+  const insets = frame ? { ...frame.insets, b: Math.max(frame.insets.b + stripH, questionsCover) } : null
   // A drawing tool left out in Design is put down where the plan is only for looking at.
   const looking = guarded || (viewOnly && readsHouse)
   useEffect(() => {
@@ -355,6 +360,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }, [wallZoom?.token])
   const [cursor, setCursor] = useState<SnapResult | null>(null)
   const [pointer, setPointer] = useState<Vec2 | null>(null)
+  /** A phone in View: the spot of ground last tapped, whose level shows on a pin (fingers can't hover, PH-29). */
+  const [groundPin, setGroundPin] = useState<Vec2 | null>(null)
   // In-progress drawing belongs to one tool on one level; switching either drops it.
   // (The Wall tool's two ways of drawing count as two tools here.)
   const wallMode = useWallMode(s => s.mode)
@@ -552,7 +559,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const ins = { ...edge, b: edge.b + under }
     const w = frame ? Math.max(size.w - ins.l - ins.r, 100) : size.w
     const h = frame ? Math.max(size.h - ins.t - ins.b, 100) : size.h
-    const k = Math.min(Math.max(Math.min(w / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1)) * 0.75, 5), 400)
+    // A phone's insets already keep the house clear of its buttons, so it takes more of what's left (PH-16).
+    const k = Math.min(Math.max(Math.min(w / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1)) * (touch?.phone ? PHONE_FIT : 0.75), 5), 400)
     const mx = (minX + maxX) / 2 - (ins.l - ins.r) / 2 / k
     const my = (minY + maxY) / 2 + (ins.t - ins.b) / 2 / k
     return { cx: mx * rc + my * rs, cy: -mx * rs + my * rc, k, token: fitToken }
@@ -661,6 +669,24 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       setFitAs({ target: r.fit, token: fitToken })
     }
   }, [viewFor, viewKey, level, fitToken])
+  // A phone's sheet opens over the lower half of the plan, often on top of what was just tapped:
+  // the plan slides up (at the same zoom) so the thing shows in the part left clear (PH-12).
+  const lastDown = useRef<{ x: number; y: number; t: number } | null>(null)
+  const sheet = touch?.phone ? (frame?.sheet ?? 0) : 0
+  useEffect(() => {
+    const d = lastDown.current
+    if (!sheet || !selection || !d || performance.now() - d.t > 1500) return
+    lastDown.current = null
+    const now = vRef.current
+    const to = clearOfSheet(d.y, size.h, frame?.insets.t ?? 0, sheet)
+    if (!to) return
+    // Slide the page by `to` pixels: what was at the tap ends up in the middle of the clear part.
+    const qy = to / now.k
+    setView({ ...now, cx: now.cx - qy * Math.sin(rhoRef.current), cy: now.cy - qy * Math.cos(rhoRef.current), token: fitToken })
+    // Once for each tap that a sheet then covers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet, selection])
+
   // A list's row asks for something to be framed (src/plan/planFocus.ts), often on another level:
   // the level's own view (above) gives way to it.
   useEffect(
@@ -1089,6 +1115,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   }
 
   const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const [downX, downY] = local(e)
+    lastDown.current = { x: downX, y: downY, t: performance.now() }
     flow.leave()
     if (touch && e.pointerType === 'touch') {
       fingers.current.set(e.pointerId, local(e))
@@ -1160,7 +1188,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     if (stair) return { type: 'stair', item: stair }
     const stack = wallStackAt(walls, w => {
       const poly = polys.get(w.id)
-      return (poly && pointInPolygon(world[0], world[1], poly)) || closestOnSegment(world, w.a, w.b).dist < w.thickness / 2 + 3 / v.k
+      return (poly && pointInPolygon(world[0], world[1], poly)) || closestOnSegment(world, w.a, w.b).dist < w.thickness / 2 + (touch?.phone ? TOUCH_PICK_PX : 3) / v.k
     })
     const wall = pickFromStack(stack, selection?.type === 'wall' ? selection.id : undefined)
     if (wall) return { type: 'wall', item: wall, stack }
@@ -1666,6 +1694,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       if (moved > TAP_SLOP) settle()
       if (moved <= TAP_SLOP && comments.click(W(s[0], s[1]))) return
       if (moved > TAP_SLOP || doubleTapped(e, s)) return
+      // While the street question is open, a tap on a side of the block picks it, as a click does in Edit.
+      const side = askingStreet && frame ? streetEdgeAt(s[0], s[1]) : null
+      if (side !== null) {
+        chooseStreetEdge(side)
+        return
+      }
       const hit = pickAt(W(s[0], s[1]), s[0], s[1], true)
       if (hit?.type === 'wall' && hit.stack.length > 1) {
         // Walls on one another: a tap on the selected one steps to the next.
@@ -1675,6 +1709,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         return
       }
       if (!hit && pickOtherLevelSite(W(s[0], s[1]))) return
+      // On empty ground a tap reads its level, as it does in 3D; a tap on the pin's own spot or on anything else takes it away.
+      setGroundPin(!hit && touch?.phone && !selection ? W(s[0], s[1]) : null)
       select(hit ? { type: hit.type, id: hit.item.id } : null)
       return
     }
@@ -2452,6 +2488,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   })()
   const probe = cursor?.p ?? pointer
   const probeGround = probe ? groundAtPlan(probe, plan.placement, survey, terrain.grid) : null
+  const pinGround = groundPin && viewOnly ? groundAtPlan(groundPin, plan.placement, survey, terrain.grid) : null
   const fitButton = (
     <button
       className="secondary"
@@ -2511,7 +2548,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         <path className="site-boundary" d={path(underlay.boundary)} />
         {askingStreet &&
           frame &&
-          !viewOnly &&
+          // A phone answers the street question in View (PH-15), so the side picked shows there too.
+          (!viewOnly || touch?.phone) &&
           [streetHover, streetPicked ?? streetLow].map((i, k) => {
             if (i === null || i === undefined || (k === 0 && i === (streetPicked ?? streetLow))) return null
             const a = S(underlay.boundary[i])
@@ -2687,10 +2725,14 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         {roomShapes.map(({ room, shape, sameAs }) => {
           const [x, y] = S(room.at)
           const sel = isSel('room', room.id)
+          // A phone cuts a long name to the room's width on screen; the whole name is its tooltip and the inspector's (PH-16).
+          const across = touch?.phone && shape ? (pts => Math.max(...pts) - Math.min(...pts))(shape.inner.map(p => S(p)[0])) : Infinity
+          const name = sel ? room.name : fitName(room.name, across)
           return (
             <g key={`label-${room.id}`} className={`room-label${sel ? ' selected' : ''}`}>
               <text className="room-name" x={x} y={y - 7} textAnchor="middle">
-                {room.name}
+                {name !== room.name && <title>{room.name}</title>}
+                {name}
               </text>
               <text className={`room-area${shape && sameAs === undefined ? '' : ' open'}`} x={x} y={y + 9} textAnchor="middle">
                 {sameAs !== undefined ? `same space as ${sameAs}` : shape ? `${shape.area.toFixed(2)} m²` : 'not enclosed'}
@@ -2843,6 +2885,17 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
           <span>N</span>
         </div>
       </div>
+      {groundPin && pinGround !== null && (
+        <div className="plan-ground-pin" style={{ left: S(groundPin)[0], top: S(groundPin)[1] }}>
+          <div className="ground-pin" role="status">
+            <div className="ground-pin-tip">
+              <b>Ground RL {pinGround.toFixed(2)}</b>
+              {!noFloor && <span>{floorVsGround(pinGround, floorRL, isLowest)}</span>}
+            </div>
+            <i className="ground-pin-dot" aria-hidden="true" />
+          </div>
+        </div>
+      )}
       {/* On a phone, and anywhere nothing can be drawn (a shared view), the chip picks the floor to look at. */}
       {noFloor ? null : touch?.phone || viewOnly ? (
         <PhoneLevelChip plan={plan} level={level} rl={floorRL} />
@@ -2882,6 +2935,8 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       {strip.html}
       {/* In the app's Design area, while things can be drawn: the next step, and the street question after an import. */}
       {frame && !viewOnly && !site.active && inDesign && !askingStreet && <PlanHints plan={plan} level={level} phone={!!touch?.phone} />}
+      {/* A phone's View of a plan with nothing drawn: where drawing is easier, and the way to Edit (PH-28). */}
+      {frame && viewOnly && touch?.phone && !site.active && inDesign && !askingStreet && <EmptyPlanCard plan={plan} />}
       <div className="readout plan-status">
         {probeGround !== null && <GroundReadout ground={probeGround} floor={noFloor ? null : floorRL} lowest={isLowest} />}
         {site.notice || notice ? (

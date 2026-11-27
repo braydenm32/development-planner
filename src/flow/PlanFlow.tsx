@@ -254,7 +254,7 @@ export function usePlanFlow(a: PlanFlowArgs) {
       )}
       {sideWall && (
         <div className="flow-bar" role="status">
-          <span>Click the side of the wall the earth is on.</span>
+          <span>{fine() ? 'Click' : 'Tap'} the side of the wall the earth is on.</span>
           <button type="button" onClick={stopSidePick}>
             Cancel <kbd>Esc</kbd>
           </button>

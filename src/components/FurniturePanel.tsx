@@ -7,6 +7,7 @@ import { resizeFurniture, updateFurniture } from '../plan/ops'
 import { usePlan } from '../plan/store'
 import { Num, Select, TextField } from './fields'
 import './copy-kinds.css'
+import { forTouch } from '../phone/words'
 
 const mm = (m: number) => Math.round(m * 1000)
 
@@ -129,7 +130,8 @@ export function FurniturePicker() {
         ))}
       </div>
       <p className="muted small">
-        Click a piece, then click on the plan to place it<span className="mouse-only">, or drag it straight onto the plan</span>. Press Q to turn the next piece a quarter turn before you place it.
+        {forTouch('Click a piece, then click on the plan to place it')}
+        <span className="mouse-only">, or drag it straight onto the plan</span>.{forTouch(' Press Q to turn the next piece a quarter turn before you place it.')}
         {defaults.kind === CUSTOM_BOX && ' A custom box stands in for anything else: place it, then give it a name and a size on its card.'}
       </p>
       {drag.tag && (

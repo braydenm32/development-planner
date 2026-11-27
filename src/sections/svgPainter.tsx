@@ -11,12 +11,12 @@ const PLEX = 1.07
 
 const d = (pts: Pt[], close: boolean) => `M${pts.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L')}${close ? 'Z' : ''}`
 
-/** A Painter that collects SVG elements; `compact` has smaller type. */
-export function svgPainter(compact: boolean): Painter & { els: ReactNode[] } {
+/** A Painter that collects SVG elements; `compact` has smaller type, and `'phone'` keeps it at 12 px or more (PH-27: a phone can't be pinched larger). */
+export function svgPainter(compact: boolean | 'phone'): Painter & { els: ReactNode[] } {
   const els: ReactNode[] = []
   return {
     els,
-    size: compact ? { title: 12, label: 10.5, small: 9.5 } : { title: 14, label: 11.5, small: 10.5 },
+    size: compact === 'phone' ? { title: 13, label: 12, small: 12 } : compact ? { title: 12, label: 10.5, small: 9.5 } : { title: 14, label: 11.5, small: 10.5 },
     unit: 1,
     shape(pts, style) {
       if (pts.length > 2) els.push(<path key={els.length} className={`sec-s sec-${style}`} d={d(pts, true)} />)

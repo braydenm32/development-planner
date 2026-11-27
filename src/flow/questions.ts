@@ -100,9 +100,16 @@ interface QuestionContext {
   facts: number
   /** Open the list at this question; bumped each time it's asked. */
   asked: { id: string; n: number } | null
+  /** How much of the plan's foot the open list covers on a phone (px), so the block fits above it; 0 elsewhere. */
+  covers: number
 }
 
-export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0, asked: null }))
+export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0, asked: null, covers: 0 }))
+
+/** The open list's height on a phone, or 0 when it folds away. */
+export function setQuestionsCover(covers: number) {
+  if (useQuestionContext.getState().covers !== covers) useQuestionContext.setState({ covers })
+}
 
 /** Open the question list at a question, to answer it (once the plan shows the list). */
 export const askQuestion = (id: string) => useQuestionContext.setState(s => ({ asked: { id, n: (s.asked?.n ?? 0) + 1 } }))
@@ -113,3 +120,17 @@ export const questionOpened = () => useQuestionContext.setState({ asked: null })
 export function setQuestionFacts(facts: number) {
   if (useQuestionContext.getState().facts !== facts) useQuestionContext.setState({ facts })
 }
+
+/** The questions answered in the list's place, with their own card. */
+const ANSWERED_HERE = new Set<Question['kind']>(['street', 'floor-type', 'retain-offer'])
+
+/**
+ * Where the list opens. On a phone with one question waiting that is answered here, straight at
+ * its choices: the list of one, with an Answer button to tap, only stood between (PH-15).
+ */
+export function openAt(qs: Pick<Question, 'id' | 'kind'>[], phone: boolean): string | null {
+  return phone && qs.length === 1 && ANSWERED_HERE.has(qs[0].kind) ? qs[0].id : null
+}
+
+/** Whether a phone in View can answer what waits without switching to Edit: only the street question does. */
+export const staysInView = (qs: Pick<Question, 'kind'>[]) => qs.length > 0 && qs.every(q => q.kind === 'street')

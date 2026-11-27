@@ -55,7 +55,8 @@
 }
 
 /* Phones: a low sheet at the foot of the plan, the sides two to a row, so the block stays in view above it. */
-@media (max-width: 760px) {
+/* The phone layout (PHONE_QUERY in src/phone/device.ts): a narrow window, or a touch screen up to a tablet held upright. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .plan-editor .flow-card.street-ask {
     top: auto;
     right: auto;

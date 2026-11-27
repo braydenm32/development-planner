@@ -555,6 +555,11 @@ button.secondary:hover {
   stroke-width: 1;
 }
 
+/* While drawing anything but a roof, its hip and ridge lines step back so they don't cross the rooms being drawn (HO-43). */
+.plan-svg:not(.tool-select, .tool-roof, .tool-move) .roof:not(.selected) .roof-lines {
+  stroke-opacity: 0.3;
+}
+
 .roof.selected .roof-outline,
 .roof.selected .roof-lines {
   stroke: var(--accent);

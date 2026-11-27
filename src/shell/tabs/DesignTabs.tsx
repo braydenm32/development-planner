@@ -12,6 +12,7 @@ import { coveredRoofWords, roofCoveredBy } from '../../plan/roofline'
 import { usePlan } from '../../plan/store'
 import { pickTool, planShowing, selectOnPlan, showPlan, useLoaded } from '../useSite'
 import { Waiting } from './Waiting'
+import { forTouch } from '../../phone/words'
 
 export function FloorsTab() {
   const d = useLoaded()
@@ -33,7 +34,7 @@ const ROOF_NAMES = { hip: 'Hip roof', gable: 'Gable roof', skillion: 'Skillion r
 
 function RoofList({ plan }: { plan: Plan }) {
   const selection = usePlan(s => s.selection)
-  if (!plan.roofs.length) return <p className="muted small">No roofs yet. Pick the Roof tool (F) and click inside the walls to roof the building.</p>
+  if (!plan.roofs.length) return <p className="muted small">{forTouch('No roofs yet. Pick the Roof tool (F) and click inside the walls to roof the building.')}</p>
   return (
     <ul className="pick-list">
       {plan.roofs.map(r => {

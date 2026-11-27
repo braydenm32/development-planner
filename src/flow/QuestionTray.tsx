@@ -4,7 +4,7 @@
 // time in place. A question just asked lights the pill once the tool is put down, not while
 // you're still drawing.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hideHint, TIPS, useHintPrefs } from '../guide/hints'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -17,7 +17,7 @@ import { usePlan } from '../plan/store'
 import { StreetAsk } from '../start/StreetAsk'
 import { answerStreet, useStreetPending } from '../start/streetQuestion'
 import { FloorTypeCard, OfferCard } from './FlowCards'
-import { questionOpened, questionsFor, useQuestionContext, waiting, type Question } from './questions'
+import { openAt, questionOpened, questionsFor, setQuestionsCover, staysInView, useQuestionContext, waiting, type Question } from './questions'
 import { useFlow } from './store'
 import { usePhoneMode } from '../phone/device'
 
@@ -75,6 +75,23 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     setAnswering(null)
     setOpen(false)
   }, [tool])
+  // On a phone the open list covers the lower half of the plan: the plan is told how much, and
+  // fits the block above it, since the street question's answer is a side of the block (PH-15).
+  const tray = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = tray.current
+    if (!phone || !open || !el) return
+    // From the tray's top to the foot of the plan it sits in.
+    const measure = () => setQuestionsCover(Math.round((el.parentElement ?? el).getBoundingClientRect().bottom - el.getBoundingClientRect().top) + 12)
+    measure()
+    // An answer's card arrives a moment after the list opens, and is taller.
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    ro?.observe(el)
+    return () => {
+      ro?.disconnect()
+      setQuestionsCover(0)
+    }
+  }, [phone, open])
 
   if (!qs.length) return null
   const n = waiting(qs)
@@ -87,8 +104,11 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
         type="button"
         className={`q-pill${fresh ? ' fresh' : ''}`}
         onClick={() => {
-          if (viewOnly) usePhoneMode.getState().setMode('edit')
+          const first = openAt(qs, phone)
+          // The street side is a fact about the block, not a drawing: a phone answers it without leaving View (PH-15).
+          if (viewOnly && !staysInView(qs)) usePhoneMode.getState().setMode('edit')
           setOpen(true)
+          setAnswering(first)
         }}
         aria-expanded={false}
       >
@@ -103,7 +123,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     setOpen(false)
   }
   return (
-    <section className="q-tray" aria-label="Questions waiting for you">
+    <section ref={tray} className="q-tray" aria-label="Questions waiting for you">
       <header>
         {current ? (
           <button type="button" className="q-back" onClick={() => setAnswering(null)}>

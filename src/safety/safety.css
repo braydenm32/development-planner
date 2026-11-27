@@ -514,12 +514,68 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
 
 /* ---- Phones and touch: a bottom sheet, 44 px taps, 14 px text ---- */
 
+/* Thumb-sized targets and type, on a narrow window and on any touch screen. */
 @media (max-width: 760px), (pointer: coarse) {
   .sf-scrim,
   .sf-toast {
     font-size: 15px;
   }
 
+  .sf-step,
+  .sf-facts dt,
+  .sf-choices legend,
+  .sf-lists h3 {
+    font-size: 14px;
+  }
+
+  .sf-head h2 {
+    font-size: 19px;
+  }
+
+  .sf-option {
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  .sf-option input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sf-tag {
+    font-size: 13px;
+  }
+
+  .sf-btn {
+    min-height: 46px;
+  }
+
+  .sf-undo,
+  .sf-link,
+  .sf-close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .sf-layer-list select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .sv-request {
+    font-size: 14px;
+  }
+
+  .sv-copy {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Reviews as a bottom sheet and a full-width toast: only in the phone layout (PHONE_QUERY in
+   src/phone/device.ts). A tablet on its side has the computer's layout, so its dialogs sit in the
+   middle as a computer's do. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .sf-scrim {
     place-items: end stretch;
     padding: 0;
@@ -547,17 +603,6 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     padding: 10px 16px 10px;
   }
 
-  .sf-step,
-  .sf-facts dt,
-  .sf-choices legend,
-  .sf-lists h3 {
-    font-size: 14px;
-  }
-
-  .sf-head h2 {
-    font-size: 19px;
-  }
-
   .sf-body {
     padding: 12px 16px 4px;
   }
@@ -575,20 +620,6 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     width: auto;
   }
 
-  .sf-option {
-    min-height: 44px;
-    padding: 12px;
-  }
-
-  .sf-option input {
-    width: 20px;
-    height: 20px;
-  }
-
-  .sf-tag {
-    font-size: 13px;
-  }
-
   .sf-lists {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
@@ -598,38 +629,16 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     padding: 12px 16px 14px;
   }
 
-  .sf-btn {
-    flex: 1;
-    min-height: 46px;
-  }
-
-  .sf-undo,
-  .sf-link,
-  .sf-close {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .sf-toast {
     width: calc(100vw - 24px);
     max-width: none;
   }
 
-  .sf-layer-list select {
-    min-height: 44px;
-    font-size: 16px;
-  }
-
-  .sv-request {
-    font-size: 14px;
-  }
-
-  .sv-copy {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .sf-toast > span {
+    flex: 1;
+  }
+
+  .sf-btn {
     flex: 1;
   }
 }

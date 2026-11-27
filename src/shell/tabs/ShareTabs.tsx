@@ -2,7 +2,7 @@
 // and Approvals › DA pack (src/da), which Plans points to.
 
 import { DaPackSection } from '../../da/DaPackSection'
-import { FloorScaleSelect, PaperSelect, PdfFurnitureToggle, PdfPlans, PdfSketchToggle, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
+import { FloorScaleSelect, PaperSelect, PdfFurnitureToggle, PdfPages, PdfPlans, PdfSketchToggle, PlansCaveat, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
 import { pdfChoices } from '../../components/printFiles'
 import { usePhone } from '../../phone/device'
 import { tabRoute } from '../../nav/route'
@@ -29,13 +29,16 @@ export function PlansTab() {
   if (phone)
     return (
       <>
+        {/* The same caveat and page switches as on a computer (PH-23): the switches fold away under What's in it. */}
+        <PlansCaveat />
         <ShareFirst d={d} />
         <div className="tool-options">
           <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
           <FloorScaleSelect {...pdf} onFloorScale={floorScale => changePrintPrefs({ floorScale })} />
         </div>
-        {furniture}
-        <PlansContents />
+        <PlansContents>
+          <PdfPages plan={d.plan} survey={d.survey} leaveOut={printPrefs.leaveOut} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} furniture={furniture} />
+        </PlansContents>
         <DaPackPointer />
       </>
     )
