@@ -4,6 +4,7 @@
 // Forward and typed links.
 
 import { create } from 'zustand'
+import { afterBacks, forgetMarks, leaveMark, markMoved, sheetPopped, withoutMark } from './backCloses'
 import { areaById, MORE } from './menu'
 import { defaultRoute, formatHash, parseHash, unknownHash, type Route } from './route'
 
@@ -35,7 +36,8 @@ const same = (a: Route, b: Route) => formatHash(a) === formatHash(b)
  * within the app" from "back to whatever site this tab was on before" (history.length can't).
  */
 const backMark = (): boolean | undefined => (history.state as { appBack?: boolean } | null)?.appBack
-const withMark = (appBack: boolean) => ({ ...(history.state as object | null), appBack })
+// A new place's entry never carries an open sheet's mark (src/nav/backCloses.ts).
+const withMark = (appBack: boolean) => ({ ...(withoutMark(history.state) as object | null), appBack })
 
 /** True when the browser's Back would stay in the app. */
 export const hasAppHistory = (): boolean => backMark() === true
@@ -45,10 +47,17 @@ export function navigate(route: Route, opts: { replace?: boolean; focus?: string
   // A More item opened by search or a link goes in the address, so a reload lands on it (LD-31).
   if (route.kind === 'app' && route.tab === MORE && opts.focus && areaById(route.area)?.more.items.some(i => i.id === opts.focus)) route = { ...route, item: opts.focus }
   const hash = formatHash(route)
-  if (location.hash !== hash) {
-    if (opts.replace) history.replaceState(history.state, '', hash)
+  // After a Back that closes a sheet has landed, or this would be written on the entry it leaves.
+  afterBacks(() => {
+    if (location.hash === hash) return
+    if (opts.replace) {
+      history.replaceState(history.state, '', hash)
+      markMoved(hash)
+    }
+    // A sheet's entry on top becomes the new place, so Back goes to where the sheet was opened.
+    else if (leaveMark()) history.replaceState(withMark(true), '', hash)
     else history.pushState(withMark(true), '', hash)
-  }
+  })
   const cur = useRouter.getState()
   if (!same(cur.route, route) || opts.focus !== undefined) useRouter.setState({ route, focus: opts.focus ?? cur.focus })
 }
@@ -89,16 +98,22 @@ function dropLayoutSwitch() {
   history.replaceState(history.state, '', u.href)
 }
 
+/** Back or Forward: a sheet that was open closes first (src/nav/backCloses.ts); a Back of its own changes no place. */
+function popped() {
+  if (!sheetPopped()) sync()
+}
+
 /** Follow the address bar. Returns a function that stops it. */
 export function startRouter(): () => void {
   dropLayoutSwitch()
+  forgetMarks()
   // The entry the app opens at (a reload keeps the mark it had).
   if (backMark() === undefined) history.replaceState(withMark(false), '')
   sync()
-  window.addEventListener('popstate', sync)
+  window.addEventListener('popstate', popped)
   window.addEventListener('hashchange', sync)
   return () => {
-    window.removeEventListener('popstate', sync)
+    window.removeEventListener('popstate', popped)
     window.removeEventListener('hashchange', sync)
   }
 }
