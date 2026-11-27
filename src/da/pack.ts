@@ -177,7 +177,7 @@ const COVER_COLS: Col[] = [
 const CHECK_COLS: Col[] = [
   { title: 'Control', w: 0.17, font: 'bold' },
   { title: 'Proposed', w: 0.21 },
-  { title: 'Allowed', w: 0.21 },
+  { title: 'Rule', w: 0.21 },
   { title: 'Complies', w: 0.09, font: 'bold' },
   { title: 'Notes and source', w: 0.32 },
 ]

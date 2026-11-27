@@ -505,7 +505,7 @@ function housingCode(ms: Measures): CheckResult[] {
     title: 'Earthworks clear of the boundary',
     status: !e || e.closestWorks === null ? 'pass' : e.closestWorks > 1 ? 'pass' : 'fail',
     value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${worksEdgeName(ms, e)}` : 'No cut and fill',
-    limit: 'Toe or top of each embankment more than 1 m from side and rear boundaries',
+    limit: 'The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries',
     note: [
       e?.closestAt && e.closestWorks !== null && e.closestWorks <= 1 ? spotWords(e.closestAt) : '',
       e && e.nearBoundary.length > 1 ? `Within 1 m of a boundary: ${e.nearBoundary.map(x => `${x.source.name} (${m(x.d)} from ${edgeWords(ms, x.edge)})`).join('; ')}.` : '',

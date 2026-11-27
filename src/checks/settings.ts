@@ -15,6 +15,15 @@ export function pathwayLong(pathway: Pathway, council: Council | null): string {
   return council ? `${council.rules} (development application)` : 'Council rules (development application): pick your council'
 }
 
+/** The two routes by what they are, with the acronym a certifier or council will use. */
+export const PATHWAY_LABEL: Record<Pathway, string> = { cdc: 'Fast-track (CDC)', da: 'Council (DA)' }
+
+/** What picking a route means for the owner, in one line. */
+export const PATHWAY_MEANS: Record<Pathway, string> = {
+  cdc: 'Fast-track approval (a complying development certificate): a certifier signs off a house that meets the state’s fixed rules, with no council assessment.',
+  da: 'Council application (a development application): the council weighs the design against its own rules, and neighbours can comment.',
+}
+
 /** What the checks were run against, for a tooltip: "Checked against the Housing Code". */
 export function checkedAgainst(pathway: Pathway, council: Council | null): string {
   return `Checked against the ${pathway === 'cdc' ? 'Housing Code' : council ? council.rules : 'council rules'}`

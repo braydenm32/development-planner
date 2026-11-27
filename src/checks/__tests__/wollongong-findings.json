@@ -360,7 +360,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -814,7 +814,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -1268,7 +1268,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -1723,7 +1723,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "Closest 1.92 m from the west side boundary",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -2177,7 +2177,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "fail",
     "value": "Closest 0.00 m from the west side boundary",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "note": "There the ground is cut 0.78 m by the cut batter of the Ground floor's slab pad. Within 1 m of a boundary: the Ground floor's slab pad (0.00 m from the west side boundary); the slab “Patio” (0.13 m from the east side boundary).",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -2646,7 +2646,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -3113,7 +3113,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -3575,7 +3575,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -4029,7 +4029,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -4495,7 +4495,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -4976,7 +4976,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -5437,7 +5437,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -5903,7 +5903,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6364,7 +6364,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -6823,7 +6823,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "fail",
     "value": "Closest 0.00 m from the west side boundary",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "note": "There the ground is cut 2.18 m by the level ground beside a retaining wall.",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -7368,7 +7368,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -7966,7 +7966,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "fail",
     "value": "Closest 0.00 m from the west side boundary",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "note": "There the ground is cut 0.78 m by the cut batter of the Ground floor's slab pad. Within 1 m of a boundary: the Ground floor's slab pad (0.00 m from the west side boundary); the slab “Patio” (0.13 m from the east side boundary).",
     "source": {
      "clause": "Housing Code cl 3.30",
@@ -8492,7 +8492,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "incomplete",
     "value": "Draw the outside walls as a closed outline to check this.",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -8946,7 +8946,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -9399,7 +9399,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -9848,7 +9848,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -10314,7 +10314,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -10794,7 +10794,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -11248,7 +11248,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -11716,7 +11716,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -12184,7 +12184,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -12639,7 +12639,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",
@@ -13093,7 +13093,7 @@
     "title": "Earthworks clear of the boundary",
     "status": "pass",
     "value": "No cut and fill",
-    "limit": "Toe or top of each embankment more than 1 m from side and rear boundaries",
+    "limit": "The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries",
     "source": {
      "clause": "Housing Code cl 3.30",
      "confidence": "read",

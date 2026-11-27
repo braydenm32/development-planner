@@ -218,7 +218,7 @@ describe('Checks', () => {
       ['check:da-coverage', 'confirm'],
       ['check:lep-zone', 'fact'],
     ])
-    expect(c.items[0]).toMatchObject({ detail: '9.1 m · allowed 8.5 m', go: { to: 'check', id: 'hc-height', fix: { area: 'design', tab: 'roofs' } } })
+    expect(c.items[0]).toMatchObject({ detail: '9.1 m · rule: 8.5 m', go: { to: 'check', id: 'hc-height', fix: { area: 'design', tab: 'roofs' } } })
     // Confirm and the facts go to their row, which says why.
     expect(c.items[1].go).toEqual({ to: 'check', id: 'da-coverage', fix: null })
     expect(c.items[2].detail).toBe('Add the zone.')
