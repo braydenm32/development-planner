@@ -6,7 +6,8 @@
   --st-muted: #6b7077;
   --st-line: #e1e4e7;
   --st-line-soft: #eef0f2;
-  --st-field-line: #cfd3d8;
+  /* The same field edge as inside the app: 3:1 on white, so a box can be found. */
+  --st-field-line: #8e959d;
   --st-accent: #2346d0;
   --st-accent-soft: #eef1fc;
   --st-paper: #fcfcfd;

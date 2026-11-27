@@ -34,7 +34,7 @@ export function LocalSaveChip({ onDownload }: { onDownload: () => void }) {
         className={`cl-chip ls-chip ${look.tone}`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${look.label}${look.at ? ` at ${look.at}` : ''}`}
+        aria-label={`${look.label}${look.at ? `, ${look.at}` : ''}`}
         title={look.detail}
         onClick={() => setOpen(!open)}
       >

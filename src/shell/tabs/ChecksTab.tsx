@@ -102,7 +102,7 @@ function Checks({ d }: { d: Loaded }) {
       <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />
       <RouteControl c={c} />
       <section className="checks-verdict" aria-live="polite" aria-label="What the checks say">
-        <h4>
+        <h3>
           <span className="cv-route">{route}:</span>{' '}
           {verdict.head.map((h, i) => (
             <span key={h.word} className={`cv-${h.word}`}>
@@ -110,7 +110,7 @@ function Checks({ d }: { d: Loaded }) {
               {h.text}
             </span>
           ))}
-        </h4>
+        </h3>
         <p className="muted">{verdict.rest.join(' · ')}</p>
         <MiniPlan ms={c.measures} />
         {pins.length > 0 && <p className="muted small checks-mini-hint">Tap a pin to see that check in the list.</p>}

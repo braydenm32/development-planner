@@ -41,16 +41,17 @@ interface Props {
 function Group({ icon, title, to, action, children }: { icon: IconName; title: string; to?: AppRoute; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="ov-group">
-      <h3>
+      {/* The heading is the title alone, so it reads "Site", not "Site Open"; each Open says what it opens. */}
+      <div className="ov-head">
         <Icon name={icon} size={17} />
-        <span>{title}</span>
+        <h3>{title}</h3>
         {action}
         {to && !action && (
-          <button className="link quiet" onClick={() => navigate(to)}>
+          <button className="link quiet" aria-label={`Open ${title}`} onClick={() => navigate(to)}>
             Open
           </button>
         )}
-      </h3>
+      </div>
       {children}
     </section>
   )

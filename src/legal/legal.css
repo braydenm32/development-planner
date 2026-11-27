@@ -26,9 +26,10 @@
   text-underline-offset: 2px;
 }
 
+/* The footer also sits on pages that don't define --lg-accent (Projects), where a bare var() left no ring at all. */
 .lg-page :focus-visible,
 .lg-foot :focus-visible {
-  outline: 2px solid var(--lg-accent);
+  outline: 2px solid var(--lg-accent, #2346d0);
   outline-offset: 2px;
 }
 

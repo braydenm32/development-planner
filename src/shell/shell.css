@@ -604,6 +604,12 @@ body:has(.app-shell) {
   outline: none;
 }
 
+/* The fill alone is the hover look and too faint to find (1.1:1): the keyboard's row gets the usual ring. */
+.menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .menu-item .ic {
   color: var(--muted);
 }
@@ -1664,7 +1670,14 @@ button.ov-verdict:hover {
   align-content: start;
 }
 
-.ov-group > h3 {
+/* Beats the float card's small grey h3. */
+.app-shell .ov-group > .ov-head > h3 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.ov-group > .ov-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1678,7 +1691,7 @@ button.ov-verdict:hover {
 }
 
 /* Open, at the end of each group's heading: a whole finger's worth on a phone. */
-.app-shell.phone .ov-group > h3 > button.link {
+.app-shell.phone .ov-group > .ov-head > button.link {
   min-width: 44px;
   min-height: 44px;
   padding: 0 4px;

@@ -145,7 +145,7 @@ describe('the numbers it reaches', () => {
 
   it("gives the Overview's Open links a whole finger's worth of room on a phone", () => {
     const css = readFileSync(new URL('../../shell/shell.css', import.meta.url), 'utf8')
-    const rule = /\.app-shell\.phone \.ov-group > h3 > button\.link \{([^}]*)\}/.exec(css)
+    const rule = /\.app-shell\.phone \.ov-group > \.ov-head > button\.link \{([^}]*)\}/.exec(css)
     expect(rule).not.toBeNull()
     expect(rule![1]).toMatch(/min-height: 44px/)
     expect(rule![1]).toMatch(/min-width: 44px/)

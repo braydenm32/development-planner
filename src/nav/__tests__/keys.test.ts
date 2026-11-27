@@ -2,7 +2,7 @@
 // shortcuts setting.
 
 import { afterEach, describe, expect, it } from 'vitest'
-import { setSingleKeys, shortcutAllowed, singleKeysOn, textEntry, type KeyScene, type KeyTarget } from '../keys'
+import { nameWithKey, setSingleKeys, shortcutAllowed, singleKeysOn, textEntry, type KeyScene, type KeyTarget } from '../keys'
 
 const CALM: KeyScene = { overlay: false, tabbing: false, singleKeys: true }
 
@@ -102,5 +102,17 @@ describe('the Single-key shortcuts setting', () => {
     expect(singleKeysOn()).toBe(false)
     expect(shortcutAllowed(key('w', body))).toBe(false)
     expect(shortcutAllowed(key('Escape', body))).toBe(true)
+  })
+})
+
+describe('a button’s spoken name with its key (AX-22)', () => {
+  it('names the key the button shows: Ctrl on Windows and Linux, ⌘ on a Mac', () => {
+    expect(nameWithKey('Search', 'mod+K', false, false)).toBe('Search (Ctrl+K)')
+    expect(nameWithKey('Search', 'mod+K', false, true)).toBe('Search (⌘K)')
+    expect(nameWithKey('Redo', 'mod+shift+Z', false, false)).toBe('Redo (Ctrl+Shift+Z)')
+  })
+
+  it('leaves the key out on a phone, which has none', () => {
+    expect(nameWithKey('Undo: move wall', 'mod+Z', true, false)).toBe('Undo: move wall')
   })
 })

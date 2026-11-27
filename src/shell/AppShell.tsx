@@ -18,7 +18,7 @@ import { useCosts } from '../costs/store'
 import { useEstimate, useWideForAside } from '../costs/useEstimate'
 import { importPlanFile } from '../components/planFile'
 import { Icon, Logo } from '../nav/icons'
-import { shortcutAllowed, shortcutText } from '../nav/keys'
+import { nameWithKey, shortcutAllowed, shortcutText } from '../nav/keys'
 import { KeyboardHelp } from './KeyboardHelp'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { areaById, HOMES, MORE, tabOf, type ActionId, type Entry, type NumberId, type Place } from '../nav/menu'
@@ -62,6 +62,7 @@ import { inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows }
 import { ViewLock } from '../phone/ViewLock'
 import { useSheetDrag, useSheetSize } from '../phone/sheetDrag'
 import { projectsNow } from '../projects/session'
+import { projectTitle } from '../share/project'
 import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
 import { StepsPanel } from '../steps/StepsPanel'
@@ -302,7 +303,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
       {/* View on a phone changes nothing (only Costs' prices can change there): the tabs get Undo and Redo's room (PH-34). */}
       {!(phone && mode === 'view' && route.kind === 'app' && route.area !== 'costs') && <UndoRedo />}
       {route.kind === 'app' && !phone && <StepsButton />}
-      <button className="search-button" onClick={openPalette} aria-label="Search (⌘K)" title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
+      <button className="search-button" onClick={openPalette} aria-label={nameWithKey('Search', 'mod+K', phone)} title={`Search (${shortcutText('mod+K')})`} aria-keyshortcuts="Meta+K Control+K">
         <Icon name="search" size={16} />
         <span className="desk-only">Search</span>
         <kbd className="desk-only">{shortcutText('mod+K')}</kbd>
@@ -386,14 +387,16 @@ function UndoRedo() {
   const undo = undoTarget('undo')
   const redo = undoTarget('redo')
   // The buttons name the step they would take: "Undo: move wall".
+  // A phone has no Ctrl+Z to announce.
+  const phone = usePhone()
   const undoName = undo.label ? `Undo: ${undo.label}` : 'Undo'
   const redoName = redo.label ? `Redo: ${redo.label}` : 'Redo'
   return (
     <div className="undo-redo" role="group" aria-label="History">
-      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={`${undoName} (${shortcutText('mod+Z')})`} data-tip={`${undoName} ${shortcutText('mod+Z')}`}>
+      <button onClick={() => undoTarget('undo').undo()} disabled={!undo.past.length} aria-label={nameWithKey(undoName, 'mod+Z', phone)} data-tip={`${undoName} ${shortcutText('mod+Z')}`}>
         <Icon name="undo" size={17} />
       </button>
-      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={`${redoName} (${shortcutText('mod+shift+Z')})`} data-tip={`${redoName} ${shortcutText('mod+shift+Z')}`}>
+      <button onClick={() => undoTarget('redo').redo()} disabled={!redo.future.length} aria-label={nameWithKey(redoName, 'mod+shift+Z', phone)} data-tip={`${redoName} ${shortcutText('mod+shift+Z')}`}>
         <Icon name="redo" size={17} />
       </button>
     </div>
@@ -572,6 +575,8 @@ function AreaView({ route, loaded, canvas, canvasKind, phone, editing, projectKe
   return (
     <>
       <header className="top-bar">
+        {/* The page's one h1, for anyone moving by headings: the project. Nothing to see; the project menu shows the name. */}
+        <h1 className="sr-only">{loaded ? projectTitle(loaded.plan) : 'Contour & Gable'}</h1>
         <a className="phone-logo phone-only" href="#/projects" aria-label="All projects">
           <Logo size={22} />
         </a>
