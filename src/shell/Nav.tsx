@@ -34,6 +34,9 @@ export function AreaNav({ route, go, variant }: { route: Route; go: Go; variant:
   )
 }
 
+/** The room the "+3" at the end of the tabs takes (shell.css's .scroll-arrow.menu). */
+const MORE_W = 50
+
 /** The current area's tabs, ending in More. Where they don't all fit, the ones that would be cut off hide behind an arrow. */
 export function TabBar({ route, go }: { route: AppRoute; go: Go }) {
   // A phone's bar has room for a tab or two: it scrolls under the finger, and no name is ever hidden.
@@ -68,7 +71,18 @@ function Tabs({ route, go, bar, phone }: { route: AppRoute; go: Go; bar: RefObje
   // Keep the open tab in sight, clear of the "+3" (the bar's scroll-padding). On a phone it sits in
   // the middle, so a neighbour's name shows at each side that has one.
   useEffect(() => {
-    bar.current?.querySelector('.tab.on')?.scrollIntoView({ block: 'nearest', inline: phone ? 'center' : 'nearest' })
+    const el = bar.current
+    const on = el?.querySelector<HTMLElement>('.tab.on')
+    if (!el || !on) return
+    if (phone) {
+      on.scrollIntoView({ block: 'nearest', inline: 'center' })
+      return
+    }
+    // On a computer the row starts at a tab's edge: as far back as still shows the open tab before the "+3".
+    const room = el.clientWidth - MORE_W
+    const end = on.offsetLeft + on.offsetWidth
+    const first = el.scrollWidth <= el.clientWidth + 1 || end <= room ? null : ([...el.children] as HTMLElement[]).find(k => end - k.offsetLeft <= room)
+    el.scrollTo({ left: first ? first.offsetLeft : 0 })
   }, [route.area, route.tab, bar, phone])
   return (
     <nav className="tab-bar" aria-label={`${area.label} tabs`} ref={bar}>

@@ -45,7 +45,10 @@ function useOverflow(row: RefObject<HTMLElement | null>, mode: Mode, keep: strin
         const after = el.scrollLeft + el.clientWidth < el.scrollWidth - 1.5 ? 1 : 0
         o = { cut: kids.map(() => false), before, after }
       } else {
-        o = overflowOf(items, el.scrollLeft, el.clientWidth, el.scrollWidth, arrowsOf(mode), keep ? kids.findIndex(k => k.matches(keep)) : -1)
+        // The items' own extent, not the row's scroll width: the room the tabs leave for their "+3"
+        // (shell.css) mustn't itself count as more to show.
+        const extent = items.reduce((w, s) => Math.max(w, s.right), 0)
+        o = overflowOf(items, el.scrollLeft, el.clientWidth, extent, arrowsOf(mode), keep ? kids.findIndex(k => k.matches(keep)) : -1)
       }
       kids.forEach((k, i) => {
         k.classList.toggle('cut', o.cut[i])

@@ -223,6 +223,13 @@ body:has(.app-shell) {
   scroll-padding-inline: 0 50px;
 }
 
+/* With tabs hidden, the row ends clear of the "+3", so the last tab never sits under it. */
+.tab-cue:not(.free):is(.more-before, .more-after) .tab-bar::after {
+  content: '';
+  flex: none;
+  width: 50px;
+}
+
 .cue-menu {
   position: absolute;
   top: calc(100% + 4px);
