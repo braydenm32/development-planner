@@ -4,7 +4,7 @@
 
 import { fileSafe } from '../print/export'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, type Face } from '../plan/geometry'
+import { buildingOutline, closestOnSegment, faceAround, levelFloorAreas, planarFaces, roomShape, type Face } from '../plan/geometry'
 import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
 import { roomIsGarage, roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
@@ -156,9 +156,11 @@ export interface FloorAreas {
 export function floorAreas(plan: Plan): FloorAreas {
   let gross = 0
   let garages = 0
+  // A wall shared by split levels drawn side by side is counted once (levelFloorAreas).
+  const floor = levelFloorAreas(plan)
   for (const l of sortedLevels(plan)) {
     const faces = planarFaces(plan.walls.filter(w => w.level === l.id))
-    gross += buildingOutline(faces).area
+    gross += floor.get(l.id) ?? 0
     const seen = new Set<Face>()
     for (const r of plan.rooms) {
       if (r.level !== l.id || !roomIsGarage(r)) continue

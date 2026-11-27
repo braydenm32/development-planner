@@ -326,6 +326,59 @@ export function buildingFootprint(plan: Plan): number {
 }
 
 /**
+ * The levels that sit beside this one rather than over or under it (split levels): the higher
+ * floor of the two is below the lower one's ceiling, so they are parts of one storey. A wall on
+ * the line where two such levels meet is inside the house.
+ */
+export function levelsBeside(plan: Pick<Plan, 'levels'>, levelId: string): Plan['levels'] {
+  const l = plan.levels.find(x => x.id === levelId)
+  if (!l) return []
+  return plan.levels.filter(o => {
+    if (o.id === l.id) return false
+    const [low, high] = o.elevation <= l.elevation ? [o, l] : [l, o]
+    return high.elevation - low.elevation < low.height
+  })
+}
+
+/** A shared strip bigger than this share of a level's own floor isn't a shared wall: the levels overlap on purpose. */
+const SHARED_WALL_MOST = 0.25
+
+/**
+ * Each level's floor area to the outside of its walls (m², by level id). Split levels are drawn
+ * as separate closed outlines, so the wall they share is inside both: that strip is counted once,
+ * on the lower level. Not where the level stands on a storey below it there (a top floor whose
+ * wall sits on the lower wing's): that strip is its own storey's.
+ */
+export function levelFloorAreas(plan: Pick<Plan, 'levels' | 'walls'>): Map<string, number> {
+  const levels = [...plan.levels].sort((a, b) => a.elevation - b.elevation)
+  const outlines = levels.map(l => buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))))
+  const out = new Map<string, number>()
+  levels.forEach((l, i) => {
+    let area = outlines[i].area
+    if (area > 0) {
+      const beside = (o: (typeof levels)[number]) => l.elevation - o.elevation < o.height
+      const lower = levels.flatMap((o, j) => (j < i && beside(o) ? outlines[j].outlines : []))
+      if (lower.length) {
+        const own = outlines[i].outlines
+        const under = levels.flatMap((o, j) => (j < i && !beside(o) ? outlines[j].outlines : []))
+        const A = unionArea(own)
+        const B = unionArea(lower)
+        const AB = unionArea([...own, ...lower])
+        let overlap = A + B - AB
+        if (under.length && overlap > 1e-6) {
+          // Less the part of it that stands on a storey below: |A∩B∩C| by inclusion and exclusion.
+          const C = unionArea(under)
+          overlap -= A + B + C - AB - unionArea([...own, ...under]) - unionArea([...lower, ...under]) + unionArea([...own, ...lower, ...under])
+        }
+        if (overlap > 1e-6 && overlap <= SHARED_WALL_MOST * area) area -= overlap
+      }
+    }
+    out.set(l.id, area)
+  })
+  return out
+}
+
+/**
  * Solid parts of a wall once its openings are cut out, as boxes in the wall's own
  * frame: [start, end] along the wall and [bottom, top] above the floor.
  */

@@ -93,7 +93,7 @@ export function PrintTab() {
   return (
     <>
       <PrintSettingsFields settings={settings} onChange={set} />
-      <PrintParts print={d.print} settings={settings} />
+      <PrintParts print={d.print} settings={settings} input={{ plan: d.plan, survey: d.survey, ground: d.earth?.result.grid ?? d.terrain.grid }} />
       <PrintDownloads plan={d.plan} settings={settings} print={d.print} />
     </>
   )

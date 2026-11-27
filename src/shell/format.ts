@@ -6,6 +6,9 @@ export const m2 = (v: number) => `${v.toFixed(2)} m²`
 export { andList } from '../plan/keyNumbers'
 
 /** What's left over after levelling, as the Cut & fill panel words it: "160.2 m³ to take away". */
+/** The earth left over when it's no more than the slab's own bed: said plainly, never as a warning. */
+export const slabBedText = (net: number, bed: number) => `${Math.abs(net).toFixed(1)} m³ to take away is the slab’s own ${Math.round(bed * 1000)} mm bed (the site scrape under it)`
+
 export const netText = (net: number) => `${Math.abs(net).toFixed(1)} m³ ${net >= 0 ? 'to take away' : 'to bring in'}`
 
 /** Where a number already shows, as a short pointer for a chip: "in the panel" reads as "→ panel". */

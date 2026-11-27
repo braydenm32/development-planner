@@ -8,9 +8,9 @@
 import type { EarthworksResult } from '../lib/earthworks'
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import { levelBuildsAs, roomFloorType, type FloorTypeId } from './floorTypes'
-import { faceAround, offsetPolygon, planarFaces, type Face } from './geometry'
+import { faceAround, levelsBeside, offsetPolygon, planarFaces, type Face } from './geometry'
 import { levelSummaries } from './keyNumbers'
-import { areaKind, floorRL, type AreaKind, type Opening, type Plan, type Roof } from './model'
+import { areaKind, floorRL, type AreaKind, type Opening, type Plan, type Roof, type Wall } from './model'
 import type { RetainingProfile } from './retaining'
 import type { ImpliedTotals } from '../grading/implied'
 import { isGarageRoom, roomIsGarage, roomWet, WET_ROOMS, wetRoomOf, type WetRoom } from './roomTypes'
@@ -96,7 +96,53 @@ function outsideWallIds(faces: Face[]): Set<string> {
   return out
 }
 
-const perimeter = (ring: Vec2[]) => ring.reduce((t, p, i) => t + Math.hypot(ring[(i + 1) % ring.length][0] - p[0], ring[(i + 1) % ring.length][1] - p[1]), 0)
+/** How finely an outline's edge is read for where another part of the house lies against it (m). */
+const SHARED_PROBE = 0.02
+
+/**
+ * How much of an outline's edge p→q is outside wall, when other parts of the house stand beside
+ * this level: its length that shows at all, and its area. `coverAt` gives the RL the part of the
+ * house against a spot rises to (read just past the edge and just inside it), or -Infinity where
+ * there is none; the wall is outside only above that.
+ */
+function outsideRun(p: Vec2, q: Vec2, ccw: boolean, high: number, floor: number, coverAt: (out: Vec2, inn: Vec2) => number): { length: number; area: number } {
+  const len = Math.hypot(q[0] - p[0], q[1] - p[1])
+  const d: Vec2 = [(q[0] - p[0]) / len, (q[1] - p[1]) / len]
+  // Outward is to the right of a counter-clockwise ring.
+  const n: Vec2 = ccw ? [d[1], -d[0]] : [-d[1], d[0]]
+  const steps = Math.max(1, Math.round(len / SHARED_PROBE))
+  const each = len / steps
+  let length = 0
+  let area = 0
+  for (let k = 0; k < steps; k++) {
+    const t = (k + 0.5) * each
+    const m: Vec2 = [p[0] + d[0] * t, p[1] + d[1] * t]
+    const cover = coverAt([m[0] + n[0] * 0.05, m[1] + n[1] * 0.05], [m[0] - n[0] * 0.05, m[1] - n[1] * 0.05])
+    const shows = Math.max(0, Math.min(high, floor + high - cover))
+    if (shows > 0.01) length += each
+    area += each * shows
+  }
+  return { length, area }
+}
+
+/** Is this wall between two parts of the house: this level's floor on one side, a level beside it on the other? */
+function betweenParts(w: Pick<Wall, 'a' | 'b' | 'thickness'>, own: (p: Vec2) => boolean, other: (p: Vec2) => boolean): boolean {
+  const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])
+  if (len < 1e-9) return false
+  const n: Vec2 = [-(w.b[1] - w.a[1]) / len, (w.b[0] - w.a[0]) / len]
+  const off = w.thickness / 2 + 0.05
+  // Along most of its length: a wall that only touches another level at a corner is still outside.
+  let between = 0
+  const at = [0.2, 0.35, 0.5, 0.65, 0.8]
+  for (const f of at) {
+    const m: Vec2 = [w.a[0] + (w.b[0] - w.a[0]) * f, w.a[1] + (w.b[1] - w.a[1]) * f]
+    const l: Vec2 = [m[0] + n[0] * off, m[1] + n[1] * off]
+    const r: Vec2 = [m[0] - n[0] * off, m[1] - n[1] * off]
+    const inside = (x: Vec2) => own(x) || other(x)
+    if (inside(l) && inside(r) && (other(l) || other(r))) between++
+  }
+  return between > at.length / 2
+}
 
 const counted = (): Counted => ({ count: 0, area: 0, ids: [] })
 
@@ -241,19 +287,41 @@ export function designQuantities(
   const garageDoors = { ...counted(), sizes: [] as [number, number][] }
   for (const s of summaries) {
     const height = s.level.height
-    const run = s.gross.outlines.reduce((t, ring) => t + perimeter(ring), 0)
-    walls.perimeter += run
+    // Split levels are drawn as separate closed outlines, so the wall where two meet is on the
+    // outside of both. It's inside the house: only what rises above the part beside it is an
+    // outside wall, and the strip the two outlines share is the lower level's to count.
+    const others = levelsBeside(plan, s.level.id).map(l => ({ lower: l.elevation < s.level.elevation, top: floorRL(plan, l.id) + l.height, rings: summaries.find(x => x.level.id === l.id)?.gross.outlines ?? [] }))
+    const coverAt = (out: Vec2, inn: Vec2) => {
+      let top = -Infinity
+      for (const o of others) if (o.rings.some(r => pointInPolygon(out[0], out[1], r) || (o.lower && pointInPolygon(inn[0], inn[1], r)))) top = Math.max(top, o.top)
+      return top
+    }
     // Each face to its own top: up to a roof whose eaves sit above the ceiling, else the ceiling.
     const floor = floorRL(plan, s.level.id)
     for (const ring of s.gross.outlines) {
+      const ccw = signedArea(ring) > 0
       for (let i = 0; i < ring.length; i++) {
         const p = ring[i]
         const q = ring[(i + 1) % ring.length]
-        walls.gross += Math.hypot(q[0] - p[0], q[1] - p[1]) * (wallTopAt(plan, s.level.id, insideEdgeMid(ring, i)) - floor)
+        const len = Math.hypot(q[0] - p[0], q[1] - p[1])
+        const high = wallTopAt(plan, s.level.id, insideEdgeMid(ring, i)) - floor
+        if (!others.length || len < 1e-9) {
+          walls.perimeter += len
+          walls.gross += len * high
+          continue
+        }
+        const open = outsideRun(p, q, ccw, high, floor, coverAt)
+        walls.perimeter += open.length
+        walls.gross += open.area
       }
     }
     const levelWalls = plan.walls.filter(w => w.level === s.level.id)
     const outside = outsideWallIds(planarFaces(levelWalls))
+    if (others.length) {
+      const own = (p: Vec2) => s.gross.outlines.some(r => pointInPolygon(p[0], p[1], r))
+      const inHouse = (p: Vec2) => others.some(o => o.rings.some(r => pointInPolygon(p[0], p[1], r)))
+      for (const w of levelWalls) if (outside.has(w.id) && betweenParts(w, own, inHouse)) outside.delete(w.id)
+    }
     walls.ids.push(...outside)
     for (const o of plan.openings) {
       const w = levelWalls.find(x => x.id === o.wall)

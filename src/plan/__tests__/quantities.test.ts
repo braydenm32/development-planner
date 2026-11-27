@@ -279,11 +279,14 @@ describe('designQuantities on a split level', () => {
   // The made-up split level: three 8 x 6 m boxes to the outside of 270 mm walls (8.27 x 6.27 m),
   // the middle level's floor an 8 x 6 m slab area poured on the ground under its rooms.
   const gross = 8.27 * 6.27
+  // The middle level shares its south wall with the lower wing beside it: that 270 mm strip is the
+  // lower level's, counted once (DB-11), so the middle level's own floor is 8.27 x 6 m.
+  const mid = 8.27 * 6
 
   it('counts a slab under an upper level once, as its floor, and not as an outdoor slab or a framed floor', () => {
     const q = designQuantities(splitLevels(), null, [])
     // The slab covers most of the middle level, so its whole floor is slab, to the outside of its walls.
-    expect(q.slabUnder.area).toBeCloseTo(gross, 9)
+    expect(q.slabUnder.area).toBeCloseTo(mid, 9)
     expect(q.slabUnder.ids).toEqual(['mid_slab'])
     expect(q.slabUnder.names).toEqual(['Middle level'])
     expect(q.slabUnder.areas).toEqual(['Middle slab'])
@@ -292,8 +295,8 @@ describe('designQuantities on a split level', () => {
     // Only the top level is framed.
     expect(q.upper.area).toBeCloseTo(gross, 9)
     expect(q.upper.names).toEqual(['Top level'])
-    // The floor area itself is the same, every level counted once.
-    expect(q.floorArea).toBeCloseTo(3 * gross, 9)
+    // The floor area itself is the same, every level counted once, and the shared wall once.
+    expect(q.floorArea).toBeCloseTo(2 * gross + mid, 9)
   })
 
   it('frames the rest of a level whose slab covers only part of it', () => {
@@ -301,7 +304,7 @@ describe('designQuantities on a split level', () => {
     const half = { ...p.areas[0], pts: [[0, 6], [8, 6], [8, 9], [0, 9]] as [number, number][] }
     const q = designQuantities({ ...p, areas: [half] }, null, [])
     expect(q.slabUnder.area).toBeCloseTo(24, 9)
-    expect(q.upper.area).toBeCloseTo(gross + gross - 24, 9)
+    expect(q.upper.area).toBeCloseTo(gross + mid - 24, 9)
     expect(q.upper.names).toEqual(['Middle level', 'Top level'])
     expect(q.outdoor.slab.count).toBe(0)
   })
@@ -319,7 +322,7 @@ describe('designQuantities on a split level', () => {
     const under = e.lines.filter(l => l.id === 'floor-slab-under')
     expect(under).toHaveLength(1)
     expect(under[0].rateId).toBe('floor-slab')
-    expect(under[0].qty).toBeCloseTo(gross, 9)
+    expect(under[0].qty).toBeCloseTo(mid, 9)
     expect(under[0].label).toBe('Slab on ground under the middle level')
     expect(under[0].from).toBe('Middle slab')
     expect(e.lines.some(l => l.id === 'outdoor-slab')).toBe(false)

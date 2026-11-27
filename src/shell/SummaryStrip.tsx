@@ -14,9 +14,9 @@ import { Icon } from '../nav/icons'
 import { areaById, type NumberId } from '../nav/menu'
 import { navigate } from '../nav/router'
 import { tabRoute, type AppRoute } from '../nav/route'
-import { ENGINEER_TEXT } from '../checks/engineer'
+import { ENGINEER_RULE, ENGINEER_TEXT } from '../checks/engineer'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
-import { m2, netText } from './format'
+import { m2, netText, slabBedText } from './format'
 import { balanceWords, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
@@ -173,7 +173,7 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                       </span>
                     </span>
                   ) : (
-                    <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill">
+                    <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill" title={n.earth.bedOnly ? `The ${slabBedText(n.earth.net, n.earth.slabBed)}.` : undefined}>
                       <b>
                         {n.earth.cut.toFixed(1)} · {n.earth.fill.toFixed(1)} m³
                       </b>
@@ -191,7 +191,11 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                   >
                     <b>{n.retaining.maxHeight.toFixed(2)} m</b>
                     {n.retaining.impliedTallest && <em className="chip-note"> implied</em>}
-                    {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_TEXT}</span>}
+                    {n.retaining.engineer && (
+                      <span className="badge warn" title={ENGINEER_RULE}>
+                        Engineer &gt; {ENGINEER_TEXT}
+                      </span>
+                    )}
                   </Chip>
                 )}
                 {n.batters &&

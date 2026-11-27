@@ -64,6 +64,7 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'stair-defaults': More.StairDefaultsSection,
   origin: More.OriginSection,
   'earthworks-margin': More.MarginSection,
+  'slab-bed': More.SlabBedSection,
   'subfloor-gap': More.SubfloorSection,
   'retaining-offer': OfferSettings,
   'cost-rates': RatesSection,

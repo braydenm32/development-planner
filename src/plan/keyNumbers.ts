@@ -5,8 +5,8 @@ import { balancingShift, type EarthworksResult, type PreparedEarthworks } from '
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { buildingOutline, faceAround, planarFaces, roomShape, type Face } from './geometry'
-import { floorRL, houseWalls, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
+import { buildingOutline, faceAround, levelFloorAreas, planarFaces, roomShape, type Face } from './geometry'
+import { floorRL, houseWalls, slabBedOf, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
 import { roofGeometry, type RoofGeometry } from './roof'
 import { roofEavesRL, wallTopRL } from './roofline'
@@ -19,12 +19,16 @@ export interface LevelSummary {
    */
   rooms: { room: Room; area: number | null; sameAs?: Room }[]
   areas: { area: Area; size: number }[]
-  /** The outside of the walls: its rings and floor area. */
+  /**
+   * The outside of the walls: its rings and floor area. A wall shared with a lower level beside it
+   * (a split level) is counted in that level's area, not twice (levelFloorAreas).
+   */
   gross: { outlines: Vec2[][]; area: number }
 }
 
 /** Rooms, outdoor areas and floor area of each level, lowest first. */
 export function levelSummaries(plan: Plan): LevelSummary[] {
+  const floor = levelFloorAreas(plan)
   return sortedLevels(plan).map(l => {
     const walls = plan.walls.filter(w => w.level === l.id)
     const faces = planarFaces(walls)
@@ -38,7 +42,7 @@ export function levelSummaries(plan: Plan): LevelSummary[] {
         return { room: r, area: roomShape(r, faces)?.area ?? null, ...(first ? { sameAs: first } : {}) }
       })
     const areas = plan.areas.filter(a => a.level === l.id).map(a => ({ area: a, size: Math.abs(signedArea(a.pts)) }))
-    return { level: l, rooms, areas, gross: buildingOutline(faces) }
+    return { level: l, rooms, areas, gross: { outlines: buildingOutline(faces).outlines, area: floor.get(l.id) ?? 0 } }
   })
 }
 
@@ -197,12 +201,22 @@ export function balancedFloorRL(plan: Plan, prep: PreparedEarthworks): number | 
 /** Whether Balance would move the floor from `ffl` to `balanced`: it sets the floor to the nearest 10 mm, so anything less is balanced. */
 export const movesFloor = (balanced: number | null, ffl: number): boolean => balanced !== null && Math.abs(balanced - ffl) >= 0.005
 
-/** Whether cut and fill are out of balance: Balance would move the floor. */
+/**
+ * Whether the earth left over is only the slab's own bed (the site scrape under it): there is a
+ * slab pad, and Balance would do no more than lift the floor by the bed's depth or less. On a flat
+ * block with the floor at ground level that is exactly the bed, and nothing is out of balance:
+ * the slab has to be dug in somewhere. Earth to bring in is never the bed.
+ */
+export const slabBedOnly = (balanced: number | null, ffl: number, bed: number, hasPad: boolean): boolean =>
+  hasPad && balanced !== null && balanced - ffl >= 0.005 && balanced - ffl <= bed + 0.005
+
+/** Whether cut and fill are out of balance: Balance would move the floor, by more than the slab's own bed accounts for. */
 export function outOfBalance(plan: Plan, prep: PreparedEarthworks): boolean {
-  return movesFloor(balancedFloorRL(plan, prep), floorRL(plan))
+  const to = balancedFloorRL(plan, prep)
+  return movesFloor(to, floorRL(plan)) && !slabBedOnly(to, floorRL(plan), slabBedOf(plan), prep.platforms.some(p => p.core !== null))
 }
 
-/** Retaining walls from this height (ground to ground) need an engineer: the app's one figure, from the checks. */
+/** Retaining walls holding back more than this (ground to ground) need an engineer: the app's one figure, from the checks. */
 export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
 
 /**

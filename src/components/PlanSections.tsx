@@ -12,7 +12,9 @@ import { driveEndPoints, driveLevelsOf, garageRL, streetRL } from '../plan/drive
 import {
   AREA_KINDS,
   areaKind,
+  DEFAULT_SLAB_BED,
   earthworksOf,
+  slabBedOf,
   isRetaining,
   OPENING_NAMES,
   floorRL,
@@ -952,6 +954,19 @@ const setEarthworks = (patch: Partial<Earthworks>) =>
 
 export function MarginField({ plan }: { plan: Plan }) {
   return <Num label="Level area past slab edges" unit="mm" value={earthworksOf(plan).margin} min={0} onCommit={margin => setEarthworks({ margin })} />
+}
+
+/** How deep the ground is dug under a slab on ground, below its finished floor: the slab and its bed. */
+export function SlabBedField({ plan }: { plan: Plan }) {
+  return (
+    <>
+      <Num label="Depth dug under a slab" unit="mm" value={slabBedOf(plan)} min={0} max={1} onCommit={slabBed => setEarthworks({ slabBed })} />
+      <p className="muted small">
+        The house pad sits this far below the finished floor: the slab and its bed (the site scrape under it). {Math.round(DEFAULT_SLAB_BED * 1000)} mm unless you change it; a
+        waffle pod slab sitting on the surface needs less.
+      </p>
+    </>
+  )
 }
 
 export function SubfloorField({ plan }: { plan: Plan }) {

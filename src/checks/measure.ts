@@ -14,6 +14,10 @@ import { driveLines, type DriveLine } from '../plan/crossing'
 import { driveGround } from '../plan/driveway'
 import { boundaryClearances, outsideLot, signedClearance, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
+import { impliedWalls } from '../grading/implied'
+import type { WallStrip } from '../lib/terrainMesh'
+import type { Earth } from '../plan/useEarthworks'
+import { segmentsOf } from '../grading/suggest'
 import { roofGeometry } from '../plan/roof'
 import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
@@ -89,6 +93,8 @@ export interface WallNumbers {
   /** Its ends (site frame), for the spacing between walls and the pins on the plan. */
   a: Vec2
   b: Vec2
+  /** Not drawn: a wall the earthworks imply (src/grading/implied.ts). */
+  implied?: true
 }
 
 export interface Measures {
@@ -124,6 +130,11 @@ export interface Measures {
   slopePct: number
   earth: EarthNumbers | null
   walls: WallNumbers[]
+  /**
+   * The walls the earthworks imply but nobody has drawn (vertical edges of the cut and fill, the
+   * step between two pads): counted by the retaining wall rows as the strip and Costs count them.
+   */
+  implied: WallNumbers[]
   /** Ground-floor outline rings in the survey's local frame. */
   groundOutline: Vec2[][]
   /** Every level's outline rings, in the survey's local frame. */
@@ -305,7 +316,7 @@ export interface MeasureInput {
   plan: Plan
   survey: Survey
   terrain: Terrain
-  earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[] } | null
+  earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[]; strips?: WallStrip[] } | null
   trees?: CheckTree[]
   sun?: SunFacts | null
   /** The ground is the state's elevation data, not a survey, so it doesn't give the street's level at the boundary. */
@@ -362,6 +373,17 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     return { id: p.wall.id, height: p.maxHeight, toBoundary: Math.max(0, d - p.wall.thickness / 2), a, b: z }
   })
 
+  // The earthworks as the app holds them (with the retaining walls' strips); a bare result has no walls drawn.
+  const whole = earth ? (earth.strips ? (earth as Earth) : ({ ...earth, strips: [] } as Earth)) : null
+  const implied = impliedWalls(survey, whole).map((w, i): WallNumbers => {
+    let d = Infinity
+    for (const [p, q] of segmentsOf(w.path)) {
+      const steps = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.25))
+      for (let s = 0; s <= steps; s++) d = Math.min(d, distToRing([p[0] + ((q[0] - p[0]) * s) / steps, p[1] + ((q[1] - p[1]) * s) / steps], b))
+    }
+    return { id: `implied:${i}`, height: w.height, toBoundary: Math.max(0, d), a: w.a, b: w.b, implied: true }
+  })
+
   const out = outsideLot(all, pl, survey)
   const roomsArea = summaries.reduce((t, s) => t + roomsTotal(s.rooms), 0)
   return {
@@ -383,6 +405,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     // "Outside the house" is outside every level's outline: a split level's own slab is under the house too.
     earth: earth && earth.platforms.length ? earthNumbers(plan, earth.prep, earth.result, b, all.map(site), settings.battleAxe ? undefined : front) : null,
     walls,
+    implied,
     groundOutline,
     outlines: all.map(site),
     works: worksOf(plan, survey.origin),

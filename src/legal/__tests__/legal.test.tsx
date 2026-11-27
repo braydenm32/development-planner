@@ -80,7 +80,7 @@ describe('the pages', () => {
 
   it('cover each result on How accurate is this?', () => {
     const t = textOf(html('accuracy'))
-    for (const s of ['Cut and fill', 'Retaining walls', 'over 1.0 m', 'Planning checks', 'Housing Code', '20%', '3D prints', 'PDF plans']) expect(t, s).toContain(s)
+    for (const s of ['Cut and fill', 'Retaining walls', 'over 600 mm', 'Planning checks', 'Housing Code', '20%', '3D prints', 'PDF plans']) expect(t, s).toContain(s)
   })
 
   it('say how rough the state’s ground levels are, and what reading them sends', () => {

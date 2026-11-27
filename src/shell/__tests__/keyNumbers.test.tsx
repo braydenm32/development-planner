@@ -16,14 +16,15 @@ import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
 import { areaRoute } from '../../nav/route'
 import { houseHeight, measure } from '../../checks/measure'
 import { runChecks } from '../../checks/rules'
-import { balancedRL, boundarySides, buildingHeight, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea } from '../../plan/keyNumbers'
+import { balancedRL, boundarySides, buildingHeight, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea, slabBedOnly } from '../../plan/keyNumbers'
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { addLevelAbove } from '../../plan/ops'
 import { earthworksPlatforms, retainingStrips } from '../../plan/platforms'
-import { retainingProfiles } from '../../plan/retaining'
+import { needsEngineer, retainingProfiles } from '../../plan/retaining'
 import { usePlan } from '../../plan/store'
 import type { Earth } from '../../plan/useEarthworks'
 import { loadPrintPrefs } from '../../print/prefs'
+import { floorDrawn, outlineClosed, stripWaitText } from '../drawn'
 import { ShellContext, type ShellData } from '../context'
 import { andList, m2, netText } from '../format'
 import { OverviewSheet } from '../OverviewSheet'
@@ -235,12 +236,43 @@ describe('cut, fill and Out of balance', () => {
     expect(e.net).toBeGreaterThan(0)
   })
 
-  it('flags Out of balance with Balance, and Balance sets the hand-worked floor', () => {
+  it('says the slab’s own bed plainly, not as Out of balance (HO-05, DB-34)', () => {
+    // The floor is 0.07 m above the ground at the centre, so the 26.7 m³ left over is less than the
+    // slab's own 300 mm bed: Balance would only lift the floor by 0.23 m.
     const earth = earthOf(plan, survey, terrain)
-    const n = numbersOf(plan, survey, terrain, earth)
+    const e = numbersOf(plan, survey, terrain, earth).earth!
+    expect(e.bedOnly).toBe(true)
+    expect(e.outOfBalance).toBe(false)
+    expect(outOfBalance(plan, earth.prep)).toBe(false)
+    const html = strip(numbersOf(plan, survey, terrain, earth))
+    expect(words(html)).not.toContain('Out of balance')
+    expect(words(html)).toContain(`Cut · fill ${e.cut.toFixed(1)} · ${e.fill.toFixed(1)} m³`)
+    expect(html).toContain('the slab’s own 300 mm bed (the site scrape under it)')
+    expect(slabBedOnly(63.43, 63.2, 0.3, true)).toBe(true)
+    expect(slabBedOnly(63.51, 63.2, 0.3, true)).toBe(false)
+    // earth to bring in is never the bed, nor is anything without a slab pad
+    expect(slabBedOnly(63.1, 63.2, 0.3, true)).toBe(false)
+    expect(slabBedOnly(63.43, 63.2, 0.3, false)).toBe(false)
+    // A shallower bed (Earthworks › More) lifts the pad: less is dug, and less is left over.
+    const thin = { ...plan, earthworks: { ...plan.earthworks!, slabBed: 0.1 } }
+    const thinEarth = earthOf(thin, survey, terrain)
+    const t = numbersOf(thin, survey, terrain, thinEarth).earth!
+    expect(t.pad).toBeCloseTo(63.1, 9)
+    expect(t.cut).toBeLessThan(e.cut)
+    expect(t.net).toBeLessThan(e.net)
+    expect(t.slabBed).toBe(0.1)
+  })
+
+  it('flags Out of balance with Balance, and Balance sets the hand-worked floor', () => {
+    // Half a metre lower, the floor is dug in well past the slab's own bed.
+    const low = house({ placement: { ...plan.placement, ffl: 62.7 } })
+    usePlan.getState().load(low)
+    const earth = earthOf(low, survey, terrain)
+    const n = numbersOf(low, survey, terrain, earth)
     const e = n.earth!
+    expect(e.bedOnly).toBe(false)
     expect(e.outOfBalance).toBe(true)
-    expect(outOfBalance(plan, earth.prep)).toBe(true)
+    expect(outOfBalance(low, earth.prep)).toBe(true)
     expect(Math.abs(e.balancedRL! - (groundAtCentre + 0.3))).toBeLessThan(0.02)
     expect(e.balancedRL! * 100).toBeCloseTo(Math.round(e.balancedRL! * 100), 9)
 
@@ -343,7 +375,7 @@ describe('retaining walls', () => {
     expect(n.retaining!.length).toBeCloseTo(14, 9)
     expect(n.retaining!.maxHeight).toBe(walls[0].maxHeight)
     expect(n.retaining!.face).toBe(walls[0].faceArea)
-    expect(n.retaining!.engineer).toBe(walls[0].maxHeight >= ENGINEER_HEIGHT)
+    expect(n.retaining!.engineer).toBe(needsEngineer(walls[0].maxHeight))
     expect(words(strip(n))).toContain(`Retained ${walls[0].maxHeight.toFixed(2)} m`)
     expect(strip(n)).toContain(`Holds back up to ${retainedText(walls[0].maxHeight)}`)
   })
@@ -354,7 +386,7 @@ describe('retaining walls', () => {
     ffl: 63.2,
     floors: [],
     earth: null,
-    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight >= ENGINEER_HEIGHT },
+    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: needsEngineer(maxHeight) },
     roof: null,
     roofs: [],
     roofArea: 0,
@@ -363,11 +395,13 @@ describe('retaining walls', () => {
     placement: null,
   })
 
-  it('asks for an engineer from 600 mm, the figure the checks use', () => {
+  it('asks for an engineer over 600 mm, the figure the checks use', () => {
     expect(ENGINEER_HEIGHT).toBe(0.6)
     expect(words(strip(withWall(1.2)))).toContain('Retained 1.20 m Engineer > 600 mm')
     expect(words(strip(withWall(0.8)))).toContain('Retained 0.80 m Engineer > 600 mm')
-    expect(words(strip(withWall(0.6)))).toContain('Engineer')
+    // "Engineer > 600 mm" means over it: a wall at exactly 0.60 m isn't flagged (DB-23).
+    expect(words(strip(withWall(0.6)))).not.toContain('Engineer')
+    expect(words(strip(withWall(0.61)))).toContain('Engineer > 600 mm')
     expect(words(strip(withWall(0.5)))).not.toContain('Engineer')
   })
 })
@@ -518,8 +552,9 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   it('keeps chips as buttons otherwise', () => {
     const html = strip(n)
     expect(html).not.toContain('chip ghost')
-    // Floor, floor level, and Building height: walls have a height before they have a roof.
-    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(3)
+    // Floor, floor level, Building height (walls have a height before they have a roof), and cut and fill:
+    // this floor's leftover is only the slab's own bed, so it's a plain chip.
+    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(4)
   })
 })
 
@@ -689,5 +724,21 @@ describe('the panels', () => {
     // the same panel the plan's inspector shows
     const inspector = words(renderToStaticMarkup(<SelectionPanel plan={walled} survey={survey} terrain={terrain} earth={e} />))
     expect(inspector).toContain('How high is the earth behind it?')
+  })
+})
+
+describe('the strip waits for a closed outline (HO-04, CB-36)', () => {
+  it('counts nothing while the first outline is still open', () => {
+    const one = house({ walls: house().walls.slice(0, 1), rooms: [] })
+    expect(floorDrawn(one)).toBe(true)
+    expect(outlineClosed(one)).toBe(false)
+    expect(stripWaitText(one)).toContain('once the outline is closed')
+    const three = house({ walls: house().walls.slice(0, 3), rooms: [] })
+    expect(outlineClosed(three)).toBe(false)
+    expect(outlineClosed(house({ rooms: [] }))).toBe(true)
+    expect(outlineClosed(house())).toBe(true)
+    const none = house({ walls: [], rooms: [] })
+    expect(outlineClosed(none)).toBe(false)
+    expect(stripWaitText(none)).toBe('Key numbers show here once a floor is drawn.')
   })
 })

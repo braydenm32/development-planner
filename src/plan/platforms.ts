@@ -1,8 +1,8 @@
 import type { Barrier, Platform } from '../lib/earthworks'
-import { pointInPolygon, type Vec2 } from '../lib/geom'
+import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { WallStrip } from '../lib/terrainMesh'
-import { levelBuildsAs, onNaturalGround } from './floorTypes'
-import { buildingOutline, faceAround, offsetPolygon, planarFaces, wallPolygons } from './geometry'
+import { floorTypeInfo, levelBuildsAs, onNaturalGround } from './floorTypes'
+import { buildingOutline, faceAround, offsetPolygon, planarFaces, wallPolygons, type Face } from './geometry'
 import {
   areaKind,
   DEFAULT_BENCH,
@@ -12,7 +12,9 @@ import {
   houseWalls,
   isRetaining,
   levelById,
+  padLevelOf,
   SLAB_THICKNESS,
+  slabBedOf,
   sortedLevels,
   toSite,
   wallDir,
@@ -23,25 +25,30 @@ import {
 } from './model'
 
 /**
- * Outline of each room on a level (the lowest when none is given) that sits on piers (or another
- * floor that leaves the ground natural), out to the outside of its walls.
+ * Outline of each enclosed space on a level (the lowest when none is given) that sits on piers
+ * (or another floor that leaves the ground natural), out to the outside of its walls: a room built
+ * that way, and, on a level whose own floor is, every space without a room that says otherwise.
+ * So a level set to piers is on piers as soon as it has an outline, room names or not.
  */
 export function pierOutlines(plan: Plan, levelId = sortedLevels(plan)[0]?.id): Vec2[][] {
   if (levelId === undefined) return []
   const faces = planarFaces(plan.walls.filter(w => w.level === levelId))
-  return plan.rooms
-    .filter(r => r.level === levelId && onNaturalGround(plan, r))
-    .flatMap(r => {
-      const f = faceAround(r.at, faces)
-      return f
-        ? [
-            offsetPolygon(
-              f.pts,
-              f.thickness.map(t => -t / 2),
-            ),
-          ]
-        : []
-    })
+  const own = levelBuildsAs(plan, levelId)
+  const levelNatural = own !== 'framed' && floorTypeInfo(own).ground === 'natural'
+  const rooms = plan.rooms.filter(r => r.level === levelId)
+  const natural = new Set<Face>()
+  const padded = new Set<Face>()
+  for (const r of rooms) {
+    const f = faceAround(r.at, faces)
+    if (f) (onNaturalGround(plan, r) ? natural : padded).add(f)
+  }
+  if (levelNatural) for (const f of faces) if (f.area > 0 && !padded.has(f)) natural.add(f)
+  return [...natural].map(f =>
+    offsetPolygon(
+      f.pts,
+      f.thickness.map(t => -t / 2),
+    ),
+  )
 }
 
 /** The earthworks' names for the house's own levelled ground, so it can be told from the rest. */
@@ -64,14 +71,14 @@ export const BENCH_PREFIX = 'bench:'
 export const slabPlatformId = (areaId: string) => `slab:${areaId}`
 
 /**
- * RL of the levelled ground under a floor's slab: the house pad. With no level given (or one that
- * isn't in the plan), the lowest floor's.
+ * RL of the levelled ground under a floor's slab: the house pad, the slab's bed (Earthworks › More)
+ * below the floor. With no level given (or one that isn't in the plan), the lowest floor's.
  */
-export const housePadRL = (plan: Plan, levelId?: string) => floorRL(plan, levelId !== undefined && levelById(plan, levelId) ? levelId : undefined) - FLOOR_STRUCTURE
+export const housePadRL = (plan: Plan, levelId?: string) => floorRL(plan, levelId !== undefined && levelById(plan, levelId) ? levelId : undefined) - slabBedOf(plan)
 
 /**
- * The RL a side of a retaining wall is levelled to. 'pad' is the pad of the wall's own level, so a
- * wall beside an upper split level is levelled to that level's floor, not the lowest one's.
+ * The RL a side of a retaining wall is levelled to. 'pad' is the pad of the level the wall is beside
+ * (padLevelOf), so a wall beside an upper split level is levelled to that level's floor, not the lowest one's.
  */
 export const sideRL = (plan: Plan, level: SideLevel, wallLevel?: string) => (level === 'pad' ? housePadRL(plan, wallLevel) : level)
 
@@ -106,7 +113,7 @@ export function retainingBenches(plan: Plan, origin: Vec2): Platform[] {
         id: `${BENCH_PREFIX}${w.id}:${side}`,
         include: [benchRing(w, side, Math.max(bench ?? DEFAULT_BENCH, MIN_BENCH)).map(p => toSite(p, plan.placement, origin))],
         exclude: [],
-        level: sideRL(plan, level, w.level),
+        level: sideRL(plan, level, padLevelOf(plan, w)),
         fill: true,
         margin: 0,
         // The house pad wins where they meet; a bench at the pad follows the floor when it's balanced.
@@ -131,7 +138,7 @@ function padStops(plan: Plan, level: string, outlines: Vec2[][]): Vec2[][] {
   const inHouse = (p: Vec2) => outlines.some(r => pointInPolygon(p[0], p[1], r))
   const out: Vec2[][] = []
   for (const w of plan.walls) {
-    if (!isRetaining(w) || w.level !== level) continue
+    if (!isRetaining(w) || padLevelOf(plan, w) !== level) continue
     const d = wallDir(w)
     const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])
     if (len < 1e-3) continue
@@ -200,7 +207,7 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     const open = openWallOutlines(plan, lv.id, outlines)
     if (outlines.length || open.length) {
       const stops = padStops(plan, lv.id, outlines)
-      out.push({ id: padId(plan, lv.id), include: [...outlines, ...open].map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - FLOOR_STRUCTURE, fill: true })
+      out.push({ id: padId(plan, lv.id), include: [...outlines, ...open].map(site), exclude: [...piers, ...stops, ...below].map(site), level: floor - slabBedOf(plan), fill: true, pad: true })
     }
     if (piers.length) {
       out.push({ id: piersId(plan, lv.id), include: piers.map(site), exclude: below.map(site), level: floor - FLOOR_STRUCTURE - ew.subfloor, fill: false })
@@ -214,6 +221,66 @@ export function earthworksPlatforms(plan: Plan, origin: Vec2): Platform[] {
     out.push({ id: slabPlatformId(a.id), include: [site(a.pts)], exclude: [], level: floorRL(plan, lv.id) + (a.top ?? 0) - SLAB_THICKNESS, fill: true })
   }
   out.push(...retainingBenches(plan, origin))
+  return out
+}
+
+/** The step between two of the house's pads where they meet: a vertical edge that has to be retained. */
+export interface PadStep {
+  /** Its line in the survey's local frame, with the lower pad on its left. */
+  a: Vec2
+  b: Vec2
+  /** The two pads (their platform ids) and their levels (RL). */
+  lowId: string
+  highId: string
+  low: number
+  high: number
+}
+
+/** Pads whose levels differ by less than this meet without a step worth a wall (m). */
+const MIN_STEP = 0.15
+/** How finely a pad's edge is read for where another pad lies beside it (m). */
+const STEP_PROBE = 0.05
+
+/**
+ * Where two of the house's pads at different levels meet (a split level's slab beside a lower
+ * one): along the lower pad's edge wherever the higher pad's own ground is just past it. The
+ * earthworks stop each pad at that line (Platform.pad), so the step is a retained edge.
+ */
+export function padSteps(platforms: Platform[]): PadStep[] {
+  const pads = platforms.filter(p => p.pad && p.id)
+  const on = (p: Platform, q: Vec2) => p.include.some(r => pointInPolygon(q[0], q[1], r)) && !p.exclude.some(r => pointInPolygon(q[0], q[1], r))
+  const out: PadStep[] = []
+  for (const low of pads) {
+    for (const high of pads) {
+      if (high.level - low.level < MIN_STEP) continue
+      for (const ring of low.include) {
+        const ccw = signedArea(ring) > 0
+        for (let i = 0; i < ring.length; i++) {
+          // Walked with the lower pad on the left.
+          const a = ccw ? ring[i] : ring[(i + 1) % ring.length]
+          const b = ccw ? ring[(i + 1) % ring.length] : ring[i]
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+          if (len < 2 * STEP_PROBE) continue
+          const d: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]
+          const n = Math.round(len / STEP_PROBE)
+          let from = -1
+          for (let k = 0; k <= n; k++) {
+            const t = ((k + 0.5) / n) * len
+            const m: Vec2 = [a[0] + d[0] * t, a[1] + d[1] * t]
+            // Outward is to the right. The lower pad just inside the edge, the higher one just outside.
+            const step = k < n && on(low, [m[0] - d[1] * 0.02, m[1] + d[0] * 0.02]) && on(high, [m[0] + d[1] * 0.02, m[1] - d[0] * 0.02])
+            if (step && from < 0) from = k
+            if (!step && from >= 0) {
+              const t0 = (from / n) * len
+              const t1 = (k / n) * len
+              if (t1 - t0 >= MIN_BENCH) out.push({ a: [a[0] + d[0] * t0, a[1] + d[1] * t0], b: [a[0] + d[0] * t1, a[1] + d[1] * t1], lowId: low.id!, highId: high.id!, low: low.level, high: high.level })
+              from = -1
+            }
+          }
+        }
+      }
+    }
+  }
   return out
 }
 

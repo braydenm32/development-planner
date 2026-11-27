@@ -3,6 +3,7 @@
 import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
+  SlabBedField,
   PlacementOriginFields,
   PlanFileBody,
   StairOptions,
@@ -113,6 +114,11 @@ export function OriginSection() {
 export function MarginSection() {
   const d = useLoaded()
   return d ? <MarginField plan={d.plan} /> : <Waiting />
+}
+
+export function SlabBedSection() {
+  const d = useLoaded()
+  return d ? <SlabBedField plan={d.plan} /> : <Waiting />
 }
 
 export function SubfloorSection() {

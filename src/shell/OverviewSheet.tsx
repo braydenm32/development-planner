@@ -15,7 +15,7 @@ import { sideLabel } from '../plan/keyNumbers'
 import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
 import { shortMoney } from '../costs/format'
-import { m2, netText } from './format'
+import { m2, netText, slabBedText } from './format'
 import { balanceWords, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers, RoofNumbers } from './useKeyNumbers'
 import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
@@ -178,7 +178,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                         )}
                       </div>
                     ) : (
-                      <p className="muted small">Cut and fill are in balance: {netText(n.earth.net)}.</p>
+                      <p className="muted small">{n.earth.bedOnly ? `The ${slabBedText(n.earth.net, n.earth.slabBed)}.` : `Cut and fill are in balance: ${netText(n.earth.net)}.`}</p>
                     )}
                   </>
                 ) : (

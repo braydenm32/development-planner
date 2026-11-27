@@ -188,13 +188,19 @@ export function ImpliedWalls({ survey, earth }: { survey: Survey; earth: Earth |
   const walls = impliedWalls(survey, earth)
   if (!walls.length) return null
   const tall = Math.max(...walls.map(w => w.height))
-  const kinds = new Set(walls.map(w => w.kind))
+  // The steps between the house's own pads are walls whatever the slopes are; the rest are vertical edges of the cut and fill.
+  const steps = walls.filter(w => w.step).length
+  const kinds = new Set(walls.filter(w => !w.step).map(w => w.kind))
   const which = kinds.size > 1 ? 'Cut and fill slopes are' : kinds.has('cut') ? 'Cut slopes are' : 'Fill slopes are'
+  const because = [
+    ...(steps ? [`The house steps between ${steps === 1 ? 'two floor levels' : 'floor levels'} that both sit on the ground`] : []),
+    ...(kinds.size ? [`${steps ? which.toLowerCase() : which} set to Retaining wall`] : []),
+  ].join(', and ')
   return (
     <section className="grade-implied" aria-label="Implied retaining walls">
       <p className="notice small">
-        {which} set to Retaining wall, so {walls.length === 1 ? 'one vertical edge is a wall' : `${walls.length} vertical edges are walls`} someone has to build, up to{' '}
-        {tall.toFixed(2)} m high (dashed on the plan).{' '}They count in Retained, the engineer count and Costs as implied walls.
+        {because}, so {walls.length === 1 ? (steps ? 'the step is a wall' : 'one vertical edge is a wall') : `${walls.length} vertical edges are walls`} someone has to build, up to{' '}
+        {tall.toFixed(2)} m high (dashed on the plan).{' '}{walls.length === 1 ? 'It counts in Retained, the engineer count, Checks and Costs as an implied wall.' : 'They count in Retained, the engineer count, Checks and Costs as implied walls.'}
       </p>
       <ol className="grade-list">
         {walls.map((s, n) => (
@@ -202,7 +208,7 @@ export function ImpliedWalls({ survey, earth }: { survey: Survey; earth: Earth |
             <div className="head">
               <span className="n implied">{n + 1}</span>
               <strong>
-                Implied wall, {sideOf(s)} side · {pathLength(s.path).toFixed(1)} m
+                {s.step ? 'Step between floor levels' : `Implied wall, ${sideOf(s)} side`} · {pathLength(s.path).toFixed(1)} m
               </strong>
               <span className={s.engineer ? 'warn-text' : 'muted'}>{s.height.toFixed(2)} m</span>
             </div>

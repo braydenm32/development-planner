@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react'
 import { ACCURACY_TITLE, CONTACT_EMAIL, STORAGE_LIMIT_MB } from './caveat'
 import type { PageId } from '../nav/route'
+import { ENGINEER_SOURCE, ENGINEER_TEXT } from '../checks/engineer'
 
 /** A heading and what's under it, as one section, so a long page can be scanned. */
 const S = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
@@ -203,7 +204,7 @@ export function Accuracy() {
       </S>
       <S id="retaining" title="Retaining walls">
         <p><b>Good for:</b> seeing where walls are likely, and about how tall.</p>
-        <p><b>Limits:</b> heights are measured from the modelled ground. The planner flags any wall over 1.0 m as needing an engineer. Walls under that can still need design, drainage and, in some places, approval. We don’t design walls, footings or drainage.</p>
+        <p><b>Limits:</b> heights are measured from the modelled ground. The planner flags any wall holding back over {ENGINEER_TEXT} as needing an engineer’s certificate, the {ENGINEER_SOURCE} figure, and uses it everywhere; a council’s own rule for a DA can differ, and Approvals › Checks says so where it does. Walls under that can still need design, drainage and, in some places, approval. We don’t design walls, footings or drainage.</p>
       </S>
       <S id="checks" title="Planning checks">
         <p><b>Good for:</b> a first look at whether the plan is near the NSW Housing Code (Complying Development) limits, or one council’s local rules (Wollongong so far): setbacks, height, floor area, storeys, landscaping, earthworks and retaining walls, tree protection.</p>

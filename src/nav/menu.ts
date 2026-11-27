@@ -738,6 +738,13 @@ export const AREAS: Area[] = [
           features: ['earthworks-margin'],
         },
         {
+          id: 'slab-bed',
+          label: 'Depth dug under a slab',
+          icon: 'shovel',
+          keywords: ['slab bed', 'site scrape', 'slab thickness', 'build-up', 'waffle pod', 'house pad', 'strip topsoil'],
+          features: ['earthworks-slab-bed'],
+        },
+        {
           id: 'subfloor-gap',
           label: 'Gap under floors on piers',
           icon: 'floors',
