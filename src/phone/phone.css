@@ -751,6 +751,15 @@ body:has(.app-shell.phone) {
   font-size: 15px;
 }
 
+/* On the narrowest phones every view still fits: a name goes to two lines rather than pushing
+   the last one out of the group, which clips it (final check, problem 2). */
+.app-shell.phone .preset-group button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.1;
+  text-align: center;
+}
+
 /* ---- Sheets that follow the finger ---- */
 
 .app-shell.phone .tab-panel::before,
