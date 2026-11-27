@@ -1,5 +1,6 @@
 // Design › Floors, Rooms & areas, Roofs and Furniture, from the plan's sections (src/components/PlanSections.tsx).
 
+import { FurnitureOnPlan, WallsDoorsBody } from '../../a11y/PlanLists'
 import { FurniturePicker } from '../../components/FurniturePanel'
 import { AreasBody, LevelsBody } from '../../components/LevelsPanel'
 import { useMemo } from 'react'
@@ -20,6 +21,12 @@ export function FloorsTab() {
 export function RoomsTab() {
   const d = useLoaded()
   return d ? <AreasBody plan={d.plan} /> : <Waiting />
+}
+
+/** Walls, doors and windows, and stairs as lists, with ways to add by typing (src/a11y/PlanLists.tsx). */
+export function WallsTab() {
+  const d = useLoaded()
+  return d ? <WallsDoorsBody plan={d.plan} /> : <Waiting />
 }
 
 const ROOF_NAMES = { hip: 'Hip roof', gable: 'Gable roof', skillion: 'Skillion roof', flat: 'Flat roof' }
@@ -87,13 +94,16 @@ export function FurnitureTab() {
   const d = useLoaded()
   if (!d) return <Waiting />
   return (
-    // Picking a piece picks the Furniture tool, ready to click on the plan.
-    <div
-      onClickCapture={e => {
-        if ((e.target as HTMLElement).closest('.furniture-items button')) pickTool('furniture')
-      }}
-    >
-      <FurniturePicker />
-    </div>
+    <>
+      {/* Picking a piece picks the Furniture tool, ready to click on the plan. */}
+      <div
+        onClickCapture={e => {
+          if ((e.target as HTMLElement).closest('.furniture-items button')) pickTool('furniture')
+        }}
+      >
+        <FurniturePicker />
+      </div>
+      <FurnitureOnPlan plan={d.plan} />
+    </>
   )
 }

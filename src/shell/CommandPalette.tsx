@@ -8,6 +8,8 @@ import { shortcutText } from '../nav/keys'
 import { useModal } from '../nav/useModal'
 import { buildIndex, search, suggestions, withoutCloud, type Feature, type SearchItem } from '../nav/search'
 import { useCloud } from '../cloud/state'
+import { resultCountWords } from '../a11y/announce'
+import '../a11y/a11y.css'
 
 let loaded: Feature[] | null = null
 
@@ -143,6 +145,10 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             </li>
           ))}
         </ul>
+        {/* How many matched, said as the list changes (the list itself is silent until an arrow key moves through it). */}
+        <div className="a11y-hidden" role="status">
+          {query.trim() ? resultCountWords(results.length) : ''}
+        </div>
         <div className="palette-foot muted">
           <span>
             <kbd>↑</kbd>

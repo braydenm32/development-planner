@@ -66,11 +66,17 @@ import { projectsNow } from '../projects/session'
 import { projectTitle } from '../share/project'
 import { showToast } from '../safety/store'
 import { ErrorBoundary } from './ErrorBoundary'
+import { Announcer } from '../a11y/Announcer'
+import { useAnnounceResults } from '../a11y/announceResults'
+import { SkipLinks } from '../a11y/SkipLinks'
+import { netText } from './format'
 import { StepsPanel } from '../steps/StepsPanel'
 import { openSteps, toggleSteps, useStepsPanel } from '../steps/store'
 import './fonts.css'
 import './shell.css'
 import '../phone/phone.css'
+// After the phone's rules, which it adjusts for a window both short and narrow (400% zoom).
+import '../a11y/reflow.css'
 
 /** The plan's tool rail and a little room beside it, from the canvas's left edge (px): shell.css's rail at its --gap. */
 const RAIL_CLEAR = { desk: 80, phone: 72 }
@@ -319,6 +325,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
   return (
     <ShellContext.Provider value={data}>
       <div ref={shellRef} className={`app-shell${phone ? ' phone' : ''}${presenting ? ' presenting' : ''}`}>
+        <SkipLinks />
         <AreaNav route={route} go={r => navigate(r)} variant="rail" />
         {route.kind === 'projects' ? (
           <>
@@ -350,6 +357,7 @@ export function AppShell({ data: app, canvas, projectsHome }: Props) {
         <AreaNav route={route} go={r => navigate(r)} variant="bottom" />
         {fileInputs}
         <KeyboardHelp />
+        <Announcer />
         {palette && <CommandPalette choose={choose} run={item => item.entry.action && run(item.entry.action)} onClose={closePalette} />}
         {toast && (
           <div key={toast.n} className="toast" role="status">
@@ -765,6 +773,13 @@ function NumbersHost({
   useEffect(() => setQuestionFacts(facts), [facts])
   const estimate = useEstimate(d)
   const cost = useMemo(() => costHeadline(estimate), [estimate])
+  // What changed after an edit is said to screen readers, once it holds still (src/a11y/announce.ts).
+  useAnnounceResults(
+    drawn
+      ? { checks: `${verdict.name} checks: ${verdict.head}`, balance: numbers.earth?.outOfBalance ? `Out of balance, ${netText(numbers.earth.net)}` : null, batters: numbers.batters ?? null, site: siteChecks }
+      : null,
+    projectsNow().opened?.id ?? '',
+  )
   const shown: Partial<Record<NumberId, string>> = {}
   if (showPanel) for (const id of tabShows ?? []) shown[id] = 'in the panel'
   // The level chip on the plan shows the ground floor's RL while you draw on it.

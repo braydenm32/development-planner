@@ -9,7 +9,7 @@ import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
 import { OptionsTab } from '../options/OptionsTab'
-import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
+import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab, WallsTab } from './tabs/DesignTabs'
 import { FlipPlanSection } from '../components/TransformTools'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
@@ -31,6 +31,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'site/sun': SiteSunTab,
   'design/floors': FloorsTab,
   'design/rooms': RoomsTab,
+  'design/walls': WallsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
   'design/sections': SectionsTab,

@@ -85,7 +85,7 @@ import { garageDoorSymbol } from '../plan/garageDoor'
 import { SetbackLines, SetbacksKey } from './SetbackLines'
 import { ShadowPlanLayer, ShadowsKey } from '../sun/ShadowPlan'
 import { useTouchCanvas } from '../phone/device'
-import { boundsOf, clampToBounds, DOUBLE_TAP_ZOOM, isDoubleTap, pinchView, TAP_SLOP, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
+import { boundsOf, clampToBounds, DOUBLE_TAP_ZOOM, isDoubleTap, panBy, pinchView, TAP_SLOP, zoomAbout, zoomStep, type Pt, type Tap } from '../phone/gestures'
 import { isPlace, loadPlanView, savePlanView, usePlanZoom, wheelZoom, zoomPlan } from '../plan/viewMemory'
 import { centreWithBlockStill, draggedPlacement } from '../plan/placement'
 import { ZoomButtons } from './ZoomButtons'
@@ -114,6 +114,8 @@ import { useCommentsPlan } from '../comments/PlanComments'
 import { DrainageLayer } from '../drainage/DrainageLayer'
 import { DrivewayArrows } from './DrivewayArrows'
 import { costsUndoKey } from '../costs/store'
+import { KEY_PAN, PLAN_CANVAS } from '../a11y/planCanvas'
+import { PlanWords } from '../a11y/PlanWords'
 import './editing.css'
 
 interface View {
@@ -1932,6 +1934,16 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
         zoomPlan(-1)
         return
       }
+      // Arrows with nothing picked (or nothing that can move, where the plan is read) move the view,
+      // Shift further, so the plan can be looked over without a pointer (WCAG 2.1.1).
+      const pan = ARROW_KEYS[e.key]
+      if (pan && (!st.selection || viewOnly) && !chain.length && !areaPts.length) {
+        e.preventDefault()
+        const step = e.shiftKey ? KEY_PAN.big : KEY_PAN.step
+        setView(clampToBounds(panBy(v, rho, [-pan[0] * step, -pan[1] * step]), panBounds))
+        settle()
+        return
+      }
       // View on a phone changes nothing; Esc still clears the selection.
       if (viewOnly && e.key !== 'Escape') return
       // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
@@ -2365,8 +2377,10 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
 
   return (
     <div className={`plan-editor${viewOnly ? ' view-only' : ''}`}>
+      <PlanWords plan={plan} level={level} changes={!viewOnly} />
       <svg
         ref={svgRef}
+        {...PLAN_CANVAS}
         className={`plan-svg tool-${tool}${site.active ? ' site-tool' : ''}${flow.active || sections.active || (brush.active && !brush.painting) ? ' flow-picking' : ''}${brush.painting ? ' grade-brush' : ''}${askingStreet && streetHover !== null ? ' street-hover' : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

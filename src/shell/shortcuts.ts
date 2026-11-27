@@ -34,11 +34,13 @@ export const SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'View',
     rows: [
-      { keys: ['+'], what: 'Zoom in' },
+      { keys: ['+'], what: 'Zoom in (the plan, or the 3D view)' },
       { keys: ['-'], what: 'Zoom out' },
+      { keys: ['arrows'], what: 'Move the plan when nothing is picked (Shift: further); in the 3D view, turn and tilt it' },
       { keys: ['0'], what: 'Fit the house' },
       { keys: ['shift+0'], what: 'Fit the block' },
       { keys: ['PageUp', 'PageDown'], what: 'Draw on the level above or below' },
+      { keys: ['Tab'], what: 'From the top of the page: skip to the panel, the plan tools, the plan or the selection. The tool rail is one stop; arrows move along it' },
       { keys: ['mod+K'], what: 'Search everything' },
       { keys: ['?'], what: 'This list' },
     ],
