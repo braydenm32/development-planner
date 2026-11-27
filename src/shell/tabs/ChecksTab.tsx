@@ -26,6 +26,7 @@ import { usePlan } from '../../plan/store'
 import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
+import { usePhone } from '../../phone/device'
 import { goToStreetSide } from '../../phone/streetSideWords'
 import { DriveFromSlab } from '../../components/DriveFromSlab'
 import '../../checks/checks.css'
@@ -49,6 +50,7 @@ function drawDriveway() {
 }
 
 function Checks({ d }: { d: Loaded }) {
+  const phone = usePhone()
   const c = useChecks(d.plan, d.survey, d.terrain, d.earth)
   const unsized = useUnsizedTrees()
   const groups = useMemo(() => groupChecks(c.results), [c.results])
@@ -100,7 +102,8 @@ function Checks({ d }: { d: Loaded }) {
   return (
     <div className="checks">
       <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />
-      <RouteControl c={c} />
+      {/* A phone's sheet shows a few lines: the verdict leads them, and the route picker follows it (PH-33). */}
+      {!phone && <RouteControl c={c} />}
       <section className="checks-verdict" aria-live="polite" aria-label="What the checks say">
         <h4>
           <span className="cv-route">{route}:</span>{' '}
@@ -115,6 +118,7 @@ function Checks({ d }: { d: Loaded }) {
         <MiniPlan ms={c.measures} />
         {pins.length > 0 && <p className="muted small checks-mini-hint">Tap a pin to see that check in the list.</p>}
       </section>
+      {phone && <RouteControl c={c} />}
       {c.pathway === 'cdc' && (
         <p className="checks-land" role="note">
           {c.planning ? CDC_LAND_MAPPED : CDC_LAND}

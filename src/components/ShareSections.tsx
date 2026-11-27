@@ -269,15 +269,16 @@ export function PdfSketchToggle({ on, onChange }: { on: boolean; onChange: (on: 
 }
 
 /** What the plan set holds, behind "What's in it". */
-export function PlansContents() {
+export function PlansContents({ children }: { children?: ReactNode }) {
   return (
     <details className="sh-whats">
-      <summary>What’s in it</summary>
+      <summary>{children ? 'What’s in it, and pages to leave out' : 'What’s in it'}</summary>
       <p className="muted small">
         A site plan with boundary distances, key numbers and the site features (with a key, and what to check with council), a floor plan for each level with
         wall lengths, a roof plan, the sections and elevations, and a shadow diagram for 21 June at 9 am, 12 pm and 3 pm, all to a printed scale. The plans
         have a north arrow that follows the view.
       </p>
+      {children}
     </details>
   )
 }
@@ -309,25 +310,20 @@ export function FloorScaleSelect(p: Pick<PdfInput, 'plan' | 'up' | 'paper' | 'pd
   )
 }
 
-/**
- * Share › Plans: the caveat first, the pages as ticks (a page with nothing drawn says so and
- * can't be ticked), then Paper and the floor plan scale beside Download PDF, and what the set
- * holds behind a fold.
- */
-export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; onFloorScale: (s: FloorScale) => void; furniture: ReactNode }) {
-  const [pdfError, setPdfError] = useState<string | null>(null)
+/** The line that leads the plan set, on a computer and on a phone alike (PH-23). */
+export function PlansCaveat() {
+  return (
+    <p className="sh-lede">
+      <b>Concept plans, not for building or lodging.</b> A set to scale for your builder, designer or a first talk with council.
+    </p>
+  )
+}
+
+/** The pages of the plan set, each with a switch to leave it out; `furniture` adds its own switches under them. */
+export function PdfPages(p: Pick<PdfInput, 'plan' | 'survey' | 'leaveOut'> & { onLeaveOut: (keys: string[]) => void; furniture: ReactNode }) {
   const leaveOut = p.leaveOut ?? []
   const pages = useMemo(() => planPages(p.plan), [p.plan])
-  const ticked = pages.filter(x => x.drawn && !leaveOut.includes(x.key)).length
   const tick = (key: string, on: boolean) => p.onLeaveOut(on ? leaveOut.filter(k => k !== key) : [...leaveOut, key])
-  const downloadPdf = () => {
-    setPdfError(null)
-    try {
-      toastDownloaded(savePlansPdf(p))
-    } catch (err) {
-      setPdfError((err as Error).message || 'The plans could not be drawn.')
-    }
-  }
   // The section under the plan (in Design and Earthworks) is a way of looking, not a section line:
   // one click keeps it as Section A–A, which the PDF then draws.
   const hasHouse = pages.some(x => x.key === 'elevation' && x.drawn)
@@ -343,30 +339,51 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
     })
   }
   return (
+    <fieldset className="pdf-pages">
+      <legend>Pages</legend>
+      {pages.map(x => (
+        <Fragment key={x.key}>
+          <label className={`check${x.drawn ? '' : ' undrawn'}`}>
+            <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
+            <span>
+              {x.label}
+              {!x.drawn && <span className="muted"> {x.key === 'section' ? '(no section line yet)' : '(not drawn yet)'}</span>}
+            </span>
+          </label>
+          {x.key === 'section' && !x.drawn && hasHouse && (
+            <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the section shown under the plan in Design as Section A–A, so it prints">
+              Use the section under the plan
+            </button>
+          )}
+        </Fragment>
+      ))}
+      {p.furniture}
+    </fieldset>
+  )
+}
+
+/**
+ * Share › Plans: the caveat first, the pages as ticks (a page with nothing drawn says so and
+ * can't be ticked), then Paper and the floor plan scale beside Download PDF, and what the set
+ * holds behind a fold.
+ */
+export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; onFloorScale: (s: FloorScale) => void; furniture: ReactNode }) {
+  const [pdfError, setPdfError] = useState<string | null>(null)
+  const leaveOut = p.leaveOut ?? []
+  const pages = useMemo(() => planPages(p.plan), [p.plan])
+  const ticked = pages.filter(x => x.drawn && !leaveOut.includes(x.key)).length
+  const downloadPdf = () => {
+    setPdfError(null)
+    try {
+      toastDownloaded(savePlansPdf(p))
+    } catch (err) {
+      setPdfError((err as Error).message || 'The plans could not be drawn.')
+    }
+  }
+  return (
     <>
-      <p className="sh-lede">
-        <b>Concept plans, not for building or lodging.</b> A set to scale for your builder, designer or a first talk with council.
-      </p>
-      <fieldset className="pdf-pages">
-        <legend>Pages</legend>
-        {pages.map(x => (
-          <Fragment key={x.key}>
-            <label className={`check${x.drawn ? '' : ' undrawn'}`}>
-              <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
-              <span>
-                {x.label}
-                {!x.drawn && <span className="muted"> {x.key === 'section' ? '(no section line yet)' : '(not drawn yet)'}</span>}
-              </span>
-            </label>
-            {x.key === 'section' && !x.drawn && hasHouse && (
-              <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the section shown under the plan in Design as Section A–A, so it prints">
-                Use the section under the plan
-              </button>
-            )}
-          </Fragment>
-        ))}
-        {p.furniture}
-      </fieldset>
+      <PlansCaveat />
+      <PdfPages plan={p.plan} survey={p.survey} leaveOut={p.leaveOut} onLeaveOut={p.onLeaveOut} furniture={p.furniture} />
       <div className="pdf-go">
         <label className="pdf-paper">
           <span>Paper</span>

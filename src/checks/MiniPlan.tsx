@@ -54,6 +54,8 @@ export function MiniPlan({ ms }: { ms: Measures }) {
         const [x, y] = P(target.at)
         return (
           <g key={p.id} className={`ck-pin ${p.word}${p.id === shown ? ' on' : ''}`} transform={`translate(${(x + same * 18).toFixed(1)} ${y.toFixed(1)})`} role="button" tabIndex={0} aria-label={`${p.n}: ${p.title}`} onClick={() => revealCheck(p.id)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && revealCheck(p.id)}>
+            {/* A thumb-sized target round the pin on a touch screen (PH-26): a rect, so the pin's circle styles leave it alone. */}
+            <rect className="ck-hit" x={-22} y={-22} width={44} height={44} />
             <circle r={9} />
             <text dy="0.35em">{p.n}</text>
           </g>

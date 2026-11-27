@@ -91,6 +91,8 @@ export function ChecksMarks(props: Props & { pins: Pin[]; targets: Record<string
           }}
         >
           <title>{`${p.n}. ${p.title}`}</title>
+          {/* A thumb-sized target round the pin on a touch screen (PH-26): a rect, so the pin's circle styles leave it alone. */}
+          <rect className="ck-hit" x={-22} y={-22} width={44} height={44} />
           <circle r={11} />
           <text dy="0.35em">{p.n}</text>
         </g>
