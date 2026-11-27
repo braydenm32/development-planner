@@ -22,14 +22,25 @@ export interface SharedProject {
   site: SiteRecord | null
 }
 
-/** Why a shared project can't show: the link is off (or wrong), too many tries, offline, or something else. */
-export type SharedTrouble = { kind: 'off' | 'slow' | 'offline' | 'broken'; message: string }
+/** Why a shared project can't show: the link is off (or wrong), cut short, too many tries, offline, or something else. */
+export type SharedTrouble = { kind: 'off' | 'incomplete' | 'slow' | 'offline' | 'broken'; message: string }
+
+/** A share link that can't be read at all (cut short by an email program, or mangled): nothing is asked of the server. */
+export const INCOMPLETE_LINK: SharedTrouble = {
+  kind: 'incomplete',
+  message: 'Part of the link is missing or has changed on the way, so it doesn’t open anything. Check it against the one you were sent, or ask the person who sent it for a new link.',
+}
+
+/** What the visitor reads when the plans can't be loaded for a reason of the server's or the network's. */
+export const BROKEN_TEXT = 'The plans couldn’t be loaded just now. Try again in a minute, or ask the person who sent the link for a new one.'
 
 export function troubleOf(e: unknown): SharedTrouble {
   if (isOffline(e)) return { kind: 'offline', message: 'You’re offline. Connect to the internet and try again.' }
   if (e instanceof CloudError && e.status === 404 && e.code === 'link-off') return { kind: 'off', message: e.message }
   if (e instanceof CloudError && e.status === 429) return { kind: 'slow', message: e.message }
-  return { kind: 'broken', message: (e as Error)?.message || 'This shared project couldn’t be opened. Try again.' }
+  // Whatever else went wrong is the program's to know: the person sent the link reads plain words,
+  // never an error's own (a parser's "Unexpected token '<'" when a web page came back instead of the plans).
+  return { kind: 'broken', message: BROKEN_TEXT }
 }
 
 /**

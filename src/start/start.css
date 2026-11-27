@@ -357,6 +357,11 @@
   color: var(--st-muted);
 }
 
+/* The project's name is words, not a measurement. */
+.st-field.st-name input {
+  font-variant-numeric: normal;
+}
+
 .st-seg {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

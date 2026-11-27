@@ -2,6 +2,9 @@
 // plan's own does. So it also leaves a "file step" here: until anything else changes, the top
 // bar's Undo and ⌘Z take the whole replace back (survey, plan and site features together), the
 // same as the toast's Undo, rather than only the plan's half of it.
+//
+// Opening the example or a project file leaves one too (`opened`), so their Undo isn't only in a
+// toast that goes after a few seconds: it stays on the top bar's Undo until the next change.
 
 import { create } from 'zustand'
 import type { Plan } from '../plan/model'
@@ -16,6 +19,11 @@ export interface FileStep {
   /** The plan and site features just after it; any later change to either ends the step. */
   plan: Plan | null
   site: SiteData
+  /**
+   * It opened the project it is in (the example, a project file). The project settling in as it
+   * opens isn't a change, so this one ends with the first undo step made in it instead.
+   */
+  opened?: boolean
   undo: () => Promise<void> | void
 }
 
@@ -34,7 +42,8 @@ export const forgetFileStep = () => useFileStep.setState({ step: null })
 export function fileStepNow(): FileStep | null {
   const s = useFileStep.getState().step
   if (!s) return null
-  if (s.project !== projectsNow().currentId || s.plan !== usePlan.getState().plan || s.site !== useSiteStore.getState().data) return null
+  if (s.project !== projectsNow().currentId) return null
+  if (!s.opened && (s.plan !== usePlan.getState().plan || s.site !== useSiteStore.getState().data)) return null
   return s
 }
 
@@ -49,9 +58,11 @@ export async function undoFileStep() {
 // Anything else done since ends it, so a later Undo is that thing's.
 usePlan.subscribe((st, prev) => {
   const s = useFileStep.getState().step
-  if (s && st.plan !== prev.plan && st.plan !== s.plan) forgetFileStep()
+  if (!s) return
+  if (s.opened ? st.past.length > prev.past.length : st.plan !== prev.plan && st.plan !== s.plan) forgetFileStep()
 })
 useSiteStore.subscribe((st, prev) => {
   const s = useFileStep.getState().step
-  if (s && st.data !== prev.data && st.data !== s.site) forgetFileStep()
+  if (!s) return
+  if (s.opened ? st.past.length > prev.past.length : st.data !== prev.data && st.data !== s.site) forgetFileStep()
 })

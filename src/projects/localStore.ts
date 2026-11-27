@@ -4,6 +4,7 @@ import {
   newProjectId,
   NotArchivedError,
   ProjectNotFoundError,
+  StaleProjectError,
   type NewProject,
   type ProjectChange,
   type ProjectMeta,
@@ -149,6 +150,8 @@ export function createLocalProjectStore(opts: { db?: UseStore; now?: () => numbe
         after(s.get(META + id), fail, prev => {
           const old = prev as ProjectMeta | undefined
           if (!old) return fail(new ProjectNotFoundError(id))
+          // Another tab saved an edit since this writer last looked: nothing is written.
+          if (change.ifEdits !== undefined && (old.edits ?? 0) > change.ifEdits) return fail(new StaleProjectError(old))
           for (const [k, v] of Object.entries(change.records ?? {})) {
             if (v === null) s.delete(recKey(id, k))
             else if (v !== undefined) s.put(v, recKey(id, k))
@@ -160,6 +163,7 @@ export function createLocalProjectStore(opts: { db?: UseStore; now?: () => numbe
             created: old.created,
             revision: old.revision + 1,
             updated: change.touch === false ? old.updated : Math.max(now(), old.updated),
+            ...(change.touch === false ? {} : { edits: (old.edits ?? 0) + 1 }),
           }
           s.put(meta, META + id)
           ok(meta)
@@ -186,7 +190,7 @@ export function createLocalProjectStore(opts: { db?: UseStore; now?: () => numbe
           if ((old?.revision ?? null) !== ifRevision) return ok(null)
           s.delete(recRange(id))
           for (const [k, v] of Object.entries(records)) if (v !== undefined && v !== null) s.put(v, recKey(id, k))
-          const next: ProjectMeta = { ...meta, id, revision: (old?.revision ?? 0) + 1 }
+          const next: ProjectMeta = { ...meta, id, revision: (old?.revision ?? 0) + 1, edits: (old?.edits ?? 0) + 1 }
           s.put(next, META + id)
           ok(next)
         })

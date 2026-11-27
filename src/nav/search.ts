@@ -79,6 +79,22 @@ export function buildIndex(features: Feature[]): SearchItem[] {
   return out
 }
 
+const cloudFeature = (id: string) => id.startsWith('cloud-')
+
+/**
+ * The index for a copy of the app with no cloud (GitHub Pages, or the Worker not running):
+ * commands and features that only exist signed in (uploading projects, the recovery code, cloud
+ * space…) would lead nowhere there, so they are left out. "Sign in and cloud saves" stays: chosen,
+ * it says that signing in isn't available on this copy.
+ */
+export function withoutCloud(index: SearchItem[]): SearchItem[] {
+  return index.filter(item => {
+    if (item.kind === 'feature') return !cloudFeature(item.featureId ?? '')
+    if (item.action === 'cloud') return true
+    return !(item.entry.features.length > 0 && item.entry.features.every(cloudFeature))
+  })
+}
+
 /** A feature as a short row: its name without the asides in brackets, cut at a word near 60 characters. */
 export function featureLabel(name: string): string {
   const plain = name.replace(/\s*\([^)]*\)?/g, '').replace(/\s+/g, ' ').trim() || name

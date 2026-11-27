@@ -29,10 +29,10 @@ import { OverviewSheet } from '../../shell/OverviewSheet'
 import { SummaryStrip } from '../../shell/SummaryStrip'
 import { useKeyNumbers, type KeyNumbers } from '../../shell/useKeyNumbers'
 import { useSiteStore } from '../../site/store'
-import { readShareHash, shareHash, shareUrl, shortLink } from '../address'
+import { isShareHash, readShareHash, shareHash, shareKey, shareUrl, shortLink } from '../address'
 import { onDay } from '../../projects/format'
-import { createShareApi, type ShareApi, type ShareLink } from '../api'
-import { loadShared, troubleOf } from '../load'
+import { BadAnswerError, createShareApi, type ShareApi, type ShareLink } from '../api'
+import { BROKEN_TEXT, INCOMPLETE_LINK, loadShared, troubleOf } from '../load'
 import { sharedPlan, showReadOnly, stopReadOnly } from '../readOnly'
 import { NO_CLOUD_LINKS, ShareLinksBody, WHO_SEES } from '../ShareLinks'
 import { Trouble, Viewer } from '../SharedView'
@@ -165,7 +165,28 @@ describe('opening a shared project with only its token', () => {
     expect(troubleOf(wrong)).toMatchObject({ kind: 'off' })
     expect(troubleOf(new CloudError(429, { error: 'slow-down', message: 'Too many tries.' }))).toEqual({ kind: 'slow', message: 'Too many tries.' })
     expect(troubleOf(new OfflineError()).kind).toBe('offline')
-    expect(troubleOf(new Error('boom'))).toEqual({ kind: 'broken', message: 'boom' })
+    // Anything else is said in plain words, never the error's own.
+    expect(troubleOf(new Error('boom'))).toEqual({ kind: 'broken', message: BROKEN_TEXT })
+  })
+
+  // LF-25, PH-31: a web page where the answer should be (a wifi sign-in page, a host's error page
+  // with status 200) reached the visitor as "Unexpected token '<', "<!doctype "... is not valid JSON".
+  it('says the plans couldn’t be loaded when the server answers with a web page, not the parser’s error', async () => {
+    const page = async () => new Response('<!doctype html><html><body>Sign in to the wifi</body></html>', { status: 200, headers: { 'content-type': 'text/html' } })
+    const api = createShareApi({ base: 'https://planner.example/api/', fetch: page })
+    const err = await loadShared(api, TOKEN).catch(e => e)
+    expect(err).toBeInstanceOf(BadAnswerError)
+    expect((err as Error).message).not.toMatch(/token|JSON|doctype/i)
+    const trouble = troubleOf(err)
+    expect(trouble).toEqual({ kind: 'broken', message: BROKEN_TEXT })
+    const html = renderToStaticMarkup(<Trouble trouble={trouble} retry={() => {}} />)
+    expect(words(html)).toContain('The plans couldn’t be loaded just now. Try again in a minute, or ask the person who sent the link for a new one.')
+    expect(words(html)).not.toMatch(/Unexpected|JSON|doctype/)
+    expect(buttons(html)).toEqual(['Try again'])
+    // The card has a way out: the planner's front page.
+    expect(html).toMatch(/<a href="[^"#]*">Contour &amp; Gable<\/a>/)
+    // The owner's calls say it plainly too.
+    await expect(api.list('p_x')).rejects.toBeInstanceOf(BadAnswerError)
   })
 
   it('lasts the length asked for, can be extended, and says it has ended once it has', async () => {
@@ -321,6 +342,26 @@ describe('a plain page when the link is off or wrong', () => {
     expect(words(html)).toContain('This link isn’t working')
     expect(words(html)).toContain('It may have been turned off, or copied wrong.')
     expect(words(html)).toContain('Ask the person who sent it for a new link.')
+    expect(buttons(html)).toEqual([])
+    expect(words(html)).not.toMatch(/sign in/i)
+  })
+
+  // LF-26: #/view/abc (cut short by an email program) used to open the visitor's own project, with nothing said.
+  it('counts any address under #/view/ as a share link, and says when it can’t be read', () => {
+    for (const h of ['#/view/abc', '#/view/', '#/view', `#/view/${TOKEN}/more`, `#/view/${TOKEN}%20`, `#/view/${'x'.repeat(200)}`, '#/view/abc?view=3d']) {
+      expect(readShareHash(h), h).toBeNull()
+      expect(isShareHash(h), h).toBe(true)
+      expect(shareKey(h), h).toBe('broken')
+    }
+    for (const h of ['', '#/design/plan', '#/projects', '#/viewer', '#/design/plan?view=plan']) {
+      expect(isShareHash(h), h).toBe(false)
+      expect(shareKey(h), h).toBeNull()
+    }
+    expect(shareKey(`#/view/${TOKEN}?view=3d`)).toBe(TOKEN)
+    const html = renderToStaticMarkup(<Trouble trouble={INCOMPLETE_LINK} retry={() => {}} />)
+    expect(words(html)).toContain('This link isn’t complete or has expired')
+    expect(words(html)).toContain('ask the person who sent it for a new link')
+    // Nothing to try again: the link itself is the trouble.
     expect(buttons(html)).toEqual([])
     expect(words(html)).not.toMatch(/sign in/i)
   })

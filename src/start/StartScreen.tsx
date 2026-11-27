@@ -13,6 +13,8 @@ import { LegalFooter } from '../legal/LegalFooter'
 import { AddressStart } from '../map/AddressStart'
 import '../legal/legal.css'
 import { askSurveyor } from '../safety/files'
+import { NAME_MAX } from '../projects/ops'
+import { projectsNow } from '../projects/session'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
 import { SurveyorRequest } from '../safety/SurveyorRequest'
@@ -126,6 +128,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   const [depth, setDepth] = useState('')
   const [fall, setFall] = useState('')
   const [street, setStreet] = useState<StreetSide>('S')
+  // What to call the project (optional): a sketch has no file or address to take a name from.
+  const [name, setName] = useState('')
 
   // Esc goes back, wherever focus is, unless a review is open over this screen.
   const cancel = useRef(onCancel)
@@ -155,7 +159,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
       setSketchError((e as Error).message)
       return
     }
-    startSketch(block, into).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
+    startSketch(block, into, name).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
   }
 
   return (
@@ -254,6 +258,12 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                 sketch()
               }}
             >
+              <label className="st-label" htmlFor="st-name">
+                Project name <span className="st-opt">(optional)</span>
+              </label>
+              <label className="st-field st-name">
+                <input id="st-name" autoComplete="off" maxLength={NAME_MAX} placeholder={projectsNow().list.length ? 'New house' : 'My house'} value={name} onChange={e => setName(e.target.value)} title="What to call this project. You can rename it any time under All projects." />
+              </label>
               <span className="st-label" id="st-size">
                 Block width × depth <span className="st-opt">(optional)</span>
               </span>

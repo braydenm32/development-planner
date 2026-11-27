@@ -17,8 +17,9 @@ import { m2 } from '../../shell/format'
 import { SKETCH_DATUM } from '../../start/sketch'
 import { fitOnBlock, groundAtHouse, placeOnSketch } from '../align'
 import { detectFile, readSite } from '../files'
-import { duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
-import { undoToast, useSafety, type Review } from '../store'
+import { deleteWithUndo, duplicateWithUndo, importPlan, newPlan, openRead, replaceSurvey, startSketch } from '../flows'
+import { dismissToast, undoToast, useSafety, type Review } from '../store'
+import { undoTarget } from '../../shell/undoTarget'
 
 // Synthetic blocks only: the tilted-plane test block, sketch blocks, and the test garage.
 
@@ -115,6 +116,19 @@ describe('starting without a survey', () => {
     // what's drawn spans 9.8 × 16.45 m (wall centrelines and the patio), plus 6 m each side, rounded up: 22 × 29 m
     expect(opened.survey!.sketch).toMatchObject({ width: 22, depth: 29 })
     expect(useSafety.getState().toast?.text).toMatch(/on a sketch block 22 × 29 m/)
+  })
+
+  // HO-36: a sketch has no file to take a name from, so every one was "My house" or "New house".
+  it('names the project as typed on the start screen, and falls back to New house', async () => {
+    const current = () => projectsNow().list.find(m => m.id === projectsNow().currentId)!
+    await startSketch(SKETCH, 'new', '  Beach shack  ')
+    expect(current().name).toBe('Beach shack')
+    // The plan carries the same name (title blocks, file names).
+    expect(plan().name).toBe('Beach shack')
+    await startSketch(SKETCH, 'new', 'Beach shack')
+    expect(current().name).toBe('Beach shack 2')
+    await startSketch(SKETCH, 'new', '   ')
+    expect(current().name).toMatch(/^New house/)
   })
 })
 
@@ -346,6 +360,41 @@ describe('Open project file', () => {
     expect(projectsNow().list.find(m => m.id === opened.id)?.archived).toBe(true)
   })
 
+  // AX-12: the toast's Undo goes after twelve seconds; the top bar's stays until the next change.
+  it('keeps Undo on the top bar after the toast has gone, until something is changed', async () => {
+    const first = await garageOnPlane()
+    const done = openRead(detectFile('their-house.project.json', projectFileText(plane('their-survey.dxf'), { ...garageFloor(), name: 'Their house' })))
+    ;(await review()).answer('ok')
+    await done
+    const opened = projectsNow().currentId!
+    dismissToast(useSafety.getState().toast!.id)
+    expect(useSafety.getState().toast).toBeNull()
+    const target = undoTarget('undo')
+    expect(target.kind).toBe('file')
+    expect(target.label).toBe('open the project file')
+    expect(target.past).toHaveLength(1)
+    target.undo()
+    await new Promise(res => setTimeout(res, 50))
+    await projectActions.flush()
+    expect(projectsNow().currentId).toBe(first)
+    expect(projectsNow().list.find(m => m.id === opened)?.archived).toBe(true)
+    expect(undoTarget('undo').kind).not.toBe('file')
+  })
+
+  it('gives the top bar’s Undo to the next change made in the project it opened', async () => {
+    await garageOnPlane()
+    const done = openRead(detectFile('their-house.project.json', projectFileText(plane('their-survey.dxf'), { ...garageFloor(), name: 'Their house' })))
+    ;(await review()).answer('ok')
+    await done
+    const opened = projectsNow().currentId!
+    expect(undoTarget('undo').kind).toBe('file')
+    usePlan.getState().commit(p => ({ ...p, walls: p.walls.slice(1) }))
+    expect(undoTarget('undo').kind).toBe('plan')
+    undoTarget('undo').undo()
+    expect(projectsNow().currentId).toBe(opened)
+    expect(undoTarget('undo').kind).toBeNull()
+  })
+
   it('names it as it will be named when a project of that name is already here', async () => {
     const text = projectFileText(plane(), { ...garageFloor(), name: 'Same name' })
     await projectActions.create({ survey: plane(), plan: { ...garageFloor(), name: 'Same name' } })
@@ -376,6 +425,39 @@ describe('deleting a project for good', () => {
     await projectActions.finishDelete(id)
     expect(await projectActions.read(id)).toBeNull()
     expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+  })
+
+  // HO-37: Delete is in a project's card menu; it used to mean archiving first, then a tab change.
+  it('from a card’s menu deletes an active project, and Undo brings it back active, open and unchanged', async () => {
+    const id = await garageOnPlane()
+    const recs = await records(id)
+    const meta = projectsNow().list.find(m => m.id === id)!
+    expect(meta.archived).toBe(false)
+    await deleteWithUndo(meta)
+    expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+    expect(projectsNow().currentId).toBeNull()
+    expect(useSafety.getState().toast?.text).toBe(`Deleted “${meta.name}”.`)
+    await undo()
+    const back = projectsNow().list.find(m => m.id === id)!
+    expect(back.archived).toBe(false)
+    expect(projectsNow().currentId).toBe(id)
+    expect(await records(id)).toEqual(recs)
+
+    // Left alone, it goes from storage when the toast does.
+    await deleteWithUndo(back)
+    dismissToast(useSafety.getState().toast!.id)
+    await new Promise(res => setTimeout(res, 20))
+    await projectActions.finishDelete()
+    expect(await projectActions.read(id)).toBeNull()
+  })
+
+  it('from Archived, Undo leaves it archived', async () => {
+    const id = await garageOnPlane()
+    await projectActions.archive(id)
+    await deleteWithUndo(projectsNow().list.find(m => m.id === id)!)
+    expect(projectsNow().list.some(m => m.id === id)).toBe(false)
+    await undo()
+    expect(projectsNow().list.find(m => m.id === id)?.archived).toBe(true)
   })
 
   it('refuses a project that isn’t archived', async () => {

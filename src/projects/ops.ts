@@ -31,6 +31,9 @@ export function nameFromLot(lot: { label: string; address?: string }): string | 
   return lot.address?.split(',')[0].trim() || lot.label.trim() || null
 }
 
+/** The longest name the name boxes take: enough for an address, short enough to fit a card and a title block. */
+export const NAME_MAX = 80
+
 /** `name`, or `name 2`, `name 3`… if another project already has it. */
 export async function freeName(store: Pick<ProjectStore, 'list'>, name: string, except?: string): Promise<string> {
   const base = name.trim() || 'My house'
@@ -95,8 +98,9 @@ export function describeContents(meta: ProjectMeta, records: ProjectRecords | nu
       const c = Array.isArray(a) ? a.length : 0
       return c ? `${c} ${c === 1 ? one : many}` : null
     }
-    const parts = [n(plan.levels, 'floor'), n(plan.walls, 'wall'), n(plan.rooms, 'room'), n(plan.roofs, 'roof')].filter(Boolean)
-    out.push(parts.length ? `The plan: ${parts.join(', ')}` : 'The plan')
+    // A plan always has a floor to draw on; with nothing on it, "1 floor" would read as something to lose.
+    const drawn = [n(plan.walls, 'wall'), n(plan.rooms, 'room'), n(plan.roofs, 'roof')].filter(Boolean)
+    out.push(drawn.length ? `The plan: ${[n(plan.levels, 'floor'), ...drawn].filter(Boolean).join(', ')}` : 'The plan (nothing drawn yet)')
   }
   if (records?.prefs) out.push('Its print and view settings')
   const site = (records?.[SITE_KIND] as { data?: { features?: unknown[]; overlays?: unknown[] } } | undefined)?.data

@@ -6,6 +6,7 @@ import { useModal } from '../nav/useModal'
 import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
 import { LayersSheet } from './LayersSheet'
+import { OtherTabSheet } from '../projects/OtherTab'
 import { chooseInReview, dismissToast, pickedFor, registerPicker, undoToast, useSafety, type Toast } from './store'
 import { sayFileError } from './surveyor'
 import './safety.css'
@@ -123,18 +124,19 @@ function UndoToast() {
   return toast ? <ToastNote key={toast.id} toast={toast} /> : null
 }
 
-function ToastNote({ toast }: { toast: Toast }) {
+export function ToastNote({ toast }: { toast: Toast }) {
   const [held, setHeld] = useState(false)
   // Time runs only while the toast isn't being pointed at or focused, and starts again in full after.
+  // An error has no time limit: it goes when it's dismissed.
   useEffect(() => {
-    if (held) return
+    if (held || toast.error) return
     const t = setTimeout(() => dismissToast(toast.id), toast.ms)
     return () => clearTimeout(t)
   }, [toast, held])
   return (
     <div
-      className="sf-toast"
-      role="status"
+      className={`sf-toast${toast.error ? ' sf-error' : ''}`}
+      role={toast.error ? 'alert' : 'status'}
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}
       onFocus={() => setHeld(true)}
@@ -186,6 +188,7 @@ export function SafetyLayer() {
       <Picker />
       <ReviewSheet />
       <LayersSheet />
+      <OtherTabSheet />
       <UndoToast />
     </>
   )

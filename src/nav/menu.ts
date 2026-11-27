@@ -937,6 +937,7 @@ export const AREAS: Area[] = [
           'share-link-list',
           'share-link-extend',
           'share-link-off',
+          'share-link-trouble',
           'share-link-view',
           'share-link-comments-setting',
           'share-link-comment-add',
@@ -1054,7 +1055,16 @@ export const HOMES: Home[] = [
     items: [
       { id: 'view-plan', label: 'Show the plan', icon: 'plan', keywords: ['floor plan', '2D', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
       { id: 'view-3d', label: 'Show in 3D', icon: 'cube', keywords: ['3D site', 'model', 'canvas'], features: ['mode-3d-site'], action: 'view-3d', run: 'now' },
-      { id: 'undo', label: 'Undo', icon: 'undo', keywords: ['back', 'revert', 'history'], features: ['undo-button', 'undo-after-reload', 'cost-undo'], action: 'undo', run: 'now', shortcut: 'mod+Z' },
+      {
+        id: 'undo',
+        label: 'Undo',
+        icon: 'undo',
+        keywords: ['back', 'revert', 'history', 'take back', 'last change', 'undo example'],
+        features: ['undo-button', 'undo-after-reload', 'cost-undo', 'undo-one-order', 'undo-names-step', 'open-top-undo'],
+        action: 'undo',
+        run: 'now',
+        shortcut: 'mod+Z',
+      },
       { id: 'redo', label: 'Redo', icon: 'redo', keywords: ['again'], features: ['redo-button'], action: 'redo', run: 'now', shortcut: 'mod+shift+Z' },
       {
         id: 'check-everything',
@@ -1079,7 +1089,7 @@ export const HOMES: Home[] = [
         label: 'Undo a replaced survey or plan',
         icon: 'undo',
         keywords: ['put back', 'oops', 'review', 'undo import', 'undo new plan', 'undo delete'],
-        features: ['undo-toast', 'review-sheet'],
+        features: ['undo-toast', 'review-sheet', 'file-error-stays'],
         hint: 'Replace survey, Import plan, Start the plan again, Open and deleting a project each show what will change first. Afterwards a note at the bottom offers Undo for a few seconds.',
       },
     ],
@@ -1091,7 +1101,7 @@ export const HOMES: Home[] = [
     features: [],
     items: [
       { id: 'all-projects', label: 'All projects…', icon: 'list', keywords: ['projects', 'open', 'switch project', 'home'], features: ['projects-home'], action: 'projects', run: 'now' },
-      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey'], features: ['project-new'], action: 'new-project', run: 'now' },
+      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey', 'name a project', 'project name'], features: ['project-new', 'project-name-start'], action: 'new-project', run: 'now' },
       {
         // Always a new project, beside the others (src/example).
         id: 'open-example',
@@ -1107,8 +1117,8 @@ export const HOMES: Home[] = [
         id: 'save-state',
         label: 'Where it’s saved',
         icon: 'check',
-        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage'],
-        features: ['save-state', 'storage-persist'],
+        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage', 'two tabs', 'another tab', 'other window'],
+        features: ['save-state', 'storage-persist', 'other-tab-notice'],
       },
       {
         // Shown as "Sign in to save to the cloud…" or "Cloud saves" with the account's name (src/cloud).
@@ -1238,7 +1248,17 @@ export const HOMES: Home[] = [
         features: ['project-delete-review', 'project-delete-undo'],
         action: 'projects',
         run: 'now',
-        hint: 'Archive the project first. Under Archived, Delete for good shows what will go before it does, and Undo brings it back for a few seconds after.',
+        hint: 'Delete… is in each project’s ⋯ menu (and under Archived). It shows what will go before it does, and Undo brings it back for a few seconds after.',
+      },
+      {
+        id: 'project-find',
+        label: 'Find or sort projects',
+        icon: 'search',
+        keywords: ['search projects', 'filter', 'sort', 'order', 'by name', 'alphabetical', 'recent', 'last edited'],
+        features: ['project-find', 'project-sort'],
+        action: 'projects',
+        run: 'now',
+        hint: 'With seven or more projects, a search box and a Sort choice (last edited or name) show above the cards.',
       },
     ],
   },

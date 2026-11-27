@@ -101,6 +101,9 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
   const calm = readOnly || share
   // A house of several levels: the floor being drawn first, then all of them.
   const here = n && n.levels.length > 1 && level ? n.levels.find(l => l.id === level) : undefined
+  // Walls drawn with a gap in them enclose no floor: the Floor and Estimate chips stay and say so (LD-34).
+  const openAll = !!n && n.floorArea === null && !!n.open?.length
+  const openHere = !!here && !!n?.open?.includes(here.id)
   return (
     <div className={`summary-strip${share ? ' share-strip' : ''}`} role="region" aria-label="Key numbers">
       <ScrollCue
@@ -114,6 +117,7 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
             ) : (
               <>
                 {verdict && share && <VerdictChip verdict={verdict} route={route} readOnly={readOnly} />}
+                {openAll && <OpenOutlineChip route={route} readOnly={calm} />}
                 {n.floorArea !== null && (
                   <Chip
                     id="floor-area"
@@ -123,13 +127,25 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                     readOnly={readOnly}
                     title={n.levels.map(l => `${l.name}: ${m2(l.area)}`).join('\n')}
                   >
-                    <b>{m2(here ? here.area : n.floorArea)}</b>
+                    {openHere ? (
+                      <>
+                        <b>—</b>
+                        <em className="chip-note"> {OUTLINE_OPEN.toLowerCase()}</em>
+                      </>
+                    ) : (
+                      <b>{m2(here ? here.area : n.floorArea)}</b>
+                    )}
                     {here && <span className="chip-label">of {m2(n.floorArea)}</span>}
                   </Chip>
                 )}
                 {/* The two answers people look for come straight after the floor, so they are the last to go behind "+2" (HO-12). */}
                 {checks && !share && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
                 {cost && !shown.cost && <CostChip cost={cost} route={route} readOnly={readOnly} />}
+                {cost && !cost.ready && openAll && (
+                  <span className="chip ghost" title={OUTLINE_OPEN_WHY}>
+                    Estimate <em>— {OUTLINE_OPEN.toLowerCase()}</em>
+                  </span>
+                )}
                 <Chip id="ffl" label={n.floors.length > 1 ? 'Floor levels (FFL)' : 'Floor level (FFL)'} shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title={n.floors.length > 1 ? n.floors.map(f => `${f.name}: RL ${f.rl.toFixed(2)}`).join('\n') : 'The ground floor’s level'}>
                   <b>{floorsText(n.floors, n.ffl)}</b>
                 </Chip>
@@ -225,6 +241,30 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
         Overview <Icon name={overviewOpen ? 'chevU' : 'chevD'} size={14} />
       </button>
     </div>
+  )
+}
+
+/** What the Floor and Estimate chips say while the outside walls have a gap. */
+export const OUTLINE_OPEN = 'Outline not closed'
+const OUTLINE_OPEN_WHY = 'The outside walls don’t join up all the way round, so there is no floor to measure or price yet. Close the gap and the floor area and the estimate come back.'
+
+/** Floor, with no area to give: the walls don't close. It goes to the plan, where the gap is. */
+function OpenOutlineChip({ route, readOnly }: { route: AppRoute; readOnly: boolean }) {
+  const body = (
+    <>
+      <i className="dot" /> <span className="chip-label">Floor</span> <b>—</b> {OUTLINE_OPEN}
+    </>
+  )
+  if (readOnly)
+    return (
+      <span className="chip warn" title={OUTLINE_OPEN_WHY}>
+        {body}
+      </span>
+    )
+  return (
+    <button className="chip warn" title={`${OUTLINE_OPEN_WHY} Opens Design › Plan.`} onClick={() => navigate(tabRoute(route, 'design', 'plan'))}>
+      {body}
+    </button>
   )
 }
 

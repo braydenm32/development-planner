@@ -59,6 +59,12 @@ export interface ProjectMeta {
   updated: number
   /** Goes up by one with every saved change, preferences included. A cloud sync compares these. */
   revision: number
+  /**
+   * Goes up by one with every saved edit (not preference saves), in this browser's store only.
+   * Another tab with the project open compares it before each write, so it never saves stale
+   * work over newer (missing on older projects: 0).
+   */
+  edits?: number
   /** Archived projects are kept but tucked away; only they can be deleted. */
   archived: boolean
   surveyFileName: string | null
@@ -77,6 +83,11 @@ export interface ProjectChange {
   records?: Partial<Record<RecordKind, unknown | null>>
   /** Counts as an edit and moves `updated` (default true). Preference saves pass false. */
   touch?: boolean
+  /**
+   * Write only while the project's `edits` is still this (what the writer last read or wrote);
+   * otherwise nothing is written and the save fails with StaleProjectError. This browser's store only.
+   */
+  ifEdits?: number
 }
 
 export interface NewProject {
@@ -110,6 +121,17 @@ export class NotArchivedError extends Error {
   constructor() {
     super('Archive a project before deleting it.')
     this.name = 'NotArchivedError'
+  }
+}
+
+/** Thrown when a save was made from a copy older than the one stored (another tab saved since). */
+export class StaleProjectError extends Error {
+  /** The project's index entry as stored now. */
+  stored: ProjectMeta
+  constructor(stored: ProjectMeta) {
+    super('This project changed in another tab.')
+    this.name = 'StaleProjectError'
+    this.stored = stored
   }
 }
 

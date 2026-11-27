@@ -483,6 +483,7 @@ function Skeleton() {
 
 const TROUBLE_TITLE: Record<SharedTrouble['kind'], string> = {
   off: 'This link isn’t working',
+  incomplete: 'This link isn’t complete or has expired',
   slow: 'Too many tries',
   offline: 'You’re offline',
   broken: 'This shared project couldn’t open',
@@ -498,12 +499,15 @@ export function Trouble({ trouble, retry }: { trouble: SharedTrouble; retry: () 
         <p>{trouble.message || 'This link doesn’t open anything now. It may have been turned off, or copied wrong.'}</p>
         {trouble.kind === 'off' ? (
           <p className="muted">Ask the person who sent it for a new link.</p>
-        ) : (
+        ) : trouble.kind === 'incomplete' ? null : (
           <button className="shared-retry" onClick={retry}>
             Try again
           </button>
         )}
-        <p className="muted small">Contour &amp; Gable · shared view</p>
+        <p className="muted small">
+          {/* The way out: the planner's own front page (a plain link, so the page starts afresh there). */}
+          <a href={import.meta.env?.BASE_URL ?? '/'}>Contour &amp; Gable</a> · shared view
+        </p>
       </div>
     </div>
   )

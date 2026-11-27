@@ -9,7 +9,7 @@ import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
 import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { earthworksOf, floorRL, sortedLevels, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, isRetaining, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
@@ -22,6 +22,11 @@ export interface KeyNumbers {
   levels: { id: string; name: string; area: number; roomsTotal: number; rooms: number }[]
   /** All levels' floor areas together; null before any walls enclose a floor. */
   floorArea: number | null
+  /**
+   * Levels whose walls are drawn but don't close round a floor (a gap in the outside walls), by
+   * id: there is no floor area for them, and the strip says why rather than dropping the number.
+   */
+  open?: string[]
   /** The ground floor's RL. */
   ffl: number
   /** Every level's floor RL, lowest first: a split-level house has more than one floor level. */
@@ -99,11 +104,13 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       rooms: s.rooms.length,
     }))
     const total = levels.reduce((t, l) => t + l.area, 0)
+    const open = levels.filter(l => l.area <= 0 && plan.walls.some(w => w.level === l.id && !isRetaining(w))).map(l => l.id)
     const r = earth?.result
     const hasEarth = !!r && !!earth && earth.platforms.length > 0
     return {
       levels,
       floorArea: total > 0 ? total : null,
+      open,
       ffl,
       floors,
       earth: hasEarth
