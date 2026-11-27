@@ -386,6 +386,7 @@ export const AREAS: Area[] = [
           'draw-walls',
           'place-opening',
           'place-room',
+          'rooms-from-walls',
           'draw-area',
           'draw-roof',
           'place-stair',

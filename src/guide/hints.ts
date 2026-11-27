@@ -4,6 +4,7 @@
 // goes as soon as its step is done, however it was done.
 
 import { useSyncExternalStore } from 'react'
+import { stillToName } from '../plan/autoRooms'
 import { planarFaces } from '../plan/geometry'
 import type { Plan } from '../plan/model'
 import type { Tool } from '../plan/store'
@@ -29,7 +30,8 @@ export function nextHint(plan: Plan, level: string, prefs: HintPrefs): HintId | 
   if (!planarFaces(walls).length) return null
   const ids = new Set(walls.map(w => w.id))
   const steps: [HintId, boolean][] = [
-    ['rooms', plan.rooms.some(r => r.level === level)],
+    // Rooms make themselves when walls close (src/plan/autoRooms.ts): the step is naming one.
+    ['rooms', plan.rooms.some(r => r.level === level && !stillToName(r))],
     ['openings', plan.openings.some(o => ids.has(o.wall))],
     ['roof', plan.roofs.length > 0],
   ]
@@ -59,8 +61,8 @@ export const TIPS: Record<HintId, Tip> = {
   },
   rooms: {
     title: 'Name the rooms',
-    desk: 'Press R, then click inside each space the walls close round. Rooms give you the floor areas.',
-    phone: 'Tap Room, then tap inside each space the walls close round.',
+    desk: 'Each space your walls close round is a room already, with its floor area. Double-click one and type its name, then pick its type.',
+    phone: 'Each space your walls close round is a room already. Tap Room, then tap one to name it and pick its type.',
     tool: 'room',
     button: 'Name rooms',
     section: 'rooms',

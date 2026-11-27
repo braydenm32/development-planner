@@ -40,6 +40,14 @@ describe('the tips on the plan', () => {
     expect(nextHint(upTo('roof'), L0, NO_PREFS)).toBeNull()
   })
 
+  it('keep asking for the rooms’ names while they are all still “Room 2”, as closed walls make them (CB-05)', () => {
+    const made = { ...upTo('walls'), rooms: [{ id: 'r', level: L0, name: 'Room 1', at: garage.rooms[0].at }] }
+    expect(nextHint(made, L0, NO_PREFS)).toBe('rooms')
+    expect(nextHint({ ...made, rooms: [{ ...made.rooms[0], name: 'Garage' }] }, L0, NO_PREFS)).toBe('openings')
+    expect(nextHint({ ...made, rooms: [{ ...made.rooms[0], type: 'garage' as const }] }, L0, NO_PREFS)).toBe('openings')
+    expect(TIPS.rooms.desk).toMatch(/is a room already/)
+  })
+
   it('say nothing while the first walls are going in and nothing is closed yet', () => {
     const one = { ...empty, walls: [garage.walls[0]] }
     expect(nextHint(one, L0, NO_PREFS)).toBeNull()
