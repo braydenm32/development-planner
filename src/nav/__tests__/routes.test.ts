@@ -11,7 +11,7 @@ import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
 import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, type AppRoute, type Route } from '../route'
-import { buildIndex, featureLabel, search, specOnly, type SearchItem } from '../search'
+import { buildIndex, featureLabel, search, specOnly, withoutCloud, type SearchItem } from '../search'
 
 const places = allPlaces()
 const entries = places.map(p => p.entry)
@@ -668,6 +668,25 @@ describe('⌘K search', () => {
     // A row that only records a timing is left out; its name still finds its home.
     const missed = features.filter(f => !search(index, f.name).some(r => (specOnly(f.name) ? r.entry.features.includes(f.id) : r.featureId === f.id))).map(f => f.id)
     expect(missed).toEqual([])
+  })
+
+  // LF-15: on a copy with no cloud, "Upload projects to the cloud" dropped you on All projects with
+  // nothing said, and ten cloud features were listed that can't be reached there.
+  it('leaves out cloud commands that would dead-end when the app has no cloud, and keeps the one that explains', () => {
+    const local = withoutCloud(index)
+    const labels = (q: string, ix = local) => search(ix, q).map(r => r.label)
+    expect(labels('upload projects', index)).toContain('Upload projects to the cloud')
+    expect(labels('upload projects')).not.toContain('Upload projects to the cloud')
+    expect(labels('cloud sync status')).not.toContain('Cloud sync status')
+    expect(local.filter(i => i.kind === 'feature' && i.featureId?.startsWith('cloud-'))).toEqual([])
+    for (const q of ['recovery code', 'delete my account', 'cloud space']) expect(search(local, q).filter(r => r.kind === 'feature' && r.featureId?.startsWith('cloud-')), q).toEqual([])
+    // "Sign in" still finds the command that says signing in isn't available on this copy.
+    expect(search(local, 'sign in')[0]).toMatchObject({ label: 'Sign in and cloud saves', action: 'cloud' })
+    expect(search(local, 'recovery code').some(r => r.action === 'cloud')).toBe(true)
+    // Nothing else goes: everything that isn't the cloud's is still found.
+    expect(index.length - local.length).toBe(index.filter(i => i.featureId?.startsWith('cloud-') || (i.kind !== 'feature' && i.action !== 'cloud' && i.entry.features.length > 0 && i.entry.features.every(f => f.startsWith('cloud-')))).length)
+    expect(labels('where it’s saved')).toContain('Where it’s saved')
+    expect(labels('projects')).toContain('All projects…')
   })
 
   it('ranks tabs and actions before features, and what a word means last (C35)', () => {

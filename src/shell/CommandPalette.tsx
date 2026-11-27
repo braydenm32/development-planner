@@ -5,7 +5,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { Icon } from '../nav/icons'
 import { shortcutText } from '../nav/keys'
-import { buildIndex, search, suggestions, type Feature, type SearchItem } from '../nav/search'
+import { buildIndex, search, suggestions, withoutCloud, type Feature, type SearchItem } from '../nav/search'
+import { useCloud } from '../cloud/state'
 
 let loaded: Feature[] | null = null
 
@@ -40,7 +41,12 @@ interface Props {
 
 export function CommandPalette({ choose, run, onClose }: Props) {
   const features = useFeatures()
-  const index = useMemo(() => buildIndex(features ?? []), [features])
+  // A copy of the app with no cloud doesn't offer cloud commands that would dead-end (src/nav/search.ts).
+  const noCloud = useCloud(c => c.phase === 'unavailable')
+  const index = useMemo(() => {
+    const all = buildIndex(features ?? [])
+    return noCloud ? withoutCloud(all) : all
+  }, [features, noCloud])
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [offer, setOffer] = useState<SearchItem | null>(null)
