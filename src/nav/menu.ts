@@ -921,6 +921,7 @@ export const AREAS: Area[] = [
           'share-link-list',
           'share-link-extend',
           'share-link-off',
+          'share-link-trouble',
           'share-link-view',
           'share-link-comments-setting',
           'share-link-comment-add',

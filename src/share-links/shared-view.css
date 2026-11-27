@@ -239,6 +239,13 @@
   color: var(--t-muted);
 }
 
+/* The way to the planner's front page. */
+.shared-trouble-card a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .shared-trouble-card .small {
   margin-top: 28px;
   padding-top: 12px;
