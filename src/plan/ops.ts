@@ -24,6 +24,7 @@ import {
 import { furnitureCorners, resized } from './furniture'
 import { closestOnSegment, planarFaces } from './geometry'
 import { wallClear } from './openingFit'
+import { stylesFor } from './openingStyles'
 import { followTees, insideHouse, resizeWall, shiftJoint, type WallEnd } from './wallJoins'
 import { defaultGables, keepPlateLift, simplifyRing } from './roof'
 import type { RoomTypeId } from './roomTypes'
@@ -111,6 +112,8 @@ export function addOpening(plan: Plan, wall: Wall, kind: OpeningKind, offset: nu
     sill: kind === 'window' ? d.sill : 0,
     flipHinge: false,
     flipSwing: false,
+    // The kind the tool is set to (sliding, bifold, awning…), when it suits what this is.
+    ...(stylesFor(kind).some(s => s.id === d.style) ? { style: d.style } : {}),
   }
   return { ...plan, openings: [...plan.openings, o] }
 }

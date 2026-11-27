@@ -16,7 +16,6 @@ import {
   earthworksOf,
   slabBedOf,
   isRetaining,
-  OPENING_NAMES,
   floorRL,
   levelById,
   sortedLevels,
@@ -69,6 +68,9 @@ import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from '../plan/roomTypes'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
+import { OpeningKindField, ToolOpeningKind } from './OpeningKind'
+import { rememberOpening } from './openingMemory'
+import { openingName, openingStyle } from '../plan/openingStyles'
 import { RetainingWallPanel } from './RetainingWallPanel'
 import { WallsHere } from './WallsHere'
 import { houseOutline, retainedText } from './planNumbers'
@@ -189,6 +191,7 @@ export function OpeningOptions({ kind: tool }: { kind: OpeningKind }) {
   const st = usePlan.getState()
   return (
     <div className="tool-options">
+      <ToolOpeningKind kind={tool} />
       <Num label="Width" unit="mm" value={openingDefaults[tool].width} min={0.3} max={MAX_OPENING.width} onCommit={width => st.setOpeningDefaults(tool, { ...openingDefaults[tool], width })} />
       <Num label="Height" unit="mm" value={openingDefaults[tool].height} min={0.3} max={MAX_OPENING.height} onCommit={height => st.setOpeningDefaults(tool, { ...openingDefaults[tool], height })} />
       {tool === 'window' && (
@@ -458,7 +461,11 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const o = plan.openings.find(x => x.id === selection.id)
     const w = o && plan.walls.find(x => x.id === o.wall)
     if (!o || !w) return null
-    const set = (patch: Partial<typeof o>) => st.commit(p => updateOpening(p, o.id, patch))
+    const set = (patch: Partial<typeof o>) => {
+      st.commit(p => updateOpening(p, o.id, patch))
+      // The Door or Window tool starts the next one at the size this one was left at.
+      if (patch.width !== undefined || patch.height !== undefined || (patch.sill !== undefined && patch.kind === undefined)) rememberOpening(o.id)
+    }
     // What it has to fit in: the wall's clear run between the walls that turn off its ends, and the wall's height.
     const run = wallClear(plan.walls, w)
     const high = wallTopRL(plan, w) - floorRL(plan, w.level)
@@ -466,7 +473,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
     const head = o.sill + o.height
     return (
       <section className="selection">
-        <h2>{OPENING_NAMES[o.kind]}</h2>
+        <h2>{openingName(o)}</h2>
         <label className="num">
           <span>Type</span>
           <select value={o.kind} onChange={e => set({ kind: e.target.value as OpeningKind, sill: e.target.value === 'window' ? Math.max(o.sill, 0.9) : 0 })}>
@@ -476,6 +483,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             <option value="opening">Opening (no door)</option>
           </select>
         </label>
+        <OpeningKindField opening={o} />
         <Num
           label="Width"
           unit="mm"
@@ -527,11 +535,14 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           }
           onCommit={edge => set({ offset: edge + o.width / 2 })}
         />
-        {o.kind === 'door' && (
+        {o.kind === 'door' && openingStyle(o) !== 'sliding' && (
           <div className="row">
-            <button className="secondary" onClick={() => set({ flipHinge: !o.flipHinge })}>
-              Flip hinge
-            </button>
+            {/* A pair of doors is hinged at both sides, so only its swing flips. */}
+            {openingStyle(o) !== 'double' && (
+              <button className="secondary" onClick={() => set({ flipHinge: !o.flipHinge })}>
+                Flip hinge
+              </button>
+            )}
             <button className="secondary" onClick={() => set({ flipSwing: !o.flipSwing })}>
               Flip swing
             </button>

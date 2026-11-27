@@ -29,6 +29,7 @@ import { superlevel } from '../plan/groundOverlay'
 import { onNaturalGround, roomFloorNote } from '../plan/floorTypes'
 import { driveDesign, driveEndPoints, driveGround, type DriveGround } from '../plan/driveway'
 import { garageDoorSymbol } from '../plan/garageDoor'
+import { styleSymbol } from '../plan/openingStyles'
 import { setbackDims } from '../plan/setbacks'
 import { retainingProfiles } from '../plan/retaining'
 import type { Heightfield, Terrain } from '../lib/terrain'
@@ -1105,7 +1106,14 @@ export function planSheets(input: PlanSetInput, frame: SheetFrame): PlanSheet[] 
     const p0: Vec2 = [c[0] - d[0] * hw, c[1] - d[1] * hw]
     const p1: Vec2 = [c[0] + d[0] * hw, c[1] + d[1] * hw]
     pg.lineWidth(0.18).stroke(INK)
-    if (o.kind === 'window') {
+    // A sliding, double or bifold door, or a window of a named kind: the same symbol as on the screen.
+    const styled = styleSymbol(o, p0, p1, n, ht)
+    if (styled) {
+      if (o.kind === 'door') pg.lineWidth(0.25)
+      for (const l of styled.lines) pg.polyline(l.map(view.P))
+      pg.lineWidth(0.12).stroke(GREY)
+      for (const l of styled.light) pg.polyline(l.map(view.P))
+    } else if (o.kind === 'window') {
       pg.line(view.P(at(p0, -ht)), view.P(at(p0, ht)))
       pg.line(view.P(at(p1, -ht)), view.P(at(p1, ht)))
       pg.line(view.P(at(p0, -ht / 3)), view.P(at(p1, -ht / 3)))

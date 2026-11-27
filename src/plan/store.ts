@@ -4,6 +4,7 @@ import { findSelection } from '../shell/selection'
 import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
+import type { OpeningStyle } from './openingStyles'
 import type { RoomTypeId } from './roomTypes'
 import { fitOpenings, fixesText, type OpeningFix } from './openingFit'
 import {
@@ -43,6 +44,8 @@ export interface OpeningDefaults {
   width: number
   height: number
   sill: number
+  /** The kind of door or window the tool draws (src/plan/openingStyles.ts); missing draws a hinged door, or a window of no kind. */
+  style?: OpeningStyle
 }
 
 export interface RoofDefaults {
