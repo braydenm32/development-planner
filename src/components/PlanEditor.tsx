@@ -72,6 +72,7 @@ import { askName } from './nameFocus'
 import { closesFirstOutline, nextRoomName, roomsMadeNote, stillToName } from '../plan/autoRooms'
 import { floorStack, menuPick, nextOnFloor } from '../plan/floorPick'
 import { useWallMode } from '../plan/wallMode'
+import { bodySide, faceRunStep, faceWord, flipWallSide, FLIP_KEY, startSide, useWallFace, type FaceRun, type Side } from '../plan/wallFace'
 import { useRectRoom } from './RectRoom'
 import { ghostOpacity, groundedLevels, levelRows, stepLevel, useGhosts } from '../plan/levelMenu'
 import { FOCUS_WAIT_MS, usePlanFocus } from '../plan/planFocus'
@@ -367,7 +368,11 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
   // In-progress drawing belongs to one tool on one level; switching either drops it.
   // (The Wall tool's two ways of drawing count as two tools here.)
   const wallMode = useWallMode(s => s.mode)
-  const draftKey = `${tool === 'wall' ? `wall:${wallMode}` : tool}|${level}`
+  // Wall by wall, drawn by a face (src/plan/wallFace.ts): the points are that face, not the centreline.
+  const wallFace = useWallFace(s => s.face)
+  const faceFlipped = useWallFace(s => s.flipped)
+  const byFace = tool === 'wall' && wallMode === 'line' && wallFace !== 'centre'
+  const draftKey = `${tool === 'wall' ? `wall:${wallMode}:${wallFace}` : tool}|${level}`
   const [draftState, setDraft] = useState<Draft>(emptyDraft(draftKey))
   const draft = draftState.key === draftKey ? draftState : emptyDraft(draftKey)
   const { chain, areaPts, typed, stairStart } = draft
@@ -879,8 +884,21 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     return typedLengthEnd(a, toward, Math.hypot(p[0] - a[0], p[1] - a[1]), cursor?.kind === 'free')
   }
 
+  /** The walls of a run drawn by a face so far, so each corner can meet the next wall. */
+  const faceRun = useRef<FaceRun>({ ids: [] })
+  /** Which side a wall drawn by a face goes from the face points so far: the run's turn, else the marker. */
+  const faceSide = (pts: Vec2[]): Side => {
+    // The house frame's side that looks right on screen (the plan is drawn with its y axis flipped).
+    const o = S([0, 0])
+    const x = S([1, 0])
+    const y = S([0, 1])
+    const screenRight: Side = (x[0] - o[0]) * (y[1] - o[1]) - (x[1] - o[1]) * (y[0] - o[0]) > 0 ? 1 : -1
+    return bodySide(wallFace, pts, startSide(wallFace, screenRight, faceFlipped))
+  }
+
   const placeWallPoint = (p: Vec2) => {
     if (chain.length === 0) {
+      faceRun.current = { ids: [] }
       setChain([p])
       return
     }
@@ -890,13 +908,19 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const end: Vec2 = closes ? first : p
     chainStart.current ??= { plan: usePlan.getState().plan!, level }
     const now = usePlan.getState().plan!
-    if (wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
+    // Drawn by a face: the run's walls so far take the new corner, and the new wall goes in, as one step.
+    const pts = [...chain, end]
+    const step = byFace ? faceRunStep(now, level, faceRun.current, pts, closes, faceSide(pts), wallStyle) : null
+    if (step ? !step.added : wallAlreadyThere(now, level, last, end, wallStyle.kind)) {
       // Nothing is added, and the run carries on from here.
       notify('There’s already a wall there, so no new one was drawn.')
     } else {
       // A wall wholly inside the house is an inside wall, whatever outside type the tool is set to.
-      const style = wallStyleAt(now, level, last, end, wallStyle)
-      commit(pl => addWall(pl, level, last, end, style))
+      const style = step ? step.style : wallStyleAt(now, level, last, end, wallStyle)
+      if (step) {
+        commit(() => step.plan)
+        faceRun.current = step.run
+      } else commit(pl => addWall(pl, level, last, end, style))
       // A wall that closed round a space made its room in the same step (src/plan/autoRooms.ts): say so.
       const room = roomsMadeNote(now, usePlan.getState().plan!)
       notify(style === wallStyle ? room : `Inside the house, so it’s an internal wall (${Math.round(style.thickness * 1000)} mm). Its Kind can be changed.${room ? ` ${room}` : ''}`)
@@ -1223,7 +1247,7 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
    * Sketch, wall faces too. Shift (kept in `shift` as the pointer moves) holds the line square.
    */
   const snapHere = (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) =>
-    snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' ? faceSnaps : guides, tol, ortho: shift.current, ...o })
+    snap(raw, { walls: snapWalls, guides: tool === 'measure' || tool === 'sketch' || byFace ? faceSnaps : guides, tol, ortho: shift.current, ...o })
 
   const startPointer = (e: ReactPointerEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -2078,6 +2102,12 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
       }
       // View on a phone changes nothing; Esc still clears the selection.
       if (viewOnly && e.key !== 'Escape') return
+      // Drawing by a face, H flips the side the wall goes (until the run's turn decides it).
+      if (byFace && e.key.toUpperCase() === FLIP_KEY && !e.altKey && !typed) {
+        e.preventDefault()
+        flipWallSide()
+        return
+      }
       // A typed length sets the next wall or outline side, towards the pointer, kept square (snap.ts typedLengthEnd).
       const drawnFrom = tool === 'wall' || tool === 'retaining' ? chain.at(-1) : tool === 'area' || tool === 'roof' ? areaPts.at(-1) : undefined
       if (drawnFrom) {
@@ -2250,8 +2280,37 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
     const angle = ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 360) % 360
     const lines = [typed ? typedLabel(typed) : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`]
+    // Drawn by a face, the length is that face's: say so.
+    if (byFace && before === chain) lines.push(`along the ${faceWord(wallFace)}`)
     if (before.length > 1) lines.push(`Total ${fmtMm(polylineLength(before) + len)} mm`)
     return tag(b, lines)
+  }
+
+  /**
+   * A first wall drawn by a face: an arrow off the face's middle to the side the wall goes, until
+   * the run turns and its turn decides. H, or the Wall card's Flip side, flips it.
+   */
+  const faceMarker = (a: Vec2, b: Vec2, side: number) => {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+    if (len * v.k < 40) return null
+    const m: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    const out: Vec2 = [(-(b[1] - a[1]) / len) * side, ((b[0] - a[0]) / len) * side]
+    const [mx, my] = S(m)
+    const q = S([m[0] + out[0], m[1] + out[1]])
+    const ux = (q[0] - mx) / v.k
+    const uy = (q[1] - my) / v.k
+    const r = wallStyle.thickness * v.k + 10
+    const tip: Vec2 = [mx + ux * (r + 10), my + uy * (r + 10)]
+    const base: Vec2 = [mx + ux * r, my + uy * r]
+    const wing = (s: number): Vec2 => [base[0] - uy * 6 * s, base[1] + ux * 6 * s]
+    return (
+      <g className="face-side" aria-hidden="true">
+        <path d={`M${wing(1)[0]} ${wing(1)[1]}L${tip[0]} ${tip[1]}L${wing(-1)[0]} ${wing(-1)[1]}z`} />
+        <text x={tip[0] + ux * 8} y={tip[1] + uy * 8 + 4} textAnchor={Math.abs(ux) < 0.3 ? 'middle' : ux > 0 ? 'start' : 'end'}>
+          {touch?.phone ? 'Wall this side' : `Wall this side · ${FLIP_KEY} flips`}
+        </text>
+      </g>
+    )
   }
 
   /** The opening that a click would add, with how far it sits from each end of the wall. */
@@ -2379,15 +2438,20 @@ export function PlanEditor({ survey, terrain, up, onUpChange, showGround, onShow
     const d: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]
     const half = (tool === 'retaining' ? retainingThickness : wallStyle.thickness) / 2
     const n: Vec2 = [-d[1] * half, d[0] * half]
+    // Drawn by a face, the line drawn is that face and the wall lies wholly to one side of it.
+    const side = byFace ? faceSide([...chain, b]) : 0
+    const [lo, hi] = byFace ? (side > 0 ? [0, 2] : [-2, 0]) : [-1, 1]
     const poly: Vec2[] = [
-      [a[0] - n[0], a[1] - n[1]],
-      [b[0] - n[0], b[1] - n[1]],
-      [b[0] + n[0], b[1] + n[1]],
-      [a[0] + n[0], a[1] + n[1]],
+      [a[0] + n[0] * lo, a[1] + n[1] * lo],
+      [b[0] + n[0] * lo, b[1] + n[1] * lo],
+      [b[0] + n[0] * hi, b[1] + n[1] * hi],
+      [a[0] + n[0] * hi, a[1] + n[1] * hi],
     ]
     return (
       <g>
         <path className={`wall preview${tool === 'retaining' ? ' retaining' : ''}`} d={path(poly)} />
+        {byFace && <path className="chain" d={path([a, b], false)} />}
+        {byFace && chain.length === 1 && faceMarker(a, b, side)}
         {drawingTag(a, b, chain)}
       </g>
     )

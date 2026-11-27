@@ -2,6 +2,7 @@
 // or drag out a rectangle room, four walls and the room in one go.
 
 import { usePhone } from '../phone/device'
+import { flipWallSide, FLIP_KEY, setWallFace, useWallFace, WALL_FACES } from '../plan/wallFace'
 import { setWallMode, useWallMode, type WallMode } from '../plan/wallMode'
 import './finishing.css'
 
@@ -29,6 +30,52 @@ export function WallModeSwitch() {
         ))}
       </div>
       <p className="muted small">{phone ? now?.phone : now?.help}</p>
+      <WallFaceSwitch rect={mode === 'rect'} phone={phone} />
+    </div>
+  )
+}
+
+/** What the face picked means, for each way of drawing (DB-10). */
+const FACE_HELP = {
+  line: {
+    centre: 'Clicks and typed lengths are the middle of the wall.',
+    outside: 'Clicks and typed lengths are the outside of the wall; it goes in from there.',
+    inside: 'Clicks and typed lengths are the inside of the wall, the room side; it goes out from there.',
+  },
+  rect: {
+    centre: 'The size is to the middle of the walls.',
+    outside: 'The size is the overall size, outside to outside.',
+    inside: 'The size is the clear room size, inside to inside.',
+  },
+}
+
+/** Draw by: the wall's centre (as always), its outside face or its inside face; kept for next time. */
+function WallFaceSwitch({ rect, phone }: { rect: boolean; phone: boolean }) {
+  const face = useWallFace(s => s.face)
+  return (
+    <div className="wall-face">
+      <span className="muted small" id="wall-face-label">
+        Draw by
+      </span>
+      <div className="segmented mode-switch" role="radiogroup" aria-labelledby="wall-face-label">
+        {WALL_FACES.map(f => (
+          <button key={f.id} role="radio" aria-checked={face === f.id} className={face === f.id ? 'on' : ''} onClick={() => setWallFace(f.id)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">
+        {FACE_HELP[rect ? 'rect' : 'line'][face]}
+        {!rect && face !== 'centre' && (
+          <>
+            {' '}
+            The arrow shows the side it goes until the walls turn.{' '}
+            <button className="link" onClick={flipWallSide} title={`Flip the side the wall goes (${FLIP_KEY})`}>
+              Flip side{phone ? '' : ` (${FLIP_KEY})`}
+            </button>
+          </>
+        )}
+      </p>
     </div>
   )
 }

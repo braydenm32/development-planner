@@ -4,6 +4,17 @@
   margin: 2px 0 8px;
 }
 
+/* The Wall tool's Draw by: centre, outside face or inside face. */
+.wall-face {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.wall-face p {
+  margin: 0;
+}
+
 .segmented.mode-switch {
   width: 100%;
   box-shadow: none;

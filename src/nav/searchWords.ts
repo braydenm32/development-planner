@@ -19,7 +19,7 @@ export const MORE_WORDS: Record<string, string[]> = {
   'stair-defaults': ['staircase'],
   'tool-area': ['balcony', 'verandah', 'veranda', 'porch', 'terrace', 'paving', 'path', 'lawn', 'courtyard', 'alfresco', 'pergola', 'carport'],
   'tool-sketch': ['curved', 'curved wall', 'round', 'rectangle', 'square', 'box', 'shape', 'grid', 'guides'],
-  'tool-wall': ['rectangle', 'box', 'partition'],
+  'tool-wall': ['rectangle', 'box', 'partition', 'outside face', 'inside face', 'wall face', 'justification', 'wall alignment', 'set out', 'clear size', 'overall size'],
   'tool-roof': ['roofing', 'ridge', 'skillion roof'],
   'tool-furniture': ['couch', 'lounge', 'bath', 'shower', 'toilet', 'vanity', 'basin', 'sink', 'fridge', 'oven', 'wardrobe', 'desk', 'chair', 'decorate', 'furnish'],
   furniture: ['couch', 'furnish', 'decorate'],

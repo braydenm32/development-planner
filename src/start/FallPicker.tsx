@@ -140,7 +140,7 @@ export function FallArt({ street, fall }: { street: StreetSide; fall: FallChoice
       {arrows.map((a, i) => (
         <g key={i}>
           <path d={`M${cx - a.dx * 30} ${cy - a.dy * 30}L${cx + a.dx * 30} ${cy + a.dy * 30}`} stroke="#2346d0" strokeWidth="2" markerEnd="url(#fall-head)" />
-          <text x={cx + a.dx * 36 + (a.dx ? 0 : 14)} y={cy + a.dy * 36 + (a.dy ? (a.dy > 0 ? 2 : 6) : -6)} textAnchor={a.dx < 0 ? 'end' : a.dx > 0 ? 'start' : 'start'} fontSize="10.5" fill="#2346d0">
+          <text x={a.dx ? cx + a.dx * 15 : cx + 6} y={a.dx ? cy - 7 : cy + a.dy * 15 + 4} textAnchor={a.dx ? 'middle' : 'start'} fontSize="10.5" fill="#2346d0">
             down
           </text>
         </g>
