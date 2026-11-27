@@ -20,8 +20,21 @@
   font-weight: 600;
 }
 
-.schedule td:first-child {
-  font-weight: 600;
+/* The caption is for screen readers: the heading above the table says the same to the eye. */
+.schedule caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.schedule abbr {
+  text-decoration: none;
+}
+
+.schedule tbody th {
   white-space: nowrap;
 }
 
