@@ -64,7 +64,7 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
       <button
         ref={button}
         className="project-button"
-        aria-haspopup="true"
+        aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
         title="Project menu"

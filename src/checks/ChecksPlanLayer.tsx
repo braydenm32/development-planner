@@ -82,8 +82,9 @@ export function ChecksMarks(props: Props & { pins: Pin[]; targets: Record<string
           key={p.id}
           className={`ck-pin ${p.word}${p.id === shown ? ' on' : ''}`}
           transform={`translate(${p.at[0].toFixed(1)} ${p.at[1].toFixed(1)})`}
-          role="button"
-          aria-label={`${p.n}: ${p.title}. Show it in the list`}
+          // A picture of where the check is, for the pointer; the keyboard's and a screen reader's way to it is its row in the list, which carries the same number.
+          role="img"
+          aria-label={`Check ${p.n} on the plan: ${p.title}`}
           onPointerDown={e => {
             // The plan's own tools never see a click on a pin.
             e.stopPropagation()

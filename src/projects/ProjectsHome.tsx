@@ -321,11 +321,11 @@ export function ProjectsHome(props: Props) {
         <div className="ph-head">
           <h1>Projects</h1>
           {(tucked.length > 0 || archived) && (
-            <div className="ph-seg" role="tablist" aria-label="Show">
-              <button role="tab" aria-selected={!archived} className={archived ? '' : 'on'} onClick={() => setArchived(false)}>
+            <div className="ph-seg" role="group" aria-label="Show">
+              <button aria-pressed={!archived} className={archived ? '' : 'on'} onClick={() => setArchived(false)}>
                 Active <span className="ph-count">{active.length}</span>
               </button>
-              <button role="tab" aria-selected={archived} className={archived ? 'on' : ''} onClick={() => setArchived(true)}>
+              <button aria-pressed={archived} className={archived ? 'on' : ''} onClick={() => setArchived(true)}>
                 Archived <span className="ph-count">{tucked.length}</span>
               </button>
             </div>

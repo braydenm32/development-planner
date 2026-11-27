@@ -246,7 +246,7 @@ export const AREAS: Area[] = [
           'DEM',
           'no survey',
         ],
-        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove', 'map-on-canvas', 'map-trouble'],
+        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove', 'map-on-canvas', 'map-trouble', 'map-move-keys'],
       },
       {
         id: '3d',
@@ -953,6 +953,7 @@ export const AREAS: Area[] = [
           'share-link-view',
           'share-link-comments-setting',
           'share-link-comment-add',
+          'share-link-comment-whole-floor',
           'share-link-comments-list',
           'share-link-comments-badge',
           'download-project-file',

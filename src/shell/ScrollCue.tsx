@@ -167,7 +167,7 @@ export function ScrollCue({ className, label, count = false, free = false, keep,
       {mode === 'menu'
         ? hiddenCount > 0 && (
             <>
-              <button className="scroll-arrow after count menu" onClick={() => setOpen(!open)} aria-haspopup="true" aria-expanded={listing} aria-label={moreText(hiddenCount, label)} title={moreText(hiddenCount, label)}>
+              <button className="scroll-arrow after count menu" onClick={() => setOpen(!open)} aria-expanded={listing} aria-label={moreText(hiddenCount, label)} title={moreText(hiddenCount, label)}>
                 <span>+{hiddenCount}</span>
                 <Icon name="chevD" size={14} />
               </button>
