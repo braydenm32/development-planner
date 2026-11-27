@@ -90,7 +90,7 @@ function useOverflow(row: RefObject<HTMLElement | null>, mode: Mode, keep: strin
         return
       }
       const hidden = kids.map(k => k.classList.contains('cut'))
-      el.scrollLeft = left
+      el.scrollTo({ left })
       refresh.current()
       const order = kids.map((_, i) => i)
       if (dir < 0) order.reverse()

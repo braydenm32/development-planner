@@ -10,7 +10,8 @@ import { readsTheHouse } from '../../nav/route'
 import { usePlan } from '../../plan/store'
 import { useSiteStore } from '../../site/store'
 import { canEdit, isPhoneLayout, PHONE_QUERY, readMode, TOUCH_MAX_W, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
-import { READS, ViewLock } from '../ViewLock'
+import { READS } from '../readingLock'
+import { ViewLock } from '../ViewLock'
 import { house, loadBlock, words } from './block'
 
 function memory(init: Record<string, string> = {}) {
