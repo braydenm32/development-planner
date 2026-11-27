@@ -13,6 +13,20 @@ export const UNDO_MS = 12_000
 /** A message without Undo. */
 export const NOTE_MS = 6_000
 
+/** Room the toast needs beside the panel to sit over the plan instead of over it (px). */
+const TOAST_MIN_W = 360
+
+/**
+ * Where a toast sits on a computer: in the middle of the plan's free part, clear of the panel
+ * on its left and the cards on its right, so it never covers a field (final check, problem 11).
+ * Null where that part is too narrow, and the toast keeps the middle of the window.
+ */
+export function toastSpot(main: { left: number; width: number }, freeLeft: number, freeRight: number): { left: number; maxWidth: number } | null {
+  const room = main.width - freeLeft - freeRight
+  if (room < TOAST_MIN_W) return null
+  return { left: Math.round(main.left + freeLeft + room / 2), maxWidth: Math.min(600, room - 32) }
+}
+
 export interface ReviewChoice {
   id: string
   label: string
@@ -40,6 +54,8 @@ export interface Review {
   /** Ways to line things up; the first is the one we suggest unless `choice` says otherwise. */
   choices?: ReviewChoice[]
   choice?: string
+  /** What the choices are about, when it isn't how the block and house line up. */
+  choicesLegend?: string
   /** A picture of the result when there are no choices. */
   thumb?: ProjectThumbnail | null
   /** The confirming button's words. */
@@ -62,6 +78,12 @@ export interface Toast {
    * All projects, where it would only be in the way, and its Undo would act on a project you've left.
    */
   project?: boolean
+  /**
+   * Something went wrong (a file that couldn't be opened): it stays until it's dismissed or
+   * another toast takes its place, and is announced straight away (role=alert), since a long
+   * message can't be read, let alone acted on, in a few seconds.
+   */
+  error?: boolean
   ms: number
 }
 
@@ -128,10 +150,10 @@ export function chooseInReview(id: string) {
 let toastId = 0
 
 /** Show a toast; with `undo`, it offers Undo for at least UNDO_MS. A toast already showing settles first. */
-export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; project?: boolean; ms?: number }): number {
+export function showToast(t: { text: string; link?: Toast['link']; undo?: Toast['undo']; settle?: Toast['settle']; project?: boolean; error?: boolean; ms?: number }): number {
   const old = get().toast
   const id = ++toastId
-  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, project: t.project, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
+  set({ toast: { id, text: t.text, link: t.link, undo: t.undo, settle: t.settle, project: t.project, error: t.error, ms: t.ms ?? (t.undo || t.link ? UNDO_MS : NOTE_MS) } })
   old?.settle?.()
   return id
 }

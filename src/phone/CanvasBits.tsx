@@ -56,7 +56,6 @@ export function ShowMenu({ view, set, levels, phone }: ShowProps & { phone: bool
       <button
         className={`preset-done show-button${open ? ' on' : ''}`}
         aria-expanded={open}
-        aria-haspopup="true"
         aria-label={phone ? `Show${off ? `, ${off} off` : ''}` : undefined}
         onClick={() => setOpen(!open)}
         title="Show or hide the roof, levels, trees and furniture"

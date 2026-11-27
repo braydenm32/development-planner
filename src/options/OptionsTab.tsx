@@ -8,6 +8,7 @@ import { useCosts } from '../costs/store'
 import { useMap } from '../map/store'
 import { useProjects } from '../projects/session'
 import { Icon } from '../nav/icons'
+import { useModal } from '../nav/useModal'
 import { projectThumbnail } from '../projects/summary'
 import type { ProjectThumbnail } from '../projects/types'
 import { askReview, showToast } from '../safety/store'
@@ -38,7 +39,7 @@ function Options({ d }: { d: Loaded }) {
     if (!item) return
     const plan = id === rec.current ? d.plan : item.plan
     const parts = plan
-      ? [`${plan.levels.length} ${plan.levels.length === 1 ? 'floor' : 'floors'}`, `${plan.walls.length} ${plan.walls.length === 1 ? 'wall' : 'walls'}`, `${plan.rooms.length} ${plan.rooms.length === 1 ? 'room' : 'rooms'}`]
+      ? [`${plan.levels.length} ${plan.levels.length === 1 ? 'level' : 'levels'}`, `${plan.walls.length} ${plan.walls.length === 1 ? 'wall' : 'walls'}`, `${plan.rooms.length} ${plan.rooms.length === 1 ? 'room' : 'rooms'}`]
       : []
     const ok = await askReview({
       kind: 'delete-option',
@@ -192,12 +193,9 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
   const sheet = useRef<HTMLDivElement>(null)
   const cols = useColumns(d)
   const busy = useOptions(s => s.busy)
-  // Focus the sheet so Escape and Tab work in it, and give focus back when it closes.
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    sheet.current?.focus()
-    return () => before?.focus?.()
-  }, [])
+  // Over everything, with a backdrop: a dialog like the others, so Tab stays in it, Esc closes it and keys never reach the plan.
+  useModal(sheet, true, onClose, { focus: 'none' })
+  useEffect(() => sheet.current?.focus(), [])
   const marks = useMemo(() => (cols ? ROWS.map(r => bestIn(r, cols.map(c => c.nums))) : []), [cols])
   const [onlyDiff, setOnlyDiff] = useState(false)
   // The rows to show: every row, or with "Differences only", the ones where the options don't all say the same.
@@ -210,14 +208,9 @@ export function CompareSheet({ d, onClose }: { d: Loaded; onClose: () => void })
         ref={sheet}
         className="overview-sheet opt-sheet"
         role="dialog"
+        aria-modal="true"
         aria-label="Compare options"
         tabIndex={-1}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            e.stopPropagation()
-            onClose()
-          }
-        }}
       >
         <div className="sheet-grab" aria-hidden="true" />
         <header>

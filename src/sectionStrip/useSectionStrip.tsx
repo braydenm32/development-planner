@@ -2,7 +2,7 @@
 // sections and the design flow are): the cut line across the plan, with its ends and middle to
 // drag, and the strip under the plan. PlanEditor renders `over` in its drawing and `html` beside it.
 
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -11,7 +11,10 @@ import type { Earth } from '../plan/useEarthworks'
 import { snapEnd } from '../sections/lines'
 import { bearingToLineUp, defaultCut } from './geometry'
 import { SectionStrip } from './SectionStrip'
-import { setCut, useStrip, type Cut } from './store'
+import { opensItself, setCut, setStripAuto, useStrip, type Cut } from './store'
+import { floorDrawn } from '../shell/drawn'
+import { usePlan } from '../plan/store'
+import { FREE_KEY, snapFree } from '../pointer/snapping'
 
 export interface SectionStripArgs {
   /** The strip shows here: Design or Earthworks, in the app's frame. */
@@ -51,6 +54,17 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
   const cut = stored ?? auto
   const drag = useRef<{ end: 'a' | 'b' | 'mid'; from: Vec2; start: Cut } | null>(null)
 
+  // Until the viewer folds or shows it themselves, the strip starts folded and opens once there is
+  // a house to cut through; never by itself on a phone. It waits for the drawing tool to be put
+  // down, so the plan doesn't shift under a wall half drawn.
+  const drawn = floorDrawn(plan)
+  const idle = usePlan(s => s.tool === 'select')
+  useLayoutEffect(() => {
+    if (!shows) return
+    const auto = opensItself(phone, drawn)
+    if (!auto || idle) setStripAuto(auto)
+  }, [shows, phone, drawn, idle])
+
   if (!shows) return { over: null, html: null }
 
   const down = (e: ReactPointerEvent<SVGElement>, end: 'a' | 'b' | 'mid') => {
@@ -70,9 +84,9 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
       const dy = p[1] - d.from[1]
       next = { a: [d.start.a[0] + dx, d.start.a[1] + dy], b: [d.start.b[0] + dx, d.start.b[1] + dy] }
     } else {
-      // An end keeps the cut square to the house (or at 45°) unless Shift is held, as a section line does.
+      // An end keeps the cut square to the house (or at 45°) unless snapping is off (Alt), as a section line does.
       const other = d.end === 'a' ? d.start.b : d.start.a
-      const q = snapEnd(other, p, e.shiftKey)
+      const q = snapEnd(other, p, snapFree(e))
       if (Math.hypot(q[0] - other[0], q[1] - other[1]) < 2) return
       next = d.end === 'a' ? { a: q, b: other } : { a: other, b: q }
     }
@@ -95,20 +109,20 @@ export function useSectionStrip(a: SectionStripArgs): { over: ReactNode; html: R
     <g className={`sstrip-cut${open ? '' : ' folded'}`}>
       <line className="line" x1={pa[0]} y1={pa[1]} x2={pb[0]} y2={pb[1]} />
       <text className="tag" x={lead[0] + 8} y={lead[1] - 8}>
-        Section
+        Live section
       </text>
       {grab &&
         (['a', 'b'] as const).map(end => {
           const p = end === 'a' ? pa : pb
           return (
             <circle key={end} className="end" cx={p[0]} cy={p[1]} r={6} onPointerDown={e => down(e, end)} onPointerMove={e => move(e)} onPointerUp={up}>
-              <title>Drag to swing the section's cut (Shift for any angle)</title>
+              <title>Drag to swing the live section’s line ({FREE_KEY} for any angle)</title>
             </circle>
           )
         })}
       {grab && (
         <rect className="mid" x={mid[0] - 6} y={mid[1] - 6} width={12} height={12} rx={2} transform={`rotate(45 ${mid[0]} ${mid[1]})`} onPointerDown={e => down(e, 'mid')} onPointerMove={e => move(e)} onPointerUp={up}>
-          <title>Drag to move the section's cut across the plan</title>
+          <title>Drag to move the live section’s line across the plan</title>
         </rect>
       )}
     </g>

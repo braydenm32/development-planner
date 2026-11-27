@@ -11,6 +11,7 @@ import { FeatureSymbol, LiveDim, Tag } from './FeatureSymbol'
 import { snapPoints } from './pdfVector'
 import { snapToEdges, touchesBlock } from './traceSnap'
 import { useAerialLayer } from '../map/aerial'
+import { FREE_KEY } from '../pointer/snapping'
 import './site.css'
 
 /**
@@ -571,7 +572,7 @@ export function useSitePlan({ survey, placement, S, toHouse, k, fitTo, snapHouse
     const what = typeInfo(traceTool.type).label.toLowerCase()
     if (traceTool.type === 'tree') return pts.length ? 'Move out to the edge of the canopy and click, or type its spread in mm and press Enter.' : 'Click the middle of the trunk.'
     if (traceTool.geom === 'point') return `Click to place the ${what}.`
-    if (traceTool.geom === 'line') return `Click along the ${what}. Type a length in mm and press Enter for an exact side; double-click or Enter to finish. Shift turns off snapping.`
+    if (traceTool.geom === 'line') return `Click along the ${what}. Type a length in mm and press Enter for an exact side; double-click or Enter to finish. ${FREE_KEY} turns off snapping.`
     if (traceTool.type === 'easement')
       return 'Click the corners of the easement, as the title plan shows it: along the boundary they snap onto it. Type a length in mm and press Enter for an exact side; click the first corner or press Enter to close it.'
     return `Click the corners of the ${what}. Type a length in mm and press Enter for an exact side; click the first corner or press Enter to close it.`

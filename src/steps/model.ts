@@ -1,5 +1,7 @@
-// "Check everything": the whole project as six steps (Block, Levels & rooms, Ground & walls, Roof,
-// Checks, Costs & share), each with its headline number, whether it's done, and what's left in it.
+// "Check everything": the whole project as six steps (Block, Levels & rooms, Roof, Ground & walls,
+// Checks, Costs & share: the order of the rail and the guide, Design before Earthworks), each with
+// its headline number, whether it's done, and what's left in it. A thing to do is listed once,
+// under the step that owns it (LF-08).
 // Everything here is worked out from what the app already knows (the plan, the key numbers, the
 // checks, the estimate and the plan's question list in src/flow/questions.ts), as plain data, so
 // the list updates as things are fixed and the tests read it without drawing. Each item says where
@@ -9,7 +11,7 @@ import { fixOf, type FixLink } from '../checks/targets'
 import { WORD_OF, type Word } from '../checks/topics'
 import { NEED_FRONT } from '../checks/rules'
 import type { CheckResult } from '../checks/types'
-import { ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
+import { ENGINEER_SOURCE, ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
 import type { ImpliedTotals } from '../grading/implied'
 import { pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { AreaId, CanvasView } from '../nav/menu'
@@ -18,8 +20,10 @@ import { planarFaces } from '../plan/geometry'
 import { floorRL, houseWalls, levelById, sortedLevels, type Plan, type Wall } from '../plan/model'
 import { levelFloorAnswer } from '../plan/floorTypes'
 import { growRing, levelOutlines } from '../plan/roof'
-import { ceilingRL, levelsSharingCeiling, roofEavesRL, roofLineKey } from '../plan/roofline'
+import { ceilingRL, coveredRoofs, levelsSharingCeiling, roofEavesRL, roofLineKey } from '../plan/roofline'
+import { stairLandingIssues } from '../plan/stairLanding'
 import { stairMeetsNoFloor } from '../plan/stairs'
+import { storeyWarnings } from '../plan/storeys'
 import type { Selection, Tool } from '../plan/store'
 import { shortMoney } from '../costs/format'
 import { andList, m2, netText } from '../shell/format'
@@ -89,14 +93,14 @@ export interface StepsInput {
     streetSet: boolean
     /** Survey layers read by guessing, not looked at since. */
     layerGuesses: number
-    /** Placed on the map (Site › Map). */
+    /** Placed on the map (Site › Map), or a made-up block (the example's) that has no place on one. */
     mapPlaced: boolean
   }
   numbers: {
     floorArea: number | null
     /** The lowest floor's RL. */
     ffl: number
-    earth: { net: number; outOfBalance: boolean; balancedRL: number | null } | null
+    earth: { net: number; outOfBalance: boolean; balancedRL: number | null; bedOnly?: boolean } | null
     /** The tallest roof's height above the ground. */
     roofHeight: number | null
     implied: ImpliedTotals | null
@@ -255,6 +259,13 @@ function levelsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
     if (!planarFaces(house.filter(w => w.level === id)).some(f => f.area > 0)) continue
     items.push({ id: `floor:${id}`, text: `How is the floor on ${l.name} built?`, detail: 'It sits on the ground: slab, piers or something else changes the earthworks.', tone: 'todo', go: place('design', 'floors', { view: 'plan', level: id }) })
   }
+  // Storey heights that clash (a ceiling above the next floor, a very low ceiling): fixed in Design › Floors.
+  for (const l of levels)
+    for (const w of storeyWarnings(plan, l.id)) {
+      // A clash between two levels is listed once, on the lower one.
+      if (w.id.startsWith('floor-in:') || w.id.startsWith('thin-under:')) continue
+      items.push({ id: `storey:${l.id}:${w.id}`, text: `Check ${l.name}’s heights`, detail: w.text, tone: 'todo', go: place('design', 'floors', { view: 'plan', level: l.id }) })
+    }
   for (const s of plan.stairs) {
     if (!stairMeetsNoFloor(plan, s)) continue
     const l = levelById(plan, s.level)
@@ -265,6 +276,18 @@ function levelsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       tone: 'todo',
       go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
     })
+  }
+  // Where each stair lands: outside the floor it joins, through a wall, too long a flight (the stair's card says the same).
+  for (const s of plan.stairs) {
+    const l = levelById(plan, s.level)
+    for (const issue of stairLandingIssues(plan, s))
+      items.push({
+        id: `stair-${issue.id}:${s.id}`,
+        text: `Check where the stair on ${l?.name ?? 'a level'} lands`,
+        detail: issue.text,
+        tone: 'todo',
+        go: place('design', 'plan', { view: 'plan', level: s.level, sel: { type: 'stair', id: s.id }, frame: [s.at] }),
+      })
   }
   const area = i.numbers.floorArea
   const headline = started && area ? `${plural(levels.length, 'level')} · ${m2(area)}` : levels.length > 1 ? `${plural(levels.length, 'level')} · nothing drawn` : 'Nothing drawn yet'
@@ -297,10 +320,10 @@ function groundStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
     const go = place('earthworks', 'retaining-walls', { view: 'plan', level: r.wall.level, sel: { type: 'wall', id: r.wall.id }, frame: wallPts(r.wall) })
     if (r.height < 0.05) items.push({ id: `flat:${r.wall.id}`, text: `${name} holds back nothing yet`, detail: 'Set its height, or which side the earth is on.', tone: 'todo', go })
     else if (needsEngineer(r.height))
-      items.push({ id: `eng:${r.wall.id}`, text: `${name}, ${r.height.toFixed(2)} m, needs an engineer`, detail: `Over ${ENGINEER_TEXT}: it needs a professional engineer’s certificate.`, tone: 'confirm', go })
+      items.push({ id: `eng:${r.wall.id}`, text: `${name}, ${r.height.toFixed(2)} m, needs an engineer`, detail: `Over ${ENGINEER_TEXT}: it needs a professional engineer’s certificate (${ENGINEER_SOURCE}).`, tone: 'confirm', go })
   }
   const started = !!e
-  return { id: 'ground', title: STEP_TITLES.ground, headline: e ? (e.outOfBalance ? netText(e.net) : 'Cut and fill balance') : 'Nothing to dig yet', items, started }
+  return { id: 'ground', title: STEP_TITLES.ground, headline: e ? (e.outOfBalance ? netText(e.net) : e.bedOnly ? `Slab bed only: ${netText(e.net)}` : 'Cut and fill balance') : 'Nothing to dig yet', items, started }
 }
 
 function roofStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boolean } {
@@ -319,6 +342,16 @@ function roofStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boolea
         go: place('design', 'roofs', { view: 'plan', level, frame: bare.flatMap(wallPts), tool: 'roof' }),
       })
     }
+  for (const { roof, under } of coveredRoofs(plan)) {
+    const l = levelById(plan, roof.level)
+    items.push({
+      id: `covered:${roof.id}`,
+      text: `The roof on ${l?.name ?? 'a level'} is under ${under.name}`,
+      detail: `${under.name} is built over all of it: move it up (in the roof’s card) or delete it. It isn’t in the estimate.`,
+      tone: 'todo',
+      go: place('design', 'roofs', { view: 'plan', level: roof.level, sel: { type: 'roof', id: roof.id }, frame: roof.pts }),
+    })
+  }
   for (const [a, b] of unmatchedRooflines(plan)) {
     const ra = plan.roofs.find(r => r.id === a)!
     const rb = plan.roofs.find(r => r.id === b)!
@@ -348,9 +381,17 @@ function checksStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: bool
       if (WORD_OF[r.status] !== word) continue
       // The street side is asked once, under Block.
       if (!i.site.streetSet && r.note === NEED_FRONT) continue
-      const detail = [r.value, r.limit && `allowed ${r.limit}`].filter(Boolean).join(' · ') || r.note
+      // A wall that needs an engineer is listed once, by name, under Ground & walls (LF-08).
+      if (word === 'confirm' && r.id.endsWith('-retaining') && i.retaining.some(w => needsEngineer(w.height))) continue
+      const detail = [r.value, r.limit && `rule: ${r.limit}`].filter(Boolean).join(' · ') || r.note
       items.push({ id: `check:${r.id}`, text: r.title, detail, tone: CHECK_TONE[word]!, go: { to: 'check', id: r.id, fix: word === 'fix' ? fixOf(r) : null } })
     }
+  // The DA pack's title block: only a DA lodges one, and it's put together in Approvals (LF-08, HO-18).
+  if (c.name === 'DA') {
+    if (!i.da.address) items.push({ id: 'address', text: 'Add the site’s address', detail: 'For the DA pack’s title blocks. It stays on this device.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-address' }) })
+    if (!i.da.lot) items.push({ id: 'lot', text: 'Add the Lot and DP', detail: 'For the DA pack’s title blocks.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-lot' }) })
+    if (!i.da.preparedBy) items.push({ id: 'by', text: 'Say who prepared the plans', detail: 'Your name or business, on the DA pack.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-by' }) })
+  }
   return { id: 'checks', title: STEP_TITLES.checks, headline: `${c.name} · ${c.head}`, items, started: true, word: c.word }
 }
 
@@ -359,16 +400,20 @@ function costsStep(i: StepsInput): Omit<Step, 'n' | 'status'> & { started: boole
   const c = i.cost
   const ready = !!c?.ready
   if (c?.ready && c.missing.length)
-    items.push({ id: 'estimate', text: `The estimate has nothing for the ${andList(c.missing)} yet`, detail: 'Draw them and their lines fill in.', tone: 'todo', go: place('costs', 'estimate') })
-  if (!i.da.address) items.push({ id: 'address', text: 'Add the site’s address', detail: 'For the DA pack’s title blocks. It stays on this device.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-address' }) })
-  if (!i.da.lot) items.push({ id: 'lot', text: 'Add the Lot and DP', detail: 'For the DA pack’s title blocks.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-lot' }) })
-  if (!i.da.preparedBy) items.push({ id: 'by', text: 'Say who prepared the plans', detail: 'Your name or business, on the DA pack.', tone: 'todo', go: place('approvals', 'da-pack', { field: 'da-by' }) })
+    items.push({
+      id: 'estimate',
+      text: `The estimate has nothing for the ${andList(c.missing)} yet`,
+      // A bathroom or a kitchen is a room given that type, not something else to draw.
+      detail: c.missing.every(m => m === 'bathroom' || m === 'kitchen') ? 'Give a room that type on its card and its line fills in.' : 'Draw them and their lines fill in.',
+      tone: 'todo',
+      go: place('costs', 'estimate'),
+    })
   return { id: 'costs', title: STEP_TITLES.costs, headline: ready ? `About ${shortMoney(c!.total)}` : 'No estimate yet', items, started: ready }
 }
 
-/** The six steps, in order, each with what's left. */
+/** The six steps, in the order of the rail and the guide (the house, its roof, then the ground), each with what's left. */
 export function stepsOf(i: StepsInput): Step[] {
-  return [blockStep(i), levelsStep(i), groundStep(i), roofStep(i), checksStep(i), costsStep(i)].map(({ started, ...s }, k) => ({
+  return [blockStep(i), levelsStep(i), roofStep(i), groundStep(i), checksStep(i), costsStep(i)].map(({ started, ...s }, k) => ({
     ...s,
     n: k + 1,
     status: s.items.length ? 'todo' : started ? 'done' : 'empty',

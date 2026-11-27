@@ -14,7 +14,7 @@ import { planSetPdf, type PlanSetInput } from '../plans'
 
 // The synthetic tilted-plane block, with the garage floor set square on it and a 5 m by 10 m drive
 // running north from the garage door to the street.
-function setup(drive?: DriveLevels, garageDoor = true) {
+function setup(drive?: DriveLevels, garageDoor = true, gap = 0) {
   const survey = buildSurvey(parseDxf(planeSurvey()), guessRoles(analyzeLayers(parseDxf(planeSurvey()))))
   const terrain = buildTerrain(survey)
   const base = garageFloor()
@@ -28,9 +28,10 @@ function setup(drive?: DriveLevels, garageDoor = true) {
         level: 'level_ground',
         name: 'Driveway',
         kind: 'driveway',
+        // `gap` m short of the garage: a drive that doesn't run up to the house.
         pts: [
-          [1, 10.113],
-          [6, 10.113],
+          [1, 10.113 + gap],
+          [6, 10.113 + gap],
           [6, 20.113],
           [1, 20.113],
         ],
@@ -85,17 +86,38 @@ describe('PDF site plan', () => {
 
   it('puts the graded drive into the cut and fill it reports', () => {
     // The same ground cut and filled with and without the drive's levels: the volumes differ.
-    const flat = setup()
-    const levelled = setup({ street: { rl: 85.5, from: 'typed' }, garage: 'slab' })
+    const flat = setup(undefined, true, 3)
+    const levelled = setup({ street: { rl: 85.5, from: 'typed' }, garage: 'slab' }, true, 3)
     expect(levelled.result.cut + levelled.result.fill).not.toBeCloseTo(flat.result.cut + flat.result.fill, 1)
     const pdf = text(planSetPdf(levelled.input))
     expect(pdf).toContain(`(${levelled.result.cut.toFixed(1)} / ${levelled.result.fill.toFixed(1)} m`)
   })
 
-  it('keeps the ground’s grade for a drive with no levels of its own', () => {
-    const pdf = text(planSetPdf(setup().input))
+  it('keeps the ground’s grade for a drive with no levels of its own, short of the house', () => {
+    const pdf = text(planSetPdf(setup(undefined, true, 3).input))
     expect(pdf).toContain('(Average grade along the drive) Tj')
     expect(pdf).not.toContain('(Driveway, street to garage) Tj')
+  })
+
+  it('writes a drive that runs up to the garage, left alone, from the garage slab (DB-13)', () => {
+    const pdf = text(planSetPdf(setup().input))
+    expect(pdf).toContain('(Driveway, street to garage) Tj')
+    expect(pdf).toMatch(/\(RL \d+\.\d\d to 84\.00\) Tj/)
+    expect(pdf).not.toContain('(Average grade along the drive) Tj')
+  })
+
+  it('measures a drive wider than it is long from the garage to the street, as its panel does (LF-01)', () => {
+    // 12 m wide and 10 m long: the grade is down those 10 m to the garage door, not across the 12.
+    const s = setup({ street: { rl: 85, from: 'typed' }, garage: 'slab' })
+    const plan = { ...s.plan, areas: s.plan.areas.map(a => ({ ...a, pts: a.pts.map(p => [p[0] === 1 ? -3 : 9, p[1]] as [number, number]) })) }
+    const terrain = buildTerrain(s.survey)
+    const platforms = [...earthworksPlatforms(plan, s.survey.origin), ...drivewayPlatforms(plan, s.survey.origin, s.survey.boundary)]
+    const prep = prepareEarthworks(terrain.grid, s.survey.boundary, platforms, earthworksOf(plan))
+    const result = evaluateEarthworks(prep)
+    const pdf = text(planSetPdf({ ...s.input, plan, ground: result.grid, drive: driveGround({ prep, result }, terrain.grid) }))
+    // RL 85.00 down to the slab at 84.00 over 10 m: 0.1, 1 in 10.0.
+    expect(pdf).toContain('(RL 85.00 to 84.00) Tj')
+    expect(pdf).toContain('(1 in 10.0 \\(10%\\)) Tj')
   })
 })
 

@@ -3,19 +3,21 @@
 // the suggested retaining walls with Add and Dismiss. PlanEditor hands it the pointer, clicks and
 // keys first, and renders `over`.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { CanvasFrame } from '../components/canvasFrame'
 import { useCheckTrees } from '../checks/siteTrees'
 import type { Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { useRouter } from '../nav/router'
+import { navigate, useRouter } from '../nav/router'
 import { nearestContour, type ContourLine } from '../plan/contourPick'
 import type { ContourRun } from '../plan/finishedContours'
 import { fromSite, toSite, type Plan } from '../plan/model'
 import { usePlan, type Tool } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
+import { showToast } from '../safety/store'
 import { areaLabelAt, areaName, areaOutline, paintPlan, strokeCells } from './model'
-import { BRUSH_KEY, beginBrush, setBrushLevel, stepBrushRadius, stopBrush, stopLevelPick, useBrush } from './store'
+import { BRUSH_KEY, beginBrush, onCutFill, setBrushLevel, stepBrushRadius, stopBrush, stopLevelPick, useBrush } from './store'
 import { addSuggestion, dismissWall } from './actions'
 import { Suggested } from './SuggestedWall'
 import { placeTags } from './tags'
@@ -42,6 +44,8 @@ export interface GradeBrushArgs {
   viewOnly: boolean
   /** A finger, not a mouse: picking reaches further. */
   touch: boolean
+  /** The plan's size on screen (px), so the suggestions' tags stay clear of the buttons round its edges. */
+  size?: { w: number; h: number }
 }
 
 /** Which Earthworks tab is open, if any. */
@@ -51,6 +55,7 @@ function earthTab(r: ReturnType<typeof useRouter.getState>['route']): string | n
 
 export function useGradeBrush(a: GradeBrushArgs) {
   const { plan, survey, terrain, earth, S, k, viewOnly } = a
+  const frame = useContext(CanvasFrame)
   const route = useRouter(s => s.route)
   const tab = earthTab(route)
   const brush = useBrush()
@@ -146,7 +151,22 @@ export function useGradeBrush(a: GradeBrushArgs) {
     if (e.metaKey || e.ctrlKey || e.altKey || viewOnly) return false
     if (e.key.toUpperCase() === BRUSH_KEY) {
       if (active) stopBrush()
-      else beginBrush()
+      else {
+        const from = useRouter.getState().route
+        beginBrush()
+        // One key took you to another area: say where, with the way back.
+        if (!onCutFill(from))
+          showToast({
+            text: 'Grading brush: you’re now in Earthworks › Cut & fill.',
+            link: {
+              label: 'Back',
+              go: () => {
+                stopBrush()
+                navigate(from)
+              },
+            },
+          })
+      }
       return true
     }
     if (!active) return false
@@ -210,7 +230,9 @@ export function useGradeBrush(a: GradeBrushArgs) {
           (() => {
             const scr = (p: Vec2) => S(fromSite(p, plan.placement, o))
             const ends = suggestions.map(s => ({ A: scr(s.a), B: scr(s.b), height: s.height, implied: s.rule === 'implied' }))
-            const at = placeTags(ends, !viewOnly)
+            const ins = frame?.insets
+            const view = a.size && ins ? { x0: ins.l, y0: ins.t, x1: a.size.w - ins.r, y1: a.size.h - ins.b } : undefined
+            const at = placeTags(ends, !viewOnly, view)
             return [
               ...suggestions.map((s, n) => <path key={`l${n}`} className={`grade-suggest-line${s.rule === 'implied' ? ' implied' : ''}`} d={`M${s.path.map(p => scr(p).map(v => v.toFixed(1)).join(' ')).join('L')}`} />),
               ...suggestions.map((s, n) => (

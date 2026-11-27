@@ -5,9 +5,12 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlanEditor } from '../../components/PlanEditor'
+import { AREAS } from '../../nav/menu'
+import { readsTheHouse } from '../../nav/route'
 import { usePlan } from '../../plan/store'
 import { useSiteStore } from '../../site/store'
-import { canEdit, readMode, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
+import { canEdit, isPhoneLayout, PHONE_QUERY, readMode, TOUCH_MAX_W, TouchCanvas, usePhoneMode, type TouchCanvasInfo } from '../device'
+import { READS } from '../readingLock'
 import { ViewLock } from '../ViewLock'
 import { house, loadBlock, words } from './block'
 
@@ -15,6 +18,34 @@ function memory(init: Record<string, string> = {}) {
   const m = new Map(Object.entries(init))
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m }
 }
+
+// PH-09: width and pointer decide together who gets the phone's layout.
+describe('who gets the phone’s layout', () => {
+  it('is any narrow window, and a touch screen up to a tablet held upright', () => {
+    // Phones, upright and sideways.
+    expect(isPhoneLayout(390, true)).toBe(true)
+    expect(isPhoneLayout(360, true)).toBe(true)
+    expect(isPhoneLayout(844, true)).toBe(true)
+    expect(isPhoneLayout(932, true)).toBe(true)
+    // An iPad upright (810 px) is a fair call for the phone's layout.
+    expect(isPhoneLayout(810, true)).toBe(true)
+    // A narrow window on a computer.
+    expect(isPhoneLayout(700, false)).toBe(true)
+  })
+
+  it('gives a tablet on its side the computer’s layout, and a computer always', () => {
+    expect(isPhoneLayout(1080, true)).toBe(false)
+    expect(isPhoneLayout(1194, true)).toBe(false)
+    expect(isPhoneLayout(1366, true)).toBe(false)
+    expect(isPhoneLayout(1024, false)).toBe(false)
+    expect(isPhoneLayout(761, false)).toBe(false)
+  })
+
+  it('asks the browser the same thing', () => {
+    expect(PHONE_QUERY).toBe(`(max-width: 760px), (pointer: coarse) and (max-width: ${TOUCH_MAX_W}px)`)
+    expect(TOUCH_MAX_W).toBe(1079)
+  })
+})
 
 describe('the View / Edit switch', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -127,6 +158,21 @@ describe('a panel in View', () => {
     expect(words(html)).toContain('View: one finger pans, nothing moves. Tap Edit to change the plan. Edit Balance')
   })
 
+  it('leaves a reading panel (Approvals) open to read: no blanket lock, and its own line (PH-07)', () => {
+    const html = renderToStaticMarkup(
+      <ViewLock reading>
+        <button aria-expanded="false">+ 3 OK</button>
+      </ViewLock>,
+    )
+    // Not a disabled fieldset, which would lock the "+ 3 OK" that only unfolds the passes.
+    expect(html).not.toContain('<fieldset')
+    expect(html).toContain('<div class="view-lock reading">')
+    expect(html).not.toContain('disabled')
+    expect(words(html)).toContain('View: everything here opens to read. Tap Edit to change an answer. Edit')
+    // What stays live: what unfolds, links, and what a panel marks as reading (the CDC / DA route, a download).
+    expect(READS.split(', ')).toEqual(['button[aria-expanded]', 'button.link', '[data-view-reads]', '[data-view-reads] *'])
+  })
+
   it('puts the line after the numbers in the selection sheet', () => {
     const html = words(
       renderToStaticMarkup(
@@ -138,3 +184,42 @@ describe('a panel in View', () => {
     expect(html.indexOf('Wall 10.00 m')).toBeLessThan(html.indexOf('View: one finger pans'))
   })
 })
+
+// LF-12, LD-36, LF-09: Approvals and Share read the house on a computer too. The frame makes the
+// plan view-only there (the same lock as a phone's View: no handles, no drags, no Delete), and the
+// selection's card says where the thing is changed.
+describe('Approvals and Share, which read the house', () => {
+  it('are the two areas where the house is read: Design and Earthworks change it', () => {
+    expect(AREAS.map(a => a.id).filter(readsTheHouse)).toEqual(['approvals', 'share'])
+  })
+
+  it('lock the selection’s card, say where it is changed, and offer the way there', () => {
+    const go = vi.fn()
+    const html = renderToStaticMarkup(
+      <ViewLock after why={{ text: 'This is for reading here. The house is changed in Design.', label: 'Go to Design', go }}>
+        <button className="danger">Delete</button>
+      </ViewLock>,
+    )
+    expect(html).toContain('<fieldset class="view-lock" disabled="">')
+    expect(words(html)).toContain('The house is changed in Design. Go to Design')
+    // Not the phone's line: there is nothing to switch to Edit for.
+    expect(words(html)).not.toContain('Tap Edit')
+  })
+
+  it('draw no handles on a computer either, where the plan is view-only', () => {
+    usePlan.getState().load(house())
+    usePlan.getState().select({ type: 'wall', id: 's' })
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
+    const { survey, terrain } = loadBlock()
+    const html = renderToStaticMarkup(
+      <TouchCanvas.Provider value={{ phone: false, viewOnly: true, projectKey: 'p' }}>
+        <PlanEditor survey={survey} terrain={terrain} up="house" onUpChange={() => {}} showGround={false} onShowGroundChange={() => {}} earth={null} />
+      </TouchCanvas.Provider>,
+    )
+    expect(html).toContain('view-only')
+    expect(html).not.toContain('class="handle"')
+    // The level chip picks a floor to look at; it has no Pick a contour, which moves floors.
+    expect(html).not.toContain('Pick a contour')
+  })
+})
+

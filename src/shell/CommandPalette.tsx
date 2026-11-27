@@ -5,7 +5,12 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react'
 import { Icon } from '../nav/icons'
 import { shortcutText } from '../nav/keys'
-import { buildIndex, search, suggestions, type Feature, type SearchItem } from '../nav/search'
+import { useModal } from '../nav/useModal'
+import { buildIndex, search, suggestions, withoutCloud, withoutKeyboard, type Feature, type SearchItem } from '../nav/search'
+import { isTouch } from '../phone/words'
+import { useCloud } from '../cloud/state'
+import { resultCountWords } from '../a11y/announce'
+import '../a11y/a11y.css'
 
 let loaded: Feature[] | null = null
 
@@ -26,11 +31,25 @@ function useFeatures(): Feature[] | null {
   return features
 }
 
-const KIND_LABEL: Record<SearchItem['kind'], string> = { area: 'Area', tab: 'Tab', more: 'More', command: 'Command', feature: 'Feature', term: 'Word' }
+/**
+ * What choosing a row does, in two plain words (HO-33): "Go" takes you to it, "Do it" does it
+ * straight away. A word's meaning and a line that says the app doesn't do something say so.
+ */
+function kindLabel(r: SearchItem): { text: string; run: boolean } {
+  if (r.kind === 'absent') return { text: 'Not here', run: false }
+  if (r.kind === 'term') return { text: 'Meaning', run: false }
+  if (r.action && r.kind !== 'feature' && r.run === 'now') return { text: 'Do it', run: true }
+  return { text: 'Go', run: false }
+}
 
 export type Choice = 'done' | 'offer'
 
 interface Props {
+  /** The open project's own rooms, levels and roofs, found by name beside the menu (src/nav/search.ts thingItems). */
+  things?: SearchItem[]
+  /** Search these rows only, instead of the menu (the Projects home, which has no project open). */
+  only?: SearchItem[]
+  placeholder?: string
   /** Go to the item's home, or run it. `direct` runs an action without offering first. */
   choose: (item: SearchItem, direct: boolean) => Choice
   run: (item: SearchItem) => void
@@ -38,17 +57,26 @@ interface Props {
   onClose: (restore: boolean) => void
 }
 
-export function CommandPalette({ choose, run, onClose }: Props) {
+export function CommandPalette({ things, only, placeholder, choose, run, onClose }: Props) {
   const features = useFeatures()
-  const index = useMemo(() => buildIndex(features ?? []), [features])
+  // A copy of the app with no cloud doesn't offer cloud commands that would dead-end (src/nav/search.ts).
+  const noCloud = useCloud(c => c.phase === 'unavailable')
+  const index = useMemo(() => {
+    if (only) return only
+    const all = isTouch() ? withoutKeyboard(buildIndex(features ?? [])) : buildIndex(features ?? [])
+    return [...(noCloud ? withoutCloud(all) : all), ...(things ?? [])]
+  }, [features, noCloud, things, only])
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [offer, setOffer] = useState<SearchItem | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const runButton = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLUListElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   const id = useId()
-  const results = useMemo(() => (query.trim() ? search(index, query) : suggestions(index)), [index, query])
+  // Tab stays in the search (or its offer), and Esc closes it wherever focus is (src/nav/useModal.ts).
+  useModal(box, true, () => onClose(true), { focus: 'none' })
+  const results = useMemo(() => (query.trim() ? search(index, query) : only ? only.filter(i => i.kind === 'thing') : suggestions(index)), [index, query, only])
   const current = Math.min(active, results.length - 1)
 
   useEffect(() => {
@@ -68,11 +96,6 @@ export function CommandPalette({ choose, run, onClose }: Props) {
 
   const onKey = (e: KeyboardEvent) => {
     e.stopPropagation()
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      onClose(true)
-      return
-    }
     if (offer) return
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
@@ -88,11 +111,11 @@ export function CommandPalette({ choose, run, onClose }: Props) {
     }
   }
 
-  if (offer) return <PaletteOffer item={offer} run={run} onClose={onClose} onKeyDown={onKey} runButton={runButton} />
+  if (offer) return <PaletteOffer item={offer} run={run} onClose={onClose} onKeyDown={onKey} runButton={runButton} box={box} />
 
   return (
     <div className="palette-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKey}>
+      <div ref={box} className="palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKey}>
         <div className="palette-input">
           <Icon name="search" size={18} />
           <input
@@ -102,7 +125,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             aria-controls={`${id}-list`}
             aria-activedescendant={results.length ? `${id}-${current}` : undefined}
             aria-autocomplete="list"
-            placeholder="Search areas, tabs, features and commands"
+            placeholder={placeholder ?? 'Search tabs, tools and commands, or a room by its name'}
             value={query}
             onChange={e => {
               setQuery(e.target.value)
@@ -115,7 +138,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             Close
           </button>
         </div>
-        <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : 'Areas and tabs'}>
+        <ul ref={list} id={`${id}-list`} className="palette-list" role="listbox" aria-label={query ? 'Results' : only ? 'Projects' : 'Areas and tabs'}>
           {results.length === 0 && <li className="palette-empty muted">Nothing matches “{query}”.</li>}
           {results.map((r, i) => (
             <li
@@ -124,20 +147,24 @@ export function CommandPalette({ choose, run, onClose }: Props) {
               data-i={i}
               role="option"
               aria-selected={i === current}
-              className={`${i === current ? 'on' : ''}${r.kind === 'feature' ? ' pi-feature' : ''}`}
+              className={`${i === current ? 'on' : ''}${r.kind === 'feature' ? ' pi-feature' : ''}${r.kind === 'absent' ? ' pi-absent' : ''}`}
               onMouseMove={() => i !== current && setActive(i)}
               onClick={e => pick(r, e.metaKey || e.ctrlKey)}
             >
-              <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
+              <span className="pi-icon">{r.entry.icon && r.kind !== 'feature' && r.kind !== 'absent' ? <Icon name={r.entry.icon} size={16} /> : <i className="pi-dot" />}</span>
               <span className="pi-text">
                 <span className="pi-label">{r.label}</span>
                 <span className="pi-where">{r.kind === 'area' ? 'Area' : r.where}</span>
               </span>
               {r.shortcut && <kbd>{shortcutText(r.shortcut)}</kbd>}
-              {r.action && r.kind !== 'feature' && r.kind !== 'term' ? <span className="pi-kind run">{r.run === 'offer' ? 'Go and run' : 'Run'}</span> : <span className="pi-kind">{KIND_LABEL[r.kind]}</span>}
+              <span className={`pi-kind${kindLabel(r).run ? ' run' : ''}`}>{kindLabel(r).text}</span>
             </li>
           ))}
         </ul>
+        {/* How many matched, said as the list changes (the list itself is silent until an arrow key moves through it). */}
+        <div className="a11y-hidden" role="status">
+          {query.trim() ? resultCountWords(results.length) : ''}
+        </div>
         <div className="palette-foot muted">
           <span>
             <kbd>↑</kbd>
@@ -147,7 +174,7 @@ export function CommandPalette({ choose, run, onClose }: Props) {
             <kbd>↵</kbd> go
           </span>
           <span>
-            <kbd>{shortcutText('mod+↵')}</kbd> run now
+            <kbd>{shortcutText('mod+↵')}</kbd> do it now
           </span>
         </div>
       </div>
@@ -161,6 +188,7 @@ interface OfferProps {
   onClose: (restore: boolean) => void
   onKeyDown?: (e: KeyboardEvent) => void
   runButton?: Ref<HTMLButtonElement>
+  box?: Ref<HTMLDivElement>
 }
 
 /**
@@ -168,16 +196,16 @@ interface OfferProps {
  * not over the whole page. On a phone search fills the screen, so the offer drops to a bar
  * along the bottom with the place it means showing above it (shell.css, `.offering`).
  */
-export function PaletteOffer({ item, run, onClose, onKeyDown, runButton }: OfferProps) {
+export function PaletteOffer({ item, run, onClose, onKeyDown, runButton, box }: OfferProps) {
   return (
     <div className="palette-backdrop offering" onMouseDown={e => e.target === e.currentTarget && onClose(true)}>
-      <div className="palette offering" role="dialog" aria-modal="true" aria-label={`Run ${item.entry.label}?`} onKeyDown={onKeyDown}>
+      <div ref={box} className="palette offering" role="dialog" aria-modal="true" aria-label={`Run ${item.entry.label}?`} onKeyDown={onKeyDown}>
         <div className="palette-offer">
           <p>
             <b>{item.entry.label}</b>
             <span className="muted"> · {item.where}</span>
           </p>
-          <p className="muted">It’s here now. Run it?</p>
+          <p className="muted">It’s here now. Do it?</p>
           <div className="row">
             <button
               ref={runButton}
@@ -187,7 +215,7 @@ export function PaletteOffer({ item, run, onClose, onKeyDown, runButton }: Offer
                 onClose(true)
               }}
             >
-              Run now
+              Do it now
             </button>
             <button className="plain" onClick={() => onClose(true)}>
               Not now

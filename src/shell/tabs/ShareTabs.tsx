@@ -2,7 +2,8 @@
 // and Approvals › DA pack (src/da), which Plans points to.
 
 import { DaPackSection } from '../../da/DaPackSection'
-import { PaperSelect, PdfFurnitureToggle, PdfPlans, PdfSketchToggle, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
+import { FloorScaleSelect, PaperSelect, PdfFurnitureToggle, PdfPages, PdfPlans, PdfSketchToggle, PlansCaveat, PlansContents, PrintDownloads, PrintParts, PrintSettingsFields, SendProject } from '../../components/ShareSections'
+import { pdfChoices } from '../../components/printFiles'
 import { usePhone } from '../../phone/device'
 import { tabRoute } from '../../nav/route'
 import { navigate, useRouter } from '../../nav/router'
@@ -17,7 +18,7 @@ export function PlansTab() {
   const phone = usePhone()
   if (!d) return <Waiting />
   const { printPrefs, changePrintPrefs } = d
-  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, paper: printPrefs.paper, pdfFurniture: printPrefs.pdfFurniture, pdfSketch: printPrefs.pdfSketch, leaveOut: printPrefs.leaveOut }
+  const pdf = { plan: d.plan, survey: d.survey, terrain: d.terrain, earth: d.earth, up: d.view.up, ...pdfChoices(printPrefs) }
   const furniture = (
     <>
       <PdfFurnitureToggle on={printPrefs.pdfFurniture} onChange={pdfFurniture => changePrintPrefs({ pdfFurniture })} />
@@ -28,18 +29,22 @@ export function PlansTab() {
   if (phone)
     return (
       <>
+        {/* The same caveat and page switches as on a computer (PH-23): the switches fold away under What's in it. */}
+        <PlansCaveat />
         <ShareFirst d={d} />
         <div className="tool-options">
           <PaperSelect paper={printPrefs.paper} onPaper={paper => changePrintPrefs({ paper })} />
+          <FloorScaleSelect {...pdf} onFloorScale={floorScale => changePrintPrefs({ floorScale })} />
         </div>
-        {furniture}
-        <PlansContents />
+        <PlansContents>
+          <PdfPages plan={d.plan} survey={d.survey} leaveOut={printPrefs.leaveOut} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} furniture={furniture} />
+        </PlansContents>
         <DaPackPointer />
       </>
     )
   return (
     <>
-      <PdfPlans {...pdf} furniture={furniture} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} onPaper={paper => changePrintPrefs({ paper })} />
+      <PdfPlans {...pdf} furniture={furniture} onLeaveOut={leaveOut => changePrintPrefs({ leaveOut })} onPaper={paper => changePrintPrefs({ paper })} onFloorScale={floorScale => changePrintPrefs({ floorScale })} />
       <DaPackPointer />
     </>
   )
@@ -67,7 +72,7 @@ export function DaPackTab() {
   const d = useLoaded()
   if (!d) return <Waiting />
   const { printPrefs } = d
-  return <DaPackSection plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} up={d.view.up} paper={printPrefs.paper} pdfFurniture={printPrefs.pdfFurniture} leaveOut={printPrefs.leaveOut} />
+  return <DaPackSection plan={d.plan} survey={d.survey} terrain={d.terrain} earth={d.earth} up={d.view.up} {...pdfChoices(printPrefs)} />
 }
 
 export function SendTab() {
@@ -91,7 +96,7 @@ export function PrintTab() {
   return (
     <>
       <PrintSettingsFields settings={settings} onChange={set} />
-      <PrintParts print={d.print} settings={settings} />
+      <PrintParts print={d.print} settings={settings} input={{ plan: d.plan, survey: d.survey, ground: d.earth?.result.grid ?? d.terrain.grid }} />
       <PrintDownloads plan={d.plan} settings={settings} print={d.print} />
     </>
   )

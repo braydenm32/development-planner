@@ -20,6 +20,9 @@ import { SiteFeatures3D } from '../site/SiteFeatures3D'
 import { SceneLights } from '../sun/SceneLights'
 import { House3D } from './House3D'
 import { SnapshotGrab } from '../export/SnapshotGrab'
+import { sceneProps } from '../a11y/scene'
+import { SceneKeys } from '../a11y/SceneKeys'
+import { sceneSummary } from '../a11y/summary'
 
 export interface HoverInfo {
   e: number
@@ -70,7 +73,11 @@ export function SiteView(props: Props) {
   useEffect(() => useCamera.subscribe((s, prev) => s.command !== prev.command && setPin(null)), [])
 
   return (
+    <>
+    {/* Arrows turn and tilt, + and − zoom; the view is a named picture that Tab stops on (src/a11y). */}
+    <SceneKeys />
     <Canvas
+      {...sceneProps(sceneSummary(props.plan, terrain.stats))}
       camera={{ position: camPos, fov: 40, near: 0.1, far: span * 50 }}
       shadows="percentage"
       flat
@@ -93,6 +100,7 @@ export function SiteView(props: Props) {
       <Site {...props} refZ={refZ} onPin={touch ? setPin : undefined} />
       {pin && <GroundPin pin={pin} />}
     </Canvas>
+    </>
   )
 }
 

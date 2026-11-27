@@ -1,5 +1,5 @@
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { catalogItem, catalogSolids, catalogSymbol, type SymbolPart, type Solid } from './furnitureCatalog'
+import { catalogItem, catalogSolids, catalogSymbol, CUSTOM_BOX, type SymbolPart, type Solid } from './furnitureCatalog'
 import { newId, wallDir, wallLength, type Furniture, type Wall } from './model'
 
 export { CATALOG, FURNITURE_GROUPS, catalogItem, type CatalogItem, type FurnitureGroup } from './furnitureCatalog'
@@ -60,7 +60,9 @@ export function furnitureContains(f: Placed, p: Vec2): boolean {
 export function furnitureSymbol(f: Furniture): { parts: SymbolPart[]; code: string | null } {
   const item = catalogItem(f.kind)
   const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, q)), closed: p.closed }))
-  return { parts, code: item?.code ?? null }
+  // A custom box carries the name it was given, kept short enough to sit on it.
+  const named = f.kind === CUSTOM_BOX ? f.label?.trim().slice(0, 14) : undefined
+  return { parts, code: item?.code ?? (named || null) }
 }
 
 /** The 3D shape in the plan frame, heights above the floor. */
@@ -144,7 +146,7 @@ export interface FurnitureFit {
 export interface FitOptions {
   /** How close (m) an edge must come to a wall face to snap to it. */
   tol: number
-  /** No snapping at all (Shift held). */
+  /** No snapping at all (Alt held, or snapping switched off). */
   free?: boolean
 }
 

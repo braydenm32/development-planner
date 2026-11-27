@@ -7,6 +7,7 @@ import type { Heightfield } from '../lib/terrain'
 import { floorToFirstWalls } from '../components/placeActions'
 import { wallsPlaced } from '../flow/store'
 import type { AreaKind, SketchColour, SketchItem } from '../plan/model'
+import { closesFirstOutline } from '../plan/autoRooms'
 import { undoToastFor } from '../plan/editActions'
 import { extendRun, newRetainingWall, placeRetainingWall, useRetaining } from '../plan/retainingSession'
 import { usePlan } from '../plan/store'
@@ -32,6 +33,8 @@ export function makeWalls(item: SketchItem, survey: Pick<Survey, 'origin'>, natu
   // As after a run with the Wall tool: a house's first walls set its floor, and closed walls ask the floor type.
   floorToFirstWalls(before, survey, natural)
   wallsPlaced(before, level)
+  // The house's first outline: the plan comes in from the block to the house.
+  if (closesFirstOutline(before, usePlan.getState().plan!)) usePlan.getState().requestFit('house')
   undoToastFor(ids.length === 1 ? 'Wall made from the sketch. The sketch line stays.' : `${ids.length} walls made from the sketch. The sketch line stays.`)
   return ids.length
 }
@@ -65,11 +68,11 @@ export function makeArea(item: SketchItem, kind: AreaKind): boolean {
     return r?.plan ?? p
   })
   if (!id) {
-    showToast({ text: 'That sketch has no inside to make an area of. Draw a closed shape, or a line with three or more corners.' })
+    showToast({ text: 'That sketch has no inside to make an outdoor area of. Draw a closed shape, or a line with three or more corners.' })
     return false
   }
   st.select({ type: 'area', id })
-  undoToastFor('Area made from the sketch. The sketch line stays.')
+  undoToastFor('Outdoor area made from the sketch. The sketch line stays.')
   return true
 }
 

@@ -15,10 +15,26 @@ export function pathwayLong(pathway: Pathway, council: Council | null): string {
   return council ? `${council.rules} (development application)` : 'Council rules (development application): pick your council'
 }
 
+/** The two routes by what they are, with the acronym a certifier or council will use. */
+export const PATHWAY_LABEL: Record<Pathway, string> = { cdc: 'Fast-track (CDC)', da: 'Council (DA)' }
+
+/** What picking a route means for the owner, in one line. */
+export const PATHWAY_MEANS: Record<Pathway, string> = {
+  cdc: 'Fast-track approval (a complying development certificate): a certifier signs off a house that meets the state’s fixed rules, with no council assessment.',
+  da: 'Council application (a development application): the council weighs the design against its own rules, and neighbours can comment.',
+}
+
 /** What the checks were run against, for a tooltip: "Checked against the Housing Code". */
 export function checkedAgainst(pathway: Pathway, council: Council | null): string {
   return `Checked against the ${pathway === 'cdc' ? 'Housing Code' : council ? council.rules : 'council rules'}`
 }
+
+/**
+ * Said under the route switch when DA is picked before a council: a DA has only the council's
+ * rules to check against, so the switch stays on CDC and says why (LF-22, PH-32).
+ */
+export const NEED_COUNCIL =
+  'Still on CDC. A DA is checked against your council’s rules: pick your council in the list first. If yours isn’t listed, only the state-wide Housing Code (CDC) checks are here so far.'
 
 /** Change the checks' settings as one undoable step. */
 export function setCheckSettings(patch: Partial<CheckSettings>) {

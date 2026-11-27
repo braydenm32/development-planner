@@ -1,0 +1,137 @@
+/* A browser zoomed to 400% on a 1280 × 1024 screen is 320 × 256 CSS px: wider than tall, so the
+   phone's turned-sideways layout, but with none of a turned phone's width. There the six areas
+   didn't fit the bar (Costs and Share fell off the screen with no way to reach them) and a tab's
+   panel docked at the side was 147 px wide, 22 px of it showing (WCAG 1.4.10 Reflow).
+   So, short and narrow together: the bar's areas are their names alone, on one thinner line, and a
+   panel or the selection takes the whole canvas and scrolls one way, with a way back to the plan. */
+
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 560px) {
+  .app-shell.phone {
+    --bottom-h: calc(40px + env(safe-area-inset-bottom));
+  }
+
+  /* Each area as wide as its name; the bar scrolls sideways if even the names don't fit. */
+  .app-shell.phone .bottom-bar {
+    grid-auto-columns: auto;
+    justify-content: space-between;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-shell.phone .bottom-bar .area-link {
+    min-width: 0;
+    padding: 0 5px;
+  }
+
+  .app-shell.phone .bottom-bar .area-link > svg {
+    display: none;
+  }
+
+  /* The panel and the selection: the whole canvas, edge to edge, in place of a sliver at the side. */
+  .app-shell.phone .has-col .float-col:not(.report),
+  .app-shell.phone .has-col .float-col.tall:not(.report),
+  .app-shell.phone .inspector {
+    left: 0;
+    width: auto;
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report) .float-card,
+  .app-shell.phone .inspector {
+    border-radius: 0;
+  }
+
+  /* One line of heading, so what little height there is goes to the panel's content. */
+  .app-shell.phone .tab-panel > header {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .app-shell.phone .tab-panel > header p.muted,
+  .app-shell.phone .tab-panel > .sheet-grab,
+  .app-shell.phone .inspector > .sheet-grab {
+    display: none;
+  }
+
+  /* The button that puts the panel away says what it shows instead: the plan underneath. */
+  .app-shell.phone .tab-panel:not(.report) .panel-hide {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 4px;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  .app-shell.phone .tab-panel:not(.report) .panel-hide::before {
+    content: 'Show plan';
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .app-shell.phone .canvas-3d .tab-panel:not(.report) .panel-hide::before {
+    content: 'Show 3D';
+  }
+
+  /* The view buttons and the 3D camera views: each on its own line and a little smaller, so every
+     one is on the screen (a row of them ran off its left edge, out of reach). */
+  .app-shell.phone main.shell-main:is(.canvas-plan, .canvas-3d):not(.print) .canvas-controls {
+    top: calc(var(--gap) + 50px);
+    right: var(--gap);
+    left: var(--gap);
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    height: auto;
+    direction: ltr;
+  }
+
+  .app-shell.phone .canvas-controls button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-shell.phone .preset-bar {
+    right: var(--gap);
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .app-shell.phone .preset-group button,
+  .app-shell.phone .preset-done {
+    padding: 0 8px;
+  }
+}
+
+/* On a phone the 3D view's Zoom and Turn pairs are four of the view buttons, each its own square
+   like the rest of the column. */
+.app-shell.phone .canvas-controls > .zoom-buttons {
+  display: contents;
+}
+
+/* 320 px across (a small phone, or 400% zoom): a panel's rows fold instead of pushing the panel
+   wider than the screen, where it had to be scrolled both ways (Approvals › BASIX). */
+@media (max-width: 400px) {
+  .basix-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A text box goes under its label when the two don't fit side by side, as a dropdown already does. */
+  .app-shell .num:has(> input.text) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    column-gap: 8px;
+    row-gap: 4px;
+  }
+
+  .app-shell .num input.text {
+    max-width: 100%;
+  }
+
+  /* Search: the box gives way so its Close stays on the screen. */
+  .palette-input input {
+    min-width: 0;
+  }
+}

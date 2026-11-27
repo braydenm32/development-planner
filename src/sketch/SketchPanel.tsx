@@ -235,10 +235,10 @@ export function SketchSelection({ item, plan, survey, terrain }: { item: SketchI
               Make a retaining wall
             </button>
           </div>
-          <Select label="Area type" value={areaDefault} options={AREA_KINDS} onChange={k => st.setAreaDefault(k)} />
+          <Select label="Outdoor area type" value={areaDefault} options={AREA_KINDS} onChange={k => st.setAreaDefault(k)} />
           <div className="row">
             <button className="secondary" disabled={!outline} onClick={() => makeArea(item, areaDefault)} title={outline ? undefined : 'Needs a closed shape, or a line with three or more corners'}>
-              Make an area outline
+              Make an outdoor area
             </button>
           </div>
         </div>

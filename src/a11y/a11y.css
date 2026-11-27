@@ -1,0 +1,101 @@
+/* Text for screen readers only: the live region and the canvases' descriptions. */
+.a11y-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The skip links: the first Tab stops on the page, out of sight until one has focus. */
+.skip-links {
+  position: fixed;
+  top: 6px;
+  left: 6px;
+  z-index: 400;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100vw - 12px);
+  pointer-events: none;
+}
+
+.skip-links button {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.skip-links:focus-within button {
+  position: static;
+  width: auto;
+  height: auto;
+  min-height: 36px;
+  overflow: visible;
+  clip: auto;
+  padding: 8px 14px;
+  border: 2px solid var(--text, #1c2330);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text, #1c2330);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.skip-links button:focus-visible {
+  outline: 3px solid var(--accent, #1f5fbf);
+  outline-offset: 2px;
+}
+
+/* The plan and the 3D view take the keyboard: say so with a ring when Tab lands on them. */
+.plan-editor .plan-svg:focus {
+  outline: none;
+}
+
+.plan-editor .plan-svg:focus-visible,
+.scene-keys:focus-visible {
+  outline: 3px solid var(--accent, #1f5fbf);
+  outline-offset: -3px;
+}
+
+/* Design › Walls & doors: rows read name first, size last, and long names wrap. */
+.plan-rows button > span:first-child {
+  min-width: 0;
+}
+
+.plan-rows button > span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+.plan-rows .row-change {
+  display: block;
+  width: auto;
+  margin: 2px 0 4px;
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+}
+
+.add-by-typing {
+  margin-top: 8px;
+}
+
+/* The 3D view's bar has Zoom and Turn as well: in a narrower window its other buttons are their
+   icons alone (each still named, and titled on hover), so the level read-out beside it keeps its room. */
+@media (max-width: 1180px) {
+  .app-shell:not(.phone) .canvas-3d .canvas-controls > button span {
+    display: none;
+  }
+}

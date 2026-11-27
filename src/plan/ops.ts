@@ -3,9 +3,10 @@ import {
   FLOOR_STRUCTURE,
   floorRL,
   houseWalls,
+  isRetaining,
   newId,
   sortedLevels,
-  wallDir,
+  WALL_PRESETS,
   wallLength,
   type Area,
   type AreaKind,
@@ -21,47 +22,75 @@ import {
   type WallKind,
 } from './model'
 import { furnitureCorners, resized } from './furniture'
-import { defaultGables, simplifyRing } from './roof'
+import { closestOnSegment, planarFaces } from './geometry'
+import { wallClear } from './openingFit'
+import { stylesFor } from './openingStyles'
+import { followTees, insideHouse, resizeWall, shiftJoint, type WallEnd } from './wallJoins'
+import { defaultGables, keepPlateLift, simplifyRing } from './roof'
+import type { RoomTypeId } from './roomTypes'
+import { roofCoveredBy, roofEavesRL, setEavesRL } from './roofline'
 import { followLevels, linkStairs, stairLayout } from './stairs'
+import { levelLeftAbove } from './storeys'
 import type { OpeningDefaults, RoofDefaults, Selection, StairDefaults } from './store'
 
-const TOL = 1e-3
-const same = (a: Vec2, b: Vec2) => Math.abs(a[0] - b[0]) <= TOL && Math.abs(a[1] - b[1]) <= TOL
+/** A new wall wholly on top of one already there (same level, both house walls or both retaining) adds nothing. */
+export function wallAlreadyThere(plan: Plan, level: string, a: Vec2, b: Vec2, kind: WallKind): boolean {
+  const on = (p: Vec2, w: Wall) => closestOnSegment(p, w.a, w.b).dist <= 1e-3
+  return plan.walls.some(w => w.level === level && isRetaining(w) === (kind === 'retaining') && wallLength(w) > 0.01 && on(a, w) && on(b, w))
+}
 
+/**
+ * The wall type a new wall gets: the tool's, except that a wall drawn wholly inside the house
+ * with an outside-wall type is an inside wall, at the internal preset's thickness.
+ */
+export function wallStyleAt(plan: Plan, level: string, a: Vec2, b: Vec2, style: { kind: WallKind; thickness: number }): { kind: WallKind; thickness: number } {
+  if (style.kind !== 'external' || !insideHouse(plan.walls, level, a, b)) return style
+  return { kind: 'internal', thickness: presetThickness('internal') }
+}
+
+/** The usual thickness of a kind of wall: its first preset's. */
+export const presetThickness = (kind: WallKind): number => WALL_PRESETS.find(p => p.kind === kind)!.thickness
+
+/**
+ * Change a wall's kind. Its thickness follows to the new kind's usual one (`usual`: the Wall
+ * tool's, when it's set to that kind; otherwise the kind's first preset), unless it was typed: a
+ * thickness that isn't one of the old kind's presets is the person's own and stays.
+ */
+export function setWallKind(plan: Plan, id: string, kind: WallKind, usual = presetThickness(kind)): Plan {
+  const w = plan.walls.find(x => x.id === id)
+  if (!w || w.kind === kind) return plan
+  const preset = WALL_PRESETS.some(p => p.kind === w.kind && Math.abs(p.thickness - w.thickness) < 1e-9)
+  return updateWall(plan, id, { kind, ...(preset ? { thickness: usual } : {}) })
+}
+
+/** Add a wall. One with no length, or wholly on top of a wall already there, changes nothing. */
 export function addWall(plan: Plan, level: string, a: Vec2, b: Vec2, style: { kind: WallKind; thickness: number }): Plan {
   if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.01) return plan
+  if (wallAlreadyThere(plan, level, a, b, style.kind)) return plan
   const wall: Wall = { id: newId('wall'), level, a: [a[0], a[1]], b: [b[0], b[1]], ...style }
   return { ...plan, walls: [...plan.walls, wall] }
 }
 
-/** Move every wall end on the level that sits at `from`, so joined walls stay joined. */
+/** Move every wall end on the level that sits at `from`, so joined walls stay joined; walls butting into one that moves follow it. */
 export function moveJoint(plan: Plan, level: string, from: Vec2, to: Vec2): Plan {
-  const walls = plan.walls.map(w => {
-    if (w.level !== level) return w
-    const a = same(w.a, from) ? to : w.a
-    const b = same(w.b, from) ? to : w.b
-    return a === w.a && b === w.b ? w : { ...w, a: [a[0], a[1]] as Vec2, b: [b[0], b[1]] as Vec2 }
-  })
-  return { ...plan, walls }
+  return followTees(plan, shiftJoint(plan, level, from, to))
 }
 
-/** Shift a whole wall; walls joined at its ends stretch to follow. */
+/** Shift a whole wall; walls joined at its ends stretch to follow, and so do walls that butt into it. */
 export function moveWall(plan: Plan, id: string, delta: Vec2, start: Plan): Plan {
   const w0 = start.walls.find(w => w.id === id)
   if (!w0) return plan
   const a: Vec2 = [w0.a[0] + delta[0], w0.a[1] + delta[1]]
   const b: Vec2 = [w0.b[0] + delta[0], w0.b[1] + delta[1]]
-  let next = moveJoint(start, w0.level, w0.a, a)
-  next = moveJoint(next, w0.level, w0.b, b)
-  return next
+  return followTees(start, shiftJoint(shiftJoint(start, w0.level, w0.a, a), w0.level, w0.b, b))
 }
 
-/** Change a wall's length by moving its end point (and anything joined there). */
-export function setWallLength(plan: Plan, id: string, length: number): Plan {
-  const w = plan.walls.find(x => x.id === id)
-  if (!w || length < 0.05) return plan
-  const d = wallDir(w)
-  return moveJoint(plan, w.level, w.b, [w.a[0] + d[0] * length, w.a[1] + d[1] * length])
+/**
+ * Change a wall's length from one end (the one that disturbs less of the plan, unless given). The
+ * walls joined at that end slide with it, so the plan stays square (see resizeWall).
+ */
+export function setWallLength(plan: Plan, id: string, length: number, end?: WallEnd): Plan {
+  return resizeWall(plan, id, length, end)
 }
 
 export function updateWall(plan: Plan, id: string, patch: Partial<Wall>): Plan {
@@ -69,19 +98,22 @@ export function updateWall(plan: Plan, id: string, patch: Partial<Wall>): Plan {
 }
 
 export function addOpening(plan: Plan, wall: Wall, kind: OpeningKind, offset: number, d: OpeningDefaults): Plan {
-  const len = wallLength(wall)
-  const width = Math.min(d.width, len - 0.05)
+  // Inside the wall's clear run, so it doesn't cut into a wall that turns off the end.
+  const run = wallClear(plan.walls, wall)
+  const width = Math.min(d.width, run.to - run.from)
   if (width < 0.3) return plan
   const o: Opening = {
     id: newId(kind),
     wall: wall.id,
     kind,
-    offset: Math.min(Math.max(offset, width / 2), len - width / 2),
+    offset: Math.min(Math.max(offset, run.from + width / 2), run.to - width / 2),
     width,
     height: d.height,
     sill: kind === 'window' ? d.sill : 0,
     flipHinge: false,
     flipSwing: false,
+    // The kind the tool is set to (sliding, bifold, awning…), when it suits what this is.
+    ...(stylesFor(kind).some(s => s.id === d.style) ? { style: d.style } : {}),
   }
   return { ...plan, openings: [...plan.openings, o] }
 }
@@ -90,8 +122,8 @@ export function updateOpening(plan: Plan, id: string, patch: Partial<Opening>): 
   return { ...plan, openings: plan.openings.map(o => (o.id === id ? { ...o, ...patch } : o)) }
 }
 
-export function addRoom(plan: Plan, level: string, at: Vec2, name: string): Plan {
-  return { ...plan, rooms: [...plan.rooms, { id: newId('room'), level, name, at }] }
+export function addRoom(plan: Plan, level: string, at: Vec2, name: string, type?: RoomTypeId): Plan {
+  return { ...plan, rooms: [...plan.rooms, { id: newId('room'), level, name, at, ...(type ? { type } : {}) }] }
 }
 
 export function updateRoom(plan: Plan, id: string, patch: Partial<Room>): Plan {
@@ -122,12 +154,15 @@ export function addRoof(plan: Plan, level: string, outline: Vec2[], d: RoofDefau
     overhang: d.overhang,
     gables: defaultGables(pts),
     lowEdge: len.indexOf(Math.max(...len)),
+    // The eaves level is taken at the wall plate: a wider overhang never lifts the ridge.
+    plateLift: 0,
   }
   return { ...plan, roofs: [...plan.roofs, roof] }
 }
 
 export function updateRoof(plan: Plan, id: string, patch: Partial<Roof>): Plan {
-  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? { ...r, ...patch } : r)) }
+  // An older roof keeps its height at the wall when its overhang or pitch changes (keepPlateLift).
+  return { ...plan, roofs: plan.roofs.map(r => (r.id === id ? keepPlateLift(r, { ...r, ...patch }) : r)) }
 }
 
 /** Height from one level's floor to the floor above, or a typical storey if it's the top level. */
@@ -210,28 +245,68 @@ export function deleteSelection(plan: Plan, sel: Selection): Plan {
   }
 }
 
-/** Add a level above the top one, copying the top level's external walls as a start. */
-export function addLevelAbove(plan: Plan): { plan: Plan; id: string } {
+/**
+ * Add a level above the top one, copying the top level's external walls as a start. Roofs the
+ * new storey would bury (those wholly under its walls) move up onto it in the same step, sitting
+ * on its walls: `roofsMoved` says how many, for the toast.
+ */
+export function addLevelAbove(plan: Plan): { plan: Plan; id: string; roofsMoved: number } {
   const top = sortedLevels(plan).at(-1)!
   const level: Level = {
     id: newId('level'),
-    name: plan.levels.length === 1 ? 'First floor' : `Level ${plan.levels.length + 1}`,
+    name: newLevelName(plan, 'above'),
     elevation: Math.round((top.elevation + top.height + FLOOR_STRUCTURE) * 1000) / 1000,
     height: top.height,
   }
-  const copied = plan.walls
-    .filter(w => w.level === top.id && w.kind === 'external')
+  // A wall marked external but standing inside the house (drawn before inside walls were told apart)
+  // isn't an outside wall: it's left out, as long as the walls that remain still close round a floor.
+  const external = plan.walls.filter(w => w.level === top.id && w.kind === 'external')
+  const outside = external.filter(w => !insideHouse(plan.walls.filter(x => x.id !== w.id), top.id, w.a, w.b))
+  const encloses = planarFaces(outside).some(f => f.area > 0)
+  const copied = (encloses ? outside : external)
     .map(w => ({ ...w, id: newId('wall'), level: level.id }))
   // A stair on the old top level that climbs a storey now arrives on the new floor.
-  return { plan: linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] }), id: level.id }
+  const added = linkStairs({ ...plan, levels: [...plan.levels, level], walls: [...plan.walls, ...copied] })
+  const buried = new Set(added.roofs.filter(r => !roofCoveredBy(plan, r) && roofCoveredBy(added, r)?.id === level.id).map(r => r.id))
+  if (!buried.size) return { plan: added, id: level.id, roofsMoved: 0 }
+  const roofs = added.roofs.map(r => {
+    if (!buried.has(r.id)) return r
+    // On the new level's walls; a roofline shared with another roof that moves too is kept.
+    const { eaves, ...rest } = r
+    return eaves && 'roof' in eaves && buried.has(eaves.roof) ? { ...r, level: level.id } : { ...rest, level: level.id }
+  })
+  const moved = { ...added, roofs }
+  // A roof that stays where it is but followed one that moved keeps the eaves it had.
+  const kept = moved.roofs.map(r => {
+    if (buried.has(r.id) || Math.abs(roofEavesRL(moved, r) - roofEavesRL(plan, r)) < 1e-6) return r
+    return setEavesRL(moved, r.id, roofEavesRL(plan, r)).roofs.find(x => x.id === r.id)!
+  })
+  return { plan: { ...moved, roofs: kept }, id: level.id, roofsMoved: buried.size }
 }
 
-/** A name for a new level no other level has: "Level 4", or the next number free. */
-function newLevelName(plan: Plan): string {
-  const taken = new Set(plan.levels.map(l => l.name.toLowerCase()))
-  let n = plan.levels.length + 1
-  while (taken.has(`level ${n}`)) n++
-  return `Level ${n}`
+/** Where a new level goes: a storey above the top one, a storey below the lowest, or beside the others at an RL. */
+export type LevelPlace = 'above' | 'below' | 'beside'
+
+/** What new levels are called, by where they go, in the order they're tried. */
+const LEVEL_NAMES: Record<LevelPlace, string[]> = {
+  above: ['First floor', 'Second floor', 'Third floor', 'Upper floor'],
+  below: ['Lower floor', 'Basement level'],
+  beside: ['Split level'],
+}
+
+/**
+ * A name for a new level that says where it is and no other level has: "First floor", then
+ * "Second floor", above; "Lower floor", then "Basement level", below; "Split level" beside.
+ * Once those are taken, the last with the next number free ("Split level 2").
+ */
+export function newLevelName(plan: Plan, place: LevelPlace): string {
+  const taken = new Set(plan.levels.map(l => l.name.trim().toLowerCase()))
+  const free = LEVEL_NAMES[place].find(n => !taken.has(n.toLowerCase()))
+  if (free) return free
+  const last = LEVEL_NAMES[place].at(-1)!
+  let n = 2
+  while (taken.has(`${last} ${n}`.toLowerCase())) n++
+  return `${last} ${n}`
 }
 
 /**
@@ -241,17 +316,17 @@ function newLevelName(plan: Plan): string {
 export function addLevelBelow(plan: Plan): { plan: Plan; id: string } {
   const low = sortedLevels(plan)[0]!
   const height = low.height
-  return addLevelAt(plan, floorRL(plan, low.id) - height - FLOOR_STRUCTURE, height)
+  return addLevelAt(plan, floorRL(plan, low.id) - height - FLOOR_STRUCTURE, height, 'below')
 }
 
 /**
  * Add a level with its floor at an RL: a split level beside the others, a step up or down.
  * It starts empty, with the lowest level's ceiling height unless one is given.
  */
-export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0]?.height ?? 2.7): { plan: Plan; id: string } {
+export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0]?.height ?? 2.7, place: LevelPlace = 'beside'): { plan: Plan; id: string } {
   const level: Level = {
     id: newId('level'),
-    name: newLevelName(plan),
+    name: newLevelName(plan, place),
     elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000,
     height,
   }
@@ -261,8 +336,26 @@ export function addLevelAt(plan: Plan, rl: number, height = sortedLevels(plan)[0
 /** Set a level's floor RL: its height above the placement's FFL follows. */
 export const setLevelRL = (plan: Plan, id: string, rl: number): Plan => updateLevel(plan, id, { elevation: Math.round((rl - plan.placement.ffl) * 1000) / 1000 })
 
-export function deleteLevel(plan: Plan, id: string): Plan {
+/**
+ * Delete a level and everything on it. With `lower`, when that leaves the level that was built
+ * over it as the lowest, up in the air (levelLeftAbove), every level that stays comes down by
+ * that much, so the house sits where the deleted floor was; a roof with a typed eaves RL comes
+ * down with them, and a "First floor" that is now the ground floor is called that.
+ */
+export function deleteLevel(plan: Plan, id: string, lower = false): Plan {
   if (plan.levels.length <= 1) return plan
+  const left = lower ? levelLeftAbove(plan, id) : null
+  const without = removeLevel(plan, id)
+  if (!left) return without
+  const rename = left.level.name === 'First floor' && !without.levels.some(l => l.name.trim().toLowerCase() === 'ground floor')
+  return followLevels({
+    ...without,
+    levels: without.levels.map(l => ({ ...l, elevation: Math.round((l.elevation - left.drop) * 1000) / 1000, ...(rename && l.id === left.level.id ? { name: 'Ground floor' } : {}) })),
+    roofs: without.roofs.map(r => (r.eaves && 'rl' in r.eaves ? { ...r, eaves: { rl: Math.round((r.eaves.rl - left.drop) * 1000) / 1000 } } : r)),
+  })
+}
+
+function removeLevel(plan: Plan, id: string): Plan {
   const walls = new Set(plan.walls.filter(w => w.level === id).map(w => w.id))
   // Stairs that went up to it are let go, keeping their tops (followLevels).
   return followLevels({

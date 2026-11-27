@@ -4,7 +4,9 @@
 import type { Insets } from '../components/canvasFrame'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
-import { floorRL, toSite, type Plan } from '../plan/model'
+import { floorRL, houseWalls, toSite, type Plan } from '../plan/model'
+import { roofGeometry } from '../plan/roof'
+import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { houseBounds } from '../plan/ops'
 import type { Frame } from './camera'
 import { streetBearingOf } from '../plan/streetSide'
@@ -48,7 +50,25 @@ export function siteFrame(plan: Plan | null, survey: Survey, terrain: Terrain, r
   }
   const streetEdge = edgeDistance([cx, cy], street, survey.boundary as Vec2[]) ?? undefined
   const houseEdge = edgeDistance([cx, cy], street, corners) ?? undefined
-  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street, ground, exaggeration, streetEdge, houseEdge }
+  // How wide the house is across the way Street view looks, and its top: it stands back until both fit.
+  const across: Vec2 = [Math.cos((street * Math.PI) / 180), -Math.sin((street * Math.PI) / 180)]
+  const along = corners.map(p => (p[0] - cx) * across[0] + (p[1] - cy) * across[1])
+  const width = Math.max(...along) - Math.min(...along)
+  const top = (houseTopRL(plan) - refZ) * exaggeration
+  return { target: [cx, y, -cy], radius: Math.max(radius, 3), blockRadius, street, ground, exaggeration, streetEdge, houseEdge, width, top }
+}
+
+/** The RL of the house's highest point: the tops of its walls, or of a roof that builds. */
+export function houseTopRL(plan: Plan): number {
+  let top = Math.max(...houseWalls(plan.walls).map(w => wallTopRL(plan, w)), floorRL(plan))
+  for (const r of plan.roofs) {
+    const g = roofGeometry(r)
+    if (g.error) continue
+    let rise = 0
+    for (let i = 2; i < g.mesh.pos.length; i += 3) rise = Math.max(rise, g.mesh.pos[i])
+    top = Math.max(top, roofEavesRL(plan, r) + rise)
+  }
+  return top
 }
 
 /** How far from `from` the boundary is, heading along a compass bearing; null if it never meets it. */

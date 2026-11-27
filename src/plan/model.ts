@@ -6,6 +6,8 @@ import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
 import type { SiteLocation } from '../sun/location'
 import { migrateFloorTypes, type FloorTypeId, type LevelFloor } from './floorTypes'
+import type { OpeningStyle } from './openingStyles'
+import type { RoomTypeId } from './roomTypes'
 import { linkStairs } from './stairs'
 
 /**
@@ -159,6 +161,12 @@ export interface Retain {
    * left that way (another selection, tool or tab, or the project opened again).
    */
   draft?: boolean
+  /**
+   * The level whose part of the house (and pad) the wall is beside, when that isn't the level it
+   * was drawn on: worked out from where the wall is when it's drawn, and changed in its panel.
+   * Missing (and in older plans) means the wall's own level.
+   */
+  pad?: string
 }
 
 /** Level ground beside a retaining wall when its width isn't set (m). */
@@ -187,6 +195,11 @@ export interface Opening {
   flipHinge: boolean
   /** Doors: swing to the wall's right side instead of its left. */
   flipSwing: boolean
+  /**
+   * What kind of door or window it is (sliding, bifold, awning…; see ./openingStyles). Missing in
+   * plans saved before kinds: a door is then hinged, and a window is drawn as it always was.
+   */
+  style?: OpeningStyle
 }
 
 /** How the lowest floor is held up: one of FLOOR_TYPES (slab on ground, bearers and joists on piers, …). */
@@ -200,13 +213,15 @@ export interface Room {
   at: Vec2
   /** This room's own floor type, on a level built on the ground. Missing follows its level's (see roomFloorType). */
   foundation?: Foundation
-  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's name (see isLiving). */
+  /** A living area, for the hours of winter sun on its windows. Missing goes by the room's type, else its name (see isLiving). */
   living?: boolean
+  /** What kind of room it is (src/plan/roomTypes.ts). Missing in rooms drawn before types: those go by their name. */
+  type?: RoomTypeId
 }
 
 /**
  * slab: flat concrete at a set level, with the ground levelled under it.
- * driveway: concrete that follows the finished ground.
+ * driveway: concrete that slopes from its garage end to its street end, on the finished ground or to its own levels.
  * deck: a framed deck on posts.
  * garden: an outline on the ground (lawn, garden bed), with no structure.
  */
@@ -222,8 +237,20 @@ export interface Area {
   kind?: AreaKind
   /** Top of a slab or deck above the level's floor (m); missing means 0. */
   top?: number
-  /** Driveways: the levels it is built to at each end. Missing follows the ground. */
+  /**
+   * Driveways: the levels it is built to at each end. A missing street end follows the ground; a
+   * missing garage end meets the garage's slab where the drive runs up to the house, and follows
+   * the ground otherwise (see driveLevelsOf in ./driveway).
+   */
   drive?: DriveLevels
+  /**
+   * Driveways: its garage and street ends are the other way round from the ones the app works out
+   * (Earthworks › Driveway › Swap ends). Missing means as worked out: from the garage door or the
+   * house edge it touches, out towards the street (see driveEndPoints in ./driveway).
+   */
+  swapEnds?: boolean
+  /** Driveways: it runs across the way the app worked out, a quarter turn round (Earthworks › Driveway › Turn it). Missing means as worked out. */
+  turned?: boolean
   /** Driveways: the street levels its footpath crossing is checked against. Missing until one is given. */
   crossing?: CrossingFacts
 }
@@ -243,8 +270,8 @@ export interface CrossingFacts {
 export type DriveLevelSource = 'kerb' | 'spot' | 'typed'
 
 /**
- * A driveway's own levels, at its street end and its garage end. An end without one follows the
- * ground there, as a driveway without levels does.
+ * A driveway's own levels, at its street end and its garage end. A street end without one follows
+ * the ground there; so does a garage end that isn't at the house.
  */
 export interface DriveLevels {
   /** The street end: an RL, and where it was read from. */
@@ -276,6 +303,14 @@ export interface Roof {
    * a typed RL (a section's eaves drag will set this too).
    */
   eaves?: RoofEaves
+  /**
+   * How far the roof's surface sits above its usual height over the wall line (m). 0 on every roof
+   * drawn now: the eaves level is taken at the wall plate, so the roof's top there is the roof's
+   * own depth above the eaves line and a wider overhang runs down past it, never lifting the ridge.
+   * Missing on roofs saved before that, whose eaves level was taken at the overhang's outer edge:
+   * they sit overhang × tan(pitch) higher at the wall and keep that look (see roofPlateLift).
+   */
+  plateLift?: number
 }
 
 /**
@@ -353,6 +388,11 @@ export interface Earthworks {
   /** Gap kept between the ground and the underside of floors on piers (m). */
   subfloor: number
   /**
+   * How far below the finished floor the ground is dug under a slab on ground: the slab and its bed
+   * (m). Missing (older plans, and the default) means DEFAULT_SLAB_BED.
+   */
+  slabBed?: number
+  /**
    * The design takes earth away (or brings it in) on purpose: "Out of balance" stays quiet. Missing
    * (older plans, and the default) means it's flagged.
    */
@@ -389,6 +429,15 @@ export const WALL_KINDS: { id: WallKind; label: string }[] = [
 
 export const isRetaining = (w: Pick<Wall, 'kind'>) => w.kind === 'retaining'
 
+/**
+ * The level a retaining wall is beside: the one its 'pad' and its house are (Retain.pad), else the
+ * level it was drawn on. A site wall isn't on a storey, so this never depends on the level open.
+ */
+export function padLevelOf<W extends { level?: string; retain?: Pick<Retain, 'pad'> }>(plan: Pick<Plan, 'levels'>, w: W): W['level'] {
+  const id = w.retain?.pad
+  return id !== undefined && plan.levels.some(l => l.id === id) ? id : w.level
+}
+
 /** The walls that make up the house, leaving out retaining walls. */
 export const houseWalls = (walls: Wall[]) => walls.filter(w => !isRetaining(w))
 
@@ -403,11 +452,14 @@ export const SLAB_THICKNESS = 0.1 // outdoor concrete slabs and driveways (m)
 export const DECK_DEPTH = 0.2 // deck boards and joists (m)
 export const MAX_RISER = 0.19 // m
 
+/** The depth dug under a slab on ground unless the plan says otherwise: the slab and its bed (m). */
+export const DEFAULT_SLAB_BED = 0.3
+
 export const DEFAULT_EARTHWORKS: Earthworks = { margin: 0.5, cutBatter: 2, fillBatter: 2, subfloor: 0.4 }
 
 export const AREA_KINDS: { id: AreaKind; label: string }[] = [
   { id: 'slab', label: 'Concrete slab' },
-  { id: 'driveway', label: 'Driveway (follows the ground)' },
+  { id: 'driveway', label: 'Driveway (slopes, garage to street)' },
   { id: 'deck', label: 'Deck on posts' },
   { id: 'garden', label: 'Garden or lawn' },
 ]
@@ -438,7 +490,7 @@ export function emptyPlan(placement: Placement): Plan {
 
 /** Fill in anything an older saved plan is missing. */
 export function normalizePlan(p: Plan): Plan {
-  return linkStairs(migrateFloorTypes({
+  return linkStairs(migrateFloorTypes(adoptOrphans({
     ...p,
     rooms: p.rooms ?? [],
     openings: p.openings ?? [],
@@ -452,7 +504,7 @@ export function normalizePlan(p: Plan): Plan {
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
     ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
     ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
-  }))
+  })))
 }
 
 /** A saved plan's grading, kept only when there's some to keep. */
@@ -510,6 +562,12 @@ export function earthworksOf(plan: Plan): Earthworks {
   return { ...DEFAULT_EARTHWORKS, ...plan.earthworks }
 }
 
+/** How far below a floor the ground is dug under its slab (Earthworks › More): the pad is this far under the floor (m). */
+export function slabBedOf(plan: Pick<Plan, 'earthworks'>): number {
+  const v = plan.earthworks?.slabBed
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : DEFAULT_SLAB_BED
+}
+
 export function wallLength(w: Pick<Wall, 'a' | 'b'>): number {
   return Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1])
 }
@@ -542,18 +600,29 @@ export function fromSite(p: Vec2, pl: Placement, origin: Vec2): Vec2 {
   return [x * c + y * s, -x * s + y * c]
 }
 
-/** Keep openings inside their wall after the wall changes length. */
-export function clampOpenings(plan: Plan): Plan {
-  const walls = new Map(plan.walls.map(w => [w.id, w]))
-  const openings = plan.openings.flatMap(o => {
-    const w = walls.get(o.wall)
-    if (!w) return []
-    const len = wallLength(w)
-    if (o.width >= len) return []
-    const offset = Math.min(Math.max(o.offset, o.width / 2), len - o.width / 2)
-    return offset === o.offset ? [o] : [{ ...o, offset }]
-  })
-  return { ...plan, openings }
+/**
+ * Things saved on a level the plan no longer has (drawn while a level that had just been undone
+ * away was still showing) come back on the lowest level, where the plan opens, rather than
+ * staying in the file where no level shows them. The same plan when there are none.
+ */
+export function adoptOrphans(plan: Plan): Plan {
+  const ids = new Set(plan.levels.map(l => l.id))
+  const lost = (x: { level: string }) => !ids.has(x.level)
+  const kinds = [plan.walls, plan.rooms, plan.areas, plan.roofs, plan.stairs, plan.furniture, plan.notes ?? [], plan.sketch ?? []]
+  if (!ids.size || !kinds.some(k => k.some(lost))) return plan
+  const home = sortedLevels(plan)[0].id
+  const fix = <T extends { level: string }>(xs: T[]): T[] => (xs.some(lost) ? xs.map(x => (lost(x) ? { ...x, level: home } : x)) : xs)
+  return {
+    ...plan,
+    walls: fix(plan.walls),
+    rooms: fix(plan.rooms),
+    areas: fix(plan.areas),
+    roofs: fix(plan.roofs),
+    stairs: fix(plan.stairs),
+    furniture: fix(plan.furniture),
+    ...(plan.notes ? { notes: fix(plan.notes) } : {}),
+    ...(plan.sketch ? { sketch: fix(plan.sketch) } : {}),
+  }
 }
 
 export function levelById(plan: Plan, id: string): Level | undefined {

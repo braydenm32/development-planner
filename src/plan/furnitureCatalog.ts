@@ -19,7 +19,7 @@ export interface Solid {
   z1: number
 }
 
-export type FurnitureGroup = 'bedroom' | 'living' | 'dining' | 'kitchen' | 'laundry' | 'bathroom' | 'study' | 'outdoor'
+export type FurnitureGroup = 'bedroom' | 'living' | 'dining' | 'kitchen' | 'laundry' | 'bathroom' | 'study' | 'outdoor' | 'other'
 
 export const FURNITURE_GROUPS: { id: FurnitureGroup; label: string }[] = [
   { id: 'bedroom', label: 'Bedroom' },
@@ -30,6 +30,7 @@ export const FURNITURE_GROUPS: { id: FurnitureGroup; label: string }[] = [
   { id: 'bathroom', label: 'Bathroom' },
   { id: 'study', label: 'Study' },
   { id: 'outdoor', label: 'Garage and outdoor' },
+  { id: 'other', label: 'Anything else' },
 ]
 
 export interface CatalogItem {
@@ -227,6 +228,9 @@ const bowl = (w: number, d: number, tap: boolean): SymbolPart[] => [
   roundRect(-w / 2 + 0.06, -d / 2 + 0.06, w / 2 - 0.06, d / 2 - (tap ? 0.12 : 0.06), 0.08),
   ...(tap ? [circle(0, d / 2 - 0.06, 0.025)] : []),
 ]
+
+/** The catalogue key of the box that stands in for anything. */
+export const CUSTOM_BOX = 'box'
 
 const ITEMS: CatalogItem[] = [
   // Bedroom
@@ -500,6 +504,21 @@ const ITEMS: CatalogItem[] = [
         rect(-g, -d / 2 + 0.06, g, d / 2 - 0.06),
         ...Array.from({ length: bars - 1 }, (_, i) => line([-g + ((i + 1) * 2 * g) / bars, -d / 2 + 0.06], [-g + ((i + 1) * 2 * g) / bars, d / 2 - 0.06])),
       ]
+    },
+  },
+
+  // Anything else: a plain box to name and size, for whatever the catalogue hasn't got (a pantry, a
+  // linen cupboard, a water tank). Its name is written on it (see furnitureSymbol in ./furniture).
+  {
+    key: CUSTOM_BOX,
+    name: 'Custom box',
+    group: 'other',
+    size: [1, 0.6, 0.9],
+    wall: true,
+    // A double line round it, so it reads as a thing and not a room.
+    draw: (w, d) => {
+      const t = Math.min(0.03, w / 4, d / 4)
+      return [outline(w, d), rect(-w / 2 + t, -d / 2 + t, w / 2 - t, d / 2 - t)]
     },
   },
 ]

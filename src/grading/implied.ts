@@ -3,19 +3,24 @@
 // drawn or not. They're traced as the suggestions are (./suggest.ts, the 'implied' rule), shown
 // dashed with their heights, and counted with the drawn walls in Retained (the strip), the engineer count
 // and Costs, each labelled "implied" (the owner confirmed the counting).
+//
+// The step between two of the house's own pads (a split level's slab beside a lower one) is an
+// implied wall too, whatever the slopes are set to: the earthworks stop each pad at the line
+// between them (stepWalls in ./walls.ts).
 
 import type { Survey } from '../lib/survey'
 import type { Earth } from '../plan/useEarthworks'
 import { needsEngineer } from '../checks/engineer'
 import { pathLength, type WallSuggestion } from './suggest'
-import { planImpliedWalls } from './walls'
+import { planImpliedWalls, stepWalls } from './walls'
 
-/** The plan's implied walls: the vertical edges its earthworks leave. */
+/** The plan's implied walls: the steps between the house's pads, and the vertical edges its earthworks leave. */
 export function impliedWalls(survey: Pick<Survey, 'boundary'>, earth: Earth | null): WallSuggestion[] {
   if (!earth || !earth.platforms.length) return []
+  const steps = stepWalls(earth)
   const { cutBatter, fillBatter } = earth.prep.opts
-  if (cutBatter > 0 && fillBatter > 0) return []
-  return planImpliedWalls(survey, earth).filter(s => s.rule === 'implied')
+  if (cutBatter > 0 && fillBatter > 0) return steps
+  return [...steps, ...planImpliedWalls(survey, earth).filter(s => s.rule === 'implied')]
 }
 
 export interface ImpliedTotals {

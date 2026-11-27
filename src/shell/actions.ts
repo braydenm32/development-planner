@@ -4,7 +4,7 @@
 import { cloudActions } from '../cloud/state'
 import { askBalance } from '../grading/balanceAsk'
 import { downloadPlan, startNewPlan } from '../components/planFile'
-import { save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls } from '../components/printFiles'
+import { pdfChoices, save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls, toastDownloaded } from '../components/printFiles'
 import { saveDxf, savePicture, saveScheduleCsv } from '../export/files'
 import { openExample } from '../example/open'
 import { startContourPick } from '../flow/store'
@@ -23,6 +23,7 @@ import { beginBrush } from '../grading/store'
 import type { ShellData } from './context'
 import { openKeyboardHelp } from './keyboardHelpStore'
 import { openSteps } from '../steps/store'
+import { setWallMode } from '../plan/wallMode'
 import { undoTarget } from './undoTarget'
 import { pickTool, planShowing, showPlan, switchView } from './useSite'
 
@@ -159,7 +160,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
   switch (a) {
     case 'download-pdf':
       try {
-        savePlansPdf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, paper: shell.printPrefs.paper, pdfFurniture: shell.printPrefs.pdfFurniture })
+        toastDownloaded(savePlansPdf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, ...pdfChoices(shell.printPrefs) }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The plans could not be drawn.')
@@ -167,7 +168,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       }
     case 'download-da-pack':
       try {
-        saveDaPack({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, paper: shell.printPrefs.paper, pdfFurniture: shell.printPrefs.pdfFurniture })
+        toastDownloaded(saveDaPack({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, up: shell.view.up, ...pdfChoices(shell.printPrefs) }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The DA pack could not be drawn.')
@@ -175,7 +176,7 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       }
     case 'download-dxf':
       try {
-        saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth })
+        toastDownloaded(saveDxf({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth }))
         return true
       } catch (err) {
         c.toast((err as Error).message || 'The DXF could not be written.')
@@ -203,6 +204,11 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       // The next click on a contour sets the active floor's level; it needs the plan.
       if (!planShowing()) showPlan()
       startContourPick()
+      return true
+    case 'rect-room':
+      // The Wall tool, set to draw a room from two corners.
+      setWallMode('rect')
+      pickTool('wall')
       return true
     case 'draw-section':
       // Two clicks on the plan; Design › Sections opens beside it to show the drawing.

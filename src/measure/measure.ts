@@ -29,6 +29,8 @@ export function measure(a: Vec2, b: Vec2, pl: Placement, survey: Pick<Survey, 'o
 }
 
 const m2 = (n: number) => `${n.toFixed(2)} m`
+/** Lengths on the plan are in mm, as its dimensions and the measurement's own labels are; heights and RLs stay in metres. */
+const mm = (n: number) => `${Math.round(n * 1000)} mm`
 
 /** "+1.20 m" or "−0.35 m": a height gained or lost. */
 export const riseText = (n: number) => (Math.abs(n) < 0.005 ? '0.00 m' : `${n > 0 ? '+' : '−'}${m2(Math.abs(n))}`)
@@ -36,8 +38,8 @@ export const riseText = (n: number) => (Math.abs(n) < 0.005 ? '0.00 m' : `${n > 
 /** The three numbers in words, for the readout and for screen readers. */
 export function measureText(m: Measurement): { flat: string; sloped: string; rise: string } {
   return {
-    flat: m2(m.flat),
-    sloped: m.sloped === null ? 'off the block' : m2(m.sloped),
+    flat: mm(m.flat),
+    sloped: m.sloped === null ? 'off the block' : mm(m.sloped),
     rise: m.rise === null ? 'off the block' : riseText(m.rise),
   }
 }

@@ -7,18 +7,23 @@ import { createPortal } from 'react-dom'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { useModal } from '../nav/useModal'
 import { canEdit, usePhone, usePhoneMode } from '../phone/device'
 import { usePlan } from '../plan/store'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { DrawingSvg } from './DrawingSvg'
 import { elevationDrawing, SIDES } from './elevation'
-import { flipSection, removeSection, sectionName, sectionsOf } from './lines'
+import { projectsNow } from '../projects/session'
+import { keepStripSection, stripCut } from '../sectionStrip/keep'
+import { useStrip } from '../sectionStrip/store'
+import { flipSection, removeSection, sectionAlong, sectionName, sectionsOf } from './lines'
 import type { Drawing } from './paint'
 import { sectionDrawing } from './section'
 import { beginSectionLine, SECTION_KEY } from './SectionMarks'
 import { showDrawing, showLarge, stopSectionLine, useSections, type Shown } from './store'
 import './sections.css'
+import { forTouch } from '../phone/words'
 
 /** Every drawing of the house: its sections, then its four elevations. */
 function useDrawings(d: Loaded): Drawing[] {
@@ -72,6 +77,14 @@ function Sections({ d }: { d: Loaded }) {
   const drawings = useDrawings(d)
   const shown = useShown(drawings)
   const drawing = useSections(s => s.drawing)
+  // The live section's cut (this viewer's own, src/sectionStrip), and whether a section line already runs along it.
+  const project = projectsNow().opened?.id ?? null
+  const moved = useStrip(s => (project ? s.cuts[project] : undefined))
+  const liveKept = !!sectionAlong(d.plan, moved ?? stripCut(d.plan, d.survey, project))
+  const keepLive = () => {
+    const line = keepStripSection(d.survey, project)
+    if (line) showDrawing({ kind: 'section', id: line.id })
+  }
   const large = useSections(s => s.large)
   const phone = usePhone()
   const editing = canEdit(phone, usePhoneMode(s => s.mode))
@@ -90,7 +103,7 @@ function Sections({ d }: { d: Loaded }) {
           <p className="muted small sec-empty">Draw some walls to see the elevations.</p>
         ) : (
           <button className="sec-open" onClick={() => showLarge(true)} aria-label={`Open ${shown.title} large`} title="Open large">
-            <DrawingSvg drawing={shown} maxHeight={phone ? 200 : 300} compact />
+            <DrawingSvg drawing={shown} maxHeight={phone ? 200 : 300} compact={phone ? 'phone' : true} />
           </button>
         )}
       </figure>
@@ -120,14 +133,23 @@ function Sections({ d }: { d: Loaded }) {
       <h3>Section lines</h3>
       {drawing ? (
         <div className="sec-drawing-now">
-          <p className="small">{drawing.a ? 'Now click where the section ends.' : 'Click on the plan where the section starts, then where it ends.'}</p>
+          <p className="small">{forTouch(drawing.a ? 'Now click where the section ends.' : 'Click on the plan where the section starts, then where it ends.')}</p>
           <button className="secondary" onClick={stopSectionLine}>
             Stop
           </button>
         </div>
       ) : editing ? (
         <>
-          <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want to cut through the house and the ground; on a slope, run it down the fall.</p>
+          <p className="muted small">{lines.length ? `${lines.map(sectionName).join(', ')}. ` : ''}Draw a line across the plan where you want a section through the house and the ground; on a slope, run it down the fall.</p>
+          {/* The strip under the plan cuts the house too, but it is a way of looking, not a drawing: say how the two meet. */}
+          {!liveKept && d.plan.walls.length > 0 && (
+            <p className="muted small">
+              The live section under Design › Plan isn’t one of these until you keep it.{' '}
+              <button className="link" onClick={keepLive}>
+                Add the live section’s line
+              </button>
+            </p>
+          )}
           <div className="row">
             <button className="secondary" onClick={beginSectionLine}>
               Draw a section line <kbd>{SECTION_KEY}</kbd>
@@ -187,21 +209,9 @@ function Key({ drawing }: { drawing: Drawing }) {
 function Large({ drawings, shown }: { drawings: Drawing[]; shown: Drawing }) {
   const ref = useRef<HTMLDivElement>(null)
   const phone = usePhone()
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    ref.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        showLarge(false)
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => {
-      window.removeEventListener('keydown', onKey, true)
-      before?.focus?.()
-    }
-  }, [])
+  // Tab stays in it, Esc closes it, and focus goes back where it was (src/nav/useModal.ts).
+  useModal(ref, true, () => showLarge(false), { focus: 'none' })
+  useEffect(() => ref.current?.focus(), [])
   const h = typeof window === 'undefined' ? 600 : window.innerHeight
   return createPortal(
     <div className="sec-scrim" onPointerDown={e => e.target === e.currentTarget && showLarge(false)}>

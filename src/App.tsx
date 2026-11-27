@@ -7,8 +7,8 @@ import { SiteView, type HoverInfo } from './components/SiteView'
 import { useBuiltSite } from './lib/builtSite'
 import { CUT_RGB, FILL_RGB, RAMP_CSS, REFERENCE_POINT, rgbCss, SPOT_LEVEL } from './lib/colors'
 import { MORE } from './nav/menu'
-import { canvasOf, formatHash, NEW_PROJECT, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
-import { navigate, startRouter, useRouter } from './nav/router'
+import { canvasOf, formatHash, NEW_PROJECT, pageOf, PROJECTS, ARCHIVED_PROJECTS, resumeRoute, tabRoute } from './nav/route'
+import { hasAppHistory, navigate, startRouter, useRouter } from './nav/router'
 import { upBearing } from './lib/orientation'
 import { loadView, saveView, type ViewSettings } from './lib/storage'
 import type { LayerRole } from './lib/survey'
@@ -27,11 +27,12 @@ import { usePrintModel } from './print/usePrintModel'
 import { projectActions, ProjectsHome, projectsNow, useProjects, useProjectSite } from './projects'
 import { printFor, viewFor, viewToSave } from './projects/prefs'
 import { AppShell } from './shell/AppShell'
+import { ProjectsSearch } from './shell/ProjectsSearch'
 import { connectHost, openFile, setOpenSite } from './safety/flows'
 import { ColumnsSheet } from './formats/ColumnsSheet'
 import { SafetyLayer } from './safety/SafetyLayer'
 import { sayFileError } from './safety/surveyor'
-import { pickFile } from './safety/store'
+import { dismissToast, pickFile, showToast } from './safety/store'
 import { useSiteFeatures } from './site/store'
 import { useSiteSource } from './site/sync'
 import { SketchChip } from './start/SketchNotice'
@@ -39,6 +40,7 @@ import { DemChip } from './map/DemNotes'
 import { isSketch } from './start/sketch'
 import { StartScreen } from './start/StartScreen'
 import { LegalPage } from './legal/LegalPage'
+import { usePageTitle } from './a11y/title'
 import './App.css'
 
 export default function App() {
@@ -58,6 +60,8 @@ export default function App() {
   useEffect(() => startMapRecords(), [])
   // Where you are lives in the address (src/nav): the area, tab, view, level and selection.
   const route = useRouter(s => s.route)
+  // The browser tab says the tab, area and project (src/a11y/title.ts).
+  usePageTitle()
   useEffect(() => {
     // `?projects` is the easy link to the Projects home.
     if (!location.hash && new URLSearchParams(location.search).has('projects')) history.replaceState(history.state, '', formatHash(PROJECTS))
@@ -73,6 +77,27 @@ export default function App() {
   const toNewProject = () => navigate(NEW_PROJECT)
   /** Into the project that is open now, back where it was left (Design › Plan for a new one). */
   const toProject = (replace = false) => navigate(resumeRoute(projectsNow().opened?.prefs.place), { replace })
+  // With no project open, a project's address (a first visit's, or an old bookmark's) becomes the
+  // start screen's or the Projects home's own, so the address always says what is on screen (LD-31).
+  const nowhere = projects.ready && !openedId && route.kind === 'app'
+  useEffect(() => {
+    if (nowhere) navigate(projectsNow().list.length ? PROJECTS : NEW_PROJECT, { replace: true })
+  }, [nowhere])
+  // An address that names no page here still opens somewhere sensible; say so once (LF-31).
+  const lost = useRouter(s => s.lost)
+  // The note is about the page it landed on: going on to another page takes it away.
+  const lostNote = useRef<{ id: number; at: string } | null>(null)
+  const onPage = pageOf(route)
+  useEffect(() => {
+    if (lost) lostNote.current = { id: showToast({ text: 'That page isn’t here. This is the nearest one.' }), at: pageOf(useRouter.getState().route) }
+  }, [lost])
+  useEffect(() => {
+    const note = lostNote.current
+    if (note && note.at !== onPage) {
+      dismissToast(note.id)
+      lostNote.current = null
+    }
+  }, [onPage])
 
   // Each project remembers the area, tab, view and level it was last on.
   const place = route.kind === 'app' ? formatHash({ ...route, sel: undefined }) : null
@@ -194,16 +219,22 @@ export default function App() {
   useEffect(() => connectHost({ toProject: replace => toProject(replace ?? page !== 'app'), toLayers }))
 
   // About, Privacy, Terms and How accurate is this? need no project and no sign-in, so they show first.
+  const toApp = () => (openedId ? toProject() : toProjects())
   if (route.kind === 'page')
     return (
       <>
-        <LegalPage page={route.page} onBack={() => (history.length > 1 ? history.back() : openedId ? toProject() : toProjects())} />
+        {/* Back stays in the app: opened straight from a link (a PDF, an email, a new tab) it goes to the project or Projects. */}
+        <LegalPage page={route.page} onBack={() => (hasAppHistory() ? history.back() : toApp())} onHome={toApp} />
         <SafetyLayer />
       </>
     )
   if (!projects.ready) return null
   const home = (inShell: boolean) => (
-    <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a, true)} onOpen={() => toProject()} onNew={toNewProject} />
+    <>
+      <ProjectsHome inShell={inShell} archived={showArchived} onFilterChange={a => toProjects(a)} onOpen={() => toProject()} onNew={toNewProject} />
+      {/* Ctrl+K here finds a project by its name (LF-31). */}
+      {!inShell && <ProjectsSearch onOpen={id => void projectActions.open(id).then(() => toProject())} />}
+    </>
   )
   // The review sheet, the Undo toast and the one file picker, over every screen.
   const alone = (screen: ReactNode) => (
@@ -372,7 +403,7 @@ export default function App() {
             ) : (
               <span className="muted">
                 Point at the ground to read its level.
-                <span className="controls-hint"> Drag to orbit, scroll to zoom, right-drag to pan.</span>
+                <span className="controls-hint"> Drag to orbit, scroll to zoom, right-drag to pan; or use the arrow keys, + and −.</span>
               </span>
             )}
           </div>

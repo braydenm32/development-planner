@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW } from '../../lib/storage'
 import { DEFAULT_PRINT } from '../../print/build'
+import type { PrintPrefs } from '../../print/prefs'
 import { edited } from '../format'
 import { printFor, viewFor, viewToSave } from '../prefs'
 
@@ -32,6 +33,34 @@ describe('per-project view and print settings', () => {
     expect(p.paper).toBe('A4')
     expect(p.settings.scale).toBe(100)
     expect(p.pdfFurniture).toBe(true)
+  })
+
+  it('every print and PDF choice a project saved comes back when it opens: the pages left unticked too', () => {
+    const dev: PrintPrefs = { settings: DEFAULT_PRINT, paper: 'A3', pdfFurniture: true, pdfSketch: false, apart: false, leaveOut: [], floorScale: 'auto' }
+    // Required<>, so a key added to PrintPrefs has to be added here, and to printFor.
+    const saved: Required<PrintPrefs> = {
+      settings: { ...DEFAULT_PRINT, scale: 50 },
+      paper: 'A4',
+      pdfFurniture: false,
+      pdfSketch: true,
+      apart: true,
+      leaveOut: ['roof', 'elevation'],
+      floorScale: 200,
+    }
+    expect(printFor({ print: saved }, dev)).toEqual(saved)
+    // And through the project's saved prefs as JSON, as a reload reads them.
+    expect(printFor({ print: JSON.parse(JSON.stringify(saved)) as PrintPrefs }, dev)).toEqual(saved)
+  })
+
+  it('a project saved before a choice existed takes this device’s, and a broken one is put right', () => {
+    const dev: PrintPrefs = { settings: DEFAULT_PRINT, paper: 'A3', pdfFurniture: true, pdfSketch: true, leaveOut: ['shadow'], floorScale: 100 }
+    const old = printFor({ print: { paper: 'A4' } }, dev)
+    expect(old.leaveOut).toEqual(['shadow'])
+    expect(old.pdfSketch).toBe(true)
+    expect(old.floorScale).toBe(100)
+    const odd = printFor({ print: { leaveOut: ['roof', 7] as unknown as string[], floorScale: 75 as unknown as 50 } }, dev)
+    expect(odd.leaveOut).toEqual(['roof'])
+    expect(odd.floorScale).toBe('auto')
   })
 
   it('the print preview opens Assembled or Apart as the project was left', () => {

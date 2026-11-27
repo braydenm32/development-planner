@@ -10,8 +10,10 @@ import { MORE_SECTIONS, TAB_PANELS } from '../../shell/sections'
 import features from '../features.json'
 import { allPlaces, areaById, AREAS, HOMES, homeOf, MORE, tabIds, type Entry } from '../menu'
 import { navigate, startRouter, useRouter } from '../router'
-import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, type AppRoute, type Route } from '../route'
-import { buildIndex, featureLabel, search, specOnly, type SearchItem } from '../search'
+import { areaRoute, canvasOf, carriesSelection, defaultRoute, everyRoute, formatHash, PAGE_IDS, pageOf, pageRoute, parseHash, PROJECTS, resumeRoute, tabRoute, unknownHash, type AppRoute, type Route } from '../route'
+import { buildIndex, featureLabel, projectItems, search, specOnly, stem, thingItems, withoutCloud, type SearchItem } from '../search'
+import { LEADS, MORE_WORDS, NOT_HERE } from '../searchWords'
+import { forgetTabs, openingTab, rememberTab } from '../../shell/lastTab'
 
 const places = allPlaces()
 const entries = places.map(p => p.entry)
@@ -119,6 +121,11 @@ describe('features.json', () => {
       'garage-door-symbol',
       'garage-door-3d',
       'new-roof-mode',
+      // rooms from walls and the rectangle room (usability audit, wave 2)
+      'rooms-from-walls',
+      'rectangle-room',
+      'click-room-floor',
+      'first-outline-fit',
       'new-tool-settings-kept',
       'roof-click-inside',
       'setback-dimensions-plan',
@@ -249,7 +256,7 @@ describe('the menu', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'approvals', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
       ['block', 'features', 'map', '3d', 'sun', MORE],
-      ['plan', 'floors', 'rooms', 'roofs', 'furniture', 'sections', 'options', MORE],
+      ['plan', 'floors', 'rooms', 'walls', 'roofs', 'furniture', 'sections', 'options', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['checks', 'basix', 'stormwater', 'da-pack'],
       ['estimate', 'materials', 'quotes', MORE],
@@ -274,7 +281,7 @@ describe('the menu', () => {
       'Survey file name',
       'Download a backup (project file)',
       'Open a project file…',
-      'Export plan',
+      'Export the house plan only',
       'Start the plan again',
       'About Contour & Gable',
       'Privacy policy',
@@ -295,6 +302,13 @@ describe('the menu', () => {
     expect(homeOf('site-features-project-file')?.entry.id).toBe('send')
     expect(homeOf('site-feature-layer-roles')?.entry.id).toBe('survey-layers')
     expect(homeOf('site-checks-chip')?.entry).toMatchObject({ id: 'site-checks', at: 'site/features' })
+  })
+
+  it('finds the Rectangle room by the words people look for it with, and runs it (CB-17)', () => {
+    const index = buildIndex(features)
+    for (const word of ['rectangle', 'draw a room', 'room shape']) expect(search(index, word)[0]?.entry, word).toMatchObject({ id: 'rect-room', action: 'rect-room', run: 'now', shortcut: 'shift+W' })
+    expect(homeOf('rectangle-room')?.entry.id).toBe('rect-room')
+    expect(homeOf('rooms-from-walls')?.entry.id).toBe('plan')
   })
 
   it('gives the sun its own Site tab, found by the words people use for it', () => {
@@ -416,10 +430,54 @@ describe('routes', () => {
     expect(parseHash('#')).toBeNull()
     expect(parseHash('#section-2')).toBeNull()
     expect(parseHash('#/nowhere/plan')).toBeNull()
-    expect(parseHash('#/earthworks')).toEqual({ kind: 'app', area: 'earthworks', tab: 'cut-fill', view: 'plan' })
+    // Earthworks opens on its first step, Place (HO-40).
+    expect(parseHash('#/earthworks')).toEqual({ kind: 'app', area: 'earthworks', tab: 'place', view: 'plan' })
     expect(parseHash('#/site/bogus')).toEqual({ kind: 'app', area: 'site', tab: 'block', view: '3d' })
     expect(parseHash('#/design/plan?view=sideways')).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
     expect(parseHash('#/site/block')).toEqual({ kind: 'app', area: 'site', tab: 'block', view: '3d' })
+  })
+
+  // LD-30: a cut-off percent-escape threw "URI malformed" and left the address and the screen out of step.
+  it('treat a part that will not decode as no address of ours, without throwing', () => {
+    expect(parseHash('#/design/%E0%A4%A')).toBeNull()
+    expect(parseHash('#/%E0%A4%A/plan?view=plan')).toBeNull()
+    expect(parseHash('#/design/plan?view=plan&sel=%E0%A4%A')).toMatchObject({ area: 'design', tab: 'plan' })
+  })
+
+  // LD-31: a More item opened by its id stays in the address, so a reload lands on it.
+  it('keep a More item in the address', () => {
+    const r = parseHash('#/design/more/wall-preset')
+    expect(r).toEqual({ kind: 'app', area: 'design', tab: 'more', view: 'plan', item: 'wall-preset' })
+    expect(formatHash(r!)).toBe('#/design/more/wall-preset?view=plan')
+    expect(parseHash(formatHash({ ...(r as AppRoute), level: 'L1', sel: 'w1' }))).toEqual({ ...r, level: 'L1', sel: 'w1' })
+    // An item the area's More doesn't have drops out; so does one after a tab that isn't More.
+    expect(parseHash('#/design/more/nope')).toEqual({ kind: 'app', area: 'design', tab: 'more', view: 'plan' })
+    expect(parseHash('#/design/plan/wall-preset')).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
+    // Going on to another tab leaves it behind.
+    expect(tabRoute(r!, 'design', 'plan')).toEqual({ kind: 'app', area: 'design', tab: 'plan', view: 'plan' })
+  })
+
+  // LF-31: an address that names no page here opens somewhere sensible, and the app says so once.
+  it('tell an address that names no page here from a partial or moved one', () => {
+    for (const h of ['#/design/costs', '#/nope/nope', '#/accuracy/x', '#about', '#/design/%E0%A4%A', '#/projects/whatever', '#section-2']) expect(unknownHash(h), h).toBe(true)
+    for (const h of ['', '#', '#/', '#/design', '#/earthworks/cut-fill?view=3d', '#/design/checks', '#/share/print'.replace('print', 'plans'), '#/projects', '#/projects/new', '#/about', '#/design/more/wall-preset']) expect(unknownHash(h), h).toBe(false)
+  })
+
+  // HO-40: Earthworks opens on Place; back from another area it opens where it was left this visit.
+  it('open Earthworks on Place, then on the tab it was left on', () => {
+    forgetTabs()
+    const earth = areaById('earthworks')!
+    const design = areaById('design')!
+    expect(earth.defaultTab).toBe('place')
+    expect(earth.tabs[0].id).toBe('place')
+    expect(openingTab('p1', earth)).toBe('place')
+    rememberTab('p1', earth, 'cut-fill')
+    expect(openingTab('p1', earth)).toBe('cut-fill')
+    // Another project starts at Place again; an area that doesn't remember always opens on its first tab.
+    expect(openingTab('p2', earth)).toBe('place')
+    rememberTab('p1', design, 'roofs')
+    expect(openingTab('p1', design)).toBe('plan')
+    forgetTabs()
   })
 
   it('take old links to Checks, BASIX and Stormwater to Approvals', () => {
@@ -429,6 +487,19 @@ describe('routes', () => {
     expect(resumeRoute('#/design/checks?view=plan')).toMatchObject({ area: 'approvals', tab: 'checks' })
     // A More that the area doesn't have lands on its first tab.
     expect(parseHash('#/approvals/more')).toEqual({ kind: 'app', area: 'approvals', tab: 'checks', view: 'plan' })
+  })
+
+  it('open the Levels tab from its name, #/design/levels, as well as #/design/floors (final check 6)', () => {
+    expect(parseHash('#/design/levels')).toEqual({ kind: 'app', area: 'design', tab: 'floors', view: 'plan' })
+    expect(parseHash('#/design/levels?view=3d&level=L2')).toMatchObject({ area: 'design', tab: 'floors', view: '3d', level: 'L2' })
+    expect(unknownHash('#/design/levels')).toBe(false)
+    expect(formatHash(parseHash('#/design/levels')!)).toMatch(/^#\/design\/floors\?/)
+  })
+
+  it('tell pages apart by area and tab, not by what is selected or which level shows', () => {
+    expect(pageOf(parseHash('#/design/plan?view=plan&sel=w1')!)).toBe(pageOf(parseHash('#/design/plan?view=3d&level=L2')!))
+    expect(pageOf(parseHash('#/design/plan')!)).not.toBe(pageOf(parseHash('#/design/roofs')!))
+    expect(pageOf(PROJECTS)).toBe('#/projects')
   })
 
   it('land a first visit, or an old saved mode, somewhere sensible', () => {
@@ -616,6 +687,39 @@ describe('the router', () => {
     expect(b.url.hash).toBe('#/share/plans?view=plan')
   })
 
+  it('keeps a More item that search opened in the address, and opens it again from a link', () => {
+    const b = fakeBrowser('https://example.test/app/#/design/plan?view=plan')
+    stop = startRouter()
+    navigate(tabRoute(routeNow(), 'design', MORE), { focus: 'wall-preset' })
+    expect(b.url.hash).toBe('#/design/more/wall-preset?view=plan')
+    expect(useRouter.getState().focus).toBe('wall-preset')
+    // A focus that isn't one of More's items (a field on a tab) stays out of the address.
+    navigate(tabRoute(routeNow(), 'design', 'floors'), { focus: 'storey-height' })
+    expect(b.url.hash).toBe('#/design/floors?view=plan')
+    stop()
+    useRouter.setState({ route: defaultRoute(), focus: null })
+    fakeBrowser('https://example.test/app/#/design/more/wall-preset')
+    stop = startRouter()
+    expect(routeNow()).toMatchObject({ area: 'design', tab: 'more', item: 'wall-preset' })
+    expect(useRouter.getState().focus).toBe('wall-preset')
+  })
+
+  it('counts an address that names no page here, and still lands somewhere', () => {
+    const before = useRouter.getState().lost
+    const b = fakeBrowser('https://example.test/app/#/design/%E0%A4%A')
+    stop = startRouter()
+    expect(b.url.hash).toBe('#/design/plan?view=plan')
+    expect(useRouter.getState().lost).toBe(before + 1)
+    b.history.pushState(null, '', '#/design/costs')
+    b.history.back()
+    b.history.forward()
+    expect(routeNow()).toMatchObject({ area: 'design', tab: 'plan' })
+    expect(useRouter.getState().lost).toBe(before + 2)
+    // A good address counts nothing.
+    navigate(tabRoute(routeNow(), 'earthworks', 'place'))
+    expect(useRouter.getState().lost).toBe(before + 2)
+  })
+
   it('opens the projects home', () => {
     const b = fakeBrowser('https://example.test/app/#/design/plan?view=plan')
     stop = startRouter()
@@ -670,6 +774,25 @@ describe('⌘K search', () => {
     expect(missed).toEqual([])
   })
 
+  // LF-15: on a copy with no cloud, "Upload projects to the cloud" dropped you on All projects with
+  // nothing said, and ten cloud features were listed that can't be reached there.
+  it('leaves out cloud commands that would dead-end when the app has no cloud, and keeps the one that explains', () => {
+    const local = withoutCloud(index)
+    const labels = (q: string, ix = local) => search(ix, q).map(r => r.label)
+    expect(labels('upload projects', index)).toContain('Upload projects to the cloud')
+    expect(labels('upload projects')).not.toContain('Upload projects to the cloud')
+    expect(labels('cloud sync status')).not.toContain('Cloud sync status')
+    expect(local.filter(i => i.kind === 'feature' && i.featureId?.startsWith('cloud-'))).toEqual([])
+    for (const q of ['recovery code', 'delete my account', 'cloud space']) expect(search(local, q).filter(r => r.kind === 'feature' && r.featureId?.startsWith('cloud-')), q).toEqual([])
+    // "Sign in" still finds the command that says signing in isn't available on this copy.
+    expect(search(local, 'sign in')[0]).toMatchObject({ label: 'Sign in and cloud saves', action: 'cloud' })
+    expect(search(local, 'recovery code').some(r => r.action === 'cloud')).toBe(true)
+    // Nothing else goes: everything that isn't the cloud's is still found.
+    expect(index.length - local.length).toBe(index.filter(i => i.featureId?.startsWith('cloud-') || (i.kind !== 'feature' && i.action !== 'cloud' && i.entry.features.length > 0 && i.entry.features.every(f => f.startsWith('cloud-')))).length)
+    expect(labels('where it’s saved')).toContain('Where it’s saved')
+    expect(labels('projects')).toContain('All projects…')
+  })
+
   it('ranks tabs and actions before features, and what a word means last (C35)', () => {
     const easement = search(index, 'easement')
     expect(easement[0]).toMatchObject({ kind: 'tab', key: 'tab:site/features' })
@@ -693,7 +816,8 @@ describe('⌘K search', () => {
 
   it('finds every area, tab, More item and command by its label', () => {
     const missed = index
-      .filter(i => i.kind !== 'feature')
+      // (A line that says the app doesn't do something is found by the words for it, not by its own.)
+      .filter(i => i.kind !== 'feature' && i.kind !== 'absent')
       .filter(i => !search(index, i.label).some(r => r.key === i.key))
       .map(i => i.key)
     expect(missed).toEqual([])
@@ -793,6 +917,96 @@ describe('⌘K search', () => {
     expect(search(index, '')).toEqual([])
     expect(search(index, '  ')).toEqual([])
     expect(search(index, 'zzqx')).toEqual([])
+  })
+
+  // HO-33, LD-21, CB-38, CB-27: the words people bring from everyday speech and other planners.
+  it('answers everyday words with the nearest thing, first', () => {
+    const first = (q: string) => search(index, q)[0]?.key
+    for (const q of ['bedroom', 'bathroom', 'kitchen']) expect(first(q), q).toBe('command:tool-room')
+    for (const q of ['stairs', 'staircase', 'steps']) expect(first(q), q).toBe('command:tool-stair')
+    expect(first('print')).toBe('tab:share/plans')
+    for (const q of ['rotate', 'turn']) expect(first(q), q).toBe('tab:earthworks/place')
+    expect(first('template')).toBe('command:open-example')
+    expect(first('save')).toBe('command:save-state')
+    for (const q of ['level', 'basement', 'second floor', 'upstairs']) expect(first(q), q).toBe('tab:design/floors')
+    for (const q of ['background', 'background image', 'blueprint']) expect(first(q), q).toBe('tab:site/features')
+    expect(first('balcony')).toBe('command:tool-area')
+    expect(first('curved')).toBe('command:tool-sketch')
+    const found = (q: string, key: string) => search(index, q).slice(0, 6).some(r => r.key === key)
+    expect(found('rectangle', 'command:tool-wall')).toBe(true)
+    expect(found('grid', 'command:tool-sketch')).toBe(true)
+    expect(found('floor plan picture', 'tab:site/features')).toBe(true)
+    expect(found('underlay', 'tab:site/features')).toBe(true)
+    expect(found('bedroom', 'tab:design/rooms')).toBe(true)
+    // Every word list points at a real entry, and every lead at a real result.
+    const ids = new Set(index.map(i => i.entry.id))
+    const keys = new Set(index.map(i => i.key))
+    expect(Object.keys(MORE_WORDS).filter(id => !ids.has(id))).toEqual([])
+    expect(Object.values(LEADS).filter(k => !keys.has(k))).toEqual([])
+  })
+
+  it('says plainly what the planner does not do, after anything it does', () => {
+    for (const n of NOT_HERE)
+      for (const w of n.words) {
+        const rows = search(index, w)
+        const at = rows.findIndex(r => r.key === `absent:${n.id}`)
+        expect(at, w).toBeGreaterThan(-1)
+        expect(rows[at]).toMatchObject({ kind: 'absent', says: n.says })
+        // Whatever the app does have for the word comes first.
+        expect(rows.slice(at).every(r => r.kind === 'absent' || r.kind === 'term'), w).toBe(true)
+      }
+    for (const q of ['feet', 'imperial', 'render', 'walkthrough', 'mirror', 'skylight', 'beam', 'texture']) expect(search(index, q).length, q).toBeGreaterThan(0)
+    expect(search(index, 'feet')[0]).toMatchObject({ label: 'Feet and inches', says: 'Not in this planner: it works in metres and millimetres only.' })
+  })
+
+  // LF-17: a button found by its own label, and a word found by another of its endings.
+  it('finds Retain the edges by name, and "removal" for "remove"', () => {
+    expect(search(index, 'retain the edges').slice(0, 3).some(r => r.featureId === 'retain-edges' || r.key === 'tab:earthworks/cut-fill')).toBe(true)
+    expect(search(index, 'retain the edges').some(r => r.featureId === 'retain-edges')).toBe(true)
+    expect(search(index, 'remove these walls').some(r => r.featureId === 'remove-retained-edges')).toBe(true)
+    expect(search(index, 'tree removal').some(r => r.featureId === 'mark-tree-removal')).toBe(true)
+    expect(stem('removal')).toBe(stem('remove'))
+    expect(stem('stairs')).toBe('stair')
+    expect(stem('rotation')).toBe(stem('rotate'))
+    // Short words stay themselves, and the same words typed as written still rank first.
+    expect(stem('pass')).toBe('pass')
+    expect(search(index, 'projects')[0]).toMatchObject({ key: 'command:all-projects' })
+  })
+
+  // LF-14: the DA pack's download is in Approvals › DA pack, with its title block's details.
+  it('sends every command to a tab that exists, and the DA pack to Approvals', () => {
+    for (const { entry } of places) {
+      if (!entry.at) continue
+      const [area, tab] = entry.at.split('/')
+      expect(tabIds(areaById(area)!), `${entry.id} at ${entry.at}`).toContain(tab)
+    }
+    expect(index.find(i => i.key === 'command:cmd-da-pack')?.entry.at).toBe('approvals/da-pack')
+    expect(index.find(i => i.key === 'command:cmd-pdf')?.entry.at).toBe('share/plans')
+    // Its row says where that is, rather than "Commands".
+    expect(index.find(i => i.key === 'command:cmd-da-pack')?.where).toBe('Approvals › DA pack')
+    expect(index.find(i => i.key === 'command:cmd-pdf')?.where).toBe('Share › Plans (PDF)')
+  })
+
+  // LD-21: the open project's own rooms, levels and roofs are found by name.
+  it('finds the open project’s rooms, levels and roofs by name', () => {
+    const things = thingItems({
+      levels: [{ id: 'l1', name: 'Living level' }, { id: 'l2', name: 'Bedroom level' }],
+      rooms: [{ id: 'r1', name: 'Kitchen and dining', level: 'l1' }, { id: 'r2', name: 'Bedroom 1', level: 'l2' }, { id: 'r3', name: ' ', level: 'l2' }],
+      areas: [{ id: 'a1', name: 'Deck', level: 'l1' }],
+      roofs: [{ id: 'rf1', level: 'l2' }],
+    })
+    expect(things.map(t => t.key)).toEqual(['thing:room:r1', 'thing:room:r2', 'thing:area:a1', 'thing:level:l1', 'thing:level:l2', 'thing:roof:rf1'])
+    const all = [...index, ...things]
+    expect(search(all, 'kitchen').slice(0, 3).map(r => r.key)).toContain('thing:room:r1')
+    expect(search(all, 'living level')[0]).toMatchObject({ key: 'thing:level:l1', thing: { type: 'level', id: 'l1', level: 'l1' }, where: 'Level in this project' })
+    expect(search(all, 'bedroom 1')[0]).toMatchObject({ key: 'thing:room:r2', where: 'Room on Bedroom level', thing: { type: 'room', id: 'r2', level: 'l2' } })
+    expect(search(all, 'deck').some(r => r.key === 'thing:area:a1')).toBe(true)
+    // Each leads to the tab that lists it.
+    expect(things.map(t => (t.place.kind === 'tab' ? t.place.tab.id : ''))).toEqual(['rooms', 'rooms', 'rooms', 'floors', 'floors', 'roofs'])
+    // Projects, on the Projects home (LF-31).
+    const projects = projectItems([{ id: 'p1', name: 'Hillside house' }, { id: 'p2', name: 'Granny flat' }])
+    expect(search(projects, 'granny').map(r => r.thing)).toEqual([{ type: 'project', id: 'p2' }])
+    expect(search(projects, 'house')[0]).toMatchObject({ label: 'Hillside house', where: 'Project' })
   })
 
   it('carries each command’s shortcut', () => {

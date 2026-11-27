@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { readSite } from '../../safety/files'
-import { ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
+import { analyzeLayers } from '../../lib/survey'
+import { parseDxf } from '../../lib/dxf'
+import { isLevel, slopeText } from '../../components/siteWords'
+import { streetSideLabel } from '../../phone/streetSideWords'
+import { guessCount, madeBlock } from '../../site/layersSeen'
+import { chipFit, aboveStreet, describeSketch, ROUGH_SIZE, readSketchSize, sketchGround, sketchName, sketchProblems, sketchSurvey, SKETCH_DATUM, type SketchBlock } from '../sketch'
 
 const block = (b: Partial<SketchBlock> = {}): SketchBlock => ({ width: 15, depth: 30, fall: 0, street: 'S', ...b })
 
@@ -62,5 +67,74 @@ describe('a sketch block', () => {
     expect(() => readSketchSize('2', '30', '', 'S')).toThrow(/between 5 and 500/)
     expect(() => readSketchSize('15', 'abc', '', 'S')).toThrow(/depth/)
     expect(() => readSketchSize('15', '30', '45', 'S')).toThrow(/fall/)
+  })
+
+  it('says what is wrong with every box at once, not just the first (AX-17)', () => {
+    expect(sketchProblems('abc', '-5', '999')).toEqual({
+      width: 'The block’s width needs to be between 5 and 500 m.',
+      depth: 'The block’s depth needs to be between 5 and 500 m.',
+      fall: 'The fall needs to be within 30 m.',
+    })
+    // Only the empty one of the pair is marked, and a good set has nothing to say.
+    expect(sketchProblems('15', '', '')).toEqual({ depth: 'Type both the width and the depth, or leave both empty to set them later.' })
+    expect(sketchProblems('15', '30', '1,5')).toEqual({})
+    expect(sketchProblems('', '', '')).toEqual({})
+    // A sheet with no size still can't take an absurd fall.
+    expect(sketchProblems('', '', '999')).toEqual({ fall: 'The fall needs to be within 30 m.' })
+  })
+})
+
+describe('a sketch block has no survey leftovers (HO-17, CB-31, LD-16, DB-33, HO-39, HO-21)', () => {
+  it('reports the fall as it was typed, right to the block’s corners', () => {
+    // The cells inside the boundary stop short of its corners: 2 m read 1.98 m, 3 m read 2.97 m.
+    for (const fall of [2, 3, -3, 6]) {
+      const { terrain } = readSite(sketchSurvey(block({ fall, street: 'W' })))
+      // As Site › Block prints them, to 10 mm.
+      expect((terrain.stats.maxRL - terrain.stats.minRL).toFixed(2)).toBe(Math.abs(fall).toFixed(2))
+      expect(terrain.stats.minRL.toFixed(2)).toBe(Math.min(SKETCH_DATUM, SKETCH_DATUM + fall).toFixed(2))
+    }
+  })
+
+  it('has no layer guesses to check, though its own layers have uses', () => {
+    const s = sketchSurvey(block({ fall: 2 }))
+    const layers = analyzeLayers(parseDxf(s.dxfText))
+    expect(layers.length).toBe(3)
+    expect(madeBlock(s)).toBe(true)
+    expect(guessCount(layers, s)).toBe(0)
+    // A real survey with the same layers still asks.
+    expect(guessCount(layers, { roles: s.roles })).toBe(3)
+    expect(madeBlock({})).toBe(false)
+  })
+
+  it('says the size it was drawn at when none was given', () => {
+    expect(describeSketch(readSketchSize('', '', '', 'S'))).toBe('20 × 40 m (default size, not set yet), flat, street to the south')
+    expect(describeSketch(block({ fall: -3, street: 'W' }))).toBe('15 × 30 m, 3 m down to the back, street to the west')
+  })
+
+  it('reads a level block as Level, with no ratio and no low side', () => {
+    const { terrain } = readSite(sketchSurvey(block()))
+    expect(slopeText(terrain.stats.meanSlopePct)).toBe('Level')
+    expect(slopeText(0.4)).toBe('Level')
+    expect(slopeText(4)).toBe('1 in 25.0 (4%)')
+    expect(isLevel(terrain.stats)).toBe(true)
+    expect(streetSideLabel('auto', 'south', true)).toBe('Auto (taken as south)')
+    expect(streetSideLabel('auto', 'south')).toBe('Auto (low side: south)')
+    expect(streetSideLabel('S', 'south', true)).toBe('South side')
+  })
+
+  it('gives heights above the street, not off the made-up RL 100', () => {
+    expect(aboveStreet(102)).toBe('2.00 m above the street')
+    expect(aboveStreet(99.25)).toBe('0.75 m below the street')
+    expect(aboveStreet(100.004)).toBe('level with the street')
+  })
+})
+
+describe('where the sketch chip sits on a computer’s plan (final check 4)', () => {
+  it('takes the top row whole, then short, and never drops onto the house while the selection’s card is open', () => {
+    expect(chipFit(600, 580, 200, true)).toBe('row')
+    expect(chipFit(300, 580, 200, true)).toBe('short')
+    expect(chipFit(120, 580, 200, true)).toBe('off')
+    // With no card open it may take a line under the compass, short.
+    expect(chipFit(120, 580, 200, false)).toBe('drop')
   })
 })

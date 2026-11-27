@@ -2,7 +2,8 @@
 // file's layers, each with what it holds, to say which hold the contours and spot levels. The
 // survey opens once they give some ground; until then Use these layers waits. Cancel opens nothing.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useModal } from '../nav/useModal'
 import { SurveyLayers } from '../components/SiteSections'
 import { parseDxf } from '../lib/dxf'
 import { buildSurvey, NoGroundError, type LayerRole, type Survey } from '../lib/survey'
@@ -17,27 +18,13 @@ export function LayersSheet() {
 
 function LayersReview({ ask }: { ask: LayersAsk }) {
   const [roles, setRoles] = useState(ask.roles)
-  const cancelRef = useRef<HTMLButtonElement>(null)
   const answer = useRef(ask.answer)
   useLayoutEffect(() => {
     answer.current = ask.answer
   })
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      e.stopPropagation()
-      answer.current(null)
-    }
-    // Before the start screen's and the plan's own keys, so Esc only closes this.
-    window.addEventListener('keydown', esc, true)
-    return () => {
-      window.removeEventListener('keydown', esc, true)
-      opener?.focus?.()
-    }
-  }, [])
+  const sheet = useRef<HTMLDivElement>(null)
+  // Focus starts on Cancel and Tab stays in the sheet; Esc only closes this (src/nav/useModal.ts).
+  useModal(sheet, true, () => answer.current(null))
   // It read once already, so it reads again; only the layers change.
   const doc = useMemo(() => parseDxf(ask.dxfText), [ask.dxfText])
   const built = useMemo((): { survey: Survey } | { error: string } => {
@@ -51,7 +38,7 @@ function LayersReview({ ask }: { ask: LayersAsk }) {
   const setRole = (layer: string, role: LayerRole) => setRoles(r => ({ ...r, [layer]: role }))
   return (
     <div className="sf-scrim" onPointerDown={e => e.target === e.currentTarget && ask.answer(null)}>
-      <div className="sf-sheet sf-layers" role="dialog" aria-modal="true" aria-labelledby="sf-layers-title">
+      <div ref={sheet} className="sf-sheet sf-layers" role="dialog" aria-modal="true" aria-labelledby="sf-layers-title">
         <div className="sf-grab" aria-hidden="true" />
         <header className="sf-head">
           <span className="sf-step">Pick the survey layers</span>
@@ -73,7 +60,7 @@ function LayersReview({ ask }: { ask: LayersAsk }) {
           <SurveyorRequest lead="If no layer holds them, the file may not have heights on its contours. To ask your surveyor for one that does:" />
         </div>
         <footer className="sf-actions">
-          <button ref={cancelRef} className="sf-btn" onClick={() => ask.answer(null)}>
+          <button className="sf-btn" onClick={() => ask.answer(null)} data-autofocus>
             Cancel
           </button>
           <button className="sf-btn primary" disabled={!survey} onClick={() => ask.answer({ fileName: ask.fileName, dxfText: ask.dxfText, roles })}>

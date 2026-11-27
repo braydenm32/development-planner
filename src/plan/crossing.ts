@@ -5,9 +5,9 @@
 // crossing?). The numbers these use (the council's crossing, the design cars) come from
 // src/checks/crossing.ts, which turns the results into checks; docs/research has the sources.
 
-import { driveWidth } from '../lib/drape'
+import { drivewayGrade, driveWidth } from '../lib/drape'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { distToRings, driveEndPoints, garageRL, houseRings, type DriveGround } from './driveway'
+import { distToRings, driveEndPoints, driveLevelsOf, garageRL, houseRings, streetRL, type DriveGround } from './driveway'
 import { areaKind, earthworksOf, pointOnWall, toSite, wallDir, type Area, type CrossingFacts, type Plan } from './model'
 
 /** Samples along the drive (m). */
@@ -40,11 +40,10 @@ export interface DriveLine {
   boundary: Vec2 | null
   /** Out of the lot, square to the street boundary (unit). */
   out: Vec2 | null
-  /** The street boundary edge, and whether it was guessed because no street side is set. */
+  /** The street boundary edge: the plan's street side (never a guess). */
   edge: number | null
-  guessed: boolean
-  /** Why the crossing can't be checked: a battle-axe lot (the crossing is at the end of the handle), or the drive doesn't run to the street. */
-  why?: 'battle-axe' | 'not-to-street'
+  /** Why the crossing can't be checked: a battle-axe lot (the crossing is at the end of the handle), no street side picked yet, or the drive doesn't run to the street. */
+  why?: 'battle-axe' | 'no-street-side' | 'not-to-street'
   /** The finished ground down the centreline from the garage end (x = 0) to the boundary, or to the drive's street end when it doesn't reach. */
   along: { x: number; z: number }[]
   /** The drive's own level at its garage end (the garage's slab, or typed); null when it follows the ground, so the step to the floor isn't known. */
@@ -53,6 +52,10 @@ export interface DriveLine {
   natural: number | null
   /** The drive's width: narrowest, and at the street end. */
   width: { min: number; street: number }
+  /** The steepest fall across the drive on the finished ground, edge to edge, where it is the drive's own (rise over run); null when it can't be read. */
+  crossFall: number | null
+  /** Whether that ground is the drive built to its own levels, or the ground it follows. */
+  built: boolean
   /** The kerb's level as chosen for the drive's street end (Earthworks › Driveway › Street end: Kerb), so the crossing starts from the same one. */
   chosenKerb?: number
   door: DoorFacts | null
@@ -108,8 +111,8 @@ function doorFor(plan: Plan, origin: Vec2, garage: Vec2, u: Vec2): DoorFacts | n
 
 /**
  * Each driveway, on whichever level it's drawn, as the crossing checks measure it: its centreline from the
- * garage end out to where it meets the street boundary (the plan's street side, or the first
- * edge the centreline meets when none is set), and the finished ground along it.
+ * garage end out to where it meets the street boundary (the plan's street side: with none set the
+ * crossing waits for it, as Stormwater does), and the finished ground along it.
  */
 export function driveLines(plan: Plan, origin: Vec2, boundary: Vec2[], ground: DriveGround, opts: { frontEdge?: number; battleAxe?: boolean; natural?: (p: Vec2) => number | null } = {}): DriveLine[] {
   const out: DriveLine[] = []
@@ -121,75 +124,22 @@ export function driveLines(plan: Plan, origin: Vec2, boundary: Vec2[], ground: D
   return out
 }
 
-/** The street edge a centreline from `from` along `u` meets first, and how far along: the plan's street side, or any edge when none is set. */
-function streetHit(from: Vec2, u: Vec2, boundary: Vec2[], front: number | undefined): { edge: number | null; t: number | null } {
-  if (front !== undefined) return { edge: front, t: hitEdge(from, u, boundary, front) }
-  let best: { edge: number | null; t: number | null } = { edge: null, t: null }
-  for (let i = 0; i < boundary.length; i++) {
-    const ti = hitEdge(from, u, boundary, i)
-    if (ti !== null && ti > 0.5 && (best.t === null || ti < best.t)) best = { edge: i, t: ti }
-  }
-  return best
-}
-
-/** The edge nearest a point. */
-function nearestEdge(boundary: Vec2[], p: Vec2): number {
-  let best = 0
-  let d = Infinity
-  boundary.forEach((a, i) => {
-    const b = boundary[(i + 1) % boundary.length]
-    const e = sub(b, a)
-    const l2 = dot(e, e)
-    const t = l2 ? Math.max(0, Math.min(1, dot(sub(p, a), e) / l2)) : 0
-    const di = len(sub(p, at(a, e, t)))
-    if (di < d) {
-      d = di
-      best = i
-    }
-  })
-  return best
-}
-
 function driveLine(plan: Plan, area: Area, origin: Vec2, boundary: Vec2[], ground: DriveGround, opts: { frontEdge?: number; battleAxe?: boolean; natural?: (p: Vec2) => number | null }): DriveLine | null {
   const ends = driveEndPoints(plan, area, origin, boundary)
   if (!ends) return null
   let garage = ends.garage
-  let run = sub(ends.street, ends.garage)
-  let reach = len(run)
+  const run = sub(ends.street, ends.garage)
+  const reach = len(run)
   if (reach < 0.5) return null
-  let u: Vec2 = [run[0] / reach, run[1] / reach]
-  const widths = driveWidth(ends.poly)
-  let width = { min: widths?.min ?? 0, street: widths ? (ends.streetIsA ? widths.a : widths.b) : 0 }
+  const u: Vec2 = [run[0] / reach, run[1] / reach]
+  const widths = driveWidth(ends.poly, ends.along)
+  const width = { min: widths?.min ?? 0, street: widths ? (ends.streetIsA ? widths.a : widths.b) : 0 }
 
   // The street edge, and how far along the centreline it is.
-  const front = opts.frontEdge !== undefined && opts.frontEdge < boundary.length ? opts.frontEdge : undefined
-  let { edge, t } = streetHit(garage, u, boundary, front)
-  if ((t === null || t > reach + REACH) && !area.drive) {
-    // A drive about as wide as it is long may run across its long axis: try straight out to the
-    // street. Not once it has levels: the cut and fill grades it along its long axis.
-    const c: Vec2 = [ends.poly.reduce((s, p) => s + p[0], 0) / ends.poly.length, ends.poly.reduce((s, p) => s + p[1], 0) / ends.poly.length]
-    const e = front ?? nearestEdge(boundary, c)
-    const out = outward(boundary, e)
-    const back = Math.max(...ends.poly.map(p => dot(sub(c, p), out)))
-    const ahead = Math.max(...ends.poly.map(p => dot(sub(p, c), out)))
-    const g = at(c, out, -back)
-    const hit = hitEdge(g, out, boundary, e)
-    if (hit !== null && hit <= back + ahead + REACH) {
-      garage = g
-      u = out
-      reach = back + ahead
-      run = [u[0] * reach, u[1] * reach]
-      edge = e
-      t = hit
-      // Across the drive, square to the street.
-      const across = ends.poly.map(p => cross(out, sub(p, c)))
-      const wide = Math.max(...across) - Math.min(...across)
-      width = { min: Math.min(width.min, wide), street: wide }
-    }
-  }
-  const guessed = front === undefined
+  const edge = opts.frontEdge !== undefined && opts.frontEdge < boundary.length ? opts.frontEdge : null
+  const t = edge === null ? null : hitEdge(garage, u, boundary, edge)
   const reaches = t !== null && t <= reach + REACH && t > 0.5
-  const why = opts.battleAxe ? 'battle-axe' : reaches ? undefined : 'not-to-street'
+  const why = opts.battleAxe ? 'battle-axe' : edge === null ? 'no-street-side' : reaches ? undefined : 'not-to-street'
   const end = !why && t !== null ? t : reach
   let along: { x: number; z: number }[] = []
   const n = Math.max(2, Math.ceil(end / STEP))
@@ -204,7 +154,9 @@ function driveLine(plan: Plan, area: Area, origin: Vec2, boundary: Vec2[], groun
   const crossing = why ? null : at(garage, u, end)
   const house = houseRings(plan, origin)
   const margin = earthworksOf(plan).margin + STEP
-  const floor = garageRL(plan, area.drive)
+  const levels = driveLevelsOf(plan, area, ends)
+  const floor = garageRL(plan, levels)
+  const built = streetRL(levels) !== null || floor !== null
   if (house.length && distToRings(garage, house) <= margin + 0.5) {
     const kept = along.filter(q => q.x > 0 && distToRings(at(garage, u, q.x), house) > margin)
     if (floor !== null && kept.length) along = [{ x: 0, z: floor }, ...kept]
@@ -221,12 +173,14 @@ function driveLine(plan: Plan, area: Area, origin: Vec2, boundary: Vec2[], groun
     boundary: crossing,
     out: why || edge === null ? null : outward(boundary, edge),
     edge: why ? null : edge,
-    guessed: !why && guessed,
     why,
     along,
     floor,
     natural: crossing && opts.natural ? opts.natural(crossing) : null,
     width,
+    // As its panel reads it: on the drive's own stretch when it's built, else on all the ground it follows.
+    crossFall: drivewayGrade(ground.finished, ends.poly, built ? p => ground.own(area.id, p) : undefined, ends.along)?.crossFall ?? null,
+    built,
     ...(area.drive?.street?.from === 'kerb' ? { chosenKerb: area.drive.street.rl } : {}),
     door: doorFor(plan, origin, garage, u),
     facts: area.crossing ?? {},

@@ -206,7 +206,8 @@
   color: var(--cl-accent);
 }
 
-@media (max-width: 760px) {
+/* The phone layout (PHONE_QUERY in src/phone/device.ts): a narrow window, or a touch screen up to a tablet held upright. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .guide-ui.cl-scrim {
     padding: 0;
     align-items: end;
@@ -322,7 +323,8 @@
   cursor: pointer;
 }
 
-@media (max-width: 760px) {
+/* The phone layout (PHONE_QUERY in src/phone/device.ts): a narrow window, or a touch screen up to a tablet held upright. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .term-tip {
     font-size: 14px;
   }

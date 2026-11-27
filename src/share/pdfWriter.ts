@@ -243,7 +243,10 @@ export class PdfDocument {
         ),
       )
     }
-    objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`
+    // The language, so a screen reader says the words with the right voice, and the title in the
+    // viewer's window instead of the file name (WCAG 3.1.1 and 2.4.2 for documents). The pages are
+    // not tagged: drawings are pictures, and the text sheets have no structure tree yet.
+    objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R /Lang (en-AU) /ViewerPreferences << /DisplayDocTitle true >> >>`
     objects[pagesId - 1] = `<< /Type /Pages /Kids [${kids.map(k => `${k} 0 R`).join(' ')}] /Count ${kids.length} >>`
     const info = add(`<< /Title (${encodeText(this.title)}) /Producer (Contour and Gable) >>`)
 

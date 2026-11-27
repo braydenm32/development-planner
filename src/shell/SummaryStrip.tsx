@@ -14,13 +14,13 @@ import { Icon } from '../nav/icons'
 import { areaById, type NumberId } from '../nav/menu'
 import { navigate } from '../nav/router'
 import { tabRoute, type AppRoute } from '../nav/route'
-import { ENGINEER_TEXT } from '../checks/engineer'
+import { ENGINEER_RULE, ENGINEER_TEXT } from '../checks/engineer'
 import { TO_CHECK_ID, useSiteWarnings } from '../site/sync'
-import { m2, netText } from './format'
-import { balanceWords, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
+import { m2, netText, slabBedText } from './format'
+import { balanceWords, checksName, floorsText, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers } from './useKeyNumbers'
 import type { Council } from '../checks/councils'
-import type { CheckCounts } from '../checks/rules'
+import { waitingWords, type CheckCounts } from '../checks/rules'
 import { checkedAgainst } from '../checks/settings'
 import type { Pathway } from '../checks/types'
 import { ScrollCue } from './ScrollCue'
@@ -101,6 +101,9 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
   const calm = readOnly || share
   // A house of several levels: the floor being drawn first, then all of them.
   const here = n && n.levels.length > 1 && level ? n.levels.find(l => l.id === level) : undefined
+  // Walls drawn with a gap in them enclose no floor: the Floor and Estimate chips stay and say so (LD-34).
+  const openAll = !!n && n.floorArea === null && !!n.open?.length
+  const openHere = !!here && !!n?.open?.includes(here.id)
   return (
     <div className={`summary-strip${share ? ' share-strip' : ''}`} role="region" aria-label="Key numbers">
       <ScrollCue
@@ -114,6 +117,7 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
             ) : (
               <>
                 {verdict && share && <VerdictChip verdict={verdict} route={route} readOnly={readOnly} />}
+                {openAll && <OpenOutlineChip route={route} readOnly={calm} />}
                 {n.floorArea !== null && (
                   <Chip
                     id="floor-area"
@@ -123,16 +127,31 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                     readOnly={readOnly}
                     title={n.levels.map(l => `${l.name}: ${m2(l.area)}`).join('\n')}
                   >
-                    <b>{m2(here ? here.area : n.floorArea)}</b>
+                    {openHere ? (
+                      <>
+                        <b>—</b>
+                        <em className="chip-note"> {OUTLINE_OPEN.toLowerCase()}</em>
+                      </>
+                    ) : (
+                      <b>{m2(here ? here.area : n.floorArea)}</b>
+                    )}
                     {here && <span className="chip-label">of {m2(n.floorArea)}</span>}
                   </Chip>
+                )}
+                {/* The two answers people look for come straight after the floor, so they are the last to go behind "+2" (HO-12). */}
+                {checks && !share && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
+                {cost && !shown.cost && <CostChip cost={cost} route={route} readOnly={readOnly} />}
+                {cost && !cost.ready && openAll && (
+                  <span className="chip ghost" title={OUTLINE_OPEN_WHY}>
+                    Estimate <em>— {OUTLINE_OPEN.toLowerCase()}</em>
+                  </span>
                 )}
                 <Chip id="ffl" label={n.floors.length > 1 ? 'Floor levels (FFL)' : 'Floor level (FFL)'} shown={shown.ffl} route={route} readOnly={readOnly} term="ffl" title={n.floors.length > 1 ? n.floors.map(f => `${f.name}: RL ${f.rl.toFixed(2)}`).join('\n') : 'The ground floor’s level'}>
                   <b>{floorsText(n.floors, n.ffl)}</b>
                 </Chip>
-                {n.roof && (
-                  <Chip id="roof-height" label="Building height" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The most a roof rises above the natural ground under it">
-                    <b>{n.roof.height.toFixed(2)} m</b>
+                {n.height != null && (
+                  <Chip id="roof-height" label="Building height" shown={shown['roof-height']} route={route} readOnly={readOnly} term="height" title="The highest point of the roof or walls above the natural ground under it, as Approvals › Checks measures it">
+                    <b>{n.height.toFixed(2)} m</b>
                   </Chip>
                 )}
                 {n.earth &&
@@ -154,7 +173,7 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                       </span>
                     </span>
                   ) : (
-                    <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill">
+                    <Chip id="cut-fill" label="Cut · fill" shown={shown['cut-fill']} route={route} readOnly={readOnly} term="cut-fill" title={n.earth.bedOnly ? `The ${slabBedText(n.earth.net, n.earth.slabBed)}.` : undefined}>
                       <b>
                         {n.earth.cut.toFixed(1)} · {n.earth.fill.toFixed(1)} m³
                       </b>
@@ -172,7 +191,11 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                   >
                     <b>{n.retaining.maxHeight.toFixed(2)} m</b>
                     {n.retaining.impliedTallest && <em className="chip-note"> implied</em>}
-                    {n.retaining.engineer && <span className="badge warn">Engineer &gt; {ENGINEER_TEXT}</span>}
+                    {n.retaining.engineer && (
+                      <span className="badge warn" title={ENGINEER_RULE}>
+                        Engineer &gt; {ENGINEER_TEXT}
+                      </span>
+                    )}
                   </Chip>
                 )}
                 {n.batters &&
@@ -194,8 +217,6 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
                       <i className="dot" /> Earth slopes (batters) cross {n.batters}
                     </button>
                   ))}
-                {checks && !share && <ChecksChip checks={checks} shown={shown.checks} route={route} readOnly={readOnly} />}
-                {cost && !shown.cost && <CostChip cost={cost} route={route} readOnly={readOnly} />}
                 {siteChecks > 0 &&
                   !share &&
                   (readOnly ? (
@@ -227,13 +248,40 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
   )
 }
 
+/** What the Floor and Estimate chips say while the outside walls have a gap. */
+export const OUTLINE_OPEN = 'Outline not closed'
+const OUTLINE_OPEN_WHY = 'The outside walls don’t join up all the way round, so there is no floor to measure or price yet. Close the gap and the floor area and the estimate come back.'
+
+/** Floor, with no area to give: the walls don't close. It goes to the plan, where the gap is. */
+function OpenOutlineChip({ route, readOnly }: { route: AppRoute; readOnly: boolean }) {
+  const body = (
+    <>
+      <i className="dot" /> <span className="chip-label">Floor</span> <b>—</b> {OUTLINE_OPEN}
+    </>
+  )
+  if (readOnly)
+    return (
+      <span className="chip warn" title={OUTLINE_OPEN_WHY}>
+        {body}
+      </span>
+    )
+  return (
+    <button className="chip warn" title={`${OUTLINE_OPEN_WHY} Opens Design › Plan.`} onClick={() => navigate(tabRoute(route, 'design', 'plan'))}>
+      {body}
+    </button>
+  )
+}
+
 /** The estimate's total, to its tab. */
 function CostChip({ cost, route, readOnly }: { cost: CostHeadline; route: AppRoute; readOnly: boolean }) {
   if (!cost.ready) return null
-  const title = `Likely ${shortMoney(cost.low)} to ${shortMoney(cost.high)}${cost.missing.length ? `. Incomplete: no ${cost.missing.join(', no ')}` : ''}`
+  // Under the guide for custom-built houses, the figure is a floor: said here as on Costs › Estimate (HO-08).
+  const floor = cost.under ? `. A floor, not a budget: custom-built houses like it run ${shortMoney(cost.under.low)} to ${shortMoney(cost.under.high)} (Costs › Estimate)` : ''
+  const title = `Likely ${shortMoney(cost.low)} to ${shortMoney(cost.high)}${cost.missing.length ? `. Incomplete: no ${cost.missing.join(', no ')}` : ''}${floor}`
   const body = (
     <>
       <span className="chip-label">Estimate</span> <b>{shortMoney(cost.total)}</b>
+      {cost.under && <span className="chip-note">or more</span>}
       {cost.missing.length > 0 && <span className="badge warn">Incomplete</span>}
     </>
   )
@@ -256,7 +304,7 @@ function VerdictChip({ verdict, route, readOnly }: { verdict: ChecksHeadline; ro
   const body = (
     <>
       {(verdict.word === 'fix' || verdict.word === 'confirm') && <i className="dot" />}
-      <span className="chip-label">{verdict.name} checks</span> <b>{verdict.head}</b>
+      <span className="chip-label">{checksName(verdict.name)}</span> <b>{verdict.head}</b>
     </>
   )
   if (readOnly)
@@ -274,7 +322,7 @@ function VerdictChip({ verdict, route, readOnly }: { verdict: ChecksHeadline; ro
 
 /** The checks: a warning chip when something fails or needs checking, otherwise a quiet label (the strip is crowded on a phone). */
 export function ChecksChip({ checks: { pathway, council, counts }, shown, route, readOnly = false }: { checks: { pathway: Pathway; council: Council | null; counts: CheckCounts }; shown?: string; route: AppRoute; readOnly?: boolean }) {
-  const name = pathway === 'cdc' ? 'CDC' : 'DA'
+  const name = checksName(pathway === 'cdc' ? 'CDC' : 'DA')
   const term = pathway === 'cdc' ? 'cdc' : 'da'
   const go = () => navigate({ kind: 'app', area: 'approvals', tab: 'checks', view: route.view, level: route.level, sel: route.sel })
   const loud = counts.fail + counts.warn > 0
@@ -283,29 +331,29 @@ export function ChecksChip({ checks: { pathway, council, counts }, shown, route,
   const parts = [counts.fail && `${counts.fail} to fix`, counts.warn && `${counts.warn} to confirm`].filter(Boolean).join(' · ')
   if (shown || !loud) {
     // A design that isn't drawn enough to check says so before anything passes.
-    const text = loud ? parts : counts.incomplete ? `${counts.incomplete} not drawn yet` : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
+    const text = loud ? parts : counts.incomplete ? waitingWords(counts).join(' · ') : counts.unknown ? `${counts.unknown} fact${counts.unknown > 1 ? 's' : ''} to add` : 'OK'
     const cls = shown ? 'chip echo' : 'chip ghost'
     if (readOnly || shown)
       return (
         <span className={cls} data-term={term} data-term-note={note}>
-          {name} checks <em>{text}</em>
+          {name} <em>{text}</em>
         </span>
       )
     return (
       <button className={cls} onClick={go} data-term={term} data-term-note={note}>
-        {name} checks <em>{text}</em>
+        {name} <em>{text}</em>
       </button>
     )
   }
   if (readOnly)
     return (
       <span className={`chip ${counts.fail ? 'fail' : 'warn'}`} data-term={term} data-term-note={against}>
-        <i className="dot" /> {name} checks · {parts}
+        <i className="dot" /> {name} · {parts}
       </span>
     )
   return (
     <button className={`chip ${counts.fail ? 'fail' : 'warn'}`} onClick={go} data-term={term} data-term-note={against}>
-      <i className="dot" /> {name} checks · {parts}
+      <i className="dot" /> {name} · {parts}
     </button>
   )
 }

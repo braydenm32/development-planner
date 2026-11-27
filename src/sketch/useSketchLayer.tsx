@@ -12,6 +12,7 @@ import { DRAW_SAGITTA, distanceToSketch, sketchCentre, sketchGuides, sketchPolyl
 import { addSketch, moveSketch, moveSketchPoint, newSketch, sketchOf } from './ops'
 import { colourOf, SKETCH_PAINT } from './colours'
 import { useSketch, type SketchMode } from './store'
+import { typedKey, typedLabel, typedPoint } from '../pointer/typedEntry'
 import './sketch.css'
 
 /** How a point is snapped: PlanEditor's snapping, with the walls and the sketch it knows. */
@@ -43,7 +44,7 @@ export function useSketchGuides(plan: Plan, shown: boolean): SnapGuides {
 }
 
 const HINTS: Record<SketchMode, string> = {
-  line: 'Click to start a sketch line, then each corner. Type a length in mm (and < and an angle, as in 3000<45) and press Enter. Double-click, Enter or Esc to finish. Sketch lines change nothing; everything snaps to them.',
+  line: 'Click to start a sketch line, then each corner. It snaps to wall faces and corners as well as their centrelines. Type a length in mm (and < and an angle, as in 3000<45) and press Enter. Double-click, Enter or Esc to finish. Sketch lines change nothing; everything snaps to them.',
   arc: 'Click where the arc starts, then where it ends, then a third point for how far it bulges.',
   circle: 'Click the centre, then a point on the circle (or type the radius in mm and press Enter).',
   curve: 'Click points for a smooth curve to pass through. Double-click, Enter or Esc to finish.',
@@ -60,23 +61,8 @@ export const paintStyle = (c: SketchColour) => ({ '--sk': SKETCH_PAINT[c].hex, '
 /** A click this close to the last point (m) is the second click of a double-click, not a new point. */
 const SAME_POINT = 0.005
 
-/** Where a typed "length" or "length<angle" puts the next point from `a`: towards `toward`, or at the angle. */
-export function typedPoint(a: Vec2, toward: Vec2, typed: string): Vec2 | null {
-  const [lenText, angText] = typed.split('<')
-  const len = parseFloat(lenText) / 1000
-  if (!(len > 0)) return null
-  let dir: Vec2
-  if (angText !== undefined && angText !== '') {
-    const t = (parseFloat(angText) * Math.PI) / 180
-    if (!Number.isFinite(t)) return null
-    dir = [Math.cos(t), Math.sin(t)]
-  } else {
-    const l = dist(a, toward)
-    if (l < 1e-6) return null
-    dir = [(toward[0] - a[0]) / l, (toward[1] - a[1]) / l]
-  }
-  return [a[0] + dir[0] * len, a[1] + dir[1] * len]
-}
+// Where a typed "length" or "length<angle" puts the next point: the reader the Wall, Area and Roof tools share.
+export { typedPoint }
 
 interface Draft {
   key: string
@@ -176,22 +162,18 @@ export function useSketchLayer(a: SketchArgs) {
   const key_ = (e: KeyboardEvent): boolean => {
     if (!active) return false
     const from = mode === 'circle' ? draft.pts[0] : mode === 'arc' ? undefined : drawn[drawn.length - 1]
-    if (from && /^[0-9.]$/.test(e.key)) {
-      update({ typed: (draft.typed + e.key).slice(0, 12) })
-      return true
-    }
-    if (from && e.key === '<' && mode !== 'circle' && !draft.typed.includes('<') && draft.typed) {
-      update({ typed: `${draft.typed}<` })
-      return true
-    }
-    if (from && e.key === '-' && draft.typed.endsWith('<')) {
-      update({ typed: `${draft.typed}-` })
+    // A length, and with it an angle (3000<45) or metres (2.5m); a circle takes only its radius.
+    const next = from ? typedKey(draft.typed, e.key, mode !== 'circle') : null
+    if (next !== null) {
+      update({ typed: next })
       return true
     }
     if (e.key === 'Backspace' && draft.typed) {
       update({ typed: draft.typed.slice(0, -1) })
       return true
     }
+    // Mid-number, a stray letter is a slip of the finger, never a change of tool or a fit.
+    if (draft.typed && e.key.length === 1 && !e.ctrlKey && !e.metaKey) return true
     if (e.key === 'Enter') {
       if (from && draft.typed) {
         const p = typedPoint(from, cursor?.p ?? from, draft.typed)
@@ -337,7 +319,7 @@ export function useSketchLayer(a: SketchArgs) {
         <g className="sketch-draft" style={paintStyle(colour)}>
           <path className="sketch-line drawing" d={path(sketchPolyline({ kind: 'circle', pts: [centre, on] }, sagitta))} />
           <path className="sketch-radius" d={path([centre, on])} />
-          {tag(on, [draft.typed ? `R ${draft.typed}▌ mm` : `R ${fmtMm(r)} mm`, `⌀ ${fmtMm(2 * r)} mm`])}
+          {tag(on, [draft.typed ? `R ${typedLabel(draft.typed)}` : `R ${fmtMm(r)} mm`, `⌀ ${fmtMm(2 * r)} mm`])}
         </g>
       )
     }
@@ -372,7 +354,7 @@ export function useSketchLayer(a: SketchArgs) {
       <g className="sketch-draft" style={paintStyle(colour)}>
         <path className="sketch-line drawing" d={path(run)} />
         {draft.pts.length > 0 && !growing && <circle className="sketch-start" cx={S(last)[0]} cy={S(last)[1]} r={3} />}
-        {tag(to, [draft.typed ? `${draft.typed}▌ mm` : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`])}
+        {tag(to, [draft.typed ? typedLabel(draft.typed) : `${fmtMm(len)} mm  ${angle.toFixed(0)}°`])}
       </g>
     )
   })()

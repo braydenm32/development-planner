@@ -44,10 +44,11 @@ const ids = (s: Step) => s.items.map(i => i.id)
 describe('the six steps', () => {
   it('are all done for a finished design, each with its number', () => {
     const steps = stepsOf(input(finished()))
-    expect(steps.map(s => s.title)).toEqual(['Block', 'Levels & rooms', 'Ground & walls', 'Roof', 'Checks', 'Costs & share'])
+    // The order of the rail and the guide: the house and its roof (Design), then the ground (Earthworks) (HO-18).
+    expect(steps.map(s => s.title)).toEqual(['Block', 'Levels & rooms', 'Roof', 'Ground & walls', 'Checks', 'Costs & share'])
     expect(steps.map(s => s.n)).toEqual([1, 2, 3, 4, 5, 6])
     expect(steps.filter(s => s.status !== 'done').map(s => [s.id, ids(s)])).toEqual([])
-    expect(steps.map(s => s.headline)).toEqual(['810 m² · 17% slope', '1 level · 120.50 m²', 'Cut and fill balance', '6.08 m above ground', 'CDC · Nothing to fix', 'About $612k'])
+    expect(steps.map(s => s.headline)).toEqual(['810 m² · 17% slope', '1 level · 120.50 m²', '6.08 m above ground', 'Cut and fill balance', 'CDC · Nothing to fix', 'About $612k'])
     expect(progressText(steps)).toBe('6 of 6 done')
     expect(steps.map(statusText)).toEqual(Array(6).fill('Done'))
   })
@@ -119,7 +120,22 @@ describe('Levels & rooms', () => {
     expect(items.find(i => i.id === 'close:level_top')).toMatchObject({ text: 'Close the outside walls on Top level', go: { level: 'level_top' } })
     const bare = { ...plan, walls: plan.walls.filter(w => w.level !== 'level_top'), rooms: plan.rooms.filter(r => r.level !== 'level_top') }
     expect(step(stepsOf(input(bare)), 'levels').items.find(i => i.id === 'walls:level_top')).toMatchObject({ text: 'Draw the walls on Top level', go: { tool: 'wall' } })
-    expect(ids(step(stepsOf(input(plan)), 'levels'))).toEqual(['openings:level_low', 'openings:level_mid', 'openings:level_top'])
+    // The made-up stair climbs to the wall between the wings, which has no opening: where it lands is listed too.
+    expect(ids(step(stepsOf(input(plan)), 'levels'))).toEqual(['openings:level_low', 'openings:level_mid', 'openings:level_top', 'stair-wall-top:stair_up'])
+  })
+
+  it('lists storey heights that clash and a roof left under a storey', () => {
+    const plan = splitLevels()
+    // The lower level's ceiling raised above the top level's floor, which is built over it.
+    const tall = { ...plan, levels: plan.levels.map(l => (l.id === 'level_low' ? { ...l, height: 3.3 } : l)) }
+    const levels = step(stepsOf(input(tall)), 'levels').items
+    expect(levels.find(i => i.id === 'storey:level_low:ceiling-over:level_top')).toMatchObject({ text: 'Check Lower level’s heights', go: { tab: 'floors', level: 'level_low' } })
+    // Listed once, on the lower of the two.
+    expect(levels.filter(i => i.id.startsWith('storey:'))).toHaveLength(1)
+    // A roof on the lower wing, with the top level built over all of it.
+    const roof = { id: 'r', level: 'level_low', pts: [[0, 0], [8, 0], [8, 6], [0, 6]] as [number, number][], type: 'hip' as const, pitch: 22.5, overhang: 0.45, gables: [], lowEdge: 0, plateLift: 0 }
+    const roofs = step(stepsOf(input({ ...plan, roofs: [roof] })), 'roof').items
+    expect(roofs.find(i => i.id === 'covered:r')).toMatchObject({ text: 'The roof on Lower level is under Top level', go: { sel: { type: 'roof', id: 'r' } } })
   })
 
   it('points out a stair whose top meets no floor', () => {
@@ -203,12 +219,40 @@ describe('Checks', () => {
       ['check:da-coverage', 'confirm'],
       ['check:lep-zone', 'fact'],
     ])
-    expect(c.items[0]).toMatchObject({ detail: '9.1 m · allowed 8.5 m', go: { to: 'check', id: 'hc-height', fix: { area: 'design', tab: 'roofs' } } })
+    expect(c.items[0]).toMatchObject({ detail: '9.1 m · rule: 8.5 m', go: { to: 'check', id: 'hc-height', fix: { area: 'design', tab: 'roofs' } } })
     // Confirm and the facts go to their row, which says why.
     expect(c.items[1].go).toEqual({ to: 'check', id: 'da-coverage', fix: null })
     expect(c.items[2].detail).toBe('Add the zone.')
     expect(statusText(c)).toBe('1 to fix')
     expect(c.headline).toBe('DA · 1 to fix · 1 to confirm')
+  })
+
+  // LF-08: a DA lodges the DA pack, so its title block's details are asked for under Checks, on that route only.
+  it('asks for the DA pack’s details on the DA route only', () => {
+    const blank = { address: false, lot: true, preparedBy: false }
+    const da = step(stepsOf(input(finished(), { checks: { name: 'DA', head: 'Nothing to fix', word: 'ok', results: [row('da-front', 'pass')] }, da: blank })), 'checks')
+    expect(da.items.map(i => i.text)).toEqual(['Add the site’s address', 'Say who prepared the plans'])
+    expect(da.items[0].go).toEqual({ to: 'place', area: 'approvals', tab: 'da-pack', field: 'da-address' })
+    expect(statusText(da)).toBe('2 to do')
+    const cdc = stepsOf(input(finished(), { da: blank }))
+    expect(cdc.flatMap(s => s.items)).toEqual([])
+    expect(progressText(cdc)).toBe('6 of 6 done')
+  })
+
+  // LF-08: one retaining wall over the engineer's limit was counted twice, by its own item and by the check's row.
+  it('lists a wall that needs an engineer once, under Ground & walls', () => {
+    const plan = finished()
+    const wall = { ...plan.walls[0], id: 'rw1', kind: 'retaining' as const }
+    const results = [row('hc-retaining', 'warn', { title: 'Retaining walls', value: 'Tallest holds back 0.99 m' }), row('hc-height', 'warn')]
+    const steps = stepsOf(input(plan, { retaining: [{ wall, height: 0.99, name: 'North-west wall' }], checks: { name: 'CDC', head: '2 to confirm', word: 'confirm', results } }))
+    expect(ids(step(steps, 'ground'))).toEqual(['eng:rw1'])
+    expect(ids(step(steps, 'checks'))).toEqual(['check:hc-height'])
+    // With no drawn wall over the limit (an implied one, say) the check's row is the only word on it, and stays.
+    const implied = stepsOf(input(plan, { checks: { name: 'CDC', head: '2 to confirm', word: 'confirm', results } }))
+    expect(ids(step(implied, 'checks'))).toEqual(['check:hc-retaining', 'check:hc-height'])
+    // A wall the rules fail outright is still listed to fix.
+    const failed = stepsOf(input(plan, { retaining: [{ wall, height: 1.8, name: 'North-west wall' }], checks: { name: 'DA', head: '1 to fix', word: 'fix', results: [row('da-retaining', 'fail')] } }))
+    expect(ids(step(failed, 'checks'))).toEqual(['check:da-retaining'])
   })
 
   it('leaves the street side to Block while it isn’t set', () => {
@@ -220,11 +264,20 @@ describe('Checks', () => {
 })
 
 describe('Costs & share', () => {
-  it('says what the estimate has nothing for, and the DA pack’s details left blank', () => {
+  // LF-08, HO-18: the DA pack's details used to be filed here whatever the route, with nothing about costs.
+  it('says what the estimate has nothing for, and nothing about the DA pack', () => {
     const c = step(stepsOf(input(finished(), { cost: { ready: true, total: 438_000, low: 400_000, high: 480_000, missing: ['roof', 'windows'] }, da: { address: false, lot: true, preparedBy: false } })), 'costs')
-    expect(c.items.map(i => i.text)).toEqual(['The estimate has nothing for the roof and windows yet', 'Add the site’s address', 'Say who prepared the plans'])
-    expect(c.items[1].go).toEqual({ to: 'place', area: 'approvals', tab: 'da-pack', field: 'da-address' })
+    expect(c.items.map(i => i.text)).toEqual(['The estimate has nothing for the roof and windows yet'])
     expect(c.headline).toBe('About $438k')
+    const done = step(stepsOf(input(finished(), { da: { address: false, lot: false, preparedBy: false } })), 'costs')
+    expect(statusText(done)).toBe('Done')
+  })
+
+  it('flags a house with no bathroom or kitchen, and says a room’s type is what fills it in (HO-07)', () => {
+    const c = step(stepsOf(input(finished(), { cost: { ready: true, total: 438_000, low: 400_000, high: 480_000, missing: ['bathroom', 'kitchen'] } })), 'costs')
+    expect(c.items[0]).toMatchObject({ text: 'The estimate has nothing for the bathroom and kitchen yet', detail: 'Give a room that type on its card and its line fills in.' })
+    const both = step(stepsOf(input(finished(), { cost: { ready: true, total: 438_000, low: 400_000, high: 480_000, missing: ['roof', 'bathroom'] } })), 'costs')
+    expect(both.items[0]).toMatchObject({ text: 'The estimate has nothing for the roof and bathroom yet', detail: 'Draw them and their lines fill in.' })
   })
 })
 

@@ -8,6 +8,7 @@ import {
   edgeNormals,
   fitDistance,
   forgetPose,
+  lessMotion,
   loadPose,
   loadStreetSide,
   moveDuration,
@@ -23,6 +24,9 @@ import {
   EYE_HEIGHT,
   STREET_INSET,
   STREET_ROOM,
+  STREET_MARGIN,
+  STREET_REACH,
+  STREET_REACH_UPRIGHT,
   HOUSE_ELEVATION,
   HOUSE_TURN,
   LEVEL_FOV,
@@ -106,6 +110,37 @@ describe('the presets', () => {
       const near = presetPose('street', { ...frame, ground, streetEdge: 5, houseEdge }, FOV, 0.56)
       expect(Math.hypot(offset(near)[0], offset(near)[2])).toBeCloseTo(houseEdge + STREET_ROOM, 6)
     }
+  })
+
+  it('steps back until the whole front of the house fits, sides and top, on a wide screen and an upright phone (HO-19, PH-22)', () => {
+    // A two-storey house 13.4 m wide whose front is 4 m from its middle, 9 m behind the street boundary (13 m out), top 7 m over the floor.
+    const wide: Frame = { ...frame, streetEdge: 13, houseEdge: 4, width: 13.4, top: frame.target[1] - 1.5 + 7 }
+    const dist = (p: Pose) => Math.hypot(offset(p)[0], offset(p)[2])
+    const shows = (p: Pose, aspect: number) => {
+      const fromFront = dist(p) - 4
+      const v = Math.tan((LEVEL_FOV / 2) * (Math.PI / 180))
+      return { width: 2 * fromFront * v * aspect, above: fromFront * 2 * v * (0.5 + RISE_SHARE) }
+    }
+    // A wide screen: it used to stand 1.2 m inside the boundary, 7.8 m from the front, and the house filled the frame edge to edge.
+    const desk = presetPose('street', wide, FOV, 1.6)
+    expect(shows(desk, 1.6).width).toBeGreaterThanOrEqual(13.4 * STREET_MARGIN - 1e-6)
+    expect(shows(desk, 1.6).above).toBeGreaterThanOrEqual((7 - EYE_HEIGHT) * STREET_MARGIN - 1e-6)
+    expect(dist(desk)).toBeGreaterThan(13 - STREET_INSET)
+    // Upright phone: back across the road, as far as it goes, and most of the front shows (it was 4 m of 13.4).
+    const phone = presetPose('street', wide, FOV, 0.46)
+    expect(dist(phone)).toBeGreaterThan(13 + STREET_REACH)
+    expect(dist(phone)).toBeLessThanOrEqual(13 + STREET_REACH_UPRIGHT + 1e-6)
+    expect(shows(phone, 0.46).width).toBeGreaterThanOrEqual(13.4 * STREET_MARGIN - 1e-6)
+    // A wide screen never goes further than across the road, however wide the house.
+    expect(dist(presetPose('street', { ...wide, width: 60 }, FOV, 1.6))).toBeCloseTo(13 + STREET_REACH, 6)
+    // With bars over the top and bottom of the view, the open part shows less of the wide lens: it stands back further.
+    expect(dist(presetPose('street', wide, FOV, 1.6, 0.7))).toBeGreaterThan(dist(desk))
+    // A small house well back from the street still stands just inside the boundary, as before.
+    const small = presetPose('street', { ...frame, streetEdge: 30, houseEdge: 3, width: 6, top: frame.target[1] - 1.5 + 3 }, FOV, 1.6)
+    expect(dist(small)).toBeCloseTo(30 - STREET_INSET, 6)
+    // It still stands on the street side at eye height, looking level or a touch down.
+    expect(bearingOf(desk)).toBeCloseTo(wide.street, 6)
+    expect(elevationOf(desk)).toBeGreaterThanOrEqual(0)
   })
 
   it('open framed on the house, not the block, from a little above and off square', () => {
@@ -206,6 +241,13 @@ describe('the move between presets', () => {
     expect(far).toBeGreaterThan(near)
     expect(far).toBeLessThanOrEqual(900)
   })
+
+  it('is skipped when the system asks for less motion (the view cuts to the preset)', () => {
+    expect(lessMotion(q => ({ matches: q === '(prefers-reduced-motion: reduce)' }))).toBe(true)
+    expect(lessMotion(() => ({ matches: false }))).toBe(false)
+    // No matchMedia at all (tests, old browsers): the move plays as before.
+    expect(lessMotion(undefined)).toBe(false)
+  })
 })
 
 describe('the block’s edge towards the street', () => {
@@ -277,6 +319,9 @@ describe('the street side', () => {
     // Street view stands just inside the north boundary: how far it and the house's front are from the house's middle.
     expect(f.streetEdge).toBeCloseTo(21, 6)
     expect(f.houseEdge).toBeCloseTo(4, 6)
+    // How wide the house is from the street and its top, which Street view stands back to fit (here the walls' tops: no roof).
+    expect(f.width).toBeGreaterThan(5)
+    expect(f.top).toBeGreaterThan(f.target[1])
     const p = presetPose('street', f, FOV, 1.5)
     expect(Math.hypot(offset(p)[0], offset(p)[2])).toBeCloseTo(21 - STREET_INSET, 6)
   })

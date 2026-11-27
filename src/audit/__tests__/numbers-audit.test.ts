@@ -34,6 +34,12 @@ import { defaultGables, levelOutlines, roofGeometry } from '../../plan/roof'
 import { riserCount, stairComfort, stairCounts, stairLayout } from '../../plan/stairs'
 import { buildPrintModel, DEFAULT_PRINT, fitsBed, type PrintModel, type PrintSettings } from '../../print/build'
 import { planSetPdf, type Paper, type PlanSetInput } from '../../share/plans'
+import { daPackPdf, type DaPackInput } from '../../da/pack'
+import { exampleProjectText } from '../../example/exampleProject'
+import { levelSummaries } from '../../plan/keyNumbers'
+import { designQuantities } from '../../plan/quantities'
+import { readSite } from '../../safety/files'
+import { parseProjectFile } from '../../share/project'
 
 // ===========================================================================
 // Independent helpers. None of these call app code.
@@ -562,7 +568,8 @@ describe('synthetic plane block: site panel, RL readouts, slope and fall', () =>
     expect(gradeText(g.average)).toBe('level (0%)')
     expect(gradeText(g.steepest)).toBe('level (0%)')
     expect(`${(g.crossFall * 100).toFixed(0)}%`).toBe('13%')
-    expect(driveVerdict(g)).toBe('OK to drive')
+    // A 13% tilt across is more than a car should drive or park on: it no longer reads "OK to drive" (DB-14).
+    expect(driveVerdict(g)).toBe('Tilts too much: over 1 in 16 across')
   })
 
   it('a drive laid straight downhill reads the full plane gradient along it and no cross-fall', () => {
@@ -1136,7 +1143,7 @@ describe('suspects raised by the simulated users', () => {
 
   // (6) Each sheet picks its own scale to fit what is on it (plans.ts:89), and every sheet is turned the
   // way the screen is (planTurn of the "Top of view" setting), so with north up the floor plans are north-up.
-  it('PDF: each sheet has its own scale; floor plans follow the view orientation', () => {
+  it('PDF: every floor plan is at one scale, fitted to the house; floor plans follow the view orientation', () => {
     let plan = syntheticPlan()
     plan = {
       ...plan,
@@ -1151,12 +1158,14 @@ describe('suspects raised by the simulated users', () => {
       )
     const squared = sheets('house')
     const north = sheets(0)
-    // The ground floor sheet also holds the driveway, garden and deck, so it needs a smaller scale.
-    const gf = expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0, 'A3', 50)
-    const ff = expectedScale(SYN_OUTLINE, 0, 'A3', 50)
-    expect(squared).toEqual([squared[0], `Scale 1:${gf} at A3`, `Scale 1:${ff} at A3`])
-    expect(gf).not.toBe(ff)
-    expect(north[1]).toBe(`Scale 1:${expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0 + 15, 'A3', 50)} at A3`)
+    // Floor plans fit the house: the driveway, garden and deck on the ground floor's sheet are on
+    // the site plan, and no longer push that floor to a smaller scale than the one above it.
+    const withAreas = expectedScale([...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], 0, 'A3', 50)
+    const house = expectedScale(SYN_OUTLINE, 0, 'A3', 50)
+    expect(squared).toEqual([squared[0], `Scale 1:${house} at A3`, `Scale 1:${house} at A3`])
+    expect(withAreas).not.toBe(house)
+    expect(north[1]).toBe(`Scale 1:${expectedScale(SYN_OUTLINE, 0 + 15, 'A3', 50)} at A3`)
+    expect(north[2]).toBe(north[1])
     synth.pdfScalesPerSheet = { squareToHouse: squared, northUp: north }
   })
 })
@@ -1264,7 +1273,7 @@ describe('site coverage and the PDF sheets', () => {
     const row = (k: string) => (tx.includes(k) ? tx[tx.indexOf(k) + 1] : undefined)
     expect(row('Site area')).toBe('1328 m²')
     // One storey: the footprint is the floor area to the outside of the walls, to the same 2 dp as the Areas panel.
-    expect(row('Building footprint (all floors)')).toBe('114.39 m²')
+    expect(row('Building footprint, seen from above (all levels)')).toBe('114.39 m²')
     expect(row('Site coverage')).toBe(`${((114.39 / 1328) * 100).toFixed(1)}%`) // 8.6 %
     expect(row('Ground floor FFL')).toBe('RL 63.20')
     expect(tx).toContain('FFL RL 63.20') // the label on the house
@@ -1292,8 +1301,8 @@ describe('site coverage and the PDF sheets', () => {
     const turn = up === 'house' ? 0 : up + plan.placement.rotation
     const boundaryHouse = (survey.boundary as P2[]).map(q => siteToHouse(q, plan.placement, survey.origin))
     const siteScale = expectedScale([...boundaryHouse, ...SYN_OUTLINE], turn, paper, 100)
-    const floorPts = [...SYN_OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])]
-    const floorScale = expectedScale(floorPts, turn, paper, 50)
+    // The floor plan fits the house; its outdoor areas are on the site plan.
+    const floorScale = expectedScale(SYN_OUTLINE, turn, paper, 50)
     expect(pages).toHaveLength(2)
     expect(pages[0].texts).toContain(`Scale 1:${siteScale} at ${paper}`)
     expect(pages[1].texts).toContain(`Scale 1:${floorScale} at ${paper}`)
@@ -1354,7 +1363,7 @@ describe('site coverage and the PDF sheets', () => {
     const [site] = pdfPages(planSetPdf({ ...input('A3', 'house'), plan: two }))
     const union = 114.39 + 114.39 - 8.3 * 9.3 // 151.59 m²
     const row = (k: string) => site.texts[site.texts.indexOf(k) + 1]
-    expect(row('Building footprint (all floors)')).toBe(`${union.toFixed(2)} m²`)
+    expect(row('Building footprint, seen from above (all levels)')).toBe(`${union.toFixed(2)} m²`)
     expect(row('Site coverage')).toBe(`${((union / 1328) * 100).toFixed(1)}%`) // 11.4 %
   })
 
@@ -1377,7 +1386,7 @@ describe('site coverage and the PDF sheets', () => {
     // The overlap is a regular octagon with inradius 5 m: area 8 r² tan(22.5°).
     const union = 2 * 100 - 8 * 25 * Math.tan(22.5 * D2R) // 117.16 m²
     const [site] = pdfPages(planSetPdf({ ...input('A3', 'house'), plan: crossed, earthworks: null }))
-    expect(site.texts[site.texts.indexOf('Building footprint (all floors)') + 1]).toBe(`${union.toFixed(2)} m²`)
+    expect(site.texts[site.texts.indexOf('Building footprint, seen from above (all levels)') + 1]).toBe(`${union.toFixed(2)} m²`)
   })
 })
 
@@ -1796,7 +1805,8 @@ describe('sample survey and plan (made up)', () => {
         const turn = up === 'house' ? 0 : up + plan.placement.rotation
         const bHouse = (survey.boundary as P2[]).map(q => siteToHouse(q, plan.placement, survey.origin))
         const siteScale = expectedScale([...bHouse, ...OUTLINE], turn, paper, 100)
-        const floorScale = expectedScale([...OUTLINE, ...plan.areas.flatMap(a => a.pts as P2[])], turn, paper, 50)
+        // The floor plan fits the house; its outdoor areas are on the site plan.
+        const floorScale = expectedScale(OUTLINE, turn, paper, 50)
         expect(pages[0].texts).toContain(`Scale 1:${siteScale} at ${paper}`)
         expect(pages[1].texts).toContain(`Scale 1:${floorScale} at ${paper}`)
         const drawn = pathAfter(pages[0].stream, '1.7 w').map(mm => (mm * siteScale) / 1000).sort((a, b) => a - b)
@@ -1809,7 +1819,7 @@ describe('sample survey and plan (made up)', () => {
           const coverage = (areaOf(OUTLINE) / areaOf(boundaryW)) * 100
           expect(row('Site area')).toBe(`${areaOf(boundaryW).toFixed(0)} m²`)
           // One storey, so the footprint is the floor area to the outside of the walls (2 dp, as the Areas panel).
-          expect(row('Building footprint (all floors)')).toBe(`${areaOf(OUTLINE).toFixed(2)} m²`)
+          expect(row('Building footprint, seen from above (all levels)')).toBe(`${areaOf(OUTLINE).toFixed(2)} m²`)
           expect(row('Site coverage')).toBe(`${coverage.toFixed(1)}%`)
           // The ground floor's "Above ground floor" is 0, so its FFL is the placement's.
           expect(sortedLevels(plan)[0].elevation).toBe(0)
@@ -1818,7 +1828,7 @@ describe('sample survey and plan (made up)', () => {
           expect(row('Cut / fill')).toBe(`${result.cut.toFixed(1)} / ${result.fill.toFixed(1)} m³`)
           // No driveway is drawn, so no grade row.
           expect(tx).not.toContain('Average grade along the drive')
-          out.keyNumbers = ['Site area', 'Building footprint (all floors)', 'Site coverage', 'Ground floor FFL', 'Cut / fill'].map(k => `${k}: ${row(k)}`)
+          out.keyNumbers = ['Site area', 'Building footprint, seen from above (all levels)', 'Site coverage', 'Ground floor FFL', 'Cut / fill'].map(k => `${k}: ${row(k)}`)
           out.coveragePct = coverage
           out.floorSheetNote = pages[1].texts.find(t => t.startsWith('Ground floor: FFL'))
           out.sheetNames = pages.map(p => p.texts[p.texts.indexOf('House plan') + 1])
@@ -1893,8 +1903,10 @@ describe('sample survey and plan (made up)', () => {
     const grown = areaOf(OUTLINE) + perimeterOf(OUTLINE) * o + 4 * o * o
     expect(g.area).toBeCloseTo(grown / Math.cos(22.5 * D2R), 4)
     // Highest point: the widest square that fits in the grown outline is 7.405 m (the 6.505 m garage
-    // depth plus 2 × 450), so the ridge is 3.7025 m in from the eaves.
-    expect(g.height).toBeCloseTo(0.15 + 3.7025 * Math.tan(22.5 * D2R), 3)
+    // depth plus 2 × 450), so the ridge is 3.7025 m in from the eaves. The slope passes through the wall
+    // plate at the wall, so the ridge stands the rise of the run inside the walls (3.7025 − 0.45) above it:
+    // the overhang hangs below the plate and adds no height.
+    expect(g.height).toBeCloseTo(0.15 + (3.7025 - o) * Math.tan(22.5 * D2R), 3)
     record('hypotheticalHipRoof', {
       area_m2: g.area,
       height_aboveWalls_m: g.height,
@@ -1983,5 +1995,42 @@ describe('sample survey and plan (made up)', () => {
     record('levels', sortedLevels(plan).map(l => ({ name: l.name, rl: (plan.placement.ffl + l.elevation).toFixed(2), ceiling_mm: show.mm(l.height) })))
     console.log(JSON.stringify(values, null, 2))
     if (process.env.AUDIT_OUT) writeFileSync(process.env.AUDIT_OUT, JSON.stringify(values, null, 2))
+  })
+})
+
+// The example's split levels share a wall. The app counts that wall once, on the lower level
+// (levelSummaries, which the strip, Overview, Rooms & areas and Costs all read); the floor sheets'
+// level note once measured each level's own outline, so the Bedroom level printed 82.69 m² beside
+// the app's 79.70 m².
+describe('the example: each level’s floor area is the same on the PDF floor sheets, the DA pack and in the app', () => {
+  const opened = parseProjectFile(exampleProjectText())
+  const ex = readSite(opened.survey)
+  const exPlan = opened.plan
+  const app = new Map(levelSummaries(exPlan).map(s => [s.level.name, s.gross.area.toFixed(2)]))
+  const base: PlanSetInput = { plan: exPlan, survey: ex.survey, siteArea: ex.terrain.stats.area, earthworks: null, terrain: ex.terrain, up: 'house', paper: 'A3', title: 'Example', date: 'd' }
+  const notes = (bytes: Uint8Array) =>
+    new Map(
+      pdfPages(bytes)
+        .flatMap(p => p.texts)
+        .map(t => /^(.+): FFL RL [\d.]+, ceiling \d+ mm, ([\d.]+) m² to the outside of the walls$/.exec(t))
+        .filter((m): m is RegExpExecArray => !!m)
+        .map(m => [m[1], m[2]]),
+    )
+
+  it('has a level with a shared wall, so the two ways of measuring differ', () => {
+    expect(app.size).toBeGreaterThan(1)
+    const own = sortedLevels(exPlan).map(l => buildingOutline(planarFaces(exPlan.walls.filter(w => w.level === l.id))).area.toFixed(2))
+    expect(own).not.toEqual([...app.values()])
+  })
+
+  it('the plan set prints the app’s figure for every level', () => {
+    expect(notes(planSetPdf(base))).toEqual(app)
+  })
+
+  it('the DA pack prints the app’s figure for every level, and they add to the Costs floor area', () => {
+    const da: DaPackInput = { ...base, revision: 'A', place: null, planning: null, council: null, checks: [], notChecked: [] }
+    expect(notes(daPackPdf(da))).toEqual(app)
+    const total = [...levelSummaries(exPlan)].reduce((t, s) => t + s.gross.area, 0)
+    expect(designQuantities(exPlan, null, []).floorArea).toBeCloseTo(total, 9)
   })
 })

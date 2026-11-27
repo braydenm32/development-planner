@@ -13,10 +13,12 @@ import { LegalFooter } from '../legal/LegalFooter'
 import { AddressStart } from '../map/AddressStart'
 import '../legal/legal.css'
 import { askSurveyor } from '../safety/files'
+import { NAME_MAX } from '../projects/ops'
+import { projectsNow } from '../projects/session'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
 import { SurveyorRequest } from '../safety/SurveyorRequest'
-import { readSketchSize, ROUGH_SIZE, type StreetSide } from './sketch'
+import { readSketchSize, ROUGH_SIZE, SKETCH_FIELDS, sketchProblems, type SketchField, type StreetSide } from './sketch'
 import '../shell/fonts.css'
 import './start.css'
 import './what.css'
@@ -122,10 +124,15 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   /** Why the file didn't open, and whether a better file from the surveyor is the fix. */
   const [fileError, setFileError] = useState<{ text: string; ask: boolean } | null>(null)
   const [sketchError, setSketchError] = useState<string | null>(null)
+  /** Each number box that can't be read, with why: all of them at once, each marked on its own box. */
+  const [problems, setProblems] = useState<Partial<Record<SketchField, string>>>({})
+  const boxes = useRef<Partial<Record<SketchField, HTMLInputElement | null>>>({})
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
   const [fall, setFall] = useState('')
   const [street, setStreet] = useState<StreetSide>('S')
+  // What to call the project (optional): a sketch has no file or address to take a name from.
+  const [name, setName] = useState('')
 
   // Esc goes back, wherever focus is, unless a review is open over this screen.
   const cancel = useRef(onCancel)
@@ -148,15 +155,28 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
 
   const sketch = () => {
     setSketchError(null)
-    let block
-    try {
-      block = readSketchSize(width, depth, fall, street)
-    } catch (e) {
-      setSketchError((e as Error).message)
+    const bad = sketchProblems(width, depth, fall)
+    setProblems(bad)
+    const first = SKETCH_FIELDS.find(f => bad[f])
+    if (first) {
+      // To the first box to fix, as the app's own number boxes keep the cursor in a bad one.
+      boxes.current[first]?.focus()
       return
     }
-    startSketch(block, into).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
+    const block = readSketchSize(width, depth, fall, street)
+    startSketch(block, into, name).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
   }
+
+  /** What marks a number box as wrong and ties it to its reason; typing in it again clears the mark. */
+  const box = (f: SketchField, set: (v: string) => void) => ({
+    ref: (el: HTMLInputElement | null) => void (boxes.current[f] = el),
+    'aria-invalid': problems[f] ? (true as const) : undefined,
+    'aria-describedby': problems[f] ? `st-err-${f}` : undefined,
+    onChange: (e: { target: { value: string } }) => {
+      set(e.target.value)
+      if (problems[f]) setProblems(p => ({ ...p, [f]: undefined }))
+    },
+  })
 
   return (
     <div className="start-screen">
@@ -189,11 +209,14 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               Open an example
             </button>
             <button className="st-link" onClick={() => openGuide()}>
-              How it works
+              Getting started
             </button>
           </figcaption>
         </figure>
         <p className="st-says">Draw a house on your sloping block and see it in 3D on the real ground, with the cut and fill, the planning checks and a rough cost as you go.</p>
+        <p className="st-for">
+          For house blocks in NSW, Australia: the planning rules and prices are NSW’s. The drawing, 3D view, earthworks and 3D print work on any block. It’s a concept planner (a planning aid, not advice), not a decorating or photo-render tool.
+        </p>
         <p className="st-step">Choose how to start</p>
         <h1>Start with your block</h1>
         <p className="st-lede">Bring in the survey if you have it. If it hasn’t arrived, sketch the block now and add the survey later. Your plan is kept either way.</p>
@@ -254,19 +277,25 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                 sketch()
               }}
             >
+              <label className="st-label" htmlFor="st-name">
+                Project name <span className="st-opt">(optional)</span>
+              </label>
+              <label className="st-field st-name">
+                <input id="st-name" autoComplete="off" maxLength={NAME_MAX} placeholder={projectsNow().list.length ? 'New house' : 'My house'} value={name} onChange={e => setName(e.target.value)} title="What to call this project. You can rename it any time under All projects." />
+              </label>
               <span className="st-label" id="st-size">
                 Block width × depth <span className="st-opt">(optional)</span>
               </span>
               <div className="st-size" role="group" aria-labelledby="st-size">
-                <label className="st-field">
-                  <input inputMode="decimal" placeholder="Width" aria-label="Width along the street, in metres" value={width} onChange={e => setWidth(e.target.value)} />
+                <label className={`st-field${problems.width ? ' bad' : ''}`}>
+                  <input inputMode="decimal" placeholder="Width" aria-label="Width along the street, in metres" value={width} {...box('width', setWidth)} />
                   <span>m</span>
                 </label>
                 <span className="st-x" aria-hidden="true">
                   ×
                 </span>
-                <label className="st-field">
-                  <input inputMode="decimal" placeholder="Depth" aria-label="Depth from the street, in metres" value={depth} onChange={e => setDepth(e.target.value)} />
+                <label className={`st-field${problems.depth ? ' bad' : ''}`}>
+                  <input inputMode="decimal" placeholder="Depth" aria-label="Depth from the street, in metres" value={depth} {...box('depth', setDepth)} />
                   <span>m</span>
                 </label>
               </div>
@@ -275,8 +304,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                   <label className="st-label" htmlFor="st-fall">
                     Rough fall <span className="st-opt">(optional)</span>
                   </label>
-                  <label className="st-field">
-                    <input id="st-fall" inputMode="decimal" placeholder="Flat" value={fall} onChange={e => setFall(e.target.value)} title="How much higher the back of the block is than the street (m). Negative if it falls away from the street." />
+                  <label className={`st-field${problems.fall ? ' bad' : ''}`}>
+                    <input id="st-fall" inputMode="decimal" placeholder="Flat" value={fall} {...box('fall', setFall)} title="How much higher the back of the block is than the street (m). Negative if it falls away from the street." />
                     <span>m</span>
                   </label>
                 </div>
@@ -294,8 +323,24 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                 </div>
               </div>
               <p className="st-note">
+                Rough fall is how much higher the back of the block is than the street, in metres. Type a minus (−2) if it falls away from the street.
+              </p>
+              <p className="st-note">
                 Not sure yet? Leave the size empty for a {ROUGH_SIZE.width} × {ROUGH_SIZE.depth} m sheet; you can change it under Site › Block.
               </p>
+              {/* Every box that's wrong, each with its own reason (its box points here with aria-describedby). */}
+              {SKETCH_FIELDS.some(f => problems[f]) && (
+                <div className="st-errors" role="alert">
+                  {SKETCH_FIELDS.map(
+                    f =>
+                      problems[f] && (
+                        <p key={f} id={`st-err-${f}`} className="st-error">
+                          {problems[f]}
+                        </p>
+                      ),
+                  )}
+                </div>
+              )}
               {sketchError && (
                 <p className="st-error" role="alert">
                   {sketchError}
@@ -312,7 +357,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
               <AddressArt />
             </div>
             <h2 id="st-address">No survey yet? Start from the address</h2>
-            <p>Find the lot by its address, or its Lot and DP. The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
+            <p>Find the lot by its address, or its Lot and DP (the lot and plan numbers on your rates notice). The planner takes the lot’s lines from the NSW map and the ground from the state’s elevation model: rough, but enough to see the block’s fall before you buy. Add the survey later.</p>
             <AddressStart into={into} />
           </section>
         </div>

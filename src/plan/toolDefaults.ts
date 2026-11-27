@@ -5,6 +5,7 @@
 
 import { registerRecordKind } from '../projects/session'
 import { AREA_KINDS, WALL_KINDS, type AreaKind, type OpeningKind, type RoofType, type StairShape, type WallKind } from './model'
+import { stylesFor } from './openingStyles'
 import { usePlan, type FurnitureDefaults, type OpeningDefaults, type RoofDefaults, type RoofMode, type StairDefaults } from './store'
 
 /** The record kind they're saved under in each project. */
@@ -67,7 +68,9 @@ export function applyToolDefaults(cur: ToolDefaults, saved: unknown): ToolDefaul
     const width = num(d?.width, 0.3, 20)
     const height = num(d?.height, 0.3, 10)
     const sill = num(d?.sill, 0, 10)
-    if (width !== undefined && height !== undefined && sill !== undefined) out.openingDefaults[k] = { width, height, sill }
+    // The kind of door or window, kept when it's one this tool draws.
+    const style = stylesFor(k).find(s => s.id === d?.style)?.id
+    if (width !== undefined && height !== undefined && sill !== undefined) out.openingDefaults[k] = { width, height, sill, ...(style ? { style } : {}) }
   }
 
   const rf = obj(r.roofDefaults)

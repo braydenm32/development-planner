@@ -119,7 +119,7 @@ const COLORS: Record<PrintPart['kind'], string> = { terrain: '#8FB07A', floor: '
 
 // ---- 3MF ----
 
-/** One 3MF file holding every part as its own named object, laid out on the bed. */
+/** One 3MF file holding every part as its own named object, set out side by side for the slicer to arrange. */
 export function to3mf(parts: PrintPart[], title: string): Uint8Array {
   const placed = layOut(parts)
   const objects: string[] = []
@@ -219,8 +219,17 @@ export const fileSafe = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'part'
 
-/** A ZIP of one STL per part. */
-export function toStlZip(parts: PrintPart[]): Uint8Array {
+/**
+ * What the README beside the STLs says. STL carries no units and no scale, so the note says both:
+ * the scale the parts were made at (the same one as in the ZIP's name) and that sizes are millimetres.
+ */
+export const stlReadme = (scale?: number): string =>
+  ['Made with Contour and Gable.', ...(scale ? [`Scale 1:${scale}. Sizes are in millimetres: if your slicer asks for the units, pick millimetres.`] : ['Sizes are in millimetres.']), CAVEAT_LINE]
+    .map(line => `${line}\r\n`)
+    .join('\r\n')
+
+/** A ZIP of one STL per part, with a note of the scale and units. */
+export function toStlZip(parts: PrintPart[], scale?: number): Uint8Array {
   const used = new Set<string>()
   return zip(
     [
@@ -230,8 +239,8 @@ export function toStlZip(parts: PrintPart[]): Uint8Array {
         used.add(name)
         return { name: `${name}.stl`, data: toStl(p) }
       }),
-      // STL has nowhere to say it, so the caveat travels as a note beside the parts.
-      { name: 'README.txt', data: new TextEncoder().encode(`Made with Contour and Gable.\r\n\r\n${CAVEAT_LINE}\r\n`) },
+      // STL has nowhere to say it, so the scale, the units and the caveat travel as a note beside the parts.
+      { name: 'README.txt', data: new TextEncoder().encode(stlReadme(scale)) },
     ],
   )
 }

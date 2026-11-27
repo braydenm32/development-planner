@@ -66,11 +66,20 @@ describe('the sun in the panels', () => {
   it('ticks a room called Living as a living area, with its winter sun', () => {
     const html = renderToStaticMarkup(<RoomSun plan={plan} room={plan.rooms[0]} survey={survey} terrain={terrain} earth={null} />)
     expect(html).toMatch(/<input type="checkbox" checked=""/)
-    expect(words(html)).toBe('Living area Winter sun on its windows: 6 h between 9 am and 3 pm on 21 June (north 6 h).')
+    // The tick says what it is for (HO-41), then the hours.
+    const WHY = 'Living area: check its winter sun Site › Sun works out the midwinter sun on each living area. The tick follows the room’s type until you change it.'
+    expect(words(html)).toBe(`${WHY} Winter sun on its windows: 6 h between 9 am and 3 pm on 21 June (north 6 h).`)
     const bed = { ...plan.rooms[0], name: 'Bed 1' }
     const off = renderToStaticMarkup(<RoomSun plan={{ ...plan, rooms: [bed] }} room={bed} survey={survey} terrain={terrain} earth={null} />)
     expect(off).not.toContain('checked')
-    expect(words(off)).toBe('Living area')
+    expect(words(off)).toBe(WHY)
+    // A type has the say over the name: a room called Living that is a bedroom isn't ticked, and a study typed Living is.
+    const typed = (name: string, type: 'bedroom' | 'living') => {
+      const r = { ...plan.rooms[0], name, type }
+      return renderToStaticMarkup(<RoomSun plan={{ ...plan, rooms: [r] }} room={r} survey={survey} terrain={terrain} earth={null} />)
+    }
+    expect(typed('Living', 'bedroom')).not.toContain('checked')
+    expect(typed('Bed 1', 'living')).toContain('checked')
   })
 
   it('gives the Overview a sun group', () => {

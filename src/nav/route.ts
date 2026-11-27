@@ -1,5 +1,6 @@
 // Where you are in the app, as a hash route, so Back and reload land in the same place:
 //   #/<area>/<tab>?view=plan|3d&level=<level id>&sel=<item id>
+//   #/<area>/more/<item>  one of an area's More items, so a reload or a link lands on it
 //   #/projects            the projects home
 //   #/projects/archived   …showing the archived projects
 //   #/projects/new        the start screen, for a new project
@@ -17,6 +18,8 @@ export interface AppRoute {
   level?: string
   /** The selected item's id. */
   sel?: string
+  /** On More: the item a link or search opened it at (LD-31). */
+  item?: string
 }
 
 export interface ProjectsRoute {
@@ -48,7 +51,12 @@ export const MOVED: Record<string, [AreaId, string]> = {
   'design/checks': ['approvals', 'checks'],
   'design/basix': ['approvals', 'basix'],
   'earthworks/stormwater': ['approvals', 'stormwater'],
+  // The Levels tab is named Levels but lives at floors: its name in the address works too.
+  'design/levels': ['design', 'floors'],
 }
+
+/** The page a route is on, whatever is selected or which level shows: an area's tab, or a page of its own. */
+export const pageOf = (r: Route): string => (r.kind === 'app' ? `${r.area}/${r.tab}` : formatHash(r))
 
 /** The hash for a route. */
 export function formatHash(r: Route): string {
@@ -58,14 +66,24 @@ export function formatHash(r: Route): string {
   q.set('view', r.view)
   if (r.level) q.set('level', r.level)
   if (r.sel) q.set('sel', r.sel)
-  return `#/${r.area}/${r.tab}?${q.toString()}`
+  return `#/${r.area}/${r.tab}${r.item ? `/${encodeURIComponent(r.item)}` : ''}?${q.toString()}`
+}
+
+/** The parts of a hash's path. Null when one won't decode (a cut-off %E0%A4), which is no address of ours (LD-30). */
+function pathParts(path: string): string[] | null {
+  try {
+    return path.split('/').filter(Boolean).map(decodeURIComponent)
+  } catch {
+    return null
+  }
 }
 
 /** Read a hash. Null when it isn't one of ours (no hash, or an old link). */
 export function parseHash(hash: string): Route | null {
   const m = /^#\/([^?]*)(?:\?(.*))?$/.exec(hash)
   if (!m) return null
-  const parts = m[1].split('/').filter(Boolean).map(decodeURIComponent)
+  const parts = pathParts(m[1])
+  if (!parts) return null
   const page = PAGE_IDS.find(p => p === parts[0])
   if (page && parts.length === 1) return { kind: 'page', page }
   if (parts[0] === 'projects') return parts[1] === 'archived' ? ARCHIVED_PROJECTS : parts[1] === 'new' ? NEW_PROJECT : PROJECTS
@@ -83,7 +101,29 @@ export function parseHash(hash: string): Route | null {
   const sel = q.get('sel')
   if (level) route.level = level
   if (sel) route.sel = sel
+  if (tab === MORE && parts[2] && area.more.items.some(i => i.id === parts[2])) route.item = parts[2]
   return route
+}
+
+/**
+ * True for an address that names a page the app doesn't have: an area or a tab that isn't in the
+ * menu, a page with something after it, a hash with its slash left out or a part that won't
+ * decode. It still opens somewhere sensible; the app says once that the page asked for isn't here
+ * (LF-31). No hash at all, and the tabs that moved, are fine.
+ */
+export function unknownHash(hash: string): boolean {
+  if (hash === '' || hash === '#' || hash === '#/') return false
+  const m = /^#\/([^?]*)(?:\?(.*))?$/.exec(hash)
+  if (!m) return true
+  const parts = pathParts(m[1])
+  if (!parts) return true
+  if (PAGE_IDS.some(p => p === parts[0])) return parts.length !== 1
+  if (parts[0] === 'projects') return parts.length > 1 && parts[1] !== 'archived' && parts[1] !== 'new'
+  const moved = MOVED[`${parts[0]}/${parts[1]}`]
+  if (moved) parts.splice(0, 2, ...moved)
+  const area = areaById(parts[0] ?? '')
+  if (!area) return true
+  return !!parts[1] && !tabIds(area).includes(parts[1])
 }
 
 /** An area's own tab, on its own canvas. */
@@ -146,6 +186,13 @@ export function carriesSelection(from: AppRoute, to: AppRoute, kind: SelectionKi
   if (to.area === 'design' && to.tab === 'plan') return true
   return (EDITED_IN[kind] ?? []).some(t => t === `${to.area}/${to.tab}` || t === `${to.area}/*`)
 }
+
+/**
+ * The areas where the house is read, never changed: Approvals checks it and Share sends it. A
+ * selection there shows its numbers, with no fields, no drags and no Delete; Design changes it.
+ * (Costs reads it too, with no selection at all; Earthworks keeps its own things to move.)
+ */
+export const readsTheHouse = (area: AreaId) => area === 'approvals' || area === 'share'
 
 /** The canvas a route shows: the plan, the 3D view, or the print preview. */
 export function canvasOf(r: AppRoute): CanvasView | 'print' {

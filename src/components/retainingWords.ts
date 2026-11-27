@@ -45,3 +45,6 @@ export function sideLabel(o: SideLook): { head: string; change: string } {
   }
   return { head, change }
 }
+
+/** A level's name where "level" follows it: "Split level", "Ground floor", "Rumpus level". Never "Living level level". */
+export const levelLabel = (name: string) => (/(level|floor|storey)$/i.test(name.trim()) ? name.trim() : `${name.trim()} level`)

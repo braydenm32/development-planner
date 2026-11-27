@@ -9,7 +9,7 @@ import { projectTitle } from '../share/project'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { basixOf, setBasix, setBasixDone } from './model'
-import { BASIX_LINKS, basixCsv, basixFacts, checklistRows, COOLING, FACADE_NAMES, FACADES, HEATING, HOT_WATER, LIGHTING, readyCount, WHEN_NEEDED } from './basix'
+import { BASIX_LINKS, basixCsv, basixFileName, basixFacts, checklistRows, COOLING, FACADE_NAMES, FACADES, HEATING, HOT_WATER, LIGHTING, readyCount, WHEN_NEEDED } from './basix'
 import './basix.css'
 
 const CONFIDENCE_TEXT = { read: 'Read', secondary: 'Summary', unverified: 'Unverified' }
@@ -35,7 +35,7 @@ function Basix({ d }: { d: Loaded }) {
   const download = () => {
     const title = projectTitle(plan)
     const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
-    saveFile(`${title.replace(/[^\w.-]+/g, '-')}-basix-checklist.csv`, basixCsv(plan, title, date), 'text/csv')
+    saveFile(basixFileName(title), basixCsv(plan, title, date), 'text/csv')
   }
   return (
     <div className="basix">
@@ -83,7 +83,7 @@ function Basix({ d }: { d: Loaded }) {
           ))}
       </ul>
       <p className="muted small">
-        Windows count where they sit on an outside wall; name a room living, kitchen or dining and its orientation shows. Roof and tank come from{' '}
+        Windows count where they sit on an outside wall; give a room the Living, Kitchen or Dining type and its orientation shows. Roof and tank come from{' '}
         <button className="link" onClick={() => navigate({ kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan' })}>
           Approvals › Stormwater
         </button>
@@ -120,7 +120,7 @@ function Basix({ d }: { d: Loaded }) {
       </ul>
 
       <div className="row">
-        <button className="secondary" onClick={download}>
+        <button className="secondary" onClick={download} data-view-reads>
           Download the checklist (CSV)
         </button>
       </div>

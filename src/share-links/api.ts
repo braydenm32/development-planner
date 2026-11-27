@@ -45,6 +45,14 @@ export interface ShareApi {
   part(token: string, hash: string, part: number): Promise<Uint8Array>
 }
 
+/** The server answered, but not with what the planner asked for (a web page instead of data). */
+export class BadAnswerError extends Error {
+  constructor() {
+    super('The answer couldn’t be read. Try again in a minute.')
+    this.name = 'BadAnswerError'
+  }
+}
+
 export function createShareApi(opts: { base?: string; fetch?: typeof fetch } = {}): ShareApi {
   const base = opts.base ?? `${import.meta.env?.BASE_URL ?? '/'}api/`
   const doFetch = opts.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init))
@@ -65,7 +73,15 @@ export function createShareApi(opts: { base?: string; fetch?: typeof fetch } = {
     if (!res.ok) throw new CloudError(res.status, (await res.json().catch(() => null)) as Record<string, unknown> | null)
     return res
   }
-  const json = async <T,>(path: string, init?: RequestInit, token?: string) => (await (await call(path, init, token)).json()) as T
+  const json = async <T,>(path: string, init?: RequestInit, token?: string) => {
+    const res = await call(path, init, token)
+    try {
+      return (await res.json()) as T
+    } catch {
+      // A web page where the answer should be (a wifi sign-in page, a host's error page): say so plainly, never the parser's words.
+      throw new BadAnswerError()
+    }
+  }
   const enc = encodeURIComponent
 
   return {

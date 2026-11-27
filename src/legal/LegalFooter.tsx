@@ -7,7 +7,8 @@ export function LegalFooter({ newTab = false }: { newTab?: boolean }) {
   const t = newTab ? { target: '_blank', rel: 'noopener' } : {}
   return (
     <footer className="lg-foot">
-      <nav aria-label="About this app">
+      {/* Not "About this app": the pages' own tabs have that name, and two landmarks can't share one. */}
+      <nav aria-label="Footer">
         <a href="#/about" {...t}>About</a>
         <a href="#/privacy" {...t}>Privacy</a>
         <a href="#/terms" {...t}>Terms</a>

@@ -5,29 +5,109 @@ import { balancingShift, type EarthworksResult, type PreparedEarthworks } from '
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { buildingOutline, planarFaces, roomShape } from './geometry'
-import { floorRL, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
+import { buildingOutline, faceAround, levelFloorAreas, offsetPolygon, planarFaces, roomShape, type Face } from './geometry'
+import { floorRL, houseWalls, slabBedOf, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
+import { roomIsGarage } from './roomTypes'
 import { roofGeometry, type RoofGeometry } from './roof'
-import { roofEavesRL } from './roofline'
+import { roofEavesRL, wallTopRL } from './roofline'
 
 export interface LevelSummary {
   level: Level
-  rooms: { room: Room; area: number | null }[]
+  /**
+   * `sameAs` is set on a label that sits in a space another label already names (a wall between
+   * them went): its area is that same space's, and totals count the space once, under the first.
+   */
+  rooms: { room: Room; area: number | null; sameAs?: Room }[]
   areas: { area: Area; size: number }[]
-  /** The outside of the walls: its rings and floor area. */
+  /**
+   * The outside of the walls: its rings and floor area. A wall shared with a lower level beside it
+   * (a split level) is counted in that level's area, not twice (levelFloorAreas).
+   */
   gross: { outlines: Vec2[][]; area: number }
+  /** The same floor to the inside of its outside walls, the walls between rooms included (m²): what gross floor area counts. */
+  inside: number
+}
+
+/** The level's floor inside its outside walls: the outline's inner face, where `outside` is to its outer face. */
+function insideArea(faces: Face[], rawOutside: number, floorArea: number): number {
+  let inside = 0
+  // The outer face runs clockwise, so a negative offset moves the centreline in to the walls' inside face.
+  for (const f of faces) if (f.area < 0) inside += Math.abs(signedArea(offsetPolygon(f.pts, f.thickness.map(t => -t / 2))))
+  // A wall shared with a split level beside it is inside the house: its strip was taken off `floorArea`, and counts here
+  // (with its two ends, 0.1 m² or so more than the wall between the inside faces).
+  return Math.min(floorArea, Math.max(0, inside + (rawOutside - floorArea)))
 }
 
 /** Rooms, outdoor areas and floor area of each level, lowest first. */
 export function levelSummaries(plan: Plan): LevelSummary[] {
+  const floor = levelFloorAreas(plan)
   return sortedLevels(plan).map(l => {
     const walls = plan.walls.filter(w => w.level === l.id)
     const faces = planarFaces(walls)
-    const rooms = plan.rooms.filter(r => r.level === l.id).map(r => ({ room: r, area: roomShape(r, faces)?.area ?? null }))
+    const named = new Map<Face, Room>()
+    const rooms = plan.rooms
+      .filter(r => r.level === l.id)
+      .map(r => {
+        const face = faceAround(r.at, faces)
+        const first = face ? named.get(face) : undefined
+        if (face && !first) named.set(face, r)
+        return { room: r, area: roomShape(r, faces)?.area ?? null, ...(first ? { sameAs: first } : {}) }
+      })
     const areas = plan.areas.filter(a => a.level === l.id).map(a => ({ area: a, size: Math.abs(signedArea(a.pts)) }))
-    return { level: l, rooms, areas, gross: buildingOutline(faces) }
+    const outline = buildingOutline(faces)
+    const area = floor.get(l.id) ?? 0
+    return { level: l, rooms, areas, gross: { outlines: outline.outlines, area }, inside: insideArea(faces, outline.area, area) }
   })
+}
+
+/** One car space of a garage or carport stays out of gross floor area, up to this much (m²): the Housing Code's definition. */
+export const GFA_CAR_SPACE = 18
+
+export interface FloorAreas {
+  /** Every level to the outside of its walls (m²): the app's "Floor area", which Costs price. */
+  outside: number
+  /** Every level to the inside of its outside walls, the walls between rooms included (m²). */
+  inside: number
+  /** Rooms that are a garage or carport, inside their own walls (m²). */
+  garages: number
+  /** The part of the garages gross floor area leaves out: one car space, up to GFA_CAR_SPACE. */
+  carSpace: number
+  /**
+   * Gross floor area as the planning rules count it: inside the outside walls, less one car space.
+   * The one figure for the floor area check, the floor space ratio and (less the whole garage)
+   * BASIX's conditioned area. Stairs and voids over a floor below aren't taken off: the plan
+   * doesn't say which they are, and leaving them in errs on the safe side.
+   */
+  gfa: number
+}
+
+/** The house's floor areas on each basis, from its level summaries. */
+export function floorAreasOf(summaries: LevelSummary[]): FloorAreas {
+  const outside = summaries.reduce((t, s) => t + s.gross.area, 0)
+  const inside = summaries.reduce((t, s) => t + s.inside, 0)
+  const garages = summaries.reduce((t, s) => t + s.rooms.reduce((a, r) => a + (roomIsGarage(r.room) && !r.sameAs ? (r.area ?? 0) : 0), 0), 0)
+  const carSpace = Math.min(garages, GFA_CAR_SPACE)
+  return { outside, inside, garages, carSpace, gfa: Math.max(0, inside - carSpace) }
+}
+
+/** Gross floor area and the areas it comes from (see FloorAreas). */
+export const grossFloorArea = (plan: Plan): FloorAreas => floorAreasOf(levelSummaries(plan))
+
+/**
+ * All the rooms on a level together (m²), each enclosed space counted once however many labels sit
+ * in it. Each room goes in as it is shown, to 0.01 m², so the total is the sum of the list above it
+ * and the levels' totals add to the house's (169.55 used to sit over 70.43 + 99.11).
+ */
+export const roomsTotal = (rooms: LevelSummary['rooms']): number => Math.round(rooms.reduce((t, r) => t + (r.sameAs ? 0 : Math.round((r.area ?? 0) * 100)), 0)) / 100
+
+/** The room label that already names the space this one sits in (the first drawn there), or null when it has the space to itself. */
+export function sameSpaceAs(plan: Plan, room: Room): Room | null {
+  const faces = planarFaces(plan.walls.filter(w => w.level === room.level))
+  const face = faceAround(room.at, faces)
+  if (!face) return null
+  const first = plan.rooms.find(r => r.level === room.level && faceAround(r.at, faces) === face)
+  return first && first.id !== room.id ? first : null
 }
 
 /** A room's floor area, as the Rooms & areas panel works it out; null when its walls don't enclose it. */
@@ -57,6 +137,30 @@ export function tallestRoof(plan: Plan, survey: Survey, terrain: Terrain): { roo
     if (!best || height > best.height) best = { roof: r, height }
   }
   return best
+}
+
+/**
+ * Building height: the highest point of the house above the natural ground straight under it,
+ * read at every roof's corners and ridges and at the tops of the walls. The one figure for the
+ * summary strip, the Overview, Design › Roofs, Approvals › Checks and Design › Sections, so a
+ * storey with no roof yet (or a roof left on the storey below) still counts. 0 with nothing drawn.
+ */
+export function buildingHeight(plan: Plan, survey: Survey, terrain: Terrain): number {
+  let h = 0
+  for (const r of plan.roofs) {
+    const g = roofGeometry(r)
+    if (!g.error) h = Math.max(h, roofAboveGround(plan, r, g, survey, terrain))
+  }
+  for (const w of houseWalls(plan.walls)) {
+    const level = plan.levels.find(l => l.id === w.level)
+    if (!level) continue
+    const top = wallTopRL(plan, w)
+    for (const p of [w.a, w.b]) {
+      const s = toSite(p, plan.placement, survey.origin)
+      h = Math.max(h, top - terrain.grid.sample(s[0], s[1]))
+    }
+  }
+  return h
 }
 
 /** Which sides of the block the batters run into, by the way each side faces ("north"). */
@@ -149,12 +253,22 @@ export function balancedFloorRL(plan: Plan, prep: PreparedEarthworks): number | 
 /** Whether Balance would move the floor from `ffl` to `balanced`: it sets the floor to the nearest 10 mm, so anything less is balanced. */
 export const movesFloor = (balanced: number | null, ffl: number): boolean => balanced !== null && Math.abs(balanced - ffl) >= 0.005
 
-/** Whether cut and fill are out of balance: Balance would move the floor. */
+/**
+ * Whether the earth left over is only the slab's own bed (the site scrape under it): there is a
+ * slab pad, and Balance would do no more than lift the floor by the bed's depth or less. On a flat
+ * block with the floor at ground level that is exactly the bed, and nothing is out of balance:
+ * the slab has to be dug in somewhere. Earth to bring in is never the bed.
+ */
+export const slabBedOnly = (balanced: number | null, ffl: number, bed: number, hasPad: boolean): boolean =>
+  hasPad && balanced !== null && balanced - ffl >= 0.005 && balanced - ffl <= bed + 0.005
+
+/** Whether cut and fill are out of balance: Balance would move the floor, by more than the slab's own bed accounts for. */
 export function outOfBalance(plan: Plan, prep: PreparedEarthworks): boolean {
-  return movesFloor(balancedFloorRL(plan, prep), floorRL(plan))
+  const to = balancedFloorRL(plan, prep)
+  return movesFloor(to, floorRL(plan)) && !slabBedOnly(to, floorRL(plan), slabBedOf(plan), prep.platforms.some(p => p.core !== null))
 }
 
-/** Retaining walls from this height (ground to ground) need an engineer: the app's one figure, from the checks. */
+/** Retaining walls holding back more than this (ground to ground) need an engineer: the app's one figure, from the checks. */
 export { ENGINEER_HEIGHT, needsEngineer } from '../checks/engineer'
 
 /**

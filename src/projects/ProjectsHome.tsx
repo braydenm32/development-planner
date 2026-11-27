@@ -5,17 +5,20 @@ import { openExample } from '../example/open'
 import { saveFile } from '../lib/download'
 import { LegalFooter } from '../legal/LegalFooter'
 import '../legal/legal.css'
+import { focusSoon, useModal } from '../nav/useModal'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
 import { fileSafe } from '../print/export'
 import { projectFileText } from '../share/project'
-import { duplicateWithUndo, openFile as openAnyFile } from '../safety/flows'
+import { deleteWithUndo, duplicateWithUndo, openFile as openAnyFile } from '../safety/flows'
 import { ACCEPT, showToast } from '../safety/store'
 import { projectSiteFromRecords } from '../site/store'
 import { costsFromRecords } from '../costs/persist'
 import { mapFromRecords } from '../map/store'
+import { findProjects, FIND_FROM, readSort, writeSort, type ProjectSort } from './find'
+import { daFromRecords } from '../da/details'
 import { edited } from './format'
-import { describeContents } from './ops'
+import { describeContents, NAME_MAX } from './ops'
 import { useProjects } from './session'
 import type { ProjectMeta, ProjectThumbnail } from './types'
 // IBM Plex Sans, self-hosted: the same files the app's frame loads, so there is one copy.
@@ -86,6 +89,18 @@ const ICONS = {
     </>
   ),
   arrowR: <path d="M4.5 12h15M14 6.5l5.5 5.5-5.5 5.5" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.2" />
+      <path d="m15.6 15.6 4.4 4.4" />
+    </>
+  ),
+  bin: (
+    <>
+      <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4L17.5 7" />
+      <path d="M10 10.5v5.5M14 10.5v5.5" />
+    </>
+  ),
   cube: (
     <>
       <path d="M12 3.2 20 7.6v8.8L12 20.8l-8-4.4V7.6z" />
@@ -162,14 +177,15 @@ async function downloadProject(m: ProjectMeta, read: (id: string) => Promise<Rec
   const survey = r?.survey as SavedProject | undefined
   const plan = r?.plan as Plan | undefined
   if (!survey || !plan) throw new Error('This project has no survey and plan to put in a file yet.')
-  saveFile(`${fileSafe(m.name)}.project.json`, projectFileText(survey, { ...plan, name: m.name }, projectSiteFromRecords(r), costsFromRecords(r), r?.options, mapFromRecords(r)), 'application/json')
+  saveFile(`${fileSafe(m.name)}.project.json`, projectFileText(survey, { ...plan, name: m.name }, projectSiteFromRecords(r), costsFromRecords(r), r?.options, mapFromRecords(r), daFromRecords(r)), 'application/json')
 }
 
 // ---------------------------------------------------------------------------
 
 /**
  * The Projects home: every project saved in this browser, as cards, with New, Open, Duplicate,
- * Rename and Archive. Deleting happens only from Archived, after a review of what goes.
+ * Rename, Archive and Delete. Deleting, from a card's ⋯ menu or from Archived, comes after a
+ * review of what goes, with Undo. More than a handful of projects get a name filter and an order.
  */
 export function ProjectsHome(props: Props) {
   const p = useProjects()
@@ -181,10 +197,16 @@ export function ProjectsHome(props: Props) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<ProjectSort>(readSort)
 
   const active = p.list.filter(m => !m.archived)
   const tucked = p.list.filter(m => m.archived)
-  const shown = archived ? tucked : active
+  const all = archived ? tucked : active
+  // Finding one by name, and the order, once there are more than a handful (or while a search or
+  // an order other than the usual is on, so deleting one doesn't take the controls away mid-use).
+  const finding = all.length >= FIND_FROM || query.trim() !== '' || (sort !== 'recent' && all.length > 1)
+  const shown = finding ? findProjects(all, query, sort) : all
   // The project open now: the home is the same page with or without one, with a way back to it.
   const current = active.find(m => m.id === p.currentId && p.opened)
 
@@ -213,11 +235,19 @@ export function ProjectsHome(props: Props) {
   // light review), and the app goes to it. Undo is on the toast that follows.
   const openFile = (f: File) => act(() => openAnyFile(f, { into: 'new' }))
 
+  /** A card is about to leave the list: focus goes to the one that takes its place (else the page), not the page body. */
+  const focusAfter = (id: string) => {
+    const i = shown.findIndex(m => m.id === id)
+    const next = shown[i + 1] ?? shown[i - 1]
+    focusSoon(...(next ? [`[data-card="${next.id}"] button`] : []))
+  }
+
   // Archive, with Undo: it comes back, and opens again if it was the one open.
   const archiveOne = (m: ProjectMeta) =>
     act(async () => {
       const wasOpen = m.id === p.currentId
       await p.archive(m.id)
+      focusAfter(m.id)
       showToast({
         text: `Archived “${m.name}”.`,
         undo: async () => {
@@ -227,18 +257,18 @@ export function ProjectsHome(props: Props) {
       })
     })
 
-  // Delete for good leaves the list now and storage when the toast goes, so Undo is exact.
+  // Delete for good, from a card's menu or from Archived: gone from the list now, with Undo on the toast.
   const deleteOne = (m: ProjectMeta) =>
     act(async () => {
-      const undo = p.deleteSoon(m.id)
+      await deleteWithUndo(m)
       setReview(null)
-      showToast({ text: `Deleted “${m.name}”.`, undo, settle: () => void p.finishDelete(m.id) })
+      focusAfter(m.id)
     })
 
   // With nothing to show, the empty state carries the one next step instead.
   const actions = (
     <div className="ph-top-actions" hidden={p.ready && !archived && active.length === 0}>
-      <button className="ph-btn" onClick={() => void openExample()} title="A new project with a finished made-up house in it, to look round and change">
+      <button className="ph-btn" onClick={() => void openExample()} title="A project with a finished made-up house in it, to look round and change. The one you already have opens again.">
         <Icon name="cube" size={16} />
         <span className="ph-long">Open an example</span>
         <span className="ph-short">Example</span>
@@ -291,11 +321,11 @@ export function ProjectsHome(props: Props) {
         <div className="ph-head">
           <h1>Projects</h1>
           {(tucked.length > 0 || archived) && (
-            <div className="ph-seg" role="tablist" aria-label="Show">
-              <button role="tab" aria-selected={!archived} className={archived ? '' : 'on'} onClick={() => setArchived(false)}>
+            <div className="ph-seg" role="group" aria-label="Show">
+              <button aria-pressed={!archived} className={archived ? '' : 'on'} onClick={() => setArchived(false)}>
                 Active <span className="ph-count">{active.length}</span>
               </button>
-              <button role="tab" aria-selected={archived} className={archived ? 'on' : ''} onClick={() => setArchived(true)}>
+              <button aria-pressed={archived} className={archived ? 'on' : ''} onClick={() => setArchived(true)}>
                 Archived <span className="ph-count">{tucked.length}</span>
               </button>
             </div>
@@ -321,6 +351,35 @@ export function ProjectsHome(props: Props) {
         {/* Sign in to save to the cloud, or how saving is going (src/cloud). */}
         {p.ready && !archived && <CloudCard />}
 
+        {p.ready && finding && (
+          <div className="ph-find" role="search">
+            <label className="ph-find-box">
+              <Icon name="search" size={16} />
+              <input type="search" placeholder="Find a project" aria-label="Find a project by its name or survey file" value={query} onChange={e => setQuery(e.target.value)} />
+            </label>
+            {query.trim() !== '' && (
+              <span className="ph-find-count" role="status">
+                {shown.length} of {all.length}
+              </span>
+            )}
+            <label className="ph-sort">
+              <span>Sort</span>
+              <select
+                aria-label="Sort projects"
+                value={sort}
+                onChange={e => {
+                  const next: ProjectSort = e.target.value === 'name' ? 'name' : 'recent'
+                  setSort(next)
+                  writeSort(next)
+                }}
+              >
+                <option value="recent">Last edited</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+          </div>
+        )}
+
         {!p.ready ? (
           <div className="ph-grid" aria-hidden="true">
             {[0, 1, 2].map(i => (
@@ -332,6 +391,14 @@ export function ProjectsHome(props: Props) {
                 </div>
               </div>
             ))}
+          </div>
+        ) : shown.length === 0 && all.length > 0 ? (
+          <div className="ph-empty">
+            <h2>No project matches “{query.trim()}”</h2>
+            <p>The search looks at project names and survey file names.</p>
+            <button className="ph-btn" onClick={() => setQuery('')}>
+              Show all {all.length} projects
+            </button>
           </div>
         ) : shown.length === 0 ? (
           archived ? (
@@ -379,7 +446,7 @@ export function ProjectsHome(props: Props) {
         ) : (
           <ul className="ph-grid">
             {shown.map(m => (
-              <li key={m.id} className={`ph-card${m.id === p.currentId ? ' current' : ''}`}>
+              <li key={m.id} data-card={m.id} className={`ph-card${m.id === p.currentId ? ' current' : ''}`}>
                 {m.archived ? (
                   <div className="ph-thumb">
                     <Thumb t={m.thumbnail} />
@@ -440,6 +507,9 @@ export function ProjectsHome(props: Props) {
                             >
                               <Icon name="archive" size={16} /> Archive
                             </button>
+                            <button role="menuitem" className="danger" onClick={() => act(async () => setReview({ meta: m, lines: describeContents(m, await p.read(m.id)) }))}>
+                              <Icon name="bin" size={16} /> Delete…
+                            </button>
                           </Menu>
                         )}
                       </div>
@@ -465,6 +535,7 @@ export function ProjectsHome(props: Props) {
                           onClick={() =>
                             act(async () => {
                               await p.restore(m.id)
+                              focusAfter(m.id)
                               showToast({ text: `Restored “${m.name}” to your projects.`, undo: () => p.archive(m.id) })
                             })
                           }
@@ -523,6 +594,7 @@ function RenameField({ name, onDone }: { name: string; onDone: (name: string | n
       ref={ref}
       className="ph-rename"
       aria-label="Project name"
+      maxLength={NAME_MAX}
       value={value}
       onChange={e => setValue(e.target.value)}
       onBlur={() => finish(value)}
@@ -540,20 +612,19 @@ function Menu({ children, onClose }: { children: ReactNode; onClose: () => void 
   useLayoutEffect(() => {
     close.current = onClose
   })
+  // Its ⋯ button, which gets focus back when the menu closes.
+  const trigger = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    trigger.current = ref.current?.parentElement?.querySelector<HTMLElement>('button') ?? null
+  }, [])
+  // Focus starts on the first item and Tab stays in the menu; Esc closes it (src/nav/useModal.ts).
+  useModal(ref, true, () => close.current(), { returnTo: trigger })
   useEffect(() => {
     const away = (e: PointerEvent) => {
       if (!ref.current?.parentElement?.contains(e.target as Node)) close.current()
     }
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close.current()
-    }
     document.addEventListener('pointerdown', away)
-    document.addEventListener('keydown', esc)
-    ref.current?.querySelector<HTMLButtonElement>('button')?.focus()
-    return () => {
-      document.removeEventListener('pointerdown', away)
-      document.removeEventListener('keydown', esc)
-    }
+    return () => document.removeEventListener('pointerdown', away)
   }, [])
   return (
     <div ref={ref} className="ph-menu" role="menu">
@@ -563,23 +634,17 @@ function Menu({ children, onClose }: { children: ReactNode; onClose: () => void 
 }
 
 function DeleteReview(p: { meta: ProjectMeta; lines: string[]; onDownload: () => void; onCancel: () => void; onDelete: () => void }) {
-  const keep = useRef<HTMLButtonElement>(null)
   const inCloud = useInCloud(p.meta.id)
   const cancel = useRef(p.onCancel)
   useLayoutEffect(() => {
     cancel.current = p.onCancel
   })
-  useEffect(() => {
-    keep.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cancel.current()
-    }
-    document.addEventListener('keydown', esc)
-    return () => document.removeEventListener('keydown', esc)
-  }, [])
+  const box = useRef<HTMLDivElement>(null)
+  // Focus starts on Keep it and Tab stays in the dialog; Esc keeps the project (src/nav/useModal.ts).
+  useModal(box, true, () => cancel.current())
   return (
     <div className="ph-scrim" onPointerDown={e => e.target === e.currentTarget && p.onCancel()}>
-      <div className="ph-dialog" role="dialog" aria-modal="true" aria-labelledby="ph-review-title">
+      <div ref={box} className="ph-dialog" role="dialog" aria-modal="true" aria-labelledby="ph-review-title">
         <h2 id="ph-review-title">Delete “{p.meta.name}” for good?</h2>
         <p>
           {inCloud ? 'This removes it from this browser and from the cloud, so from your other devices too.' : 'This removes it from this browser.'} Undo brings it back for a few
@@ -596,7 +661,7 @@ function DeleteReview(p: { meta: ProjectMeta; lines: string[]; onDownload: () =>
             <Icon name="download" size={16} /> Download project file
           </button>
           <span className="ph-grow" />
-          <button ref={keep} className="ph-btn ph-a-keep" onClick={p.onCancel}>
+          <button className="ph-btn ph-a-keep" onClick={p.onCancel} data-autofocus>
             Keep it
           </button>
           <button className="ph-btn danger ph-a-del" onClick={p.onDelete}>

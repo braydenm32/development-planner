@@ -6,12 +6,12 @@ import { normalizePlan, type CrossingFacts } from '../../plan/model'
 import { BLUE_MOUNTAINS } from '../councils/blueMountains'
 import { WOLLONGONG } from '../councils/wollongong'
 import { analyseDrive, crossingChecks, crossingStandard, driveChecks, kerbLevel, shapeOf } from '../crossing'
-import { runChecks } from '../rules'
+import { NEED_FRONT, runChecks } from '../rules'
 import type { CheckResult } from '../types'
 import { L0, measureSample, site } from './sample'
 
 /** A drive `run` m long from the garage floor at `top`, falling `grade` to the street boundary, as the checks see it. */
-function line(o: { run?: number; top?: number; grade?: number; along?: { x: number; z: number }[]; natural?: number | null; facts?: CrossingFacts; door?: DriveLine['door']; width?: number; why?: DriveLine['why'] } = {}): DriveLine {
+function line(o: { run?: number; top?: number; grade?: number; along?: { x: number; z: number }[]; natural?: number | null; facts?: CrossingFacts; door?: DriveLine['door']; width?: number; why?: DriveLine['why']; crossFall?: number | null; built?: boolean } = {}): DriveLine {
   const run = o.run ?? 12
   const top = o.top ?? 45.5
   const grade = o.grade ?? 0.1
@@ -24,12 +24,13 @@ function line(o: { run?: number; top?: number; grade?: number; along?: { x: numb
     boundary: o.why ? null : [0, 0],
     out: o.why ? null : [0, -1],
     edge: o.why ? null : 0,
-    guessed: false,
     why: o.why,
     along,
     floor: top,
     natural: o.natural === undefined ? end.z : o.natural,
     width: { min: o.width ?? 3.6, street: o.width ?? 3.6 },
+    crossFall: o.crossFall === undefined ? 0 : o.crossFall,
+    built: o.built ?? true,
     door: o.door === undefined ? { width: 2.7, skew: 0, offset: 0 } : o.door,
     facts: o.facts ?? {},
   }
@@ -71,7 +72,7 @@ describe('the drive’s grade', () => {
     expect(row(rows(line({ grade: 0.22 })), 'drive-grade').status).toBe('warn')
     const steep = row(rows(line({ grade: 0.3 })), 'drive-grade')
     expect(steep.status).toBe('fail')
-    expect(steep.value).toMatch(/^Steepest 1 in 3\.3 \(30%\)/)
+    expect(steep.value).toMatch(/^Too steep for a car: 1 in 3\.3 \(30%\)/)
     expect(steep.source.clause).toMatch(/AS\/NZS 2890\.1/)
   })
   it('names the first 3 m inside the boundary when it’s gentler or steeper than the rest', () => {
@@ -122,7 +123,8 @@ describe('changes of grade', () => {
     // 1 in 6 off a level garage floor: a 16.7% summit, over AS/NZS 2890.1’s 12.5%.
     const r = row(rows(line({ grade: 1 / 6 })), 'drive-transitions')
     expect(r.status).toBe('warn')
-    expect(r.value).toMatch(/16\.7% summit at the garage/)
+    // Plain first, the engineer's word after it (HO-22).
+    expect(r.value).toMatch(/16\.7% hump \(summit\) at the garage/)
   })
   it('fails when the drive is too short to fit its transitions', () => {
     // Level, then 2 m at 1 in 3, then level to the boundary: 33% changes 2 m apart need 3 m each.
@@ -140,14 +142,19 @@ describe('scraping', () => {
   it('passes a gentle drive', () => {
     const r = row(rows(line({ grade: 0.05 })), 'drive-scrape')
     expect(r.status).toBe('pass')
-    expect(r.value).toMatch(/^Clears by \d+ mm/)
+    expect(r.value).toMatch(/^A car clears by \d+ mm/)
   })
   it('fails at a sharp summit and says where', () => {
     // Level 6 m from the garage, then 1 in 4 to the boundary.
     const along = Array.from({ length: 49 }, (_, k) => ({ x: k * 0.25, z: k * 0.25 <= 6 ? 46 : 46 - (k * 0.25 - 6) * 0.25 }))
     const r = row(rows(line({ along })), 'drive-scrape')
     expect(r.status).toBe('fail')
-    expect(r.value).toMatch(/^Scrapes \d+ mm 6\.\d m in from the boundary \(underneath, between the wheels\)$/)
+    expect(r.value).toMatch(/^A car’s underside would scrape by \d+ mm 6\.\d m in from the boundary \(between the wheels\)$/)
+    // The design car is named in the fold, with the rule it comes from.
+    expect(r.title).toBe('Scraping underneath')
+    expect(r.limit).not.toMatch(/B99/)
+    expect(r.note).toMatch(/the standard’s B99 car/)
+    expect(r.source.clause).toMatch(/AS\/NZS 2890\.1:2004 Appendix C/)
   })
 })
 
@@ -177,6 +184,41 @@ describe('turning in', () => {
   })
 })
 
+describe('the tilt across the drive (DB-14)', () => {
+  it('passes a drive built level across, and says so', () => {
+    const r = row(rows(line({ crossFall: 0.002 })), 'drive-crossfall')
+    expect(r.status).toBe('pass')
+    expect(r.value).toBe('Level across, built to its levels')
+    expect(r.limit).toBe('Up to about 1 in 16.0 (6%) across the drive; the council’s driveway drawing decides')
+    expect(r.source.clause).toMatch(/AS\/NZS 2890\.1:2004 cl 2\.4\.6/)
+    expect(r.source.confidence).toBe('unverified')
+  })
+  it('passes up to 1 in 16 and fails past it, saying what the figure is of', () => {
+    expect(row(rows(line({ crossFall: 0.06, built: false })), 'drive-crossfall').status).toBe('pass')
+    const r = row(rows(line({ crossFall: 0.18, built: false })), 'drive-crossfall')
+    expect(r.status).toBe('fail')
+    expect(r.value).toBe('Tilts 1 in 5.6 (18%) sideways at most, on the ground it follows')
+    expect(r.note).toMatch(/give it a level at the street end or the garage end under Levels/)
+    expect(r.title).toBe('Tilt across the drive (cross-fall)')
+  })
+  it('has no row when the tilt can’t be read', () => {
+    expect(rows(line({ crossFall: null })).some(r => r.id === 'drive-crossfall')).toBe(false)
+  })
+})
+
+describe('no street side picked yet (DB-32)', () => {
+  it('waits for it in the rows that need the street, with the same words the setbacks use, and still reads the drive itself', () => {
+    const rs = rows(line({ why: 'no-street-side' }))
+    for (const id of ['drive-footpath', 'drive-scrape', 'drive-turn']) {
+      expect(row(rs, id).status, id).toBe('unknown')
+      expect(row(rs, id).value, id).toBe('Pick the street side')
+      expect(row(rs, id).note, id).toBe(NEED_FRONT)
+    }
+    expect(row(rs, 'drive-grade').status).toBe('pass')
+    expect(rs.map(r => r.note ?? '').join(' ')).not.toMatch(/taken as the side the drive runs to/)
+  })
+})
+
 describe('a battle-axe lot, and a drive that doesn’t reach the street', () => {
   it('can’t check the crossing on a battle-axe lot', () => {
     const rs = rows(line({ why: 'battle-axe' }))
@@ -195,10 +237,10 @@ describe('on the sample block', () => {
     expect(ms.drives).toEqual([])
     const all = runChecks(ms, 'cdc')
     const drive = all.filter(r => r.id.startsWith('drive-'))
-    expect(drive.map(r => r.status)).toEqual(['incomplete', 'incomplete', 'incomplete', 'incomplete', 'incomplete'])
-    expect(drive[0].value).toBe('Draw a driveway (Area tool, kind Driveway) to check this.')
+    expect(drive.map(r => r.status)).toEqual(['incomplete', 'incomplete', 'incomplete', 'incomplete', 'incomplete', 'incomplete'])
+    expect(drive[0].value).toBe('Draw a driveway (Outdoor area tool, type Driveway) to check this.')
     // And the rest are the same as without them.
-    expect(crossingChecks([], null).length).toBe(5)
+    expect(crossingChecks([], null).length).toBe(6)
   })
 
   it('checks a drawn drive from the garage door out to the north boundary', () => {

@@ -30,8 +30,13 @@ export interface DaPackInput extends PlanSetInput {
   planning: PlanningFacts | null
   /** The council whose rules are on (Approvals › Checks), for its checklist and the DA checks. */
   council: Council | null
-  /** The checks for a DA: the land's flags, then the council's rules (none without a council). */
+  /** The checks for a DA: the land's flags, then the council's rules. With no council on, the Housing Code's (see `rules`). */
   checks: CheckResult[]
+  /**
+   * Which rules `checks` are: the council's for a DA (the default), or, with no council switched on,
+   * the Housing Code's for complying development, which the controls sheet then says in its name.
+   */
+  rules?: 'da' | 'cdc'
   /** What the checks don't cover. */
   notChecked: string[]
 }
@@ -172,7 +177,7 @@ const COVER_COLS: Col[] = [
 const CHECK_COLS: Col[] = [
   { title: 'Control', w: 0.17, font: 'bold' },
   { title: 'Proposed', w: 0.21 },
-  { title: 'Allowed', w: 0.21 },
+  { title: 'Rule', w: 0.21 },
   { title: 'Complies', w: 0.09, font: 'bold' },
   { title: 'Notes and source', w: 0.32 },
 ]
@@ -230,7 +235,9 @@ function layout(input: DaPackInput) {
   const listed = controlLines(input.checks)
   const checkRows = listed.map(lineCells)
   const checkHeights = checkRows.map(r => rowHeight(r, CHECK_COLS, area.w))
-  const checkPages = paginate(checkHeights, area.h - CHECKS_HEAD - CHECKS_FOOT, area.h - 12 - CHECKS_FOOT)
+  // With nothing checked there is no table to print: the sheet is left out, and the cover says what to do.
+  const checkPages = listed.length ? paginate(checkHeights, area.h - CHECKS_HEAD - CHECKS_FOOT, area.h - 12 - CHECKS_FOOT) : []
+  const controls = controlsName(input)
 
   const driveway = input.plan.areas.some(a => areaKind(a) === 'driveway')
   // The cover's rows need the sheet numbers, which need the cover's page count: start at one page and settle.
@@ -242,7 +249,7 @@ function layout(input: DaPackInput) {
     let n = coverCount
     for (const d of drawings) (numbers[d.kind as DaSheet] ??= []).push(sheetNo(++n))
     numbers.checks = checkPages.map(() => sheetNo(++n))
-    rows = checklistRows({ council: input.council?.id ?? null, planning: input.planning, sheets: numbers, driveway })
+    rows = checklistRows({ council: input.council?.id ?? null, planning: input.planning, sheets: numbers, driveway, housingCode: !input.council && input.rules === 'cdc' })
     const tableW = area.w * COVER_SPLIT
     coverPages = paginate(
       rows.map(r => rowHeight(coverCells(r), COVER_COLS, tableW)),
@@ -261,13 +268,16 @@ function layout(input: DaPackInput) {
   checkPages.forEach((idx, i) =>
     pages.push({
       kind: 'checks',
-      name: i ? 'Planning controls (continued)' : 'Planning controls',
+      name: i ? `${controls} (continued)` : controls,
       north: false,
       draw: pg => (checksSheet(pg, frame, input, listed, checkRows, idx, i, i === checkPages.length - 1), null),
     }),
   )
   return { frame, pages, rows }
 }
+
+/** The controls sheet's name: a council's planning controls, or the Housing Code's when no council is switched on. */
+const controlsName = (input: Pick<DaPackInput, 'council' | 'rules'>) => (!input.council && input.rules === 'cdc' ? 'Planning controls: Housing Code (CDC)' : 'Planning controls')
 
 /** The DA pack as one PDF. */
 export function daPackPdf(input: DaPackInput): Uint8Array {
@@ -386,13 +396,21 @@ function checksSheet(pg: PdfPage, f: SheetFrame, input: DaPackInput, listed: Con
   let y = area.y + area.h - 2
   if (page === 0) {
     pg.text(x, y - 7, 'Planning controls', { size: 6, font: 'bold' })
-    const against = input.council ? `Checked against ${input.council.rules} for a development application.` : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Approvals › Checks.'
+    const against = input.council
+      ? `Checked against ${input.council.rules} for a development application.`
+      : input.rules === 'cdc'
+        ? 'No council is switched on, so these are the Housing Code checks for complying development (CDC), not a council’s DA rules. Switch on your council under Approvals › Checks.'
+        : 'No council’s rules are switched on, so the DA rules weren’t checked: switch on your council under Approvals › Checks.'
     pg.text(x, y - 13, against, { size: 2.8 })
     const tally = countChecks(input.checks)
     // Approvals › Checks' words, zeros too, so "0 to fix" reads as checked rather than left out.
     const counts = countsWords(tally, true).join(' · ')
     pg.text(x, y - 18.5, counts, { size: 2.8, font: 'bold', color: tally.fail ? RED : INK })
-    pg.text(x, y - 23, 'Every control the app checks, grouped as in Approvals › Checks, with whether the design complies: for the table in the Statement of Environmental Effects.', { size: 2.5, color: GREY })
+    const what =
+      !input.council && input.rules === 'cdc'
+        ? 'Every Housing Code control the app checks, grouped as in Approvals › Checks, with whether the design complies. A DA’s Statement of Environmental Effects needs your council’s controls.'
+        : 'Every control the app checks, grouped as in Approvals › Checks, with whether the design complies: for the table in the Statement of Environmental Effects.'
+    pg.text(x, y - 23, what, { size: 2.5, color: GREY })
     y -= CHECKS_HEAD
   } else y -= 4
   let end = y

@@ -58,7 +58,9 @@ export function LevelFloorType({ plan, level, onGround }: { plan: Plan; level: s
     ...choices,
   ]
   // Built as if on the ground (a slab or piers) though it's well above it.
-  const high = !grounded && t !== 'framed' && t !== 'suspended'
+  // Whether it's on the ground is read under its walls: with none drawn yet, nothing is claimed.
+  const drawn = plan.walls.some(w => w.level === level && w.kind !== 'retaining')
+  const high = drawn && !grounded && t !== 'framed' && t !== 'suspended'
   const gap = `${Math.round(ON_GROUND_GAP * 1000) / 1000} m`
   return (
     <div className="floor-type-field">
@@ -72,7 +74,7 @@ export function LevelFloorType({ plan, level, onGround }: { plan: Plan; level: s
       <p className="muted small">
         {t === 'framed' ? FRAMED_FLOOR.earthworks : `${floorTypeInfo(t).earthworks} Rooms follow this unless a room says otherwise.`}
         {grounded && !lowest && ` It’s within ${gap} of the ground under its walls, so it can sit on it.`}
-        {!grounded && !high && ' This level is well above the ground.'}
+        {!grounded && !high && (drawn ? ' This level is well above the ground.' : ' Once it has walls, the app can tell whether it sits on the ground, and asks how it’s built if it does.')}
       </p>
       {high && <p className="small floor-type-warn">This level is more than {gap} above the ground under all its walls: built this way it needs a lot of fill or tall piers.</p>}
       {t !== 'framed' && floorTypeInfo(t).ground === 'natural' && (

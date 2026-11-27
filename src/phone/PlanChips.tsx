@@ -23,7 +23,7 @@ export function PhoneLevelChip({ plan, level, rl }: { plan: Plan; level: string;
         onClick={() => many && setOpen(!open)}
         aria-haspopup={many ? 'listbox' : undefined}
         aria-expanded={many ? open : undefined}
-        aria-label={`${name}, floor RL ${rl.toFixed(2)}${many ? '. Change floor' : ''}`}
+        aria-label={`${name}, FFL RL ${rl.toFixed(2)}${many ? '. Change level' : ''}`}
       >
         <span className="level-chip-text">
           <b>{name}</b>
@@ -64,7 +64,8 @@ export function KeyChip({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const ref = useDismiss(open, () => setOpen(false))
   return (
-    <div className={`key-chip${open ? ' open' : ''}`} ref={ref}>
+    // Open, its keys are its own: Delete with the Key showing must not delete what's selected behind it (src/nav/keys.ts).
+    <div className={`key-chip${open ? ' open' : ''}`} ref={ref} data-owns-keys={open ? '' : undefined}>
       {open && <div className="key-pop">{children}</div>}
       <button className="key-chip-button" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="key-swatches" aria-hidden="true">

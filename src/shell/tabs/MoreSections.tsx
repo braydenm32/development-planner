@@ -3,6 +3,7 @@
 import { OrientationControl } from '../../components/OrientationControl'
 import {
   MarginField,
+  SlabBedField,
   PlacementOriginFields,
   PlanFileBody,
   StairOptions,
@@ -15,11 +16,11 @@ import type { ViewSettings } from '../../lib/storage'
 import type { PrintSettings } from '../../print/build'
 import { useEffect } from 'react'
 import { useProjects } from '../../projects/session'
-import { layersKey, markLayersSeen } from '../../site/layersSeen'
+import { layersKey, madeBlock, markLayersSeen } from '../../site/layersSeen'
 import { PreviousSurvey } from '../../safety/PreviousSurvey'
 import { isSketch } from '../../start/sketch'
 import { useShell } from '../context'
-import { ShortcutList } from '../KeyboardHelp'
+import { ShortcutList, SingleKeysSwitch } from '../KeyboardHelp'
 import { pickTool, useLoaded } from '../useSite'
 import { Waiting } from './Waiting'
 
@@ -30,6 +31,13 @@ export function SurveyLayersSection() {
   const id = useProjects().currentId
   // Shown means seen: Site › Block's "guesses" badge goes.
   useEffect(() => markLayersSeen(layersKey(id, project.fileName)), [id, project.fileName])
+  // A block the app made has no survey file: its own layers aren't the person's to sort out.
+  if (madeBlock(project))
+    return (
+      <p className="muted small">
+        {project.sketch ? 'This block is a sketch' : 'This block’s levels come from the state’s elevation model'}, so there is no survey file and no layers to check. When you add the survey, its layers are listed here.
+      </p>
+    )
   return <SurveyLayers layers={layers} roles={project.roles} onRoleChange={onRoleChange} survey={survey} />
 }
 
@@ -115,6 +123,11 @@ export function MarginSection() {
   return d ? <MarginField plan={d.plan} /> : <Waiting />
 }
 
+export function SlabBedSection() {
+  const d = useLoaded()
+  return d ? <SlabBedField plan={d.plan} /> : <Waiting />
+}
+
 export function SubfloorSection() {
   const d = useLoaded()
   return d ? <SubfloorField plan={d.plan} /> : <Waiting />
@@ -137,6 +150,7 @@ export function KeyboardSection() {
   return (
     <>
       <p className="muted small">Press ? anywhere to see this list over whatever you are doing.</p>
+      <SingleKeysSwitch />
       <ShortcutList />
     </>
   )

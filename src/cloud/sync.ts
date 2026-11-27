@@ -84,9 +84,11 @@ const NEW: Manifest = { cloudRevision: 0, localRevision: -1, hashes: {} }
 
 /** Meta as it is compared and sent: everything but this store's own id and revision. */
 function content(m: ProjectMeta) {
-  const { id: _id, revision: _rev, ...rest } = m
+  // `edits` counts this browser's saves (two tabs, src/projects/session.ts): it isn't content.
+  const { id: _id, revision: _rev, edits: _edits, ...rest } = m
   void _id
   void _rev
+  void _edits
   return rest
 }
 

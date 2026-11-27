@@ -18,7 +18,7 @@ export const SECTIONS: Section[] = [
     title: 'Your block',
     picture: 'block',
     steps: [
-      'Import the survey your surveyor gave you: a DXF file with the boundary, contours and spot levels. Drop it on the start screen, or choose it.',
+      'Import the survey your surveyor gave you: a DXF file with the boundary, contours and spot levels (LandXML, or a CSV of points, works too). Drop it on the start screen, or choose it.',
       'No survey yet? Sketch the block instead: its width, depth and rough fall. Swap in the real survey later under Site › More › Replace survey.',
       'After an import, check the layers under Site › More › Survey layers: which one is the boundary, the contours and the levels.',
       'Say which side faces the street. The checks measure the setbacks from it, and the 3D Street view looks from it.',
@@ -31,7 +31,8 @@ export const SECTIONS: Section[] = [
     steps: [
       'Press W (or pick Wall on the tool rail), then click each corner of the outside walls.',
       'Click the first corner again to close the outline. Double-click, or press Esc, to stop without closing it.',
-      'For an exact wall, type its length in mm and press Enter. Hold Shift to draw without snapping.',
+      'For an exact wall, type its length in mm and press Enter (3000<45 sets its angle too). Hold Shift to keep a wall square; hold Alt (Option on a Mac) to draw without snapping.',
+      'For a whole room in one go, press Shift+W and drag from one corner to the opposite one. Or click a corner, type 4000x3000 (width x depth in mm) and press Enter.',
       'With Select (V), drag a wall to move it, or its ends to reshape it. Delete removes what’s selected.',
     ],
   },
@@ -40,7 +41,8 @@ export const SECTIONS: Section[] = [
     title: 'Rooms',
     picture: 'rooms',
     steps: [
-      'Press R and click inside each space the walls close round, to name it as a room.',
+      'Each space the walls close round becomes a room by itself. Double-click it to type its name, and pick its type on its card.',
+      'Or press R, pick a type, and click each room to make it that type.',
       'Rooms give you the floor areas. Each one can sit on a slab or on piers.',
     ],
   },
@@ -58,7 +60,7 @@ export const SECTIONS: Section[] = [
     title: 'Levels',
     picture: 'levels',
     steps: [
-      'Each floor of the house is a level. Add them in Design › Floors, each with its height above the ground floor.',
+      'Each storey of the house, and each step of a split level, is a level. Add them in Design › Levels, each with its floor level (FFL): how high its floor sits.',
       'A split level is two levels side by side, one a step up the slope from the other.',
       'Each level is built as a slab on the ground or a framed floor on piers. That changes what’s dug out under it.',
     ],

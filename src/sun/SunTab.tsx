@@ -12,7 +12,7 @@ import { navigate } from '../nav/router'
 import { useShell } from '../shell/context'
 import { boundaryText, hoursText, OVER_MIN, overText, STUDY_FROM, STUDY_TO, type ShadowDiagram, type SunFacts } from './facts'
 import { activeCouncil, checkSettingsOf } from '../checks/councils'
-import { COUNCIL_TOWN, coordsText, DEFAULT_LOCATION, inNsw, locationOf, mgaConvergence, NSW_TOWNS, type SiteLocation } from './location'
+import { COUNCIL_TOWN, coordsText, DEFAULT_LOCATION, inNsw, LATITUDE_RANGE, locationOf, LONGITUDE_RANGE, mgaConvergence, NSW_TOWNS, tidyLatitude, tidyLongitude, type SiteLocation } from './location'
 import { compassPoint, hourText } from './solar'
 import { setLocation, useSun } from './store'
 import { useShadowDiagram, useSunFacts } from './useSun'
@@ -77,8 +77,9 @@ function LocationFields({ location, council }: { location: SiteLocation; council
       />
       {town === OTHER && (
         <div className="sun-latlon">
-          <Num label="Latitude" unit="°" decimals={3} min={-44} max={-9} value={location.lat} onCommit={lat => go({ lat, lon: location.lon })} />
-          <Num label="Longitude" unit="°" decimals={3} min={112} max={154} value={location.lon} onCommit={lon => go({ lat: location.lat, lon })} />
+          {/* Shown and typed as degrees south, the way the line below writes it ("33.870° S"); kept as a negative latitude. */}
+          <Num label="Latitude, south" unit="°" decimals={3} min={9} max={44} tidy={tidyLatitude} range={LATITUDE_RANGE} value={-location.lat} onCommit={south => go({ lat: -south, lon: location.lon })} />
+          <Num label="Longitude, east" unit="°" decimals={3} min={112} max={154} tidy={tidyLongitude} range={LONGITUDE_RANGE} value={location.lon} onCommit={lon => go({ lat: location.lat, lon })} />
         </div>
       )}
       <p className="muted small">

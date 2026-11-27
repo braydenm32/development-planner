@@ -2,10 +2,13 @@
 // (window area by the way each wall faces, which way the living areas look, floor area, roof and
 // tank). It calculates no BASIX score and no star rating: that is the tool's job.
 
+import { fileSafe } from '../print/export'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
-import { buildingOutline, closestOnSegment, faceAround, planarFaces, roomShape, type Face } from '../plan/geometry'
-import { pointOnWall, sortedLevels, wallDir, type Opening, type Plan, type Wall } from '../plan/model'
-import { isGarageRoom } from '../plan/quantities'
+import { buildingOutline, closestOnSegment, faceAround, planarFaces, type Face } from '../plan/geometry'
+import { grossFloorArea } from '../plan/keyNumbers'
+import { m2 as floorM2 } from '../shell/format'
+import { pointOnWall, wallDir, type Opening, type Plan, type Room, type Wall } from '../plan/model'
+import { roomTypeInfo } from '../plan/roomTypes'
 import { stormwaterOf } from '../drainage/model'
 import { roofCatchments, tankRoofs, totalCatchment } from '../drainage/stormwater'
 import { basixOf, type BasixAnswers, type BasixItemId, type Cooling, type Heating, type HotWater, type Lighting } from './model'
@@ -119,13 +122,19 @@ export interface LivingOrientation {
   main: Facade | null
 }
 
+/** A living area for the orientation line: a living type, or (no type) a name that reads as one. */
+export function isBasixLiving(r: Pick<Room, 'name' | 'type'>): boolean {
+  const t = roomTypeInfo(r)
+  return t ? !!t.basix : LIVING_ROOM.test(r.name)
+}
+
 /** Which way each living area looks: its windows by facade. */
 export function livingOrientations(plan: Plan): LivingOrientation[] {
   const facings = windowFacings(plan)
   const facesByLevel = new Map<string, Face[]>()
   for (const l of plan.levels) facesByLevel.set(l.id, planarFaces(plan.walls.filter(w => w.level === l.id)))
   return plan.rooms
-    .filter(r => LIVING_ROOM.test(r.name))
+    .filter(isBasixLiving)
     .map(r => {
       const face = faceAround(r.at, facesByLevel.get(r.level) ?? [])
       const windows: Record<Facade, number> = { N: 0, E: 0, S: 0, W: 0 }
@@ -138,30 +147,17 @@ export function livingOrientations(plan: Plan): LivingOrientation[] {
 }
 
 export interface FloorAreas {
-  /** All floors to the outside of the walls (m²). */
-  gross: number
-  /** Garages and carports inside the walls (m²), which BASIX leaves out of the conditioned area. */
+  /** All floors to the inside of the outside walls (m²): the basis gross floor area is counted on (floorAreasOf). */
+  inside: number
+  /** Garages and carports inside their walls (m²), which BASIX leaves out of the conditioned area. */
   garages: number
-  /** Roughly the conditioned floor area: gross less garages. */
+  /** Roughly the conditioned floor area: inside the outside walls, less the garages. Both on the inside faces. */
   conditioned: number
 }
 
 export function floorAreas(plan: Plan): FloorAreas {
-  let gross = 0
-  let garages = 0
-  for (const l of sortedLevels(plan)) {
-    const faces = planarFaces(plan.walls.filter(w => w.level === l.id))
-    gross += buildingOutline(faces).area
-    const seen = new Set<Face>()
-    for (const r of plan.rooms) {
-      if (r.level !== l.id || !isGarageRoom(r.name)) continue
-      const f = faceAround(r.at, faces)
-      if (!f || seen.has(f)) continue
-      seen.add(f)
-      garages += roomShape(r, faces)?.area ?? 0
-    }
-  }
-  return { gross, garages, conditioned: Math.max(0, gross - garages) }
+  const { inside, garages } = grossFloorArea(plan)
+  return { inside, garages, conditioned: Math.max(0, inside - garages) }
 }
 
 /** Everything the checklist reads off the plan. */
@@ -253,7 +249,7 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`
 export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[] {
   const living = facts.living.length
     ? facts.living.map(l => `${l.room}: ${l.main ? `mostly ${FACADE_NAMES[l.main].toLowerCase()}` : 'no outside windows yet'}`).join('; ')
-    : 'No living, kitchen or dining room named yet'
+    : 'No living, kitchen or dining room yet'
   const windows = FACADES.map(f => `${FACADE_NAMES[f]} ${m2(facts.windows[f])}`).join(', ')
   return [
     { id: 'orientation', item: 'Living areas face', value: living, why: 'The tool asks which way each living area’s glass faces; north-facing living gets winter sun.', fromPlan: true },
@@ -267,7 +263,8 @@ export function checklistRows(facts: BasixFacts, a: BasixAnswers): ChecklistRow[
     {
       id: 'floor-area',
       item: 'Conditioned floor area',
-      value: `${m2(facts.floor.conditioned)} (${m2(facts.floor.gross)} to the outside of the walls, garages ${m2(facts.floor.garages)} left out)`,
+      // Floor areas to 2 decimals, as the checks and the strip write them.
+      value: `${floorM2(facts.floor.conditioned)} (${floorM2(facts.floor.inside)} inside the outside walls, garages ${floorM2(facts.floor.garages)} left out)`,
       why: 'The heated and cooled floor area, which the energy and water targets are set against.',
       fromPlan: true,
     },
@@ -299,6 +296,9 @@ export function readyCount(rows: ChecklistRow[], a: BasixAnswers): { done: numbe
 }
 
 const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
+
+/** The CSV's file name: the same lower-case project name every other download starts with. */
+export const basixFileName = (title: string): string => `${fileSafe(title)}-basix-checklist.csv`
 
 /** The checklist as a CSV: item, what the plan or you say, what BASIX asks for, ready. */
 export function basixCsv(plan: Plan, title: string, date: string): string {

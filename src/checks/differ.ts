@@ -2,6 +2,7 @@
 // counterpart on the other route has another verdict gets one line saying what each route
 // allows, so switching the route and seeing a Fix turn into an OK isn't a mystery.
 
+import { ENGINEER_TEXT } from './engineer'
 import type { Council } from './councils'
 import { CDC_TREE_SETBACK, runChecks } from './rules'
 import type { Measures } from './measure'
@@ -34,7 +35,7 @@ function counterpart(id: string, pathway: Pathway, other: CheckResult[]): CheckR
 /** What each route allows, in a few words. */
 function says(r: CheckResult, route: Pathway, council: Council): string {
   if (route === 'cdc') {
-    if (r.id === 'hc-retaining') return 'the Housing Code allows walls over 600 mm with an engineer’s certificate'
+    if (r.id === 'hc-retaining') return `the Housing Code allows walls over ${ENGINEER_TEXT} with an engineer’s certificate`
     if (r.tree) return `the Housing Code only asks for ${CDC_TREE_SETBACK} m between the house and the trunk`
     return r.limit ? `the Housing Code allows ${lower(r.limit)}` : 'the Housing Code measures it differently'
   }

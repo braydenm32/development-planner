@@ -42,6 +42,8 @@ export interface MeasureArgs {
   viewOnly: boolean
   /** The plan's size in pixels, to keep the note box on screen. */
   size: { w: number; h: number }
+  /** The plan's own snapping (wall faces and corners too, Shift for square), when it's handed in. */
+  snapAt?: (raw: Vec2, o: { anchor?: Vec2 | null; points?: Vec2[]; free: boolean }) => Vec2
 }
 
 /** The ruler's points on one tool and floor; `done` when finished and not kept, shown until the next click. */
@@ -139,7 +141,10 @@ export function useMeasureNotes(a: MeasureArgs) {
     else if (text !== notesOf(st.plan!).find(n => n.id === e.id)?.text) st.commit(p => updateNote(p, e.id!, { text }))
   }
 
-  const snapped = (world: Vec2, free: boolean) => snap(world, { walls, tol, free, guides, anchor: done ? null : (placed.at(-1) ?? null), points: placed.slice(0, 1) }).p
+  const snapped = (world: Vec2, free: boolean) => {
+    const o = { free, anchor: done ? null : (placed.at(-1) ?? null), points: placed.slice(0, 1) }
+    return a.snapAt ? a.snapAt(world, o) : snap(world, { walls, tol, guides, ...o }).p
+  }
 
   const move = (world: Vec2, free: boolean) => {
     if (tool !== 'measure') return
@@ -172,7 +177,7 @@ export function useMeasureNotes(a: MeasureArgs) {
     return true
   }
 
-  /** Enter finishes the measurement; Esc finishes it and ends the tool. True when this took the key. */
+  /** Enter finishes the measurement; Esc finishes it, then ends the tool. True when this took the key. */
   const onKey = (e: KeyboardEvent): boolean => {
     if (!active) return false
     if (e.key === 'Enter' && tool === 'measure' && placed.length >= 2 && !done) {
@@ -180,6 +185,12 @@ export function useMeasureNotes(a: MeasureArgs) {
       return true
     }
     if (e.key === 'Escape') {
+      // As in every drawing tool: the first Esc ends the measurement under way, the next goes back to Select.
+      if (tool === 'measure' && placed.length && !done) {
+        if (placed.length >= 2) finishMeasure()
+        else setPts({ key: '', pts: [] })
+        return true
+      }
       finishMeasure()
       setPts({ key: '', pts: [] })
       setEditing(null)
@@ -193,7 +204,11 @@ export function useMeasureNotes(a: MeasureArgs) {
 
   // The chain so far, and on to the pointer while it's still being made (or the one just kept).
   const shownPts = kept && kept.key === key && !placed.length ? kept.pts : placed
-  const live = !done && placed.length > 0 && cursor ? [...placed, cursor] : shownPts
+  // Straight after a click the pointer is still on the point just put down: the card keeps the piece
+  // just finished until the pointer moves, where it used to read 0 for the piece not yet begun.
+  const lastPlaced = placed.at(-1)
+  const still = !!cursor && !!lastPlaced && Math.hypot(cursor[0] - lastPlaced[0], cursor[1] - lastPlaced[1]) < 0.005
+  const live = !done && placed.length > 0 && cursor && !still ? [...placed, cursor] : shownPts
   const from = live.length >= 2 ? live[live.length - 2] : null
   const end = live.length >= 2 ? live[live.length - 1] : null
   const m = from && end ? measure(from, end, plan.placement, survey, terrain.grid) : null
@@ -285,5 +300,5 @@ export function useMeasureNotes(a: MeasureArgs) {
     </>
   )
 
-  return { active, move, click, dblclick, key: onKey, over, html }
+  return { active, move, click, dblclick, key: onKey, over, html, drawing: tool === 'measure' && placed.length > 0 && !done }
 }

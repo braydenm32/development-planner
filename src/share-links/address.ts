@@ -24,6 +24,17 @@ export function readShareHash(hash: string): ShareAddress | null {
   return { token: m[1], view }
 }
 
+/**
+ * Whether the hash is meant as a share link at all: anything under #/view/. One that
+ * `readShareHash` can't read (cut short by an email program, or mangled) still isn't the app's
+ * own address: it gets the shared view's "this link isn't complete" page, not the visitor's own
+ * project opening without a word.
+ */
+export const isShareHash = (hash: string) => /^#\/view(?:[/?]|$)/.test(hash)
+
+/** What a hash is, for telling one page from another: a share link's token, `broken` for a share link that can't be read, null for the app. */
+export const shareKey = (hash: string): string | null => readShareHash(hash)?.token ?? (isShareHash(hash) ? 'broken' : null)
+
 /** The hash for a shared view. The plan is the plain link. */
 export const shareHash = (a: ShareAddress) => `#/view/${a.token}${a.view === '3d' ? '?view=3d' : ''}`
 

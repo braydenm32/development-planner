@@ -71,7 +71,17 @@ export const useCosts = create<CostsStore>((set, get) => ({
 export const pointedNow = (s: Pick<CostsStore, 'hover' | 'opened' | 'focus'>): Pointed | null => (s.focus ? (s.hover ?? s.opened) : null)
 
 /**
- * ⌘Z and ⌘⇧Z (Ctrl+Y) while the Costs area is open undo and redo cost changes, not the plan.
+ * What ⌘Z and ⌘⇧Z do while the Costs area is open. The shell points these at the one undo order
+ * across the project (src/shell/undoTarget.ts), so the latest change anywhere is what goes;
+ * on their own they work on the costs.
+ */
+export const costsKeys = {
+  undo: () => useCosts.getState().undo(),
+  redo: () => useCosts.getState().redo(),
+}
+
+/**
+ * ⌘Z and ⌘⇧Z (Ctrl+Y) while the Costs area is open: Undo and Redo, as the top bar's buttons do them.
  * The plan's own keys ask this first; true when it took the key.
  */
 export function costsUndoKey(e: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey'>): boolean {
@@ -79,12 +89,12 @@ export function costsUndoKey(e: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey
   if (!st.focus || !(e.ctrlKey || e.metaKey)) return false
   const k = e.key.toLowerCase()
   if (k === 'z') {
-    if (e.shiftKey) st.redo()
-    else st.undo()
+    if (e.shiftKey) costsKeys.redo()
+    else costsKeys.undo()
     return true
   }
   if (k === 'y') {
-    st.redo()
+    costsKeys.redo()
     return true
   }
   return false

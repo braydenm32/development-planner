@@ -9,6 +9,8 @@ import { planBounds } from '../plan/ops'
 import { centredPlacement } from '../plan/placement'
 import type { PlacementInfo } from '../plan/keyNumbers'
 import { usePlan } from '../plan/store'
+import { projectsNow } from '../projects/session'
+import { aboveStreet } from '../start/sketch'
 import { showToast } from '../safety/store'
 import { rotateHouse } from './planNumbers'
 
@@ -62,8 +64,10 @@ export function floorToFirstWalls(before: Plan, survey: Pick<Survey, 'origin'>, 
   if (!first) return
   st.commit(() => first.plan)
   const after = usePlan.getState().plan
+  // On a sketch block the RL is off a made-up datum: say how high above the street the floor is.
+  const sketch = !!projectsNow().opened?.survey?.sketch
   showToast({
-    text: `Floor set to RL ${first.rl.toFixed(2)}, the mean ground under the walls. Change it in Earthworks › Place.`,
+    text: `Floor set ${sketch ? `${aboveStreet(first.rl)} (RL ${first.rl.toFixed(2)})` : `to RL ${first.rl.toFixed(2)}`}, the mean ground under the walls. Change it in Earthworks › Place.`,
     undo: () => {
       if (usePlan.getState().plan === after) usePlan.getState().undo()
     },

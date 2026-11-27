@@ -6,11 +6,13 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { areaById, AREAS } from '../../nav/menu'
-import { canvasOf, everyRoute, tabRoute, type AppRoute } from '../../nav/route'
+import { areaRoute, canvasOf, everyRoute, tabRoute, type AppRoute } from '../../nav/route'
 import { ShellContext } from '../../shell/context'
+import { checksHeadline, checksName } from '../../shell/headline'
 import { OverviewSheet } from '../../shell/OverviewSheet'
+import { SummaryStrip } from '../../shell/SummaryStrip'
 import { PeekSheet } from '../PeekSheet'
-import { arriveAt, inspectorShows, panelLocked, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
+import { arriveAt, inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
 import { earthOf, house, loadBlock, numbersOf, shellData, words } from './block'
 
 const appRoutes = everyRoute().filter((r): r is AppRoute => r.kind === 'app')
@@ -82,6 +84,10 @@ describe('two taps to every number on a phone', () => {
     }
   })
 
+  it('keeps Approvals’ locked panels open to read: only those (PH-07)', () => {
+    for (const r of appRoutes) expect(panelReads(`${r.area}/${r.tab}`), `${r.area}/${r.tab}`).toBe(r.area === 'approvals')
+  })
+
   it('covers every area', () => {
     expect(new Set(appRoutes.map(r => r.area))).toEqual(new Set(AREAS.map(a => a.id)))
   })
@@ -106,6 +112,15 @@ describe('the numbers it reaches', () => {
     expect(overview).toContain(`RL ${n.ffl.toFixed(2)}`)
   })
 
+  it('are a region with a heading and a list, opened by one button that says what it opens (AX-36)', () => {
+    const html = renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} />)
+    // Not one big button, which would flatten the heading and the numbers for a screen reader.
+    expect(html).toMatch(/^<div class="peek-sheet[^"]*" role="region" aria-label="Key numbers"/)
+    expect(html).not.toContain('role="button"')
+    expect(html).toContain('<button type="button" class="sheet-grab" aria-label="Key numbers. Open the overview"></button>')
+    expect(html).toContain('<h2>Key numbers</h2>')
+  })
+
   it('lead in the peek sheet: floor, FFL and roof height, with the ground’s range', () => {
     const peek = words(renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))
     expect(peek).toContain('Showing people')
@@ -115,6 +130,35 @@ describe('the numbers it reaches', () => {
     expect(peek).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     expect(peek).toContain(`RL ${terrain.stats.minRL.toFixed(2)}`)
     expect(peek).toContain(`RL ${terrain.stats.maxRL.toFixed(2)}`)
+  })
+
+  it('the checks have one name in Key numbers, the Overview and the strip (PH-18)', () => {
+    // It was "Fast-track (CDC) checks" here, "Complying development (CDC) checks" in the Overview and "CDC checks" on the strip.
+    for (const pathway of ['cdc', 'da'] as const) {
+      const verdict = checksHeadline(pathway, [])
+      const name = checksName(verdict.name)
+      expect(name).toBe(pathway === 'cdc' ? 'Fast-track (CDC) checks' : 'Council (DA) checks')
+      const peek = words(renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} verdict={verdict} />))
+      const overview = words(
+        renderToStaticMarkup(
+          <ShellContext.Provider value={shellData(survey, terrain, earth)}>
+            <OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} verdict={verdict} />
+          </ShellContext.Provider>,
+        ),
+      )
+      const counts = { pass: 3, fail: 1, warn: 0, unknown: 0, incomplete: 0, pending: 0, info: 0 }
+      const strip = (share: boolean) =>
+        words(renderToStaticMarkup(<SummaryStrip route={areaRoute(share ? 'share' : 'design')} numbers={n} checks={{ pathway, council: null, counts }} verdict={verdict} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />))
+      for (const [where, text] of [
+        ['Key numbers', peek],
+        ['Overview', overview],
+        ['strip', strip(false)],
+        ['Share’s strip', strip(true)],
+      ]) {
+        expect(text, where).toContain(name)
+        expect(text, where).not.toMatch(/Complying development \(CDC\) checks|Development application \(DA\) checks/)
+      }
+    }
   })
 
   it('say first what Site features has to check, then the balance', () => {
@@ -141,16 +185,18 @@ describe('the numbers it reaches', () => {
 
   it("gives the Overview's Open links a whole finger's worth of room on a phone", () => {
     const css = readFileSync(new URL('../../shell/shell.css', import.meta.url), 'utf8')
-    const rule = /\.app-shell\.phone \.ov-group > h3 > button\.link \{([^}]*)\}/.exec(css)
+    const rule = /\.app-shell\.phone \.ov-group > \.ov-head > button\.link \{([^}]*)\}/.exec(css)
     expect(rule).not.toBeNull()
     expect(rule![1]).toMatch(/min-height: 44px/)
     expect(rule![1]).toMatch(/min-width: 44px/)
   })
 
-  it('say when there is no roof yet, rather than leave a gap', () => {
+  it('give the height of the walls before there is a roof (as the checks do), and say when there are no walls, rather than leave a gap', () => {
     const bare = house({ roofs: [] })
     const m = numbersOf(bare, survey, terrain, null)
-    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No roof yet')
+    expect(words(renderToStaticMarkup(<PeekSheet numbers={m} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain(`Building height ${m.height!.toFixed(2)} m`)
+    const empty = numbersOf(house({ roofs: [], walls: [], rooms: [] }), survey, terrain, null)
+    expect(words(renderToStaticMarkup(<PeekSheet numbers={empty} stats={terrain.stats} title="Showing people" onOpen={() => {}} />))).toContain('Building height No walls yet')
   })
 
   it('say when no house is drawn yet, rather than a bare dash (a block just imported)', () => {

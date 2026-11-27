@@ -6,6 +6,7 @@
 // then sharing. Rare things live under each area's More. Nothing is removed.
 
 import { TOOLS } from '../components/tools'
+import { SHORTCUTS } from '../shell/shortcuts'
 import { TERMS } from '../guide/glossary'
 import type { Tool } from '../plan/store'
 import type { IconName } from './icons'
@@ -51,6 +52,7 @@ export type ActionId =
   | 'camera-rear'
   | 'pick-contour'
   | 'draw-section'
+  | 'rect-room'
   | 'section-strip'
   | 'grade-brush'
   | 'keyboard-help'
@@ -111,6 +113,8 @@ export interface Area extends Entry {
   id: AreaId
   tabs: Tab[]
   defaultTab: string
+  /** Coming back to the area this visit opens the tab it was left on, not the first again (src/shell/lastTab.ts). */
+  remembersTab?: boolean
   /** The canvas the area opens on. */
   view: CanvasView
   /** The plan tools sit on a rail on the plan canvas. */
@@ -246,7 +250,7 @@ export const AREAS: Area[] = [
           'DEM',
           'no survey',
         ],
-        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove', 'map-on-canvas', 'map-trouble'],
+        features: ['map-find-lot', 'map-pick-lot', 'map-fit-survey', 'map-state-ground', 'map-nudge', 'map-aerial-plan', 'map-planning-layers', 'map-checks', 'map-include-file', 'map-remove', 'map-on-canvas', 'map-trouble', 'map-move-keys'],
       },
       {
         id: '3d',
@@ -386,11 +390,18 @@ export const AREAS: Area[] = [
           'draw-walls',
           'place-opening',
           'place-room',
+          'rooms-from-walls',
+          'click-room-floor',
+          'first-outline-fit',
           'draw-area',
           'draw-roof',
           'place-stair',
           'double-click-finish',
           'snapping',
+          'draw-drag-hint',
+          'opening-gaps',
+          'room-inside-size',
+          'measure-face-snap',
           'plan-dimension-labels',
           'plan-room-area-labels',
           'plan-symbols',
@@ -402,13 +413,17 @@ export const AREAS: Area[] = [
       },
       {
         id: 'floors',
-        label: 'Floors',
+        label: 'Levels',
         icon: 'floors',
         subtitle: 'The levels of the house, their floor heights and how each is built.',
         shows: ['ffl'],
         keywords: [
+          'level',
           'levels',
+          'floors',
           'storey',
+          'floor level',
+          'FFL',
           'first floor',
           'upstairs',
           'ceiling',
@@ -429,7 +444,7 @@ export const AREAS: Area[] = [
           'step',
           'ceiling lines up',
         ],
-        features: ['level-switch', 'level-name', 'level-elevation', 'level-ceiling-height', 'add-level-above', 'add-level-below', 'add-level-beside', 'delete-level', 'floor-type-level', 'level-ceiling-lines-up', 'piers-cut-warning'],
+        features: ['level-switch', 'level-name', 'level-elevation', 'level-ceiling-height', 'add-level-above', 'add-level-below', 'add-level-beside', 'delete-level', 'floor-type-level', 'level-ceiling-lines-up', 'level-height-warnings', 'piers-cut-warning'],
       },
       {
         id: 'rooms',
@@ -441,27 +456,35 @@ export const AREAS: Area[] = [
         features: ['room-area-schedule', 'gross-floor-area', 'outdoor-area-sizes'],
       },
       {
+        id: 'walls',
+        label: 'Walls & doors',
+        icon: 'wall',
+        subtitle: 'Every wall, door, window and stair on this level, in lists. Pick one to change it, or add one by typing.',
+        keywords: ['wall list', 'door list', 'window list', 'stairs list', 'schedule', 'keyboard', 'without a mouse', 'no mouse', 'type a length', 'add wall', 'add door', 'add window', 'accessible', 'screen reader', 'pick a wall', 'find a door'],
+        features: ['wall-list', 'opening-list', 'stair-list', 'add-wall-typed', 'add-opening-typed'],
+      },
+      {
         id: 'roofs',
         label: 'Roofs',
         icon: 'roof',
         subtitle: 'New roofs, and the roofs on the plan.',
         keywords: ['pitch', 'hip', 'gable', 'skillion', 'eaves', 'overhang'],
-        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang'],
+        features: ['new-roof-type', 'new-roof-pitch', 'new-roof-overhang', 'roofs-on-plan', 'roofs-building-height'],
       },
       {
         id: 'furniture',
         label: 'Furniture',
         icon: 'furniture',
         subtitle: 'Pick a piece, then click on the plan to place it.',
-        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout'],
-        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances'],
+        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank'],
+        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room'],
       },
       {
         id: 'sections',
         label: 'Sections',
         icon: 'section',
         view: 'plan',
-        subtitle: 'Cuts through the house and the slope, and the four elevations.',
+        subtitle: 'Sections through the house and the slope, and the four elevations.',
         keywords: [
           'section',
           'sections',
@@ -500,11 +523,11 @@ export const AREAS: Area[] = [
     more: {
       label: 'More',
       icon: 'sliders',
-      subtitle: 'The plan file and tools you rarely need.',
+      subtitle: 'The house plan’s own file and tools you rarely need.',
       items: [
         {
           id: 'plan-file',
-          label: 'Plan file',
+          label: 'House plan file',
           icon: 'file',
           keywords: ['export', 'import', 'import plan', 'replace plan', 'new plan', 'json', 'save', 'backup'],
           features: ['plan-autosave', 'plan-import', 'review-import-plan'],
@@ -520,8 +543,8 @@ export const AREAS: Area[] = [
           id: 'keyboard-shortcuts',
           label: 'Keyboard shortcuts',
           icon: 'list',
-          keywords: ['keys', 'shortcuts', 'hotkeys', 'cheat sheet', 'help', 'nudge', 'arrow keys', 'copy', 'paste', 'duplicate', 'select all', 'fit'],
-          features: ['keyboard-shortcuts-overlay'],
+          keywords: ['keys', 'shortcuts', 'hotkeys', 'cheat sheet', 'help', 'nudge', 'arrow keys', 'copy', 'paste', 'duplicate', 'select all', 'fit', 'single key', 'turn off shortcuts', 'speech input'],
+          features: ['keyboard-shortcuts-overlay', 'single-key-shortcuts'],
           action: 'keyboard-help',
           run: 'now',
           shortcut: '?',
@@ -533,6 +556,13 @@ export const AREAS: Area[] = [
           keywords: ['landing', 'stairs', 'turn', 'quarter', 'half'],
           features: ['new-stair-shape', 'new-stair-turn'],
         },
+        {
+          id: 'flip-plan',
+          label: 'Flip the plan',
+          icon: 'rotate',
+          keywords: ['mirror', 'flip', 'mirror image', 'reverse plan', 'handed', 'left to right', 'swap sides', 'garage on the other side', 'flip house'],
+          features: ['flip-plan'],
+        },
       ],
     },
   },
@@ -541,10 +571,12 @@ export const AREAS: Area[] = [
     label: 'Earthworks',
     icon: 'earth',
     keywords: ['ground', 'dig', 'excavation', 'site works'],
-    features: [],
+    features: ['earthworks-tool-rail'],
     view: 'plan',
     rail: true,
-    defaultTab: 'cut-fill',
+    // In the order the work is done: place the house, then see its cut and fill (HO-40).
+    defaultTab: 'place',
+    remembersTab: true,
     tabs: [
       {
         id: 'place',
@@ -600,7 +632,7 @@ export const AREAS: Area[] = [
         icon: 'shovel',
         subtitle: 'Levelling the ground under the house.',
         shows: ['cut-fill', 'warnings'],
-        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall'],
+        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters'],
         features: [
           'earthworks-cut-batter',
           'earthworks-fill-batter',
@@ -614,6 +646,8 @@ export const AREAS: Area[] = [
           'grade-wall-suggestions',
           'balance-keep-net',
           'implied-retaining-walls',
+          'retain-edges',
+          'remove-retained-edges',
           'cut-fill-works-tint',
           'cut-fill-folds',
         ],
@@ -686,6 +720,19 @@ export const AREAS: Area[] = [
           'AS/NZS 2890.1',
           'concrete slab',
           'make it a driveway',
+          'direction',
+          'arrow',
+          'swap ends',
+          'turn it',
+          'garage end',
+          'street end',
+          'tilt',
+          'hump',
+          'dip',
+          'summit',
+          'sag',
+          'kerb ramp',
+          'street side',
         ],
         features: [
           'driveway-grade',
@@ -699,6 +746,9 @@ export const AREAS: Area[] = [
           'driveway-crossing-checks',
           'driveway-from-slab',
           'driveway-spot-on-line',
+          'driveway-direction',
+          'driveway-cross-fall-check',
+          'street-side-inline',
         ],
       },
     ],
@@ -720,6 +770,13 @@ export const AREAS: Area[] = [
           icon: 'shovel',
           keywords: ['margin', 'apron', 'working space'],
           features: ['earthworks-margin'],
+        },
+        {
+          id: 'slab-bed',
+          label: 'Depth dug under a slab',
+          icon: 'shovel',
+          keywords: ['slab bed', 'site scrape', 'slab thickness', 'build-up', 'waffle pod', 'house pad', 'strip topsoil'],
+          features: ['earthworks-slab-bed'],
         },
         {
           id: 'subfloor-gap',
@@ -809,8 +866,8 @@ export const AREAS: Area[] = [
         icon: 'costs',
         subtitle: 'What the design would cost to build, from its own quantities.',
         shows: ['cost'],
-        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete', 'margin', 'subtotal', 'DA fee', 'council fees', 'long service levy', 'section 7.12', 'contributions', 'preliminaries', 'all in', 'house only'],
-        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv', 'cost-summary', 'cost-gov-fees', 'cost-materials-fold'],
+        keywords: ['cost', 'estimate', 'budget', 'total', 'per m2', 'square metre', 'owner-builder', 'builder', 'labour', 'contingency', 'csv', 'spreadsheet', 'range', 'finish', 'guide', 'basic', 'high end', 'incomplete', 'margin', 'subtotal', 'DA fee', 'council fees', 'long service levy', 'section 7.12', 'contributions', 'preliminaries', 'all in', 'house only', 'cross-check', 'custom built', 'not in the quantities', 'floor not a budget', 'no bathroom', 'no kitchen'],
+        features: ['cost-incomplete', 'cost-estimate', 'cost-line-source', 'cost-range', 'cost-finish-guide', 'cost-bridge', 'cost-who-builds', 'cost-owner-builder-split', 'cost-quote-add', 'cost-plan-highlight', 'cost-csv', 'cost-summary', 'cost-gov-fees', 'cost-materials-fold'],
       },
       {
         id: 'materials',
@@ -882,6 +939,9 @@ export const AREAS: Area[] = [
           'sections',
           'elevations',
           '1:100',
+          'scale',
+          '1:50',
+          '1:200',
           'DA',
           'cut and fill plan',
           'stormwater plan',
@@ -890,6 +950,8 @@ export const AREAS: Area[] = [
           'download-pdf',
           'pdf-paper',
           'pdf-pages',
+          'pdf-scale',
+          'pdf-section-from-strip',
           'furniture-pdf',
           'sketch-pdf',
           'finished-contours-pdf',
@@ -921,9 +983,11 @@ export const AREAS: Area[] = [
           'share-link-list',
           'share-link-extend',
           'share-link-off',
+          'share-link-trouble',
           'share-link-view',
           'share-link-comments-setting',
           'share-link-comment-add',
+          'share-link-comment-whole-floor',
           'share-link-comments-list',
           'share-link-comments-badge',
           'download-project-file',
@@ -998,11 +1062,11 @@ const TOOL_FEATURES: Partial<Record<Tool, string[]>> = {
   select: ['tool-select'],
   wall: ['tool-wall', 'new-wall-thickness', 'new-wall-kind', 'new-tool-settings-kept'],
   retaining: ['tool-retaining', 'new-retaining-type', 'tool-card-compact'],
-  door: ['tool-door', 'new-opening-width', 'new-opening-height'],
+  door: ['tool-door', 'new-opening-width', 'new-opening-height', 'new-opening-kind'],
   window: ['tool-window', 'new-window-sill'],
   opening: ['tool-opening'],
   garage: ['tool-garage', 'new-garage-door-size', 'garage-door-symbol', 'garage-door-3d'],
-  room: ['tool-room'],
+  room: ['tool-room', 'new-room-type'],
   area: ['tool-area', 'new-area-kind'],
   roof: ['tool-roof', 'new-roof-mode'],
   stair: ['tool-stair', 'new-stair-width'],
@@ -1016,11 +1080,11 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   select: ['pointer', 'pick', 'choose'],
   wall: ['draw walls', 'thickness', 'external', 'internal'],
   retaining: ['retaining wall', 'hold back', 'sleepers', 'block wall', 'earth'],
-  door: ['entry', 'swing'],
-  window: ['glazing', 'sill'],
+  door: ['entry', 'swing', 'sliding door', 'bifold', 'french doors', 'double door'],
+  window: ['glazing', 'sill', 'awning', 'sliding window', 'double-hung', 'fixed'],
   opening: ['gap', 'archway', 'no door', 'carport', 'doorway'],
   garage: ['garage door', 'roller door', 'panel lift', 'sectional door', 'tilt door', 'overhead door', 'car', 'garage'],
-  room: ['name a room', 'label'],
+  room: ['name a room', 'label', 'room type', 'bedroom', 'bathroom', 'kitchen', 'laundry', 'ensuite'],
   area: ['slab', 'driveway', 'deck', 'garden', 'patio', 'outdoor'],
   roof: ['pitch', 'hip', 'gable', 'roof this building', 'draw roof outline', 'outline'],
   stair: ['stairs', 'steps', 'risers'],
@@ -1030,15 +1094,32 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   sketch: ['sketch', 'construction line', 'guide', 'guide line', 'arc', 'curve', 'circle', 'setout', 'kept measurement', 'dimension', 'clear sketch'],
 }
 
+/**
+ * The single-letter tool keys, from the list the keyboard help shows, so the Tool keys hint
+ * can't leave one out (LD-22): "V select", "X section line", "B grading brush".
+ */
+const TOOL_KEYS = SHORTCUTS.find(g => g.title === 'Tools')!
+  .rows.filter(r => r.keys.length === 1 && /^[A-Z]$/.test(r.keys[0]))
+  .map(r => ({ key: r.keys[0], what: r.what.split(':')[0].toLowerCase() }))
+
 export const HOMES: Home[] = [
   {
     id: 'top-bar',
     label: 'Top bar',
     features: [],
     items: [
-      { id: 'view-plan', label: 'Show the plan', icon: 'plan', keywords: ['floor plan', '2D', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
+      { id: 'view-plan', label: 'Show in 2D (the plan)', icon: 'plan', keywords: ['floor plan', 'plan view', 'top view', 'show the plan', 'canvas'], features: ['mode-floor-plan'], action: 'view-plan', run: 'now' },
       { id: 'view-3d', label: 'Show in 3D', icon: 'cube', keywords: ['3D site', 'model', 'canvas'], features: ['mode-3d-site'], action: 'view-3d', run: 'now' },
-      { id: 'undo', label: 'Undo', icon: 'undo', keywords: ['back', 'revert', 'history'], features: ['undo-button', 'undo-after-reload', 'cost-undo'], action: 'undo', run: 'now', shortcut: 'mod+Z' },
+      {
+        id: 'undo',
+        label: 'Undo',
+        icon: 'undo',
+        keywords: ['back', 'revert', 'history', 'take back', 'last change', 'undo example'],
+        features: ['undo-button', 'undo-after-reload', 'cost-undo', 'undo-one-order', 'undo-names-step', 'open-top-undo'],
+        action: 'undo',
+        run: 'now',
+        shortcut: 'mod+Z',
+      },
       { id: 'redo', label: 'Redo', icon: 'redo', keywords: ['again'], features: ['redo-button'], action: 'redo', run: 'now', shortcut: 'mod+shift+Z' },
       {
         id: 'check-everything',
@@ -1049,7 +1130,7 @@ export const HOMES: Home[] = [
         action: 'check-everything',
         run: 'now',
       },
-      { id: 'search', label: 'Search', icon: 'search', keywords: ['find', 'command'], features: ['command-search'], shortcut: 'mod+K', hint: 'Search is open now. ⌘K or Ctrl+K opens it from anywhere.' },
+      { id: 'search', label: 'Search', icon: 'search', keywords: ['find', 'command'], features: ['command-search', 'search-project-names', 'search-not-here'], shortcut: 'mod+K', hint: 'Search is open now. ⌘K or Ctrl+K opens it from anywhere.' },
       {
         id: 'sync-chip',
         label: 'Cloud sync status',
@@ -1063,7 +1144,7 @@ export const HOMES: Home[] = [
         label: 'Undo a replaced survey or plan',
         icon: 'undo',
         keywords: ['put back', 'oops', 'review', 'undo import', 'undo new plan', 'undo delete'],
-        features: ['undo-toast', 'review-sheet'],
+        features: ['undo-toast', 'review-sheet', 'file-error-stays'],
         hint: 'Replace survey, Import plan, Start the plan again, Open and deleting a project each show what will change first. Afterwards a note at the bottom offers Undo for a few seconds.',
       },
     ],
@@ -1075,7 +1156,7 @@ export const HOMES: Home[] = [
     features: [],
     items: [
       { id: 'all-projects', label: 'All projects…', icon: 'list', keywords: ['projects', 'open', 'switch project', 'home'], features: ['projects-home'], action: 'projects', run: 'now' },
-      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey'], features: ['project-new'], action: 'new-project', run: 'now' },
+      { id: 'new-project', label: 'New project…', icon: 'plus', keywords: ['another house', 'another block', 'start another', 'new survey', 'name a project', 'project name'], features: ['project-new', 'project-name-start'], action: 'new-project', run: 'now' },
       {
         // Always a new project, beside the others (src/example).
         id: 'open-example',
@@ -1091,8 +1172,8 @@ export const HOMES: Home[] = [
         id: 'save-state',
         label: 'Where it’s saved',
         icon: 'check',
-        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage'],
-        features: ['save-state', 'storage-persist'],
+        keywords: ['saved', 'save', 'autosave', 'last saved', 'this browser', 'this device', 'lost work', 'backup', 'storage', 'two tabs', 'another tab', 'other window'],
+        features: ['save-state', 'storage-persist', 'other-tab-notice'],
       },
       {
         // Shown as "Sign in to save to the cloud…" or "Cloud saves" with the account's name (src/cloud).
@@ -1118,7 +1199,7 @@ export const HOMES: Home[] = [
         action: 'open-file',
         run: 'menu',
       },
-      { id: 'export-plan', label: 'Export plan', icon: 'download', keywords: ['save plan', 'json', 'backup'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
+      { id: 'export-plan', label: 'Export the house plan only', icon: 'download', keywords: ['export plan', 'save plan', 'plan file', 'json', 'without the survey'], features: ['plan-export'], action: 'export-plan', run: 'offer', at: 'design/more/plan-file' },
       // Clears the plan in this project (reviewed, with Undo); New project… is the one that starts another.
       { id: 'new-plan', label: 'Start the plan again', icon: 'rotate', keywords: ['new plan', 'start over', 'empty', 'clear the plan', 'blank'], features: ['plan-new', 'review-new-plan'], action: 'new-plan', run: 'menu' },
       // The pages about the app (src/legal): they open on their own, with or without a project.
@@ -1222,7 +1303,17 @@ export const HOMES: Home[] = [
         features: ['project-delete-review', 'project-delete-undo'],
         action: 'projects',
         run: 'now',
-        hint: 'Archive the project first. Under Archived, Delete for good shows what will go before it does, and Undo brings it back for a few seconds after.',
+        hint: 'Delete… is in each project’s ⋯ menu (and under Archived). It shows what will go before it does, and Undo brings it back for a few seconds after.',
+      },
+      {
+        id: 'project-find',
+        label: 'Find or sort projects',
+        icon: 'search',
+        keywords: ['search projects', 'filter', 'sort', 'order', 'by name', 'alphabetical', 'recent', 'last edited'],
+        features: ['project-find', 'project-sort', 'projects-search'],
+        action: 'projects',
+        run: 'now',
+        hint: 'With seven or more projects, a search box and a Sort choice (last edited or name) show above the cards.',
       },
     ],
   },
@@ -1236,15 +1327,15 @@ export const HOMES: Home[] = [
         label: 'Summary strip',
         icon: 'list',
         keywords: ['key numbers', 'chips'],
-        features: ['summary-strip', 'checks-chip'],
+        features: ['summary-strip', 'checks-chip', 'strip-more-numbers'],
         hint: 'The line of key numbers under the tabs. Each one opens the panel it comes from.',
       },
       {
         id: 'peek',
         label: 'Key numbers on a phone',
         icon: 'list',
-        keywords: ['showing people', 'peek', 'pull up', 'floor', 'FFL', 'roof height', 'phone'],
-        features: ['peek-sheet'],
+        keywords: ['showing people', 'peek', 'pull up', 'floor', 'FFL', 'roof height', 'phone', 'taller', 'ground level', 'pin', 'tap the ground'],
+        features: ['peek-sheet', 'phone-sheet-taller', 'phone-plan-ground-pin', 'phone-empty-plan-card'],
         hint: 'On a phone the key numbers sit in a sheet at the bottom of the plan and 3D. Pull it up, or tap it, for every number.',
       },
       { id: 'overview', label: 'Overview of every number', icon: 'list', keywords: ['numbers', 'summary', 'key numbers', 'facts'], features: ['overview-sheet', 'overview-sun'], action: 'overview', run: 'now' },
@@ -1273,7 +1364,8 @@ export const HOMES: Home[] = [
         features: [],
         action: 'download-da-pack',
         run: 'offer',
-        at: 'share/plans',
+        // Where its Download button and the title block's details are (LF-14).
+        at: 'approvals/da-pack',
       },
       { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
       { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },
@@ -1351,7 +1443,7 @@ export const HOMES: Home[] = [
         id: 'floor-from-contour',
         label: 'Floor level from a contour',
         icon: 'floors',
-        keywords: ['pick a contour', 'contour line', 'RL', 'set floor level', 'FFL', 'ground floor =', 'floor height'],
+        keywords: ['pick a contour', 'contour line', 'RL', 'set floor level', 'FFL', 'ground floor =', 'floor height', 'floor RL'],
         features: ['floor-level-from-contour'],
         action: 'pick-contour',
         run: 'now',
@@ -1402,6 +1494,18 @@ export const HOMES: Home[] = [
       },
       { id: 'north-up', label: 'North up', icon: 'north', keywords: ['top of view', 'orientation', 'compass', 'square to the house'], features: ['top-of-view'], action: 'north-up', run: 'now' },
       {
+        id: 'rect-room',
+        label: 'Rectangle room',
+        icon: 'room',
+        keywords: ['rectangle', 'rectangular', 'box', 'square room', 'draw a room', 'room shape', 'four walls', 'width x depth', 'drag a room', 'room in one go'],
+        features: ['rectangle-room'],
+        action: 'rect-room',
+        run: 'now',
+        shortcut: 'shift+W',
+        at: 'design/plan',
+        hint: 'Drag from one corner of the room to the opposite one, or click each: four walls and their room in one go. It’s the Wall tool’s second way of drawing.',
+      },
+      {
         id: 'draw-section',
         label: 'Draw a section line',
         icon: 'section',
@@ -1414,14 +1518,14 @@ export const HOMES: Home[] = [
       },
       {
         id: 'section-strip',
-        label: 'Show or fold the section under the plan',
+        label: 'Show or fold the live section under the plan',
         icon: 'section',
-        keywords: ['section', 'live section', 'section strip', 'cross section', 'split level', 'levels', 'floor RL', 'drag level', 'move floor', 'eaves', 'roofline', 'match roofline', 'stairs', 'cut line', 'fold away', 'slope'],
-        features: ['section-strip', 'section-strip-levels', 'section-strip-eaves', 'section-strip-cut', 'section-strip-phone'],
+        keywords: ['section', 'live section', 'add to drawings', 'section strip', 'cross section', 'split level', 'levels', 'floor RL', 'drag level', 'move floor', 'eaves', 'roofline', 'match roofline', 'stairs', 'cut line', 'fold away', 'slope'],
+        features: ['section-strip', 'section-strip-levels', 'section-strip-eaves', 'section-strip-cut', 'section-strip-phone', 'section-strip-keep'],
         action: 'section-strip',
         run: 'now',
         at: 'design/plan',
-        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the cut’s ends on the plan to move it.',
+        hint: 'Under the plan in Design and Earthworks: click a level to draw on it, drag it to move its floor, drag a roof’s eaves to snap it to another roofline. Drag the ends of its line on the plan to move it.',
       },
       {
         id: 'paint-grade',
@@ -1510,24 +1614,31 @@ export const HOMES: Home[] = [
     label: 'Selection inspector',
     features: [],
     items: [
-      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall'], features: ['wall-length', 'wall-thickness', 'wall-kind', 'wall-facts'] },
+      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts'] },
       {
         id: 'inspect-opening', at: 'design/plan', hint: 'Click a door or window on the plan: its settings open on the right.',
         label: 'Selected door or window',
         icon: 'door',
-        keywords: ['width', 'height', 'sill', 'hinge', 'swing', 'garage door'],
-        features: ['opening-type', 'opening-width', 'opening-height', 'opening-sill', 'opening-offset', 'door-flip-hinge', 'door-flip-swing'],
+        keywords: ['width', 'height', 'sill', 'hinge', 'swing', 'garage door', 'sliding door', 'stacker', 'bifold', 'french doors', 'double door', 'awning window', 'sliding window', 'double-hung', 'fixed window', 'kind of door', 'kind of window'],
+        features: ['opening-type', 'opening-width', 'opening-height', 'opening-sill', 'opening-offset', 'door-flip-hinge', 'door-flip-swing', 'opening-kind', 'opening-kind-drawn', 'opening-last-size'],
       },
-      { id: 'inspect-room', at: 'design/plan', hint: 'Click a room’s name on the plan: its settings open on the right.', label: 'Selected room', icon: 'room', keywords: ['rename', 'slab', 'piers', 'ground under', 'living area', 'winter sun', 'sunlight'], features: ['room-name', 'room-floor-type', 'room-ground-range', 'room-living-area'] },
-      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-over-lined-up-levels', 'walls-rise-to-roof'] },
+      {
+        id: 'inspect-transform', at: 'design/plan', hint: 'Pick something on the plan (or several things), then open Move, turn or flip at the foot of its card. Design › More › Flip the plan mirrors the whole house.',
+        label: 'Move, turn, flip or line up a selection',
+        icon: 'rotate',
+        keywords: ['mirror', 'flip', 'rotate', 'turn', 'rotate walls', 'rotate room', 'move by', 'typed distance', 'offset', 'align', 'line up', 'left', 'right', 'centre', 'transform'],
+        features: ['selection-move-by', 'selection-turn', 'selection-flip', 'selection-align'],
+      },
+      { id: 'inspect-room', at: 'design/plan', hint: 'Click a room’s name on the plan: its settings open on the right.', label: 'Selected room', icon: 'room', keywords: ['rename', 'slab', 'piers', 'ground under', 'living area', 'winter sun', 'sunlight', 'room type', 'bedroom', 'bathroom', 'kitchen', 'ensuite', 'laundry'], features: ['room-name', 'room-type', 'room-floor-type', 'room-ground-range', 'room-living-area'] },
+      { id: 'inspect-roof', at: 'design/plan', hint: 'Click anywhere inside a roof on the plan: its settings open on the right.', label: 'Selected roof', icon: 'roof', keywords: ['pitch', 'height above ground', 'fit to walls', 'eaves', 'roofline', 'match roofline', 'split level'], features: ['roof-type', 'roof-pitch', 'roof-overhang', 'roof-stats', 'roof-fit-to-walls', 'roof-click-inside', 'roof-eaves-rl', 'roof-match-roofline', 'roof-under-storey', 'roof-lower-onto-walls', 'roof-over-lined-up-levels', 'walls-rise-to-roof'] },
       {
         id: 'inspect-stair', at: 'design/plan', hint: 'Click a stair on the plan: its settings open on the right.',
         label: 'Selected stair',
         icon: 'stair',
         keywords: ['risers', 'going', 'treads', 'rotate', 'ncc', 'joins', 'goes up to'],
-        features: ['stair-shape', 'stair-turn', 'stair-width', 'stair-going', 'stair-bottom-rl', 'stair-top-rl', 'stair-direction', 'stair-stats', 'stair-rotate-90', 'stair-start-on-ground', 'stair-joins', 'stair-ncc-limits'],
+        features: ['stair-shape', 'stair-turn', 'stair-width', 'stair-going', 'stair-bottom-rl', 'stair-top-rl', 'stair-direction', 'stair-stats', 'stair-rotate-90', 'stair-start-on-ground', 'stair-joins', 'stair-ncc-limits', 'stair-landing-checks'],
       },
-      { id: 'inspect-area', at: 'design/plan', hint: 'Click an area on the plan: its settings open on the right.', label: 'Selected area', icon: 'area', keywords: ['slab', 'deck', 'driveway', 'top level'], features: ['area-name', 'area-type', 'area-top-level'] },
+      { id: 'inspect-area', at: 'design/plan', hint: 'Click an outdoor area on the plan: its settings open on the right.', label: 'Selected outdoor area', icon: 'area', keywords: ['area', 'slab', 'deck', 'driveway', 'garden', 'top level'], features: ['area-name', 'area-type', 'area-top-level'] },
       { id: 'inspect-furniture', at: 'design/plan', hint: 'Click a piece of furniture on the plan: its settings open on the right.', label: 'Selected furniture', icon: 'furniture', keywords: ['size', 'turn', 'rename'], features: ['furniture-settings'] },
       { id: 'delete', label: 'Delete the selection', icon: 'x', keywords: ['remove'], features: ['delete-selected'], shortcut: 'Delete', hint: 'Select something on the plan, then press Delete or use Delete at the foot of its settings.' },
     ],
@@ -1544,6 +1655,14 @@ export const HOMES: Home[] = [
         keywords: ['sidebar', 'fold', 'collapse', 'more room'],
         features: ['sidebar-hide', 'sidebar-show', 'sidebar-fold-section'],
         hint: 'The arrow at the top of each panel tucks it away; the tab’s name brings it back. Headings under More fold too.',
+      },
+      {
+        id: 'more-tabs',
+        label: 'Tabs that don’t fit',
+        icon: 'chevD',
+        keywords: ['more tabs', 'hidden tabs', 'overflow', 'tab bar'],
+        features: ['tab-bar-more-tabs'],
+        hint: 'When an area’s tabs don’t fit, the +N button at the end of the tab bar lists the rest. On a phone the tabs scroll.',
       },
     ],
   },
@@ -1595,9 +1714,9 @@ export const HOMES: Home[] = [
     items: [
       {
         id: 'guide',
-        label: 'Help: getting started guide',
+        label: 'Getting started guide',
         icon: 'list',
-        keywords: ['how do I', 'how to', 'tutorial', 'getting started', 'learn', 'instructions', 'manual', 'first steps', 'what next'],
+        keywords: ['help', 'how it works', 'how do I', 'how to', 'tutorial', 'learn', 'instructions', 'manual', 'first steps', 'what next'],
         features: ['getting-started-guide'],
         action: 'guide',
         run: 'now',
@@ -1631,7 +1750,7 @@ export const HOMES: Home[] = [
         label: 'Number fields',
         keywords: ['enter', 'escape', 'type a number', 'metres', 'millimetres', 'units', 'error', 'red', 'too small', 'too big'],
         features: ['number-field-keys', 'number-field-units', 'number-field-errors'],
-        hint: 'In a number box, Enter keeps what you typed and Esc puts it back. Type 0.9 or 0.9m for 900 mm. A value that can’t be used stays, in red, with why.',
+        hint: 'In a number box, Enter keeps what you typed and stays in the box; Esc puts it back. A bare number is mm; type 0.9 or 9m for metres. A value that can’t be used stays, in red, with why.',
       },
       {
         id: 'kbd-nudge',
@@ -1640,6 +1759,36 @@ export const HOMES: Home[] = [
         features: ['kbd-nudge'],
         shortcut: 'arrows',
         hint: 'Arrow keys move what is selected 10 mm; Shift+arrow moves it 100 mm. A run of presses is one Undo.',
+      },
+      {
+        id: 'kbd-pan-plan',
+        label: 'Move the plan with arrow keys',
+        keywords: ['pan', 'scroll the plan', 'arrows', 'keyboard pan', 'look around', 'without a mouse', 'no mouse'],
+        features: ['plan-key-pan'],
+        shortcut: 'arrows',
+        hint: 'With nothing picked, the arrow keys move the plan (Shift: further); + and − zoom, 0 fits the house. Esc puts a selection down first.',
+      },
+      {
+        id: 'kbd-3d',
+        label: 'Turn and zoom the 3D view with keys',
+        keywords: ['orbit', 'rotate', 'turn left', 'turn right', 'tilt', 'zoom 3D', 'arrows', 'keyboard', 'without a mouse', 'no mouse', 'pinch'],
+        features: ['scene-keys', 'scene-zoom-buttons', 'scene-turn-buttons'],
+        at: 'site/3d',
+        hint: 'In the 3D view the left and right arrows turn it, up and down tilt it, and + and − zoom. Zoom and Turn buttons at the bottom right do the same.',
+      },
+      {
+        id: 'kbd-skip',
+        label: 'Skip links and the tool rail',
+        keywords: ['skip to content', 'skip to panel', 'skip link', 'bypass', 'tab key', 'tab order', 'toolbar', 'focus'],
+        features: ['skip-links', 'tool-rail-one-stop'],
+        hint: 'Press Tab at the top of the page for Skip to the panel, the plan tools, the plan and the selection. The tool rail is one Tab stop: the arrow keys move along it.',
+      },
+      {
+        id: 'kbd-screen-reader',
+        label: 'Screen readers',
+        keywords: ['screen reader', 'NVDA', 'JAWS', 'VoiceOver', 'TalkBack', 'announce', 'live region', 'page title', 'tab title', 'accessibility', 'accessible', 'blind', 'low vision', 'describe the plan'],
+        features: ['page-title', 'live-announcements', 'canvas-names'],
+        hint: 'The browser tab says the tab, area and project. A change of place, tool, selection or result is announced. The plan and the 3D view are described, and Design’s lists name everything on the plan.',
       },
       {
         id: 'kbd-level',
@@ -1651,11 +1800,11 @@ export const HOMES: Home[] = [
       },
       {
         id: 'kbd-copy',
-        label: 'Copy, paste and duplicate',
-        keywords: ['copy', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl v', 'ctrl d', 'cmd c', 'paste in place', 'same place', 'another floor'],
-        features: ['kbd-copy-paste', 'paste-in-place'],
+        label: 'Copy, cut, paste and duplicate',
+        keywords: ['copy', 'cut', 'paste', 'duplicate', 'clone', 'ctrl c', 'ctrl x', 'ctrl v', 'ctrl d', 'cmd c', 'cmd x', 'paste in place', 'same place', 'another floor'],
+        features: ['kbd-copy-paste', 'kbd-cut', 'paste-in-place', 'opening-duplicate', 'paste-says-how-many'],
         shortcut: 'mod+C',
-        hint: '⌘C or Ctrl+C copies furniture, rooms, areas and walls with their doors and windows; V pastes them a little off to one side, or in the same place on another floor; Shift+V pastes in place; D copies and pastes in one go.',
+        hint: '⌘C or Ctrl+C copies furniture, rooms, outdoor areas and walls with their doors and windows; X cuts them (one Undo brings them back); V pastes them a little off to one side, or in the same place on another level; Shift+V pastes in place; D copies and pastes in one go. A door or window on its own gets its copy beside it in the wall, or in the wall you pick before pasting.',
       },
       {
         id: 'kbd-multi',
@@ -1677,16 +1826,54 @@ export const HOMES: Home[] = [
       {
         id: 'kbd-tools',
         label: 'Tool keys',
-        keywords: ['shortcuts', 'V W T D N O G R A F S U M'],
+        keywords: ['shortcuts', TOOL_KEYS.map(k => k.key).join(' ')],
         features: ['kbd-tool-shortcuts'],
-        hint: 'On the plan, press a tool’s letter: V select, W wall, T retaining wall, D door, N window, O opening, G garage door, R room, A area, F roof, S stair, U furniture, M move. X draws a section line.',
+        hint: `On the plan, press a tool’s letter: ${TOOL_KEYS.map(k => `${k.key} ${k.what}`).join(', ')}.`,
       },
       { id: 'kbd-undo', label: 'Undo key', keywords: ['shortcut', 'ctrl z', 'cmd z'], features: ['kbd-undo', 'undo-keeps-selection', 'undo-shows-level'], shortcut: 'mod+Z', hint: '⌘Z or Ctrl+Z undoes the last change, and what you had selected stays selected.' },
       { id: 'kbd-redo', label: 'Redo key', keywords: ['shortcut', 'ctrl y'], features: ['kbd-redo'], shortcut: 'mod+shift+Z', hint: '⌘⇧Z, Ctrl+Shift+Z or Ctrl+Y does it again.' },
       { id: 'kbd-save', label: 'Save key', keywords: ['shortcut', 'ctrl s', 'cmd s', 'save now'], features: ['kbd-save'], shortcut: 'mod+S', hint: '⌘S or Ctrl+S saves now and says where: in this browser, or to the cloud.' },
       { id: 'kbd-delete', label: 'Delete key', keywords: ['backspace', 'remove'], features: ['kbd-delete', 'delete-undo-toast'], shortcut: 'Delete', hint: 'Delete or Backspace removes what is selected on the plan; a toast says what went and has Undo.' },
-      { id: 'kbd-escape', label: 'Escape key', keywords: ['finish', 'cancel', 'deselect'], features: ['kbd-escape'], shortcut: 'Esc', hint: 'Esc finishes a run of walls, drops a half-drawn outline, or clears the selection.' },
-      { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension'], features: ['kbd-typed-length'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter.' },
+      { id: 'kbd-escape', label: 'Escape key', keywords: ['finish', 'cancel', 'deselect'], features: ['kbd-escape'], shortcut: 'Esc', hint: 'Esc finishes a run of walls or drops a half-drawn outline; with nothing under way it goes back to Select from any tool, then clears the selection.' },
+      { id: 'kbd-length', label: 'Type a length', keywords: ['exact', 'mm', 'dimension', 'angle', 'degrees', 'polar', 'metres'], features: ['kbd-typed-length', 'kbd-typed-angle'], shortcut: '0–9 ↵', hint: 'While drawing a wall or an outline, type a length in mm and press Enter. 3000<45 sets the angle too, 4.5m is metres, and @3000,-500 is across and up from the last corner.' },
+      {
+        id: 'kbd-square',
+        // Both keys, each with its job, so Shift never reads as the one that turns snapping off.
+        label: 'Keep a wall square (Shift), or turn snapping off (Alt or Option)',
+        keywords: ['shift', 'ortho', 'straight', 'alt', 'option', 'snap', 'free', 'angle lock'],
+        features: ['kbd-shift-square'],
+        shortcut: 'shift / alt',
+        hint: 'While drawing, hold Shift to keep the wall square to the house. Hold Alt (Option on a Mac) to turn snapping off for that move.',
+      },
+      {
+        id: 'plan-snap-grid',
+        label: 'Snapping and grid switches',
+        keywords: ['snap', 'grid', 'snap to grid', 'graph paper', 'squares', 'snapping off'],
+        features: ['snap-switch', 'plan-grid'],
+        hint: 'Open the Key at the bottom left of the plan: Snapping turns snapping off and on, and Grid draws squares under the plan.',
+      },
+      {
+        id: 'kbd-pan',
+        label: 'Move the plan: Space and drag',
+        keywords: ['pan', 'hand', 'scroll', 'trackpad', 'two fingers', 'space bar', 'move view'],
+        features: ['kbd-space-pan'],
+        shortcut: 'Space',
+        hint: 'Hold Space and drag to move the plan, whatever is under the pointer. Two fingers on a trackpad move it too; pinch or the wheel zooms.',
+      },
+      {
+        id: 'plan-right-click',
+        label: 'Right-click menu on the plan',
+        keywords: ['context menu', 'right click', 'secondary click', 'duplicate', 'flip', 'properties'],
+        features: ['plan-context-menu'],
+        hint: 'Right-click a wall, door, room, stair or piece of furniture on the plan for its actions; right-click bare ground for paste, snapping and the grid.',
+      },
+      {
+        id: 'plan-type-length',
+        label: 'Type a wall’s length on the plan',
+        keywords: ['dimension', 'click the length', 'edit dimension', 'resize wall', 'exact length'],
+        features: ['plan-dimension-type'],
+        hint: 'With Select, click the length written beside a wall and type the new one. The ringed end is the one that moves.',
+      },
       { id: 'kbd-close', label: 'Enter closes an outline', keywords: ['finish area', 'close roof'], features: ['kbd-enter-close'], shortcut: '↵', hint: 'Enter closes the area or roof outline you are drawing.' },
       { id: 'kbd-turn', label: 'Turn furniture', keywords: ['rotate', 'quarter turn'], features: ['kbd-furniture-turn'], shortcut: 'Q', hint: 'Q turns the piece you are placing, or the selected one, a quarter turn; Shift+Q turns it back.' },
     ],

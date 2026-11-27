@@ -55,7 +55,7 @@ describe('Approvals › Checks', () => {
     // No old words.
     expect(t).not.toMatch(/\bFails\b|Needs a fact|Mark for removal/)
     // What's allowed beside what was measured.
-    expect(t).toContain('Allowed')
+    expect(t).toContain('Rule:')
   })
 
   it('asks for the street side in the row that waits for it, once', () => {
@@ -77,7 +77,7 @@ describe('Approvals › Checks', () => {
     const html = renderToStaticMarkup(<CheckRow r={r} n={2} differ="On a CDC this is Confirm: because." />)
     expect(text(html)).toContain('On a CDC this is Confirm: because.')
     expect(html).toContain('class="check-pin fix"')
-    expect(text(html)).toContain('Tallest holds back 1.20 m · Allowed Up to 1 m')
+    expect(text(html)).toContain('Tallest holds back 1.20 m · Rule: Up to 1 m')
   })
 })
 
@@ -113,6 +113,10 @@ describe('the pins on the plan', () => {
     expect(html).not.toContain('ck-line')
   })
 
+  it('makes each pin a 24 px target (AX-31)', () => {
+    expect(draw(pins).match(/<circle r="12"/g)).toHaveLength(2)
+  })
+
   it('the row pointed at draws what it measures in red', () => {
     expect(draw(pins, 'a')).toContain('class="ck-line"')
     expect(draw(pins, 'a')).toContain('class="ck-gap"')
@@ -133,6 +137,24 @@ describe('the pins on the plan', () => {
 })
 
 describe('the approval route', () => {
+  it('names the two routes in words, says what the chosen one means, and explains the planning certificate (HO-23)', () => {
+    usePlan.getState().load(sample({ pathway: 'cdc', battleAxe: false, councils: {} }))
+    const cdc = renderToStaticMarkup(<ChecksTab />)
+    expect(cdc).toMatch(/<button role="radio" aria-checked="true"[^>]*>Fast-track \(CDC\)<\/button>/)
+    expect(cdc).toMatch(/<button role="radio" aria-checked="false"[^>]*>Council \(DA\)<\/button>/)
+    expect(text(cdc)).toContain('Fast-track approval (a complying development certificate): a certifier signs off')
+    expect(cdc).toMatch(/<span class="term" data-term="planning-certificate"[^>]*>section 10\.7 planning certificate<\/span>/)
+    usePlan.getState().load(sample({ pathway: 'da', battleAxe: false, councils: { wollongong: true } }))
+    expect(text(renderToStaticMarkup(<ChecksTab />))).toContain('Council application (a development application): the council weighs the design')
+  })
+
+  it('says "Rule:" before each limit, so a limit written as a sentence can’t read as its opposite (AX-34)', () => {
+    usePlan.getState().load(sample({ pathway: 'cdc', battleAxe: false, councils: {} }))
+    const t = text(renderToStaticMarkup(<ChecksTab />))
+    expect(t).not.toMatch(/Allowed (Over|Toe)/)
+    expect(t).not.toContain('embankment')
+  })
+
   it('picking a council puts the route on DA; CDC keeps the council; DA comes back to it', () => {
     usePlan.getState().load(sample({ pathway: 'cdc', battleAxe: false, councils: {} }))
     setRoute('da', 'kiama')

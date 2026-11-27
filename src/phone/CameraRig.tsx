@@ -5,7 +5,7 @@ import { useFrame, useThree, type RootState } from '@react-three/fiber'
 import { useContext, useEffect, useState } from 'react'
 import type * as THREE from 'three'
 import { CanvasFrame } from '../components/canvasFrame'
-import { between, levelLens, loadPose, moveDuration, northUp, presetPose, savePose, toSpherical, type CameraCommand, type Frame, type Pose, type Preset, type Vec3 } from './camera'
+import { between, lessMotion, levelLens, loadPose, moveDuration, northUp, presetPose, savePose, steppedPose, toSpherical, type CameraCommand, type CameraStep, type Frame, type Pose, type Preset, type Vec3 } from './camera'
 import { useCamera } from './cameraStore'
 import { openArea } from './frame'
 
@@ -17,6 +17,9 @@ interface Controls extends THREE.EventDispatcher<{ start: object; change: object
   rotateSpeed: number
   zoomSpeed: number
   panSpeed: number
+  minDistance: number
+  maxDistance: number
+  maxPolarAngle: number
   update(): boolean
 }
 
@@ -84,10 +87,12 @@ class Rig {
     const from = this.current()
     if (!from || !controls || !this.live) return
     // Fit the preset to the part of the screen nothing covers.
-    const fov = (2 * Math.atan(Math.tan((camera.fov * Math.PI) / 360) * this.live.freeHeight) * 180) / Math.PI
-    const target = to === 'north' ? northUp(from) : presetPose(to, this.live.frame, fov, this.live.aspect)
+    // The view's own lens, not the wide one Street view may have on now: a preset pressed from Street view frames the same as from anywhere.
+    const fov = (2 * Math.atan(Math.tan(((this.baseFov ?? camera.fov) * Math.PI) / 360) * this.live.freeHeight) * 180) / Math.PI
+    const target = to === 'north' ? northUp(from) : presetPose(to, this.live.frame, fov, this.live.aspect, this.live.freeHeight)
     const preset = to === 'north' ? null : to
-    if (!animate) {
+    // Reduce motion: cut to the view; a swing of the whole picture is what the setting asks not to see.
+    if (!animate || lessMotion()) {
       this.apply(target)
       useCamera.getState().setActive(preset)
       return
@@ -95,6 +100,21 @@ class Rig {
     // Damping would carry on the last flick after the move ends; hold it off until then.
     controls.enableDamping = false
     this.anim = { from, to: target, start: performance.now(), dur: moveDuration(from, target), preset }
+  }
+
+  /** One step from a key or a button: a turn, a tilt or a zoom, there at once, and remembered like a drag. */
+  step(by: CameraStep) {
+    const { controls } = this.parts()
+    const from = this.current()
+    if (!from || !controls) return
+    if (this.anim) {
+      this.anim = null
+      controls.enableDamping = true
+    }
+    const to = steppedPose(from, by, { min: controls.minDistance, max: controls.maxDistance, maxPolar: controls.maxPolarAngle })
+    this.apply(to)
+    useCamera.getState().setActive(null)
+    this.remember(to)
   }
 
   /** Start where the camera was left in this project, at a preset asked for on the way here, or framed on the house. */
@@ -250,7 +270,12 @@ export function CameraRig({ frame, storageKey, upBearing, phone, hasPlan }: Prop
     if (!ready) return
     rig.start()
     let seen = useCamera.getState().command?.n ?? 0
+    let stepped = useCamera.getState().step?.n ?? 0
     const unsub = useCamera.subscribe(s => {
+      if (s.step && s.step.n !== stepped) {
+        stepped = s.step.n
+        rig.step(s.step.by)
+      }
       const c = s.command
       if (!c || c.n === seen) return
       seen = c.n

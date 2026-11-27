@@ -5,9 +5,9 @@
 // is legal advice.
 
 import type { Vec2 } from '../lib/geom'
-import type { EarthNumbers, EarthSpot, Edge, Measures } from './measure'
+import type { EarthNumbers, EarthSpot, Edge, Measures, WallNumbers } from './measure'
 import { sourceWords } from './earthSources'
-import { needsEngineer } from './engineer'
+import { ENGINEER_SOURCE, ENGINEER_TEXT, needsEngineer } from './engineer'
 import { encroachment, isMajor, MINOR_ENCROACHMENT, treeTitles } from './trees'
 import { activeCouncil, COUNCIL_TABLES } from './councils'
 import {
@@ -23,14 +23,18 @@ import {
   type SetbackRule,
 } from './councils/types'
 import { WOLLONGONG } from './councils/wollongong'
-import { crossingChecks } from './crossing'
+import { crossingChecks, isDriveCheck } from './crossing'
 import { battersText, isRetained } from '../plan/batters'
+import { GFA_CAR_SPACE } from '../plan/keyNumbers'
+import { m2 as floorM2, siteM2 } from '../shell/format'
 import { overRuns, overText, roomsText, STUDY_FROM, STUDY_TO } from '../sun/facts'
 import { hourText } from '../sun/solar'
-import type { CheckResult, CheckStatus, CouncilId, Pathway, Source } from './types'
+import { NEED_FRONT, type CheckResult, type CheckStatus, type CouncilId, type Pathway, type Source } from './types'
 
 const m = (v: number) => `${v.toFixed(2)} m`
 const m2 = (v: number) => `${v.toFixed(1)} m²`
+/** The surveyed lot's area, whole m² as Site › Block and the Overview write it: "an 810 m² lot" reads the same there and here. */
+const lotM2 = (v: number) => `${/^(8|11|18)/.test(String(Math.round(v))) ? 'an' : 'a'} ${siteM2(v)} lot`
 const pct = (v: number) => `${Math.round(v * 100)}%`
 
 // Sources, as the research marks them.
@@ -149,8 +153,8 @@ const minClear = (es: Edge[], upper = false) => {
   return ds.length ? Math.min(...ds) : null
 }
 const closest = (es: Edge[]) => es.reduce<Edge | null>((b, e) => (e.clearance !== null && (!b || e.clearance < (b.clearance ?? Infinity)) ? e : b), null)
-/** A setback that waits for the street side: Checks puts the question in the row (and under Lot facts). */
-export const NEED_FRONT = 'Pick the side that faces the street (or the lot in front), and this can be checked.'
+// A setback that waits for the street side says NEED_FRONT (./types), as a driveway's crossing does.
+export { NEED_FRONT }
 /** A distance to the boundary, or how far over it the house goes: "1.20 m", "0.40 m over". */
 const dist = (d: number) => (d >= 0 ? m(d) : `${m(-d)} over`)
 /** "1.20 m to the west side", or "0.40 m over the west side" where the house goes past it. */
@@ -338,6 +342,14 @@ function livingSun(ms: Measures, pathway: Pathway, c?: Council): CheckResult[] {
   ]
 }
 
+/**
+ * Gross floor area, said one way wherever it is shown (the Housing Code row, the floor space
+ * ratio, the glossary): the figure is floorAreasOf's in src/plan/keyNumbers.ts.
+ */
+const gfaText = (ms: Measures) =>
+  `${floorM2(ms.gfa)} inside the outside walls${ms.garageSpace > 0 ? `, one garage space of ${floorM2(ms.garageSpace)} left out` : ''} (${floorM2(ms.grossArea)} to the outside of the walls)`
+const GFA_NOTE = `Gross floor area is measured to the inside of the outside walls, the walls between rooms included. One garage or carport space up to ${GFA_CAR_SPACE} m² doesn’t count: give that room the type Garage or carport. Stairs and voids over a floor below don’t count either, and aren’t taken off here.`
+
 // ---------------------------------------------------------------------------
 // Housing Code (CDC)
 
@@ -361,18 +373,19 @@ function housingCode(ms: Measures): CheckResult[] {
   }
 
   const gfa = hcMaxGfa(area)
+  // Over the limit with no garage named: one car space could still come off, so naming the rooms decides it.
+  const garageDecides = ms.gfa > gfa && ms.garageSpace === 0 && ms.gfa - GFA_CAR_SPACE <= gfa
   out.push({
     id: 'hc-gfa',
     title: 'Gross floor area',
-    // Over the limit to the outside of the walls, the rooms decide it: with none drawn, it can't be told.
-    status: !ms.hasHouse || ms.grossArea <= gfa ? 'pass' : !ms.hasRooms ? 'incomplete' : ms.roomsArea <= gfa ? 'warn' : 'fail',
+    status: !ms.hasHouse || ms.gfa <= gfa ? 'pass' : garageDecides ? (ms.hasRooms ? 'warn' : 'incomplete') : 'fail',
     value: !ms.hasHouse
       ? 'No floors yet'
-      : !ms.hasRooms && ms.grossArea > gfa
-        ? `${m2(ms.grossArea)} to the outside of the walls. ${DRAW.rooms}`
-        : `${m2(ms.grossArea)} to the outside of the walls${ms.hasRooms ? ` (rooms ${m2(ms.roomsArea)})` : ''}`,
-    limit: `${m2(gfa)} on a ${m2(area)} lot`,
-    note: 'Gross floor area is measured to the inside of the outside walls, so the true figure sits between the rooms and the outside of the walls. One garage space up to 18 m² doesn’t count. Check the table against the current text.',
+      : garageDecides
+        ? `${gfaText(ms)}. ${ms.hasRooms ? `Over by ${floorM2(ms.gfa - gfa)} unless a garage comes off: give its room the type Garage or carport` : DRAW.rooms}`
+        : gfaText(ms),
+    limit: `${m2(gfa)} on ${lotM2(area)}`,
+    note: GFA_NOTE + ' Check the table against the current text.',
     source: HC_TABLE('cl 3.9'),
   })
 
@@ -505,7 +518,7 @@ function housingCode(ms: Measures): CheckResult[] {
     title: 'Earthworks clear of the boundary',
     status: !e || e.closestWorks === null ? 'pass' : e.closestWorks > 1 ? 'pass' : 'fail',
     value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${worksEdgeName(ms, e)}` : 'No cut and fill',
-    limit: 'Toe or top of each embankment more than 1 m from side and rear boundaries',
+    limit: 'The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries',
     note: [
       e?.closestAt && e.closestWorks !== null && e.closestWorks <= 1 ? spotWords(e.closestAt) : '',
       e && e.nearBoundary.length > 1 ? `Within 1 m of a boundary: ${e.nearBoundary.map(x => `${x.source.name} (${m(x.d)} from ${edgeWords(ms, x.edge)})`).join('; ')}.` : '',
@@ -514,16 +527,19 @@ function housingCode(ms: Measures): CheckResult[] {
     source: HC('cl 3.30'),
     ...fixAtSpot(e?.closestWorks !== null && (e?.closestWorks ?? Infinity) <= 1 ? e?.closestAt : null),
   })
-  const tall = ms.walls.filter(w => needsEngineer(w.height))
+  // Drawn walls, and the walls the earthworks imply (vertical edges, the step between two pads): the
+  // strip, the engineer note and Costs count those, so this row does too, and says they're implied.
+  const every = allWalls(ms)
+  const tall = every.filter(w => needsEngineer(w.height))
   out.push({
     id: 'hc-retaining',
     title: 'Retaining walls',
     status: tall.length ? 'warn' : 'pass',
-    value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
-    limit: 'Over 600 mm needs a professional engineer’s certificate; no taller than the cut or fill they hold',
-    note: tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over 600 mm: allowed with an engineer’s certificate.` : undefined,
+    value: wallsValue(ms),
+    limit: `Over ${ENGINEER_TEXT} needs a professional engineer’s certificate; no taller than the cut or fill they hold`,
+    note: [tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over ${ENGINEER_TEXT}${impliedWords(tall)}: allowed with an engineer’s certificate.` : '', impliedNote(ms)].filter(Boolean).join(' ') || undefined,
     source: HC('cl 3.30'),
-    walls: tall.map(w => w.id),
+    walls: tall.filter(w => !w.implied).map(w => w.id),
   })
   if (ms.walls.length > 1) out.push(wallSpacing(ms))
 
@@ -593,6 +609,29 @@ function segGap(a: Vec2, b: Vec2, c: Vec2, d: Vec2): number {
  * (tiered down a slope, say). Walls that touch are one wall turning a corner, so they don't count.
  * Walls are named as Earthworks › Retaining walls lists them: Wall 1, Wall 2…
  */
+/** The drawn retaining walls with the implied ones: what the retaining wall rows measure. */
+const allWalls = (ms: Measures): WallNumbers[] => [...ms.walls, ...ms.implied]
+
+/** The retaining wall rows' value: the tallest, and how many are implied (not drawn yet). */
+function wallsValue(ms: Measures): string {
+  const every = allWalls(ms)
+  if (!every.length) return 'None'
+  const top = every.reduce((a, b) => (b.height > a.height ? b : a))
+  const n = ms.implied.length
+  return `Tallest holds back ${m(top.height)}${top.implied ? ' (implied)' : n ? `; ${n} more implied` : ''}`
+}
+
+/** ", 2 of them implied" after a count of walls, where some (or all) aren't drawn. */
+function impliedWords(walls: WallNumbers[]): string {
+  const n = walls.filter(w => w.implied).length
+  if (!n) return ''
+  return n === walls.length ? (n === 1 ? ' (implied)' : ' (all implied)') : ` (${n} implied)`
+}
+
+/** What an implied wall is, once, where a row counts any. */
+const impliedNote = (ms: Measures): string =>
+  ms.implied.length ? 'Implied walls aren’t drawn yet: the vertical edges of the cut and fill, or the step between two floor levels on the ground, that someone has to build. Earthworks › Retaining walls lists them.' : ''
+
 function wallSpacing(ms: Measures): CheckResult {
   const close: { i: number; j: number; gap: number }[] = []
   ms.walls.forEach((w, i) =>
@@ -787,16 +826,18 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
 
   if (c.fsr) {
     const fsrArea = title ?? lot
-    const ratio = ms.grossArea / fsrArea
+    // The same gross floor area as the Housing Code row: one definition wherever it is shown.
+    const ratio = ms.gfa / fsrArea
     out.push({
       id: 'da-fsr',
       title: 'Floor space ratio',
       status: s.lepFsr === undefined ? 'unknown' : atMost(ratio, s.lepFsr),
-      value: `${ratio.toFixed(2)}:1 on ${m2(fsrArea)}`,
+      value: `${ratio.toFixed(2)}:1 on ${title ? m2(title) : lotM2(lot)} (gross floor area ${floorM2(ms.gfa)})`,
       limit: s.lepFsr === undefined ? 'The Floor Space Ratio Map value for this lot' : `${s.lepFsr.toFixed(2)}:1`,
       note:
         (s.lepFsr === undefined ? 'Enter the map value here once it’s looked up. ' : '') +
-        (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).'),
+        (s.battleAxe && !title ? 'The LEP measures this against the whole lot, handle included: enter the title area under Lot facts.' : 'Measured against the whole lot, handle included (cl 4.5(3)).') +
+        ` ${GFA_NOTE} A council may leave out more parking than that.`,
       source: cite(c, c.fsr.source),
     })
   }
@@ -835,7 +876,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: 'Site coverage',
       status: ms.footprint <= cover(lot) + 1e-6 ? 'pass' : title && ms.footprint <= cover(title) + 1e-6 ? 'warn' : 'fail',
       value: `${m2(ms.footprint)} (${pct(ms.footprint / lot)})`,
-      limit: `${m2(cover(lot))} on ${m2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
+      limit: `${m2(cover(lot))} on ${lotM2(lot)}${title ? `, or ${m2(cover(title))} on the ${m2(title)} title` : ''}`,
       note: title ? cv.handleNote : undefined,
       source: cite(c, cv.source),
     })
@@ -853,8 +894,8 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       title: ls.name ?? 'Landscaped area',
       status: land + 1e-6 >= landNeed ? (landTitle === null || landTitle + 1e-6 >= landNeedTitle! ? 'pass' : 'warn') : 'fail',
       value: `About ${m2(land)}`,
-      limit: `${m2(landNeed)} on ${m2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
-      note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as areas count against it.',
+      limit: `${m2(landNeed)} on ${lotM2(lot)}${title ? `, ${m2(landNeedTitle!)} on the title` : ''}${behind}`,
+      note: 'Everything outside the house, slabs, driveways and decks counts here; paths and paving drawn as outdoor areas count against it.',
       source: cite(c, ls.source),
     })
   }
@@ -909,23 +950,36 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
   if (c.retaining) {
     const rw = c.retaining
     const near = rw.near !== undefined && rw.nearMax !== undefined ? { within: rw.near, max: rw.nearMax } : null
-    const bad = ms.walls.filter(w => w.height > (near && w.toBoundary <= near.within ? near.max : rw.max) + 1e-6)
-    const eng = rw.tall ? ms.walls.filter(w => w.height > rw.tall!.over) : []
+    const every = allWalls(ms)
+    const bad = every.filter(w => w.height > (near && w.toBoundary <= near.within ? near.max : rw.max) + 1e-6)
+    const eng = rw.tall ? every.filter(w => w.height > rw.tall!.over) : []
     const heights = near ? `${len(near.max)} within ${len(near.within)} of ${rw.nearWhat ?? 'a side or rear boundary'}, ${len(rw.max)} elsewhere` : `${len(rw.max)}`
     const many = bad.length > 1 ? 's are' : ' is'
+    // The app's own engineer flag (the strip, the wall list, Check everything) is the Housing Code's
+    // figure whatever the route: where this council's rule lets such a wall through, the row says so.
+    const flagged = every.filter(w => needsEngineer(w.height) && !bad.includes(w))
     out.push({
       id: 'da-retaining',
       title: 'Retaining walls',
       status: bad.length ? (rw.engineer ? 'warn' : 'fail') : 'pass',
-      value: ms.walls.length ? `Tallest holds back ${m(Math.max(...ms.walls.map(w => w.height)))}` : 'None',
+      value: wallsValue(ms),
       limit: rw.engineer ? `Over ${heights}: designed by a professional engineer` : `${near ? heights : `Up to ${heights}`}${rw.tall ? `; over ${len(rw.tall.over)} ${rw.tall.limit}` : ''}`,
-      note: !bad.length
-        ? undefined
-        : rw.engineer
-          ? `${bad.length} wall${many} over these heights, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
-          : `${bad.length} wall${many} over the limit${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
+      note:
+        [
+          !bad.length
+            ? ''
+            : rw.engineer
+              ? `${bad.length} wall${many} over these heights${impliedWords(bad)}, so ${bad.length > 1 ? 'they need' : 'it needs'} a professional engineer’s design.`
+              : `${bad.length} wall${many} over the limit${impliedWords(bad)}${eng.length ? `; walls over ${len(rw.tall!.over)} ${rw.tall!.note}` : ''}.`,
+          flagged.length
+            ? `${flagged.length === 1 ? 'One wall holds' : `${flagged.length} walls hold`} back over ${ENGINEER_TEXT} and ${flagged.length === 1 ? 'is' : 'are'} within this council’s heights: the planner still flags ${flagged.length === 1 ? 'it' : 'them'} for an engineer, the ${ENGINEER_SOURCE} figure it uses everywhere.`
+            : '',
+          impliedNote(ms),
+        ]
+          .filter(Boolean)
+          .join(' ') || undefined,
       source: cite(c, rw.source),
-      walls: bad.map(w => w.id),
+      walls: bad.filter(w => !w.implied).map(w => w.id),
     })
   }
 
@@ -947,7 +1001,7 @@ const DRAW: Record<Part, string> = {
   outline: 'Draw the outside walls as a closed outline to check this.',
   roof: 'Add a roof to check this.',
   rooms: 'Add rooms to check this.',
-  driveway: 'Draw a driveway (Area tool, kind Driveway) to check this.',
+  driveway: 'Draw a driveway (Outdoor area tool, type Driveway) to check this.',
 }
 
 /**
@@ -988,6 +1042,7 @@ const NEEDS: Record<string, Part[]> = {
   'da-sun-neighbours': ['outline', 'roof'],
   // The driveway crossing checks (./crossing.ts), on either pathway.
   'drive-grade': ['driveway'],
+  'drive-crossfall': ['driveway'],
   'drive-footpath': ['driveway'],
   'drive-transitions': ['driveway'],
   'drive-scrape': ['driveway'],
@@ -995,7 +1050,7 @@ const NEEDS: Record<string, Part[]> = {
 }
 
 /** A tree is measured against the house; retaining walls once there are some, house or not. */
-const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && ms.walls.length ? [] : (NEEDS[r.id] ?? []))
+const partsOf = (r: CheckResult, ms: Measures): Part[] => (r.tree ? ['outline'] : r.id.endsWith('-retaining') && (ms.walls.length || ms.implied.length) ? [] : (NEEDS[r.id] ?? []))
 
 /**
  * A check can't pass on a design that's missing what it measures (an empty plan used to show
@@ -1050,12 +1105,27 @@ export interface CheckCounts {
   pass: number
   pending: number
   info: number
+  /** How many of `incomplete` are the driveway's checks, waiting for a driveway to be drawn. */
+  driveway?: number
 }
 
 export function countChecks(rs: CheckResult[]): CheckCounts {
-  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0 }
-  for (const r of rs) c[r.status]++
+  const c: CheckCounts = { fail: 0, warn: 0, unknown: 0, incomplete: 0, pass: 0, pending: 0, info: 0, driveway: 0 }
+  for (const r of rs) {
+    c[r.status]++
+    if (r.status === 'incomplete' && isDriveCheck(r.id)) c.driveway!++
+  }
   return c
+}
+
+/**
+ * What waits for more of the design, in the Checks panel's words: "3 not drawn yet", "5 wait for a
+ * driveway", or both. The strip, the Overview, Compare and the DA pack say it the same.
+ */
+export function waitingWords(c: CheckCounts): string[] {
+  const drive = c.driveway ?? 0
+  const other = c.incomplete - drive
+  return [other > 0 ? `${other} not drawn yet` : '', drive > 0 ? `${drive} wait for a driveway` : ''].filter(Boolean)
 }
 
 /**
@@ -1070,7 +1140,7 @@ export function countsWords(c: CheckCounts, zeros = false): string[] {
     part(c.fail, `${c.fail} to fix`, true),
     part(c.warn, `${c.warn} to confirm`, true),
     part(c.unknown, `${c.unknown} fact${c.unknown === 1 ? '' : 's'} to add`, true),
-    part(c.incomplete, `${c.incomplete} not drawn yet`, true),
+    ...(c.incomplete ? waitingWords(c) : [part(0, '0 not drawn yet', true)]),
     part(c.pending, `${c.pending} to remove`),
     `${c.pass} OK`,
     part(c.info, `${c.info} for info`),

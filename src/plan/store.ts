@@ -1,10 +1,15 @@
 import { create } from 'zustand'
+import { dismissToast, showToast } from '../safety/store'
 import { findSelection } from '../shell/selection'
+import { roomsForNewSpaces } from './autoRooms'
 import { keepFloorTypes } from './floorTypes'
 import { followLevels, linkStairs } from './stairs'
 import type { Vec2 } from '../lib/geom'
+import type { OpeningStyle } from './openingStyles'
+import type { RoomTypeId } from './roomTypes'
+import { fitOpenings, fixesText, type OpeningFix } from './openingFit'
 import {
-  clampOpenings,
+  adoptOrphans,
   DOOR_DEFAULT,
   GARAGE_DOOR_DEFAULT,
   normalizePlan,
@@ -40,6 +45,8 @@ export interface OpeningDefaults {
   width: number
   height: number
   sill: number
+  /** The kind of door or window the tool draws (src/plan/openingStyles.ts); missing draws a hinged door, or a window of no kind. */
+  style?: OpeningStyle
 }
 
 export interface RoofDefaults {
@@ -81,6 +88,8 @@ interface PlanStore {
   roofMode: RoofMode
   stairDefaults: StairDefaults
   areaDefault: AreaKind
+  /** The type the Room tool gives the next room; null leaves it to be picked after placing. */
+  roomTypeDefault: RoomTypeId | null
   furnitureDefaults: FurnitureDefaults
   notice: string | null
   /** Bumped to ask the plan view to fit the drawing. */
@@ -112,6 +121,7 @@ interface PlanStore {
   setRoofMode: (m: RoofMode) => void
   setStairDefaults: (d: StairDefaults) => void
   setAreaDefault: (k: AreaKind) => void
+  setRoomTypeDefault: (t: RoomTypeId | null) => void
   setFurnitureDefaults: (d: FurnitureDefaults) => void
   notify: (msg: string | null) => void
   requestFit: (target?: 'house' | 'block') => void
@@ -132,12 +142,71 @@ function keepSelection(plan: Plan, st: { selection: Selection | null; extra: Sel
   return { selection: all[0] ?? null, extra: all.slice(1) }
 }
 
+/** Openings the last tidy had to narrow or drop to fit their walls, to be said once the change is kept. */
+let lastFixes: OpeningFix[] = []
+
 /**
  * After every change: openings stay in their walls, stairs keep to the levels they join, and a
  * floor that was the lowest keeps the floor type it was built with when levels change order.
+ * A change that leaves the plan as it was gives back the plan itself, so it adds no undo step.
+ * Only openings the change touched are fitted to their walls (`since`: the plan the change
+ * started from, which for a drag is the plan when it began), so the rest stay as they were saved.
  */
-function tidy(p: Plan, before: Plan): Plan {
-  return keepFloorTypes(before, followLevels(linkStairs(clampOpenings(p))))
+function tidy(p: Plan, before: Plan, since: Plan = before): Plan {
+  const fitted = fitOpenings(adoptOrphans(p), since)
+  lastFixes = fitted.fixes
+  const next = keepFloorTypes(before, followLevels(linkStairs(fitted.plan)))
+  return samePlan(next, before) ? before : next
+}
+
+/** Two plans hold the same things (compared part by part, so parts that weren't touched cost nothing). */
+function samePlan(a: Plan, b: Plan): boolean {
+  if (a === b) return true
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof Plan>
+  for (const k of keys) if (a[k] !== b[k] && JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false
+  return true
+}
+
+/**
+ * Say that doors or windows were narrowed (or dropped) to fit a wall that got shorter, with Undo.
+ * The toast goes once something else changes the plan, so its Undo never undoes another thing.
+ */
+function reportFixes() {
+  const text = fixesText(lastFixes)
+  lastFixes = []
+  if (!text) return
+  const after = usePlan.getState().plan
+  let unsub = () => {}
+  const id = showToast({
+    text,
+    undo: () => {
+      const st = usePlan.getState()
+      if (st.plan === after) st.undo()
+    },
+    settle: () => unsub(),
+  })
+  unsub = usePlan.subscribe(s => {
+    if (s.plan === after) return
+    unsub()
+    dismissToast(id)
+  })
+}
+
+/**
+ * The level to draw on once the plan is `next`: the one being drawn on while it's still there,
+ * else the nearest level left, by floor height (`before` is the plan that still had it). Drawing
+ * on a level that's gone would save walls no level shows.
+ */
+export function levelStillThere(next: Plan, before: Plan | null, active: string): string {
+  if (next.levels.some(l => l.id === active) || !next.levels.length) return active
+  const was = before?.levels.find(l => l.id === active)?.elevation ?? 0
+  return next.levels.reduce((best, l) => (Math.abs(l.elevation - was) < Math.abs(best.elevation - was) ? l : best)).id
+}
+
+/** The plan changed to `next`: stay on a level it has. */
+function onLevel(next: Plan, before: Plan | null, st: { activeLevel: string }): Partial<Pick<PlanStore, 'activeLevel' | 'selection' | 'extra'>> {
+  const activeLevel = levelStillThere(next, before, st.activeLevel)
+  return activeLevel === st.activeLevel ? {} : { activeLevel, selection: null, extra: [] }
 }
 
 export const usePlan = create<PlanStore>((setState, getState) => ({
@@ -155,6 +224,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   roofMode: 'building',
   stairDefaults: { shape: 'straight', width: 0.9, turn: 'left' },
   areaDefault: 'garden',
+  roomTypeDefault: null,
   furnitureDefaults: { kind: 'bed-queen', rotation: 0 },
   notice: null,
   fitToken: 0,
@@ -176,37 +246,46 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   commit: fn => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan), plan)
+    // A space the change's walls close round is a room, in the same step (src/plan/autoRooms.ts).
+    const next = tidy(roomsForNewSpaces(plan, fn(plan)), plan)
     if (next === plan) return
-    setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
+    setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [], ...onLevel(next, plan, getState()) })
+    reportFixes()
   },
 
   beginGesture: () => setState({ gestureStart: getState().plan }),
 
   preview: fn => {
-    const { plan } = getState()
+    const { plan, gestureStart } = getState()
     if (!plan) return
-    setState({ plan: tidy(fn(plan), plan) })
+    setState({ plan: tidy(fn(plan), plan, gestureStart ?? plan) })
   },
 
   endGesture: () => {
     const { plan, gestureStart, past } = getState()
-    if (gestureStart && plan && gestureStart !== plan) {
-      setState({ past: [...past, gestureStart].slice(-HISTORY), future: [], gestureStart: null })
-    } else setState({ gestureStart: null })
+    // A drag that ends where it began (or never moved anything) is no step.
+    if (gestureStart && plan && !samePlan(gestureStart, plan)) {
+      // A drag that closed walls round a space made a room of it, once it's let go.
+      setState({ plan: roomsForNewSpaces(gestureStart, plan), past: [...past, gestureStart].slice(-HISTORY), future: [], gestureStart: null })
+      reportFixes()
+    } else setState({ gestureStart: null, ...(gestureStart && plan ? { plan: gestureStart } : {}) })
   },
 
   undo: () => {
     const { plan, past, future } = getState()
     if (!plan || past.length === 0) return
     const prev = past[past.length - 1]
-    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], ...keepSelection(prev, getState()) })
+    // The step can take away the level being drawn on (undoing "Add level above"): go to the nearest one left.
+    const activeLevel = levelStillThere(prev, plan, getState().activeLevel)
+    // The hint bar's line was about the step just undone ("it's a room now"): it goes with it.
+    setState({ plan: prev, past: past.slice(0, -1), future: [plan, ...future], activeLevel, notice: null, ...keepSelection(prev, { ...getState(), activeLevel }) })
   },
 
   redo: () => {
     const { plan, past, future } = getState()
     if (!plan || future.length === 0) return
-    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), ...keepSelection(future[0], getState()) })
+    const activeLevel = levelStillThere(future[0], plan, getState().activeLevel)
+    setState({ plan: future[0], past: [...past, plan], future: future.slice(1), activeLevel, notice: null, ...keepSelection(future[0], { ...getState(), activeLevel }) })
   },
 
   setTool: tool => setState({ tool, notice: null }),
@@ -221,7 +300,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   nudge: (key, fn) => {
     const { plan, past } = getState()
     if (!plan) return
-    const next = tidy(fn(plan), plan)
+    const next = tidy(roomsForNewSpaces(plan, fn(plan)), plan)
     if (next === plan) return
     const now = Date.now()
     const run = nudgeRun
@@ -233,6 +312,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
       setState({ plan: next, past: [...past, plan].slice(-HISTORY), future: [] })
       nudgeRun = { key, base: plan, result: next, at: now }
     }
+    reportFixes()
   },
   setActiveLevel: activeLevel => setState({ activeLevel, selection: null, extra: [] }),
   setWallStyle: wallStyle => setState({ wallStyle }),
@@ -241,6 +321,7 @@ export const usePlan = create<PlanStore>((setState, getState) => ({
   setRoofMode: roofMode => setState({ roofMode, notice: null }),
   setStairDefaults: stairDefaults => setState({ stairDefaults }),
   setAreaDefault: areaDefault => setState({ areaDefault }),
+  setRoomTypeDefault: roomTypeDefault => setState({ roomTypeDefault }),
   setFurnitureDefaults: furnitureDefaults => setState({ furnitureDefaults }),
   notify: notice => setState({ notice }),
   requestFit: (fitTarget = 'house') => setState({ fitToken: getState().fitToken + 1, fitTarget }),

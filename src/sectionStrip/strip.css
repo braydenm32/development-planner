@@ -96,8 +96,11 @@
   flex: none;
 }
 
+/* The key gives way before the buttons at the end do: on a narrow strip it is cut, never "Fold away". */
 .sstrip-key {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -242,7 +245,8 @@
 }
 
 .sstrip-band .rl {
-  color: var(--muted);
+  /* A step darker than --muted, which is 4.4:1 on the chosen level's pale blue. */
+  color: #5f656c;
   font-variant-numeric: tabular-nums;
 }
 
@@ -337,15 +341,15 @@
 }
 
 .app-shell:not(.phone) .shell-main .scalebar {
-  bottom: calc(62px + var(--section-strip-h, 0px));
+  bottom: calc(62px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 .app-shell:not(.phone) .plan-editor .flow-card {
-  bottom: calc(64px + var(--section-strip-h, 0px));
+  bottom: calc(64px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 body:has(.toast, .sf-toast) .app-shell:not(.phone) .plan-editor .flow-card {
-  bottom: calc(170px + var(--section-strip-h, 0px));
+  bottom: calc(170px + var(--section-strip-h, 0px) + var(--foot-lift, 0px));
 }
 
 .app-shell:not(.phone) .toast {
@@ -381,6 +385,3 @@ body:has(.app-shell:not(.phone) .toast):has(.sstrip) .sf-toast {
   bottom: calc(136px + var(--section-strip-h, 0px));
 }
 
-body:has(.app-shell.phone .sstrip) .sf-toast {
-  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom) + var(--section-strip-h, 0px));
-}

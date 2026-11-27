@@ -65,6 +65,18 @@
   cursor: crosshair;
 }
 
+/* Three things in the bar on a narrow screen: the words take the first row, the two buttons the next. */
+.cm-bar.placing {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  /* Room for all three on one row where the plan is wide enough. */
+  max-width: min(640px, calc(100% - 32px));
+}
+
+.cm-bar.placing > span {
+  flex: 1 1 220px;
+}
+
 .cm-bar span {
   display: inline-flex;
   align-items: center;
@@ -263,7 +275,8 @@
 }
 
 /* On a phone the card sits along the bottom, clear of the thumb's reach to the plan above. */
-@media (max-width: 760px), (pointer: coarse) {
+/* A comment's card docks at the foot of the screen in the phone layout (PHONE_QUERY in src/phone/device.ts). */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .cm-card {
     position: fixed;
     left: 8px;
@@ -273,9 +286,19 @@
     z-index: 70;
     width: auto;
     max-width: none;
+    box-shadow: 0 -6px 30px -12px rgba(0, 0, 0, 0.4);
+  }
+
+  .cm-card .cm-close {
+    top: 8px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .cm-card {
     padding: 14px 16px;
     font-size: 15px;
-    box-shadow: 0 -6px 30px -12px rgba(0, 0, 0, 0.4);
   }
 
   .cm-meta,
@@ -298,11 +321,6 @@
 
   .cm-compose input {
     height: 44px;
-  }
-
-  .cm-card .cm-close {
-    top: 8px;
-    right: 8px;
   }
 
   .cm-pin {

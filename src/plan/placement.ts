@@ -1,7 +1,7 @@
 import { centroidOf, pointInPolygon, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { toSite, type Placement } from './model'
+import { fromSite, toSite, type Placement } from './model'
 
 /** Start the plan in the middle of the block, square to its longest side, with the floor at ground level. */
 export function defaultPlacement(survey: Survey, terrain: Terrain): Placement {
@@ -60,6 +60,26 @@ export function rotatedPlacement(pl: Placement, rotation: number, mid: Vec2 | nu
   const now = toSite(mid, pl, [0, 0])
   const turned = toSite(mid, { ...pl, rotation, e: 0, n: 0 }, [0, 0])
   return { ...pl, rotation, e: Math.round((now[0] - turned[0]) * 1000) / 1000, n: Math.round((now[1] - turned[1]) * 1000) / 1000 }
+}
+
+/**
+ * Where the house sits after it is dragged by `d` (house frame, metres), to the nearest 10 mm:
+ * it goes the way the drag went.
+ */
+export function draggedPlacement(pl: Placement, d: Vec2): Placement {
+  const t = (pl.rotation * Math.PI) / 180
+  const de = d[0] * Math.cos(t) - d[1] * Math.sin(t)
+  const dn = d[0] * Math.sin(t) + d[1] * Math.cos(t)
+  return { ...pl, e: Math.round((pl.e + de) * 100) / 100, n: Math.round((pl.n + dn) * 100) / 100 }
+}
+
+/**
+ * The plan's view is centred on a point of the house's frame. When the house moves from `from` to
+ * `to`, this is the centre that keeps the block where it was on screen, so the house is what moves.
+ */
+export function centreWithBlockStill(c: Vec2, from: Placement, to: Placement): Vec2 {
+  const o: Vec2 = [0, 0]
+  return fromSite(toSite(c, from, o), to, o)
 }
 
 /**

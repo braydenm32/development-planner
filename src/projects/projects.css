@@ -243,6 +243,74 @@
   color: var(--ph-danger);
 }
 
+/* ---- Find and sort (more than a handful of projects) ---- */
+
+.ph-find {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.ph-find-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 320px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r);
+  background: #ffffff;
+  color: var(--ph-muted);
+}
+
+.ph-find-box:focus-within {
+  border-color: var(--ph-accent);
+  box-shadow: 0 0 0 1px var(--ph-accent);
+}
+
+.ph-find-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ph-ink);
+}
+
+.ph-find-count {
+  color: var(--ph-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ph-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--ph-muted);
+  white-space: nowrap;
+}
+
+.ph-sort select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--ph-line);
+  border-radius: var(--ph-r);
+  background: #ffffff;
+  font: inherit;
+  color: var(--ph-ink);
+}
+
+.ph-sort select:focus-visible {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: 2px;
+}
+
 /* ---- Cards ---- */
 
 .ph-grid {
@@ -382,7 +450,8 @@ button.ph-thumb {
   border: 1px solid var(--ph-accent);
   border-radius: var(--ph-r);
   outline: 0;
-  box-shadow: 0 0 0 3px var(--ph-accent-soft);
+  /* A second accent line: the soft glow on its own was too faint to count as a focus ring. */
+  box-shadow: 0 0 0 1px var(--ph-accent), 0 0 0 4px var(--ph-accent-soft);
   font: inherit;
   font-size: 15px;
   font-weight: 500;
@@ -494,6 +563,14 @@ button.ph-thumb {
   text-align: left;
   cursor: pointer;
 }
+
+/* Delete, last in the menu and set apart from the rest. */
+.ph-menu button.danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--ph-line);
+  color: var(--ph-danger);
+}
+
 
 .ph-menu button:hover {
   background: var(--ph-line-soft);
@@ -774,6 +851,28 @@ button.ph-thumb {
   background: #fff6e0;
   color: #7a5300;
   transform: translateX(-50%);
+}
+
+/* The narrowest phones (320 px): the three buttons keep to the one row, closer up and without
+   the two plain ones' icons, rather than pushing New project past the screen's edge (final check, problem 5). */
+@media (max-width: 380px) {
+  .ph-top {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .ph-top-actions {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .ph-top-actions .ph-btn {
+    padding: 0 9px;
+  }
+
+  .ph-top-actions .ph-btn:not(.primary) .ph-ic {
+    display: none;
+  }
 }
 
 /* ---- Inside the app's frame (src/shell), which brings its own top bar ---- */

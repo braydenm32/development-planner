@@ -514,7 +514,8 @@
 }
 
 /* Phones: big enough to tap, big enough to read. */
-@media (max-width: 760px) {
+/* The phone layout (PHONE_QUERY in src/phone/device.ts): a narrow window, or a touch screen up to a tablet held upright. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .rw-panel {
     font-size: 15px;
   }

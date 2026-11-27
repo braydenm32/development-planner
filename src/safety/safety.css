@@ -142,6 +142,11 @@
   align-items: start;
 }
 
+/* No picture beside the choices: they take the full width. */
+.sf-choice-row.plain {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .sf-pic {
   aspect-ratio: 1;
   border: 1px solid var(--sf-line);
@@ -337,6 +342,12 @@
   padding: 4px 0;
 }
 
+/* An error: it stays until dismissed, with a red edge to tell it from a passing note. */
+.sf-toast.sf-error {
+  border-left: 4px solid #ff8a80;
+  padding-left: 12px;
+}
+
 .sf-undo {
   flex: none;
   min-height: 30px;
@@ -393,9 +404,10 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Above the canvas's hint bar, the layout's own notes, and on a phone the bottom bar and the peek
-   sheet (its height is --peek-size, set on the body by src/phone/PeekSheet.tsx). With a panel or the
-   inspector open as a sheet, it goes under the top bar instead, clear of the sheet's handle. */
+/* Above the canvas's hint bar and the layout's own notes. On a phone it sits just above the bottom
+   bar, over the key numbers rather than over the house (PH-05): it's there for a few seconds, and
+   the picture is what people came for. With a panel or the inspector open as a sheet, it goes under
+   the top bar instead, clear of the sheet's handle. */
 body:has(.app-shell) .sf-toast {
   bottom: 84px;
 }
@@ -405,7 +417,7 @@ body:has(.app-shell .toast) .sf-toast {
 }
 
 body:has(.app-shell.phone) .sf-toast {
-  bottom: calc(78px + var(--peek-size, 0px) + env(safe-area-inset-bottom));
+  bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
 body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .sf-toast {
@@ -502,12 +514,68 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
 
 /* ---- Phones and touch: a bottom sheet, 44 px taps, 14 px text ---- */
 
+/* Thumb-sized targets and type, on a narrow window and on any touch screen. */
 @media (max-width: 760px), (pointer: coarse) {
   .sf-scrim,
   .sf-toast {
     font-size: 15px;
   }
 
+  .sf-step,
+  .sf-facts dt,
+  .sf-choices legend,
+  .sf-lists h3 {
+    font-size: 14px;
+  }
+
+  .sf-head h2 {
+    font-size: 19px;
+  }
+
+  .sf-option {
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  .sf-option input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sf-tag {
+    font-size: 13px;
+  }
+
+  .sf-btn {
+    min-height: 46px;
+  }
+
+  .sf-undo,
+  .sf-link,
+  .sf-close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .sf-layer-list select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .sv-request {
+    font-size: 14px;
+  }
+
+  .sv-copy {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Reviews as a bottom sheet and a full-width toast: only in the phone layout (PHONE_QUERY in
+   src/phone/device.ts). A tablet on its side has the computer's layout, so its dialogs sit in the
+   middle as a computer's do. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .sf-scrim {
     place-items: end stretch;
     padding: 0;
@@ -535,17 +603,6 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     padding: 10px 16px 10px;
   }
 
-  .sf-step,
-  .sf-facts dt,
-  .sf-choices legend,
-  .sf-lists h3 {
-    font-size: 14px;
-  }
-
-  .sf-head h2 {
-    font-size: 19px;
-  }
-
   .sf-body {
     padding: 12px 16px 4px;
   }
@@ -563,20 +620,6 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     width: auto;
   }
 
-  .sf-option {
-    min-height: 44px;
-    padding: 12px;
-  }
-
-  .sf-option input {
-    width: 20px;
-    height: 20px;
-  }
-
-  .sf-tag {
-    font-size: 13px;
-  }
-
   .sf-lists {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
@@ -586,39 +629,32 @@ body:has(.app-shell.phone .float-col .float-card, .app-shell.phone .inspector) .
     padding: 12px 16px 14px;
   }
 
-  .sf-btn {
-    flex: 1;
-    min-height: 46px;
-  }
-
-  .sf-undo,
-  .sf-link,
-  .sf-close {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .sf-toast {
     width: calc(100vw - 24px);
     max-width: none;
   }
 
-  .sf-layer-list select {
-    min-height: 44px;
-    font-size: 16px;
-  }
-
-  .sv-request {
-    font-size: 14px;
-  }
-
-  .sv-copy {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .sf-toast > span {
     flex: 1;
+  }
+
+  .sf-btn {
+    flex: 1;
+  }
+}
+
+/* A phone is too narrow for words beside a link and Undo (they left a 100 px column, seven lines
+   tall): the words take the full width, with the actions in a row under them. */
+@media (max-width: 760px) {
+  .sf-toast:has(.sf-link) {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 8px 6px 2px 14px;
+  }
+
+  .sf-toast:has(.sf-link) > span {
+    flex: 1 1 100%;
+    padding: 0 8px 0 0;
   }
 }
 

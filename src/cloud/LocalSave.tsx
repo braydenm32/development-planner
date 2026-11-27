@@ -34,7 +34,7 @@ export function LocalSaveChip({ onDownload }: { onDownload: () => void }) {
         className={`cl-chip ls-chip ${look.tone}`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${look.label}${look.at ? ` at ${look.at}` : ''}`}
+        aria-label={`${look.label}${look.at ? `, ${look.at}` : ''}`}
         title={look.detail}
         onClick={() => setOpen(!open)}
       >
@@ -85,7 +85,7 @@ function SavePop({ wrap, look, onDownload, onClose }: { wrap: RefObject<HTMLDivE
     fn()
   }
   return (
-    <div ref={pop} className="cl-pop" role="dialog" aria-label="Where your work is saved">
+    <div ref={pop} className="cl-pop" role="dialog" aria-label="Where your work is saved" data-overlay>
       <div className={`cl-status ${look.tone}`}>
         <Icon name={look.icon} size={18} />
         <p>{look.detail}</p>

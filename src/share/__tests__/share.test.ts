@@ -54,6 +54,8 @@ describe('PDF plans', () => {
     expect(pdf).toContain('(Roof plan) Tj')
     // Brackets in text are escaped.
     expect(pdf).toContain('/Title (Test \\(house\\))')
+    // Its language and title are declared for a screen reader and the viewer's title bar (AX-37).
+    expect(pdf).toMatch(/\/Type \/Catalog [^\n]*\/Lang \(en-AU\)[^\n]*\/DisplayDocTitle true/)
   })
 
   it('prints the stormwater concept on the site plan when given one', () => {

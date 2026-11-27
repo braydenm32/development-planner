@@ -2,10 +2,13 @@
 // app in both layouts (and over the start screen and the Projects home).
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useModal } from '../nav/useModal'
+import { useRouter } from '../nav/router'
 import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
 import { LayersSheet } from './LayersSheet'
-import { chooseInReview, dismissToast, pickedFor, registerPicker, undoToast, useSafety, type Toast } from './store'
+import { OtherTabSheet } from '../projects/OtherTab'
+import { chooseInReview, dismissToast, pickedFor, registerPicker, toastSpot, undoToast, useSafety, type Toast } from './store'
 import { sayFileError } from './surveyor'
 import './safety.css'
 
@@ -22,34 +25,18 @@ export function BlockThumb({ t, label }: { t: ProjectThumbnail | null | undefine
 
 function ReviewSheet() {
   const review = useSafety(s => s.review)
-  const cancelRef = useRef<HTMLButtonElement>(null)
   const answer = useRef(review?.answer)
   useLayoutEffect(() => {
     answer.current = review?.answer
   })
-  const open = !!review
-  useEffect(() => {
-    if (!open) return
-    const opener = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
-    const esc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      e.stopPropagation()
-      answer.current?.(null)
-    }
-    // Before the plan's own keys, so Esc here never clears a selection underneath.
-    window.addEventListener('keydown', esc, true)
-    return () => {
-      window.removeEventListener('keydown', esc, true)
-      opener?.focus?.()
-    }
-  }, [open])
+  const sheet = useRef<HTMLDivElement>(null)
+  // Focus starts on Cancel and Tab stays in the sheet; Esc cancels; focus goes back where it was (src/nav/useModal.ts).
+  useModal(sheet, !!review, () => answer.current?.(null))
   if (!review) return null
   const choice = review.choices?.find(c => c.id === review.choice)
   return (
     <div className="sf-scrim" onPointerDown={e => e.target === e.currentTarget && review.answer(null)}>
-      <div className={`sf-sheet sf-${review.kind}`} role="dialog" aria-modal="true" aria-labelledby="sf-title">
+      <div ref={sheet} className={`sf-sheet sf-${review.kind}`} role="dialog" aria-modal="true" aria-labelledby="sf-title">
         <div className="sf-grab" aria-hidden="true" />
         <header className="sf-head">
           <span className="sf-step">{review.replaces ? 'Review before it changes' : 'Check before it opens'}</span>
@@ -73,11 +60,14 @@ function ReviewSheet() {
           )}
           {review.choices && review.choices.length > 0 && (
             <fieldset className="sf-choices">
-              <legend>How the block and house line up</legend>
-              <div className="sf-choice-row">
-                <div className="sf-pic">
-                  <BlockThumb t={choice?.thumb} label={choice?.label} />
-                </div>
+              <legend>{review.choicesLegend ?? 'How the block and house line up'}</legend>
+              <div className={`sf-choice-row${review.choices.some(c => c.thumb !== undefined) ? '' : ' plain'}`}>
+                {/* Choices with nothing to picture (what happens to a level) are just the list. */}
+                {review.choices.some(c => c.thumb !== undefined) && (
+                  <div className="sf-pic">
+                    <BlockThumb t={choice?.thumb} label={choice?.label} />
+                  </div>
+                )}
                 <div className="sf-options">
                   {review.choices.map((c, i) => (
                     <label key={c.id} className={`sf-option${review.choice === c.id ? ' on' : ''}`}>
@@ -120,7 +110,7 @@ function ReviewSheet() {
           </div>
         </div>
         <footer className="sf-actions">
-          <button ref={cancelRef} className="sf-btn" onClick={() => review.answer(null)}>
+          <button className="sf-btn" onClick={() => review.answer(null)} data-autofocus>
             Cancel
           </button>
           <button className="sf-btn primary" onClick={() => review.answer(review.choice ?? 'ok')}>
@@ -132,24 +122,52 @@ function ReviewSheet() {
   )
 }
 
+/** Over the plan beside the open panel, on a computer's layout (./store.ts toastSpot). */
+function useToastSpot() {
+  const [spot, setSpot] = useState<{ left: number; maxWidth: number } | null>(null)
+  // Again when the place changes: a panel opens or closes with it.
+  const route = useRouter(s => s.route)
+  useLayoutEffect(() => {
+    const place = () => {
+      const main = document.querySelector<HTMLElement>('.app-shell:not(.phone) .shell-main')
+      if (!main) return setSpot(null)
+      const css = getComputedStyle(main)
+      const px = (name: string) => parseFloat(css.getPropertyValue(name)) || 0
+      setSpot(toastSpot(main.getBoundingClientRect(), px('--free-left'), px('--free-right')))
+    }
+    place()
+    // And once the new place has drawn.
+    const frame = requestAnimationFrame(place)
+    window.addEventListener('resize', place)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', place)
+    }
+  }, [route])
+  return spot
+}
+
 function UndoToast() {
   const toast = useSafety(s => s.toast)
   // Keyed, so each toast starts with its own full time.
   return toast ? <ToastNote key={toast.id} toast={toast} /> : null
 }
 
-function ToastNote({ toast }: { toast: Toast }) {
+export function ToastNote({ toast }: { toast: Toast }) {
   const [held, setHeld] = useState(false)
+  const spot = useToastSpot()
   // Time runs only while the toast isn't being pointed at or focused, and starts again in full after.
+  // An error has no time limit: it goes when it's dismissed.
   useEffect(() => {
-    if (held) return
+    if (held || toast.error) return
     const t = setTimeout(() => dismissToast(toast.id), toast.ms)
     return () => clearTimeout(t)
   }, [toast, held])
   return (
     <div
-      className="sf-toast"
-      role="status"
+      className={`sf-toast${toast.error ? ' sf-error' : ''}`}
+      style={spot ? { left: spot.left, maxWidth: spot.maxWidth } : undefined}
+      role={toast.error ? 'alert' : 'status'}
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}
       onFocus={() => setHeld(true)}
@@ -201,6 +219,7 @@ export function SafetyLayer() {
       <Picker />
       <ReviewSheet />
       <LayersSheet />
+      <OtherTabSheet />
       <UndoToast />
     </>
   )

@@ -7,9 +7,9 @@ import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { balancingShift } from '../lib/earthworks'
 import { needsEngineer } from '../checks/engineer'
-import { balancedRL as balanceTo, boundarySides, crossedBoundaries, levelSummaries, movesFloor, roofAboveGround, type PlacementInfo } from '../plan/keyNumbers'
+import { balancedRL as balanceTo, boundarySides, buildingHeight, crossedBoundaries, levelSummaries, movesFloor, roomsTotal, roofAboveGround, slabBedOnly, type PlacementInfo } from '../plan/keyNumbers'
 import { housePadRL } from '../plan/platforms'
-import { earthworksOf, floorRL, sortedLevels, type Plan, type Roof } from '../plan/model'
+import { earthworksOf, floorRL, isRetaining, slabBedOf, sortedLevels, type Plan, type Roof } from '../plan/model'
 import { roofGeometry } from '../plan/roof'
 import type { Earth } from '../plan/useEarthworks'
 import type { SunFacts } from '../sun/facts'
@@ -22,6 +22,11 @@ export interface KeyNumbers {
   levels: { id: string; name: string; area: number; roomsTotal: number; rooms: number }[]
   /** All levels' floor areas together; null before any walls enclose a floor. */
   floorArea: number | null
+  /**
+   * Levels whose walls are drawn but don't close round a floor (a gap in the outside walls), by
+   * id: there is no floor area for them, and the strip says why rather than dropping the number.
+   */
+  open?: string[]
   /** The ground floor's RL. */
   ffl: number
   /** Every level's floor RL, lowest first: a split-level house has more than one floor level. */
@@ -36,7 +41,12 @@ export interface KeyNumbers {
     deepestFill: number
     /** Where Balance would put the floor, to the 10 mm it sets; null when it can't. */
     balancedRL: number | null
+    /** Balance would move the floor by more than the slab's own bed accounts for, and the design doesn't mean to. */
     outOfBalance: boolean
+    /** The earth left over is no more than the slab's own bed (slabBedOnly): said plainly, never as a warning. */
+    bedOnly: boolean
+    /** The depth dug under a slab on ground (m). */
+    slabBed: number
   } | null
   /**
    * The retaining walls: the drawn ones, and with them the walls the earthworks imply (vertical
@@ -44,7 +54,12 @@ export interface KeyNumbers {
    * `impliedTallest` says the tallest is an implied one.
    */
   retaining: { count: number; length: number; maxHeight: number; face: number; engineer: boolean; implied?: ImpliedTotals | null; impliedTallest?: boolean } | null
-  /** The roof that rises highest above the ground (the building's height). */
+  /**
+   * Building height: the highest point of the roofs and the walls above the natural ground, the
+   * same measure Approvals › Checks and Design › Sections give (buildingHeight). Null with no house.
+   */
+  height?: number | null
+  /** The roof that rises highest above the ground. */
   roof: RoofNumbers | null
   /** Every roof that builds, highest first. */
   roofs: RoofNumbers[]
@@ -88,6 +103,7 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
     }
     return out.sort((a, b) => b.height - a.height)
   }, [plan, survey, terrain])
+  const height = useMemo(() => buildingHeight(plan, survey, terrain), [plan, survey, terrain])
   const floors = useMemo(() => sortedLevels(plan).map(l => ({ id: l.id, name: l.name, rl: floorRL(plan, l.id) })), [plan])
 
   return useMemo(() => {
@@ -95,15 +111,18 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
       id: s.level.id,
       name: s.level.name,
       area: s.gross.area,
-      roomsTotal: s.rooms.reduce((t, r) => t + (r.area ?? 0), 0),
+      roomsTotal: roomsTotal(s.rooms),
       rooms: s.rooms.length,
     }))
     const total = levels.reduce((t, l) => t + l.area, 0)
+    const open = levels.filter(l => l.area <= 0 && plan.walls.some(w => w.level === l.id && !isRetaining(w))).map(l => l.id)
     const r = earth?.result
     const hasEarth = !!r && !!earth && earth.platforms.length > 0
+    const bedOnly = hasEarth && slabBedOnly(balancedRL, ffl, slabBedOf(plan), earth.platforms.some(p => p.pad))
     return {
       levels,
       floorArea: total > 0 ? total : null,
+      open,
       ffl,
       floors,
       earth: hasEarth
@@ -115,8 +134,10 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
             deepestCut: r.maxCut,
             deepestFill: r.maxFill,
             balancedRL,
-            // A design that cuts or fills on purpose said so: the chip stays quiet.
-            outOfBalance: movesFloor(balancedRL, ffl) && !earthworksOf(plan).keepNet,
+            // A design that cuts or fills on purpose said so: the chip stays quiet. So does the slab's own bed.
+            outOfBalance: movesFloor(balancedRL, ffl) && !earthworksOf(plan).keepNet && !bedOnly,
+            bedOnly,
+            slabBed: slabBedOf(plan),
           }
         : null,
       retaining:
@@ -131,13 +152,15 @@ export function useKeyNumbers(plan: Plan, survey: Survey, terrain: Terrain, eart
               impliedTallest: !!implied && implied.maxHeight > Math.max(0, ...walls.map(w => w.maxHeight)),
             }
           : null,
+      height: height > 0 ? height : null,
       roof: roofs[0] ?? null,
       roofs,
-      roofArea: roofs.reduce((t, r) => t + r.area, 0),
+      // Each roof as it is shown, to 0.1 m², so the total is the sum of the rows under it, as Costs prices it (LF-21).
+      roofArea: Math.round(roofs.reduce((t, r) => t + Math.round(r.area * 10), 0)) / 10,
       batterSides: hasEarth ? boundarySides(r, survey) : [],
       batters: hasEarth ? crossedBoundaries(r, survey) : null,
       placement,
       sun,
     }
-  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, survey, placement, sun])
+  }, [plan, summary, earth, ffl, floors, balancedRL, walls, implied, roofs, height, survey, placement, sun])
 }

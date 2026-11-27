@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSafety } from '../../safety/store'
 import { findSelection } from '../../shell/selection'
-import { copySelected, forgetCopied, deleteLevelWithReview, deleteSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../editActions'
+import { copySelected, cutSelected, forgetCopied, deleteLevelWithReview, deleteSelected, duplicateSelected, nudgeSelected, pasteCopied, selectAllOnLevel } from '../editActions'
 import { allOnLevel, copySelection, itemsInBox, pasteClip, selectionCounts, selectionName, translateSelection } from '../editing'
 import { normalizePlan } from '../model'
 import { addLevelAbove } from '../ops'
@@ -190,13 +190,16 @@ describe('copy, paste and duplicate', () => {
     const mine = r.plan.openings.filter(o => o.wall === wall.id)
     expect(mine).toHaveLength(2)
     expect(mine.every(o => !['office_window', 'stairs_gap'].includes(o.id))).toBe(true)
-    expect(r.added).toEqual([{ type: 'wall', id: wall.id }])
+    // The wall and its two openings are all picked afterwards, so the count matches what was copied.
+    expect(r.added).toEqual([{ type: 'wall', id: wall.id }, ...mine.map(o => ({ type: 'opening', id: o.id }))])
     // the original is untouched
     expect(r.plan.walls.find(w => w.id === 'east')!.a).toEqual([9.95, 0.15])
   })
 
-  it('copies a door only with its wall', () => {
-    expect(copySelection(garageFloor(), [{ type: 'opening', id: 'entry' }])).toBeNull()
+  it('copies a door on its own, to go beside it or into another wall', () => {
+    const clip = copySelection(garageFloor(), [{ type: 'opening', id: 'entry' }])!
+    expect(clip.loose?.map(o => o.id)).toEqual(['entry'])
+    expect(clip.openings).toHaveLength(0)
   })
 
   it('pastes, selects the pasted things and is one undo step; a second paste steps further', () => {
@@ -215,6 +218,45 @@ describe('copy, paste and duplicate', () => {
     expect(second[0]).toBeCloseTo(first[0] + 0.3, 9)
     usePlan.getState().undo()
     expect(plan().rooms).toHaveLength(5)
+  })
+
+  it('cuts: copied and taken away in one undo step, and the first paste puts it back where it was', () => {
+    const st = usePlan.getState()
+    const at = plan().rooms.find(r => r.id === 'r1')!.at
+    st.select({ type: 'room', id: 'r1' })
+    expect(cutSelected()).toBe(true)
+    expect(plan().rooms.some(r => r.id === 'r1')).toBe(false)
+    expect(usePlan.getState().selection).toBeNull()
+    expect(usePlan.getState().past).toHaveLength(1)
+    expect(useSafety.getState().toast?.text).toMatch(/cut\. Press Ctrl\+V/)
+    pasteCopied()
+    const back = plan().rooms.find(r => r.id === usePlan.getState().selection!.id)!
+    expect(back.at).toEqual(at)
+    expect(plan().rooms).toHaveLength(4)
+    // A second paste steps off to one side, as after a copy.
+    pasteCopied()
+    expect(plan().rooms.find(r => r.id === usePlan.getState().selection!.id)!.at[0]).toBeCloseTo(at[0] + 0.3, 9)
+  })
+
+  it('undoes a cut from its toast, with the item selected again', async () => {
+    usePlan.getState().select({ type: 'area', id: 'a1' })
+    cutSelected()
+    expect(plan().areas).toHaveLength(0)
+    await useSafety.getState().toast!.undo!()
+    expect(plan().areas).toHaveLength(1)
+    expect(usePlan.getState().selection).toEqual({ type: 'area', id: 'a1' })
+  })
+
+  it('cuts a door on its own in one undo step, and the first paste puts it back where it was', () => {
+    const was = plan().openings.find(o => o.id === 'entry')!
+    usePlan.getState().select({ type: 'opening', id: 'entry' })
+    expect(cutSelected()).toBe(true)
+    expect(plan().openings.some(o => o.id === 'entry')).toBe(false)
+    expect(usePlan.getState().past).toHaveLength(1)
+    expect(useSafety.getState().toast?.text).toMatch(/Door cut\. Press Ctrl\+V/)
+    pasteCopied()
+    const back = plan().openings.find(o => o.id === usePlan.getState().selection!.id)!
+    expect(back).toMatchObject({ wall: was.wall, offset: was.offset, width: was.width, kind: 'door' })
   })
 
   it('pastes onto the level being shown', () => {

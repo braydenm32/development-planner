@@ -3,6 +3,7 @@
 // the one its home panel shows, from the same helper and in the same format (CALM 8).
 
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useModal } from '../nav/useModal'
 import { FragmentRow } from '../components/PlanSections'
 import { retainedText } from '../components/planNumbers'
 import { SiteFacts } from '../components/SiteSections'
@@ -14,8 +15,8 @@ import { sideLabel } from '../plan/keyNumbers'
 import { overText } from '../plan/setbacks'
 import type { SiteStats } from '../lib/terrain'
 import { shortMoney } from '../costs/format'
-import { m2, netText } from './format'
-import { balanceWords, type ChecksHeadline, type CostHeadline } from './headline'
+import { m2, netText, slabBedText } from './format'
+import { balanceWords, checksName, type ChecksHeadline, type CostHeadline } from './headline'
 import type { KeyNumbers, RoofNumbers } from './useKeyNumbers'
 import { hoursText, overText as shadowText, type SunFacts } from '../sun/facts'
 import { selectOnPlan } from './useSite'
@@ -40,16 +41,17 @@ interface Props {
 function Group({ icon, title, to, action, children }: { icon: IconName; title: string; to?: AppRoute; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="ov-group">
-      <h3>
+      {/* The heading is the title alone, so it reads "Site", not "Site Open"; each Open says what it opens. */}
+      <div className="ov-head">
         <Icon name={icon} size={17} />
-        <span>{title}</span>
+        <h3>{title}</h3>
         {action}
         {to && !action && (
-          <button className="link quiet" onClick={() => navigate(to)}>
+          <button className="link quiet" aria-label={`Open ${title}`} onClick={() => navigate(to)}>
             Open
           </button>
         )}
-      </h3>
+      </div>
       {children}
     </section>
   )
@@ -57,12 +59,9 @@ function Group({ icon, title, to, action, children }: { icon: IconName; title: s
 
 export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly = false, verdict, cost, onSteps }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
-  // Focus the sheet so Escape and Tab work in it, and give focus back when it closes.
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    sheet.current?.focus()
-    return () => before?.focus?.()
-  }, [])
+  // Tab stays in the sheet, Esc closes it wherever focus is, and focus goes back when it closes (src/nav/useModal.ts).
+  useModal(sheet, true, onClose, { focus: 'none' })
+  useEffect(() => sheet.current?.focus(), [])
   // In a shared view the groups have nowhere to go.
   const at = (area: AppRoute['area'], tab: string, view: AppRoute['view'] = 'plan'): AppRoute | undefined => (readOnly ? undefined : { kind: 'app', area, tab, view })
   return (
@@ -72,14 +71,9 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
         ref={sheet}
         className="overview-sheet"
         role="dialog"
+        aria-modal="true"
         aria-label="Overview: every key number"
         tabIndex={-1}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            e.stopPropagation()
-            onClose()
-          }
-        }}
       >
         <div className="sheet-grab" aria-hidden="true" />
         <header>
@@ -99,7 +93,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
             {verdict && (
               <Verdict
                 className={`w-${verdict.word}`}
-                label={verdict.name === 'CDC' ? 'Complying development (CDC) checks' : 'Development application (DA) checks'}
+                label={checksName(verdict.name)}
                 term={verdict.term}
                 value={verdict.head}
                 note={verdict.rest}
@@ -185,7 +179,7 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                         )}
                       </div>
                     ) : (
-                      <p className="muted small">Cut and fill are in balance: {netText(n.earth.net)}.</p>
+                      <p className="muted small">{n.earth.bedOnly ? `The ${slabBedText(n.earth.net, n.earth.slabBed)}.` : `Cut and fill are in balance: ${netText(n.earth.net)}.`}</p>
                     )}
                   </>
                 ) : (
@@ -223,16 +217,15 @@ export function OverviewSheet({ numbers: n, stats, onBalance, onClose, readOnly 
                   ) : undefined
                 }
               >
+                {(n.height != null || n.roof) && (
+                  <dl className="stats">
+                    {/* The same figure as the strip and Approvals › Checks: roofs and wall tops alike. */}
+                    {n.height != null && <FragmentRow label={`Building height (highest point above the natural ground${n.roof ? '' : ': the tops of the walls'})`} value={`${n.height.toFixed(2)} m`} strong />}
+                    {n.roofs.length > 1 && <FragmentRow label={`Roof area, all ${n.roofs.length} roofs`} value={`${n.roofArea.toFixed(1)} m²`} strong />}
+                  </dl>
+                )}
                 {n.roof ? (
-                  <>
-                    <dl className="stats">
-                      <FragmentRow label="Building height (highest roof above the ground)" value={`${n.roof.height.toFixed(2)} m`} strong />
-                      {n.roofs.length > 1 && <FragmentRow label={`Roof area, all ${n.roofs.length} roofs`} value={`${n.roofArea.toFixed(1)} m²`} strong />}
-                    </dl>
-                    {n.roofs.map((r, i) => (
-                      <RoofRows key={r.roof.id} r={r} n={n.roofs.length > 1 ? i + 1 : 0} />
-                    ))}
-                  </>
+                  n.roofs.map((r, i) => <RoofRows key={r.roof.id} r={r} n={n.roofs.length > 1 ? i + 1 : 0} />)
                 ) : (
                   <p className="muted small">No roof yet.</p>
                 )}

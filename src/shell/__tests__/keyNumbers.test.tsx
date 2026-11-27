@@ -14,14 +14,17 @@ import { analyzeLayers, buildSurvey, guessRoles, type Survey } from '../../lib/s
 import { buildTerrain, type Terrain } from '../../lib/terrain'
 import { dxf, lwpolyline, point } from '../../lib/__tests__/fixtures'
 import { areaRoute } from '../../nav/route'
-import { balancedRL, boundarySides, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea } from '../../plan/keyNumbers'
+import { houseHeight, measure } from '../../checks/measure'
+import { runChecks } from '../../checks/rules'
+import { balancedRL, boundarySides, buildingHeight, crossedBoundaries, ENGINEER_HEIGHT, levelSummaries, movesFloor, outOfBalance, roomArea, slabBedOnly } from '../../plan/keyNumbers'
 import { earthworksOf, type Plan, type Roof, type Wall } from '../../plan/model'
 import { addLevelAbove } from '../../plan/ops'
 import { earthworksPlatforms, retainingStrips } from '../../plan/platforms'
-import { retainingProfiles } from '../../plan/retaining'
+import { needsEngineer, retainingProfiles } from '../../plan/retaining'
 import { usePlan } from '../../plan/store'
 import type { Earth } from '../../plan/useEarthworks'
 import { loadPrintPrefs } from '../../print/prefs'
+import { floorDrawn, outlineClosed, stripWaitText } from '../drawn'
 import { ShellContext, type ShellData } from '../context'
 import { andList, m2, netText } from '../format'
 import { OverviewSheet } from '../OverviewSheet'
@@ -139,7 +142,8 @@ describe('floor area and FFL', () => {
     expect(words(strip(n))).toContain('Floor, all levels 228.78 m²')
     // Each level's floor level, not the lowest alone (C33).
     expect(n.floors.map(f => f.name)).toEqual(['Ground floor', 'First floor'])
-    expect(words(strip(n))).toContain(`Floor levels (FFL) ${n.floors.map(f => f.rl.toFixed(2)).join(' / ')}`)
+    // With RL first, as levels are written everywhere else (AX-35).
+    expect(words(strip(n))).toContain(`Floor levels (FFL) RL ${n.floors.map(f => f.rl.toFixed(2)).join(' / ')}`)
     // Drawing on one level, the strip says that level's floor first.
     const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} level={n.levels[1].id} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
     expect(words(html)).toContain('Floor, First floor 114.39 m² of 228.78 m²')
@@ -150,6 +154,39 @@ describe('floor area and FFL', () => {
     expect(n.floorArea).toBeNull()
     expect(words(strip(n))).not.toContain('m²')
     expect(words(strip(n))).not.toMatch(/Floor(, all levels)? \d/)
+  })
+
+  // LD-34: one outside wall deleted used to make Floor and Estimate vanish with nothing in their place.
+  it('keeps Floor and Estimate, with the reason, when the outside walls have a gap', () => {
+    const open = house()
+    open.walls = open.walls.slice(1)
+    const n = numbersOf(open, survey, terrain, null)
+    expect(n.floorArea).toBeNull()
+    expect(n.open).toEqual([L0])
+    const cost = { ready: false, total: 0, low: 0, high: 0, missing: [] }
+    const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} cost={cost} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(html)).toContain('Floor — Outline not closed')
+    expect(words(html)).toContain('Estimate — outline not closed')
+    expect(html).toMatch(/<button class="chip warn" title="The outside walls don’t join up all the way round[^"]*Opens Design › Plan\."/)
+    // A shared view says the same, with nothing to press.
+    const shared = renderToStaticMarkup(<SummaryStrip readOnly route={areaRoute('design')} numbers={n} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(shared)).toContain('Floor — Outline not closed')
+    expect(shared).not.toContain('<button class="chip warn"')
+    // Closed again, the numbers are back and the note is gone.
+    expect(numbersOf(house(), survey, terrain, null).open).toEqual([])
+    expect(words(strip(numbersOf(house(), survey, terrain, null)))).not.toContain('not closed')
+    // Nothing drawn at all is not a gap.
+    expect(numbersOf(house({ walls: [], rooms: [] }), survey, terrain, null).open).toEqual([])
+  })
+
+  it('says which level’s outline is open when the others still have a floor', () => {
+    const { plan } = addLevelAbove(house())
+    const upper = plan.levels.find(l => l.id !== L0)!.id
+    const first = plan.walls.find(w => w.level === upper)!
+    const n = numbersOf({ ...plan, walls: plan.walls.filter(w => w !== first) }, survey, terrain, null)
+    expect(n.open).toEqual([upper])
+    const html = renderToStaticMarkup(<SummaryStrip route={areaRoute('design')} numbers={n} level={upper} shown={{}} onBalance={() => {}} onOverview={() => {}} overviewOpen={false} />)
+    expect(words(html)).toContain('Floor, First floor — outline not closed of 114.39 m²')
   })
 
   it('FFL is the ground floor RL, to 10 mm', () => {
@@ -200,12 +237,43 @@ describe('cut, fill and Out of balance', () => {
     expect(e.net).toBeGreaterThan(0)
   })
 
-  it('flags Out of balance with Balance, and Balance sets the hand-worked floor', () => {
+  it('says the slab’s own bed plainly, not as Out of balance (HO-05, DB-34)', () => {
+    // The floor is 0.07 m above the ground at the centre, so the 26.7 m³ left over is less than the
+    // slab's own 300 mm bed: Balance would only lift the floor by 0.23 m.
     const earth = earthOf(plan, survey, terrain)
-    const n = numbersOf(plan, survey, terrain, earth)
+    const e = numbersOf(plan, survey, terrain, earth).earth!
+    expect(e.bedOnly).toBe(true)
+    expect(e.outOfBalance).toBe(false)
+    expect(outOfBalance(plan, earth.prep)).toBe(false)
+    const html = strip(numbersOf(plan, survey, terrain, earth))
+    expect(words(html)).not.toContain('Out of balance')
+    expect(words(html)).toContain(`Cut · fill ${e.cut.toFixed(1)} · ${e.fill.toFixed(1)} m³`)
+    expect(html).toContain('the slab’s own 300 mm bed (the site scrape under it)')
+    expect(slabBedOnly(63.43, 63.2, 0.3, true)).toBe(true)
+    expect(slabBedOnly(63.51, 63.2, 0.3, true)).toBe(false)
+    // earth to bring in is never the bed, nor is anything without a slab pad
+    expect(slabBedOnly(63.1, 63.2, 0.3, true)).toBe(false)
+    expect(slabBedOnly(63.43, 63.2, 0.3, false)).toBe(false)
+    // A shallower bed (Earthworks › More) lifts the pad: less is dug, and less is left over.
+    const thin = { ...plan, earthworks: { ...plan.earthworks!, slabBed: 0.1 } }
+    const thinEarth = earthOf(thin, survey, terrain)
+    const t = numbersOf(thin, survey, terrain, thinEarth).earth!
+    expect(t.pad).toBeCloseTo(63.1, 9)
+    expect(t.cut).toBeLessThan(e.cut)
+    expect(t.net).toBeLessThan(e.net)
+    expect(t.slabBed).toBe(0.1)
+  })
+
+  it('flags Out of balance with Balance, and Balance sets the hand-worked floor', () => {
+    // Half a metre lower, the floor is dug in well past the slab's own bed.
+    const low = house({ placement: { ...plan.placement, ffl: 62.7 } })
+    usePlan.getState().load(low)
+    const earth = earthOf(low, survey, terrain)
+    const n = numbersOf(low, survey, terrain, earth)
     const e = n.earth!
+    expect(e.bedOnly).toBe(false)
     expect(e.outOfBalance).toBe(true)
-    expect(outOfBalance(plan, earth.prep)).toBe(true)
+    expect(outOfBalance(low, earth.prep)).toBe(true)
     expect(Math.abs(e.balancedRL! - (groundAtCentre + 0.3))).toBeLessThan(0.02)
     expect(e.balancedRL! * 100).toBeCloseTo(Math.round(e.balancedRL! * 100), 9)
 
@@ -308,7 +376,7 @@ describe('retaining walls', () => {
     expect(n.retaining!.length).toBeCloseTo(14, 9)
     expect(n.retaining!.maxHeight).toBe(walls[0].maxHeight)
     expect(n.retaining!.face).toBe(walls[0].faceArea)
-    expect(n.retaining!.engineer).toBe(walls[0].maxHeight >= ENGINEER_HEIGHT)
+    expect(n.retaining!.engineer).toBe(needsEngineer(walls[0].maxHeight))
     expect(words(strip(n))).toContain(`Retained ${walls[0].maxHeight.toFixed(2)} m`)
     expect(strip(n)).toContain(`Holds back up to ${retainedText(walls[0].maxHeight)}`)
   })
@@ -319,7 +387,7 @@ describe('retaining walls', () => {
     ffl: 63.2,
     floors: [],
     earth: null,
-    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: maxHeight >= ENGINEER_HEIGHT },
+    retaining: { count: 1, length: 10, maxHeight, face: 10 * maxHeight, engineer: needsEngineer(maxHeight) },
     roof: null,
     roofs: [],
     roofArea: 0,
@@ -328,11 +396,13 @@ describe('retaining walls', () => {
     placement: null,
   })
 
-  it('asks for an engineer from 600 mm, the figure the checks use', () => {
+  it('asks for an engineer over 600 mm, the figure the checks use', () => {
     expect(ENGINEER_HEIGHT).toBe(0.6)
     expect(words(strip(withWall(1.2)))).toContain('Retained 1.20 m Engineer > 600 mm')
     expect(words(strip(withWall(0.8)))).toContain('Retained 0.80 m Engineer > 600 mm')
-    expect(words(strip(withWall(0.6)))).toContain('Engineer')
+    // "Engineer > 600 mm" means over it: a wall at exactly 0.60 m isn't flagged (DB-23).
+    expect(words(strip(withWall(0.6)))).not.toContain('Engineer')
+    expect(words(strip(withWall(0.61)))).toContain('Engineer > 600 mm')
     expect(words(strip(withWall(0.5)))).not.toContain('Engineer')
   })
 })
@@ -373,16 +443,82 @@ describe('roof height above the ground', () => {
     expect(Math.abs(n.roof!.height - (top - lowest))).toBeLessThan(0.01)
     expect(words(strip(n))).toContain(`Building height ${n.roof!.height.toFixed(2)} m`)
     // "above ground" is in the chip's tip, which says what the number is.
-    expect(strip(n)).toContain('The most a roof rises above the natural ground under it')
+    expect(strip(n)).toContain('The highest point of the roof or walls above the natural ground under it')
     // One roof: the total roof area is its own.
     expect(n.roofs).toHaveLength(1)
-    expect(n.roofArea).toBeCloseTo(n.roof!.area, 9)
+    expect(n.roofArea).toBe(Math.round(n.roof!.area * 10) / 10)
   })
 
-  it('has none to show without a roof', () => {
+  it('has no roof to show without one, and gives the height of the walls', () => {
     const n = numbersOf(house(), survey, terrain, null)
     expect(n.roof).toBeNull()
     expect(words(strip(n))).not.toContain('Roof')
+    expect(words(strip(n))).toContain(`Building height ${n.height!.toFixed(2)} m`)
+    // Nothing drawn: no height.
+    expect(numbersOf(house({ walls: [], rooms: [] }), survey, terrain, null).height).toBeNull()
+  })
+})
+
+describe('one building height', () => {
+  // A two-storey house, with its roof left on the ground floor (inside the upper storey) or with none:
+  // the strip, the Overview and Design › Roofs give the figure Approvals › Checks and Sections do.
+  const hip: Roof = {
+    id: 'roof1',
+    level: L0,
+    pts: [
+      [-0.15, -0.15],
+      [12.15, -0.15],
+      [12.15, 9.15],
+      [-0.15, 9.15],
+    ],
+    type: 'hip',
+    pitch: 22.5,
+    overhang: 0.45,
+    gables: [false, false, false, false],
+    lowEdge: 0,
+    plateLift: 0,
+  }
+  const twoStorey = (roofs: Roof[]): Plan => {
+    const up = addLevelAbove(house()).plan
+    return { ...up, roofs: roofs.map(r => ({ ...r, level: r.level === 'top' ? up.levels[1].id : r.level })) }
+  }
+  const cases: [string, Plan][] = [
+    ['with no roof', twoStorey([])],
+    ['with its roof left on the ground floor', twoStorey([hip])],
+    ['with its roof on the upper floor', twoStorey([{ ...hip, level: 'top' }])],
+  ]
+
+  it.each(cases)('is the same in the strip, the Overview, Roofs, Checks and Sections %s', (_, plan) => {
+    const n = numbersOf(plan, survey, terrain, null)
+    const ms = measure({ plan, survey, terrain, earth: null })
+    expect(n.height).toBe(ms.height)
+    expect(n.height).toBe(buildingHeight(plan, survey, terrain))
+    expect(n.height).toBe(houseHeight(plan, survey, terrain))
+    // The walls of the upper storey stand 2 × 2.7 + 0.3 = 5.7 m over the floor: a roof-only figure would miss them.
+    expect(n.height!).toBeGreaterThan(5.7)
+    const figure = `${ms.height.toFixed(2)} m`
+    expect(words(strip(n))).toContain(`Building height ${figure}`)
+    expect(words(renderToStaticMarkup(<OverviewSheet numbers={n} stats={terrain.stats} onClose={() => {}} onBalance={() => {}} />))).toContain(figure)
+    const check = runChecks(ms, 'cdc').find(r => r.id === 'hc-height')!
+    expect(`${check.value} ${check.note}`).toContain(`${figure} above existing ground`)
+    usePlan.getState().load(plan)
+    Object.assign(usePlan.getInitialState(), usePlan.getState())
+    const Roofs = TAB_PANELS['design/roofs']
+    const tab = words(
+      renderToStaticMarkup(
+        <ShellContext.Provider value={shellData(null)}>
+          <Roofs />
+        </ShellContext.Provider>,
+      ),
+    )
+    expect(tab).toContain(`Building height ${figure}`)
+  })
+
+  it('counts a roof on the top storey as the highest point', () => {
+    const plan = cases[2][1]
+    const n = numbersOf(plan, survey, terrain, null)
+    expect(n.height).toBe(n.roof!.height)
+    expect(n.height!).toBeGreaterThan(numbersOf(cases[0][1], survey, terrain, null).height!)
   })
 })
 
@@ -417,7 +553,9 @@ describe('chips step back when the number is already in view (CALM 5)', () => {
   it('keeps chips as buttons otherwise', () => {
     const html = strip(n)
     expect(html).not.toContain('chip ghost')
-    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(2)
+    // Floor, floor level, Building height (walls have a height before they have a roof), and cut and fill:
+    // this floor's leftover is only the slab's own bed, so it's a plain chip.
+    expect((html.match(/<button class="chip"/g) ?? []).length).toBe(4)
   })
 })
 
@@ -541,6 +679,8 @@ describe('the panels', () => {
     Object.assign(usePlan.getInitialState(), usePlan.getState())
     const inspector = words(renderToStaticMarkup(<SelectionPanel plan={plan} survey={survey} terrain={terrain} earth={earth} />))
     expect(inspector).toMatch(/^Room Area 101\.79 m²/)
+    // And its clear size, wall face to wall face (DB-35).
+    expect(inspector).toContain('Inside size 11700 × 8700 mm')
     const Rooms = TAB_PANELS['design/rooms']
     const rooms = words(
       renderToStaticMarkup(
@@ -549,7 +689,8 @@ describe('the panels', () => {
         </ShellContext.Provider>,
       ),
     )
-    expect(rooms).toContain('Living 101.79 m²')
+    // The list gives the clear size ahead of the area.
+    expect(rooms).toContain('Living 11700 × 8700 · 101.79 m²')
   })
 
   it("show a retaining wall's own panel in Earthworks › Retaining walls when it is selected, and the list otherwise", () => {
@@ -587,5 +728,21 @@ describe('the panels', () => {
     // the same panel the plan's inspector shows
     const inspector = words(renderToStaticMarkup(<SelectionPanel plan={walled} survey={survey} terrain={terrain} earth={e} />))
     expect(inspector).toContain('How high is the earth behind it?')
+  })
+})
+
+describe('the strip waits for a closed outline (HO-04, CB-36)', () => {
+  it('counts nothing while the first outline is still open', () => {
+    const one = house({ walls: house().walls.slice(0, 1), rooms: [] })
+    expect(floorDrawn(one)).toBe(true)
+    expect(outlineClosed(one)).toBe(false)
+    expect(stripWaitText(one)).toContain('once the outline is closed')
+    const three = house({ walls: house().walls.slice(0, 3), rooms: [] })
+    expect(outlineClosed(three)).toBe(false)
+    expect(outlineClosed(house({ rooms: [] }))).toBe(true)
+    expect(outlineClosed(house())).toBe(true)
+    const none = house({ walls: [], rooms: [] })
+    expect(outlineClosed(none)).toBe(false)
+    expect(stripWaitText(none)).toBe('Key numbers show here once a floor is drawn.')
   })
 })

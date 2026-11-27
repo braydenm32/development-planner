@@ -11,9 +11,10 @@ import type { Measures } from '../../checks/measure'
 import { CDC_LAND, CDC_LAND_MAPPED, controlCount, NEED_FRONT, notChecked } from '../../checks/rules'
 import { setTreeRemoval, useUnsizedTrees } from '../../checks/siteTrees'
 import { activeCouncil, checkSettingsOf, COUNCILS, type Council } from '../../checks/councils'
-import { checkedAgainst, mapCouncil, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
+import { checkedAgainst, mapCouncil, NEED_COUNCIL, PATHWAY_LABEL, PATHWAY_MEANS, pathwayLong, setCheckSettings, setRoute } from '../../checks/settings'
 import type { CheckResult, CheckSettings, Pathway } from '../../checks/types'
 import { useChecks, type Checks as ChecksData } from '../../checks/useChecks'
+import { Termed } from '../../guide/Term'
 import { foldedText, groupBadges, groupChecks, isLoud, pinNumbers, verdictOf, WORD_OF, WORD_TEXT, type Group } from '../../checks/topics'
 import { fixOf, targetOf, type CheckTarget } from '../../checks/targets'
 import { routeDifferences } from '../../checks/differ'
@@ -23,9 +24,13 @@ import { TreeRemoval } from '../../checks/TreeRemoval'
 import { useMap } from '../../map/store'
 import { navigate } from '../../nav/router'
 import { usePlan } from '../../plan/store'
+import { compassOf, edgeBearings } from '../../plan/streetSide'
+import { useProjects } from '../../projects/session'
+import { setSketchStreet } from '../../start/sketchStreet'
 import { Caveat } from '../../legal/Caveat'
 import { pickTool, useLoaded, type Loaded } from '../useSite'
 import { Waiting } from './Waiting'
+import { usePhone } from '../../phone/device'
 import { goToStreetSide } from '../../phone/streetSideWords'
 import { DriveFromSlab } from '../../components/DriveFromSlab'
 import '../../checks/checks.css'
@@ -49,6 +54,7 @@ function drawDriveway() {
 }
 
 function Checks({ d }: { d: Loaded }) {
+  const phone = usePhone()
   const c = useChecks(d.plan, d.survey, d.terrain, d.earth)
   const unsized = useUnsizedTrees()
   const groups = useMemo(() => groupChecks(c.results), [c.results])
@@ -100,9 +106,10 @@ function Checks({ d }: { d: Loaded }) {
   return (
     <div className="checks">
       <DemFlag what="the checks that use ground levels (height, cut and fill, retaining walls)" />
-      <RouteControl c={c} />
+      {/* A phone's sheet shows a few lines: the verdict leads them, and the route picker follows it (PH-33). */}
+      {!phone && <RouteControl c={c} />}
       <section className="checks-verdict" aria-live="polite" aria-label="What the checks say">
-        <h4>
+        <h3>
           <span className="cv-route">{route}:</span>{' '}
           {verdict.head.map((h, i) => (
             <span key={h.word} className={`cv-${h.word}`}>
@@ -110,14 +117,16 @@ function Checks({ d }: { d: Loaded }) {
               {h.text}
             </span>
           ))}
-        </h4>
+        </h3>
         <p className="muted">{verdict.rest.join(' · ')}</p>
         <MiniPlan ms={c.measures} />
         {pins.length > 0 && <p className="muted small checks-mini-hint">Tap a pin to see that check in the list.</p>}
       </section>
+      {phone && <RouteControl c={c} />}
       {c.pathway === 'cdc' && (
         <p className="checks-land" role="note">
-          {c.planning ? CDC_LAND_MAPPED : CDC_LAND}
+          {/* "section 10.7 planning certificate" explains itself on hover, focus or a tap. */}
+          <Termed text={c.planning ? CDC_LAND_MAPPED : CDC_LAND} only={['planning-certificate']} />
         </p>
       )}
       <div className="check-groups" ref={list}>
@@ -260,7 +269,8 @@ export function CheckRow({ r, n, placed = false, differ, children }: { r: CheckR
           {r.value && r.limit && <span className="muted"> · </span>}
           {r.limit && (
             <span className="check-limit">
-              <span className="muted">Allowed </span>
+              {/* "Rule:", not "Allowed": several limits are sentences ("Over 600 mm needs an engineer…") that read as their opposite after "Allowed". */}
+              <span className="muted">Rule: </span>
               {r.limit}
             </span>
           )}
@@ -297,14 +307,20 @@ export function CheckRow({ r, n, placed = false, differ, children }: { r: CheckR
 function RouteControl({ c }: { c: ChecksData }) {
   const fromMap = useMap(st => mapCouncil(st.place?.planning))
   const pick = useRef<HTMLSelectElement>(null)
+  // DA was picked with no council to check against: the switch can't move, so it says why (it used to do nothing visible).
+  const [needCouncil, setNeedCouncil] = useState(false)
   const chooseDa = () => {
     const k = c.council ?? fromMap
     if (k) setRoute('da', k.id)
-    else pick.current?.focus()
+    else {
+      setNeedCouncil(true)
+      pick.current?.focus()
+    }
   }
   const coverage = c.council ? controlCount(c.council) : null
   return (
-    <div className="checks-route">
+    // The route is a way of reading the checks, not a change to the plan: it stays live in a phone's View.
+    <div className="checks-route" data-view-reads>
       <div className="cr-row">
         <span className="cr-label">Approval route</span>
         <div className="segmented-choice" role="radiogroup" aria-label="Approval route">
@@ -314,10 +330,14 @@ function RouteControl({ c }: { c: ChecksData }) {
               role="radio"
               aria-checked={c.pathway === p}
               className={c.pathway === p ? 'on' : ''}
-              onClick={() => (p === 'cdc' ? setRoute('cdc') : chooseDa())}
+              onClick={() => {
+                if (p === 'da') return chooseDa()
+                setNeedCouncil(false)
+                setRoute('cdc')
+              }}
               title={pathwayLong(p, p === 'da' ? (c.council ?? fromMap) : null)}
             >
-              {p.toUpperCase()}
+              {PATHWAY_LABEL[p]}
             </button>
           ))}
         </div>
@@ -334,6 +354,12 @@ function RouteControl({ c }: { c: ChecksData }) {
           </select>
         </label>
       </div>
+      <p className="muted small">{PATHWAY_MEANS[c.pathway]}</p>
+      {needCouncil && !c.council && (
+        <p className="notice small cr-need" role="status">
+          {NEED_COUNCIL}
+        </p>
+      )}
       <p className="muted small">
         {checkedAgainst(c.pathway, c.council)}
         {c.pathway === 'da' && coverage && coverage.have < coverage.of ? `: ${coverage.have} of its ${coverage.of} controls so far` : ''}.
@@ -386,6 +412,7 @@ function MapFact({ what }: { what: 'fsr' | 'height' }) {
 /** The lot's facts the survey doesn't hold, as the last group: open while the street side isn't set. */
 function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: CheckSettings; council: Council | null; pathway: Pathway; open?: boolean; onToggle: (open: boolean) => void }) {
   const needsFront = s.frontEdge === undefined
+  const sketch = useProjects().opened?.survey?.sketch
   const da = pathway === 'da' && !!council
   const missing = [needsFront, da && !!council?.fsr && s.lepFsr === undefined, da && !!council?.height && s.lepHeight === undefined].filter(Boolean).length
   const shown = open ?? needsFront
@@ -413,7 +440,12 @@ function LotFacts({ m, s, council, pathway, open, onToggle }: { m: Measures; s: 
             label={s.battleAxe ? 'Faces the lot in front' : 'Faces the street'}
             value={s.frontEdge ?? -1}
             options={edgeOptions}
-            onChange={v => setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })}
+            onChange={v => {
+              // On a sketch block the street is part of the sketch: the same setting as Site › Block's, through its review.
+              const facing = v < 0 ? null : edgeBearings(m.edges.map(e => e.a))[v]
+              if (sketch) return facing !== null && facing !== undefined ? setSketchStreet(sketch, compassOf(facing)) : undefined
+              setCheckSettings({ frontEdge: v < 0 ? undefined : v, rearEdge: undefined })
+            }}
           />
           <p className="muted small">
             The same as the street side in{' '}

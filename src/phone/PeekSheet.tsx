@@ -1,6 +1,7 @@
-// "Key numbers": a small sheet at the bottom of the plan and the 3D view on a phone. A tap,
-// or a pull up, opens the Overview with every number. Each number comes from the same helper,
-// in the same format, as the strip and the Overview (CALM 8).
+// "Key numbers": a small sheet at the bottom of the plan and the 3D view on a phone. It has three
+// stops (./peekSize.ts): one line, the card, and the Overview with every number. A tap opens the
+// Overview; a pull goes a stop up or down. Each number comes from the same helper, in the same
+// format, as the strip and the Overview (CALM 8).
 
 import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { RAMP_CSS } from '../lib/colors'
@@ -8,11 +9,11 @@ import type { SiteStats } from '../lib/terrain'
 import { Icon } from '../nav/icons'
 import { shortMoney } from '../costs/format'
 import { m2, netText } from '../shell/format'
-import { floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
+import { checksName, floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
 import type { KeyNumbers } from '../shell/useKeyNumbers'
+import { peekRelease, type PeekSize } from './peekSize'
 
-/** How far up a pull has to go before letting go opens every number, in px. */
-export const PULL_TO_OPEN = 48
+export { PULL_TO_OPEN } from './peekSize'
 
 interface Props {
   numbers: KeyNumbers
@@ -22,6 +23,8 @@ interface Props {
   /** One line, while editing (the tools need the height) or with the phone turned sideways. */
   slim?: boolean
   onOpen: () => void
+  /** Pulled to another size: up from the line to the card, down from the card to the line. Left out where it can't change. */
+  onSize?: (size: PeekSize) => void
   /** Its height as it changes, so the plan and the 3D camera can keep clear of it. */
   onHeight?: (h: number) => void
   /** Easements and tree zones the plan reaches into (Site features' amber warnings). */
@@ -34,7 +37,7 @@ interface Props {
   readOnly?: boolean
 }
 
-export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHeight, checks = 0, verdict, cost, readOnly = false }: Props) {
+export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onSize, onHeight, checks = 0, verdict, cost, readOnly = false }: Props) {
   const [pull, setPull] = useState(0)
   const start = useRef<{ y: number; id: number } | null>(null)
   const moved = useRef(false)
@@ -71,8 +74,8 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
     if (!s || s.id !== e.pointerId) return
     const dy = e.clientY - s.y
     if (Math.abs(dy) > 6) moved.current = true
-    // The sheet follows the finger up, and resists going down.
-    setPull(dy < 0 ? Math.min(-dy, 160) : -Math.min(dy, 40) * 0.3)
+    // The sheet follows the finger up; down, the card follows it towards its line, and the line resists.
+    setPull(dy < 0 ? Math.min(-dy, 160) : onSize && !slim ? -Math.min(dy, 120) : -Math.min(dy, 40) * 0.3)
   }
   const up = (e: ReactPointerEvent<HTMLDivElement>) => {
     const s = start.current
@@ -80,10 +83,13 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
     if (!s || s.id !== e.pointerId) return
     const pulled = s.y - e.clientY
     setPull(0)
-    if (!moved.current || pulled >= PULL_TO_OPEN) onOpen()
+    const what = peekRelease(pulled, moved.current, slim, !!onSize)
+    if (what === 'open') onOpen()
+    else if (what !== 'stay') onSize?.(what)
   }
 
-  const roof = n.roof ? `${n.roof.height.toFixed(2)} m` : 'No roof yet'
+  // Building height: roofs and wall tops, the figure the checks give.
+  const roof = n.height != null ? `${n.height.toFixed(2)} m` : 'No walls yet'
   const floors = floorsText(n.floors, n.ffl)
   // Easements and tree zones first (Site › Features says which), then the balance, then batters.
   const checkText = readOnly ? `${checks} to check: easements and tree zones` : `${checks} to check in Site features`
@@ -107,9 +113,10 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
     <div
       ref={ref}
       className={`peek-sheet${slim ? ' slim' : ''}${warn ? ' warned' : ''}${pull ? ' pulling' : ''}`}
-      role="button"
-      tabIndex={0}
-      aria-label={`${title}: key numbers. Open every number`}
+      // A region, not one big button: a button flattens the heading and the list inside it for a
+      // screen reader. A tap or a pull anywhere still opens it; the handle is the button by name.
+      role="region"
+      aria-label={title}
       style={pull ? { transform: `translateY(${-pull}px)` } : undefined}
       onPointerDown={down}
       onPointerMove={move}
@@ -118,14 +125,9 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
         start.current = null
         setPull(0)
       }}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen()
-        }
-      }}
     >
-      <div className="sheet-grab" aria-hidden="true" />
+      {/* A click with no pointer (Enter, Space, a switch) is the keyboard's; a tap is already the sheet's own. */}
+      <button type="button" className="sheet-grab" aria-label={`${title}. Open the overview`} onClick={e => e.detail === 0 && onOpen()} />
       <div className="peek-line" aria-hidden={!slim}>
         {warn && <i className="peek-dot" title={warnTitle} />}
         <span>
@@ -150,9 +152,9 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
         <span>
           {floorsLabel(n.floors)} <b>{floors}</b>
         </span>
-        {n.roof && (
+        {n.height != null && (
           <span>
-            Height <b>{n.roof.height.toFixed(2)} m</b>
+            Height <b>{n.height.toFixed(2)} m</b>
           </span>
         )}
         <Icon name="chevU" size={16} />
@@ -160,7 +162,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
       <div className="peek-head">
         <h2>{title}</h2>
         <span className="muted">
-          Pull up for every number <Icon name="chevU" size={14} />
+          {onSize ? 'Tap for every number' : 'Pull up for every number'} <Icon name="chevU" size={14} />
         </span>
       </div>
       <dl className="peek-numbers">
@@ -182,7 +184,7 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onHe
         <div className="peek-verdicts">
           {verdict && (
             <div className={`peek-tile w-${verdict.word}`}>
-              <span data-term={verdict.term}>{verdict.name === 'CDC' ? 'Fast-track (CDC) checks' : 'Council (DA) checks'}</span>
+              <span data-term={verdict.term}>{checksName(verdict.name)}</span>
               <b>{verdict.head}</b>
               {verdict.rest && <small>{verdict.rest}</small>}
             </div>

@@ -53,5 +53,13 @@ usePlan.subscribe((s, prev) => {
   if (!s.plan || !prev.plan || s.plan === prev.plan) return
   const undone = s.plan === prev.past[prev.past.length - 1] && s.future[0] === prev.plan
   const redone = s.plan === prev.future[0] && s.past[s.past.length - 1] === prev.plan
-  if (undone || redone) showUndoneLevel(prev.plan, s.plan, undone ? 'Undone' : 'Redone')
+  if (!undone && !redone) return
+  // The step took away the level that was showing (the store has already gone to the nearest one left): say so.
+  const gone = prev.plan.levels.find(l => l.id === prev.activeLevel)
+  const now = s.plan.levels.find(l => l.id === s.activeLevel)
+  if (gone && now && gone.id !== now.id && !s.plan.levels.some(l => l.id === gone.id)) {
+    showToast({ text: `${undone ? 'Undone' : 'Redone'}: ${gone.name} is gone, so ${now.name} is showing now.` })
+    return
+  }
+  showUndoneLevel(prev.plan, s.plan, undone ? 'Undone' : 'Redone')
 })

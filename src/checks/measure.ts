@@ -8,14 +8,17 @@ import { bounds, pointInPolygon, signedArea, unionArea, type Vec2 } from '../lib
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { buildingOutline, planarFaces } from '../plan/geometry'
-import { levelSummaries, roofAboveGround, sideLabel } from '../plan/keyNumbers'
+import { buildingHeight, floorAreasOf, levelSummaries, roomsTotal, sideLabel } from '../plan/keyNumbers'
 import { areaKind, earthworksOf, houseWalls, sortedLevels, toSite, type Plan } from '../plan/model'
 import { driveLines, type DriveLine } from '../plan/crossing'
 import { driveGround } from '../plan/driveway'
 import { boundaryClearances, outsideLot, signedClearance, type BoundaryClearance } from '../plan/placement'
 import { retainingProfiles } from '../plan/retaining'
+import { impliedWalls } from '../grading/implied'
+import type { WallStrip } from '../lib/terrainMesh'
+import type { Earth } from '../plan/useEarthworks'
+import { segmentsOf } from '../grading/suggest'
 import { roofGeometry } from '../plan/roof'
-import { wallTopRL } from '../plan/roofline'
 import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
 import { earthSource, worksNearBoundary, type EarthSource, type NearBoundary } from './earthSources'
@@ -90,6 +93,8 @@ export interface WallNumbers {
   /** Its ends (site frame), for the spacing between walls and the pins on the plan. */
   a: Vec2
   b: Vec2
+  /** Not drawn: a wall the earthworks imply (src/grading/implied.ts). */
+  implied?: true
 }
 
 export interface Measures {
@@ -108,6 +113,12 @@ export interface Measures {
   /** Floor area to the outside of the walls, every level (m²). The rooms' own areas are a lower bound. */
   grossArea: number
   roomsArea: number
+  /**
+   * Gross floor area as the rules count it (m²): inside the outside walls, less one car space of
+   * garage (src/plan/keyNumbers.ts, floorAreasOf). `garageSpace` is what was left out.
+   */
+  gfa: number
+  garageSpace: number
   /** Area the house covers in plan (m²). */
   footprint: number
   /** Area under the house, slabs, driveways and decks together (m²). */
@@ -125,6 +136,11 @@ export interface Measures {
   slopePct: number
   earth: EarthNumbers | null
   walls: WallNumbers[]
+  /**
+   * The walls the earthworks imply but nobody has drawn (vertical edges of the cut and fill, the
+   * step between two pads): counted by the retaining wall rows as the strip and Costs count them.
+   */
+  implied: WallNumbers[]
   /** Ground-floor outline rings in the survey's local frame. */
   groundOutline: Vec2[][]
   /** Every level's outline rings, in the survey's local frame. */
@@ -299,30 +315,14 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
   }
 }
 
-/** The highest point of the house above the natural ground: the roofs, and the tops of its walls. */
-export function houseHeight(plan: Plan, survey: Survey, terrain: Terrain): number {
-  let h = 0
-  for (const r of plan.roofs) {
-    const g = roofGeometry(r)
-    if (!g.error) h = Math.max(h, roofAboveGround(plan, r, g, survey, terrain))
-  }
-  for (const w of houseWalls(plan.walls)) {
-    const level = plan.levels.find(l => l.id === w.level)
-    if (!level) continue
-    const top = wallTopRL(plan, w)
-    for (const p of [w.a, w.b]) {
-      const s = toSite(p, plan.placement, survey.origin)
-      h = Math.max(h, top - terrain.grid.sample(s[0], s[1]))
-    }
-  }
-  return h
-}
+/** The house's highest point above the natural ground under it: the app's one building height (see buildingHeight). */
+export const houseHeight = buildingHeight
 
 export interface MeasureInput {
   plan: Plan
   survey: Survey
   terrain: Terrain
-  earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[] } | null
+  earth: { prep: PreparedEarthworks; result: EarthworksResult; platforms: unknown[]; strips?: WallStrip[] } | null
   trees?: CheckTree[]
   sun?: SunFacts | null
   /** The ground is the state's elevation data, not a survey, so it doesn't give the street's level at the boundary. */
@@ -379,8 +379,20 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     return { id: p.wall.id, height: p.maxHeight, toBoundary: Math.max(0, d - p.wall.thickness / 2), a, b: z }
   })
 
+  // The earthworks as the app holds them (with the retaining walls' strips); a bare result has no walls drawn.
+  const whole = earth ? (earth.strips ? (earth as Earth) : ({ ...earth, strips: [] } as Earth)) : null
+  const implied = impliedWalls(survey, whole).map((w, i): WallNumbers => {
+    let d = Infinity
+    for (const [p, q] of segmentsOf(w.path)) {
+      const steps = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.25))
+      for (let s = 0; s <= steps; s++) d = Math.min(d, distToRing([p[0] + ((q[0] - p[0]) * s) / steps, p[1] + ((q[1] - p[1]) * s) / steps], b))
+    }
+    return { id: `implied:${i}`, height: w.height, toBoundary: Math.max(0, d), a: w.a, b: w.b, implied: true }
+  })
+
   const out = outsideLot(all, pl, survey)
-  const roomsArea = summaries.reduce((t, s) => t + s.rooms.reduce((u, r) => u + (r.area ?? 0), 0), 0)
+  const roomsArea = summaries.reduce((t, s) => t + roomsTotal(s.rooms), 0)
+  const floors = floorAreasOf(summaries)
   return {
     settings,
     lotArea: Math.abs(signedArea(b)),
@@ -389,8 +401,10 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     hasRoof: plan.roofs.some(r => !roofGeometry(r).error),
     hasRooms: roomsArea > 0,
     outside: out.any ? { by: out.by, all: out.all } : null,
-    grossArea: summaries.reduce((t, s) => t + s.gross.area, 0),
+    grossArea: floors.outside,
     roomsArea,
+    gfa: floors.gfa,
+    garageSpace: floors.carSpace,
     footprint: all.length ? unionArea(all) : 0,
     hardArea: all.length || hardPolys.length ? unionArea([...all, ...hardPolys]) : 0,
     height: houseHeight(plan, survey, terrain),
@@ -400,6 +414,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     // "Outside the house" is outside every level's outline: a split level's own slab is under the house too.
     earth: earth && earth.platforms.length ? earthNumbers(plan, earth.prep, earth.result, b, all.map(site), settings.battleAxe ? undefined : front) : null,
     walls,
+    implied,
     groundOutline,
     outlines: all.map(site),
     works: worksOf(plan, survey.origin),

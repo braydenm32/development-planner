@@ -69,6 +69,17 @@
   color: var(--muted);
 }
 
+/* What a page that isn't drawn yet offers, under its row and in line with its name. */
+.app-shell .pdf-pages .pdf-page-do {
+  justify-self: start;
+  margin: -2px 0 4px 28px;
+}
+
+.app-shell .pdf-go .pdf-scale-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .app-shell .pdf-go {
   display: flex;
   flex-wrap: wrap;

@@ -188,7 +188,8 @@
   background: #fcfcfd;
 }
 
-@media (max-width: 760px), (pointer: coarse) {
+/* The phone layout (PHONE_QUERY in src/phone/device.ts): a narrow window, or a touch screen up to a tablet held upright. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1079px) {
   .shared-skeleton .summary-strip {
     display: none;
   }
@@ -237,6 +238,13 @@
 
 .shared-trouble-card .muted {
   color: var(--t-muted);
+}
+
+/* The way to the planner's front page. */
+.shared-trouble-card a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .shared-trouble-card .small {

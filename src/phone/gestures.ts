@@ -46,6 +46,23 @@ export const DOUBLE_TAP_PX = 30
 /** A double tap zooms in this much. */
 export const DOUBLE_TAP_ZOOM = 2
 
+/** How much of the room left clear the fitted house takes on a phone (a computer leaves more air: 0.75). */
+export const PHONE_FIT = 0.88
+
+/** How near a wall a finger's tap picks it, in pixels (a mouse: 3). At a phone's fitted zoom inside walls are 1 px wide (PH-12). */
+export const TOUCH_PICK_PX = 12
+
+/**
+ * A sheet `sheet` px tall has opened over the foot of a canvas `height` px tall, whose top `top` px
+ * are covered too. How far the plan slides up so that what was tapped at `y` sits in the middle of
+ * the part left clear; 0 where the tap is well clear of the sheet already.
+ */
+export function clearOfSheet(y: number, height: number, top: number, sheet: number): number {
+  const edge = height - sheet
+  if (sheet <= 0 || y < edge - 24) return 0
+  return Math.round(y - (top + edge) / 2)
+}
+
 export const clampK = (k: number) => Math.min(Math.max(k, K_MIN), K_MAX)
 
 /** The point of the plan (house frame) under a point on the screen. */

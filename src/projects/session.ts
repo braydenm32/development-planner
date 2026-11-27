@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { SavedProject, ViewSettings } from '../lib/storage'
 import { normalizePlan, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
+import { textEntry } from '../nav/keys'
 import type { PrintPrefs } from '../print/prefs'
 import { legacySource, migrateLegacy } from './legacy'
 import { askToKeep, isKept, localFlags } from './keep'
@@ -11,7 +12,7 @@ import { createMemoryProjectStore } from './memoryStore'
 import { archiveProject, createFromProjectFile, deleteProject, duplicateProject, freeName, renameProject, restoreProject } from './ops'
 import { withWriteQueue, type QueuedProjectStore } from './queue'
 import { projectNumbers, projectThumbnail, type SiteForSummary } from './summary'
-import { NotArchivedError, type MetaPatch, type ProjectChange, type ProjectMeta, type ProjectRecords, type ProjectStore } from './types'
+import { NotArchivedError, StaleProjectError, type MetaPatch, type ProjectChange, type ProjectMeta, type ProjectRecords, type ProjectStore } from './types'
 
 /** Per-project choices: the last view and the print settings, and where the new layout was left. */
 export interface ProjectPrefs {
@@ -47,6 +48,11 @@ export interface ProjectsState {
   memoryOnly: boolean
   /** The browser has agreed to keep what's saved even when space runs short (null: it hasn't said). */
   persisted: boolean | null
+  /**
+   * The open project was saved from another tab while changes here weren't saved yet. Nothing
+   * more is saved from this tab until one version is chosen (`otherTab.useNewer` / `keepMine`).
+   */
+  conflict: { id: string; name: string } | null
 }
 
 const useProjectsStore = create<ProjectsState>(() => ({
@@ -57,12 +63,15 @@ const useProjectsStore = create<ProjectsState>(() => ({
   saveError: null,
   memoryOnly: false,
   persisted: null,
+  conflict: null,
 }))
 
 /** The projects as they are now, outside React (after an await, say). */
 export const projectsNow = () => useProjectsStore.getState()
 
 let local: LocalProjectStore | null = null
+/** `local`, as cloud sync sees it (see projectSync.local). */
+let syncLocal: LocalProjectStore | null = null
 let store: QueuedProjectStore = withWriteQueue(createMemoryProjectStore())
 
 // ---------------------------------------------------------------------------
@@ -121,6 +130,7 @@ async function save(id: string, change: ProjectChange): Promise<void> {
     keepSaved()
   } catch (e) {
     if (!get().list.some(m => m.id === id)) return // deleted meanwhile; nothing to keep
+    if (e instanceof StaleProjectError) return // another tab saved since: `changedElsewhere` deals with it
     set({ saveError: (e as Error)?.message || 'The browser refused to save.' })
   }
 }
@@ -141,6 +151,15 @@ function summaryFor(id: string, plan: Plan | null): MetaPatch {
   }
 }
 
+// Records that go in the same write as the plan: its undo history (./undoHistory.ts), so a
+// reload straight after an Undo finds the two in step and Redo is still there.
+let besidePlan: ((id: string) => Record<string, unknown> | null) | null = null
+
+/** Write these records with each plan save (`fn` gives what is waiting for a project, or null). */
+export function saveBesidePlan(fn: (id: string) => Record<string, unknown> | null) {
+  besidePlan = fn
+}
+
 /** Save the plan edit that is waiting, now. */
 export function flushPlan(): Promise<void> {
   clearTimeout(timer)
@@ -148,7 +167,7 @@ export function flushPlan(): Promise<void> {
   pendingPlan = null
   if (!job) return Promise.resolve()
   const name = job.plan.name?.trim()
-  return save(job.id, { records: { plan: job.plan }, meta: { ...summaryFor(job.id, job.plan), ...(name ? { name } : {}) } })
+  return save(job.id, { records: { plan: job.plan, ...besidePlan?.(job.id) }, meta: { ...summaryFor(job.id, job.plan), ...(name ? { name } : {}) } })
 }
 
 usePlan.subscribe((state, prev) => {
@@ -167,17 +186,37 @@ usePlan.subscribe((state, prev) => {
   timer = setTimeout(() => void flushPlan(), 400)
 })
 
+/**
+ * Leaving the page (closing or reloading it, or hiding its tab): a box being typed in keeps its
+ * value first, as it would on losing focus (src/components/fields.tsx), so what was typed is
+ * saved too; then the plan edit waiting goes now, without its 400 ms wait, with the undo history
+ * beside it. Returns the box, so focus can go back to it when the tab shows again.
+ */
+export function leavePage(active: Element | null = typeof document === 'undefined' ? null : document.activeElement): HTMLElement | null {
+  const box = active && textEntry(active) ? (active as HTMLElement) : null
+  box?.blur()
+  void flushPlan()
+  void store.flush()
+  return box
+}
+
 if (typeof window !== 'undefined') {
-  const now = () => {
-    void flushPlan()
-    void store.flush()
-  }
+  let typingIn: HTMLElement | null = null
   window.addEventListener('pagehide', () => {
-    now()
+    leavePage()
     void finishDelete()
   })
+  // By pagehide a reload has already taken focus out of the box without the box hearing it, so
+  // what was typed is kept a step earlier. Listened for only while typing: a beforeunload
+  // listener can keep a page out of the browser's back/forward cache.
+  const beforeLeaving = () => void leavePage()
+  document.addEventListener('focusin', e => textEntry(e.target) && window.addEventListener('beforeunload', beforeLeaving))
+  document.addEventListener('focusout', e => textEntry(e.target) && window.removeEventListener('beforeunload', beforeLeaving))
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') now()
+    if (document.visibilityState === 'hidden') typingIn = leavePage()
+    // Back to the tab: back in the box, as the browser would have left it.
+    else if (typingIn?.isConnected) typingIn.focus({ preventScroll: true })
+    if (document.visibilityState !== 'hidden') typingIn = null
   })
 }
 
@@ -236,12 +275,23 @@ let booting: Promise<void> | null = null
 
 async function boot() {
   try {
-    local = createLocalProjectStore()
+    const made = createLocalProjectStore()
+    local = made
+    syncLocal = {
+      ...made,
+      putWhole: async (meta, records, ifRevision) => {
+        const w = await made.putWhole(meta, records, ifRevision)
+        if (w && base?.id === w.id) base = { id: w.id, edits: w.edits ?? 0 }
+        return w
+      },
+    }
     const queued = withWriteQueue(watched(local))
     await queued.list() // throws if IndexedDB is unavailable
     store = queued
+    listenToOtherTabs()
   } catch {
     local = null
+    syncLocal = null
     set({ memoryOnly: true })
   }
   if (local) {
@@ -281,12 +331,20 @@ export async function openProject(id: string): Promise<void> {
   await flushPlan()
   // Cloud sync brings it up to date first, when it can (it gives up quickly offline).
   if (beforeOpen && !reloading) await beforeOpen(id).catch(() => {})
-  const [meta, records] = await Promise.all([store.get(id), store.read(id)])
+  let [meta, records] = await Promise.all([store.get(id), store.read(id)])
+  // Another tab saving between the two reads would leave them out of step: read again.
+  for (let tries = 0; tries < 3 && meta; tries++) {
+    const again = await store.get(id)
+    if (again?.revision === meta.revision) break
+    ;[meta, records] = [again, await store.read(id)]
+  }
   if (!meta || !records) throw new Error('That project is no longer here.')
   loadIntoEditor(records.plan, meta.name)
   upsert(meta)
+  base = { id, edits: meta.edits ?? 0 }
   set({
     currentId: id,
+    conflict: null,
     opened: {
       id,
       survey: (records.survey as SavedProject | undefined) ?? null,
@@ -302,7 +360,8 @@ export async function openProject(id: string): Promise<void> {
 async function closeProject() {
   await flushPlan()
   loadIntoEditor(null, '')
-  set({ currentId: null, opened: null })
+  base = null
+  set({ currentId: null, opened: null, conflict: null })
   loadKinds(null)
   writePointer(null)
 }
@@ -492,26 +551,170 @@ function watched(s: LocalProjectStore): ProjectStore {
     create: async init => {
       const meta = await s.create(init)
       tell({ op: 'create', id: meta.id })
+      announce(meta.id)
       return meta
     },
     save: async (id, change) => {
-      const meta = await s.save(id, change)
+      let meta: ProjectMeta
+      try {
+        // The open project is written only while no other tab has saved an edit to it since this one last looked.
+        meta = await s.save(id, base?.id === id ? { ...change, ifEdits: base.edits } : change)
+      } catch (e) {
+        if (e instanceof StaleProjectError) void changedElsewhere(id, e.stored, change.touch !== false)
+        throw e
+      }
+      if (base?.id === id) base = { id, edits: meta.edits ?? 0 }
       tell({ op: 'save', id, kinds: Object.keys(change.records ?? {}) })
+      announce(id)
       return meta
     },
     remove: async id => {
       await s.remove(id)
       tell({ op: 'remove', id })
+      announce(id)
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// The same project open in two tabs. Each tab keeps its own copy in memory and writes whole
+// records, so without this the last tab to save would win and the other's work would go without
+// a word. Every write is announced to the other tabs (BroadcastChannel), which look at the stored
+// project; a tab also looks when it comes back into view, and the store itself refuses a write
+// made from an older copy (`ifEdits`), so a tab that missed the news still can't save over newer work.
+
+/** The open project's `edits` as this tab last read or wrote it. */
+let base: { id: string; edits: number } | null = null
+let channel: BroadcastChannel | null = null
+let tookNewer: ((name: string) => void) | null = null
+
+const CHANNEL = 'block-and-house-planner:projects'
+
+/** Tell the other tabs that a project was written (or removed). */
+function announce(id: string) {
+  try {
+    channel?.postMessage({ id })
+  } catch {
+    // the other tabs still find out when they come back into view, or try to save
+  }
+}
+
+function listenToOtherTabs() {
+  if (channel || typeof BroadcastChannel === 'undefined') return
+  try {
+    channel = new BroadcastChannel(CHANNEL)
+    channel.onmessage = e => {
+      const id = (e.data as { id?: unknown } | null)?.id
+      if (typeof id === 'string') void lookAgain(id)
+    }
+    // Under Node (tests) an open channel would keep the process alive.
+    ;(channel as { unref?: () => void }).unref?.()
+  } catch {
+    channel = null
+  }
+  if (typeof window === 'undefined') return
+  const look = () => {
+    const id = get().currentId
+    if (id && document.visibilityState !== 'hidden') void lookAgain(id)
+  }
+  document.addEventListener('visibilitychange', look)
+  window.addEventListener('focus', look)
+  window.addEventListener('pageshow', look)
+}
+
+/** A project may have been written by another tab: read its index entry and act on it. */
+async function lookAgain(id: string) {
+  if (!local) return
+  try {
+    await changedElsewhere(id, await local.get(id), false)
+  } catch {
+    // a read that fails changes nothing here
+  }
+}
+
+/** Drop what this tab hasn't saved and show the project as stored. */
+async function showStored(id: string, stored: ProjectMeta) {
+  clearTimeout(timer)
+  if (pendingPlan?.id === id) pendingPlan = null
+  await store.drop(id, new StaleProjectError(stored))
+  await reopen(id)
+}
+
+/** Show the open project as stored, staying on the floor being drawn on when it's still there. */
+async function reopen(id: string) {
+  const level = usePlan.getState().activeLevel
+  reloading = true
+  try {
+    await openProject(id)
+  } finally {
+    reloading = false
+  }
+  if (usePlan.getState().plan?.levels.some(l => l.id === level)) usePlan.getState().setActiveLevel(level)
+}
+
+/**
+ * The stored copy of a project is `stored` (null: gone), written by another tab. One that isn't
+ * open here only updates the list. The open one is taken in when nothing here is unsaved;
+ * otherwise this tab stops saving and asks which version to keep (`conflict`). `mine`: a save
+ * of an edit from this tab was just refused.
+ */
+async function changedElsewhere(id: string, stored: ProjectMeta | null, mine: boolean) {
+  if (id !== get().currentId) return refresh()
+  if (!stored) {
+    await closeProject()
+    return refresh()
+  }
+  if (!base || base.id !== id || (stored.edits ?? 0) <= base.edits || get().conflict) return
+  if (mine || pendingPlan?.id === id || store.unsavedEdits(id)) {
+    set({ conflict: { id, name: stored.name } })
+    return
+  }
+  await showStored(id, stored)
+  tookNewer?.(stored.name)
+}
+
+/** What the notice about another tab's save can do (src/projects/OtherTab.tsx). */
+export const otherTab = {
+  /** Hear when the open project was brought up to date with another tab's save (nothing here was unsaved). */
+  onTookNewer(fn: ((name: string) => void) | null) {
+    tookNewer = fn
+  },
+  /** Open what the other tab saved; this tab's unsaved changes go. */
+  async useNewer(): Promise<void> {
+    const c = get().conflict
+    const stored = c && local ? await local.get(c.id) : null
+    if (!c || !stored || get().currentId !== c.id) return set({ conflict: null })
+    await showStored(c.id, stored)
+  },
+  /**
+   * Save what this tab has over the other tab's version: every change kept back since goes in
+   * now. Then the project is shown as stored, so anything this tab hadn't touched (which stays
+   * the other tab's) is what shows.
+   */
+  async keepMine(): Promise<void> {
+    const c = get().conflict
+    const stored = c && local ? await local.get(c.id) : null
+    if (!c || !stored || get().currentId !== c.id) return set({ conflict: null })
+    base = { id: c.id, edits: stored.edits ?? 0 }
+    set({ conflict: null })
+    await projectActions.flush()
+    // Still not written (the other tab saved again meanwhile, or the browser refused): what's on
+    // screen stays, with the question or the save notice, rather than showing a copy without it.
+    if (get().conflict || store.unsaved().includes(c.id)) return
+    await reopen(c.id)
+  },
 }
 
 let beforeOpen: ((id: string) => Promise<void>) | null = null
 let reloading = false
 
 export const projectSync = {
-  /** This browser's store (null until started, or when the browser won't save). */
-  local: () => local,
+  /**
+   * This browser's store (null until started, or when the browser won't save). What sync puts in
+   * place whole is known to this tab (`landed` shows it, or keeps an edit waiting here on top),
+   * so it doesn't count as another tab's save.
+   */
+  local: (): LocalProjectStore | null => syncLocal,
   /** Hear about every write made through the session. Returns the way to stop. */
   watch(fn: (w: StoreWrite) => void): () => void {
     watchers.add(fn)
@@ -531,6 +734,7 @@ export const projectSync = {
    * keeps what it has and this returns false, so sync treats the edit as made on the old copy.
    */
   async landed(changed: string[], removed: string[] = []): Promise<boolean> {
+    for (const id of [...changed, ...removed]) announce(id)
     await refresh()
     const cur = get().currentId
     if (cur && removed.includes(cur)) await closeProject()

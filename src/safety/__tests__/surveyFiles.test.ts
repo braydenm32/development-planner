@@ -1,11 +1,14 @@
 import 'fake-indexeddb/auto'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { dxf, lwpolyline, planeSurvey, polyline3d } from '../../lib/__tests__/fixtures'
 import { DxfError, parseDxf } from '../../lib/dxf'
 import { ensureProjects, projectsNow } from '../../projects/session'
 import { askSurveyor, PickLayersError, readFile, readSite, readSurvey, SURVEYOR_REQUEST } from '../files'
 import { openFile } from '../flows'
-import { useSafety, type LayersAsk } from '../store'
+import { ToastNote } from '../SafetyLayer'
+import { dismissToast, showToast, useSafety, type LayersAsk } from '../store'
 import { COPY_REQUEST, sayFileError } from '../surveyor'
 
 // Synthetic surveys only: the tilted-plane test block, and a made-up block whose contours share a
@@ -110,6 +113,21 @@ describe('a survey file that can’t be read', () => {
     expect(useSafety.getState().toast?.link?.label).toBe(COPY_REQUEST)
     sayFileError(new Error('That file isn’t one the planner can open.'))
     expect(useSafety.getState().toast?.link).toBeUndefined()
+  })
+
+  // AX-11: a 44-word message can't be read in six seconds, and left no trace afterwards.
+  it('keeps a file error on screen until it’s dismissed, and announces it', () => {
+    sayFileError(new Error('That file isn’t one the planner can open.'))
+    const toast = useSafety.getState().toast!
+    expect(toast.error).toBe(true)
+    const html = renderToStaticMarkup(createElement(ToastNote, { toast }))
+    expect(html).toMatch(/class="sf-toast sf-error" role="alert"/)
+    expect(html).toContain('aria-label="Dismiss"')
+    dismissToast(toast.id)
+    // A passing note stays a polite status with a time limit.
+    showToast({ text: 'Copied.' })
+    expect(renderToStaticMarkup(createElement(ToastNote, { toast: useSafety.getState().toast! }))).toMatch(/class="sf-toast" role="status"/)
+    dismissToast(useSafety.getState().toast!.id)
   })
 })
 

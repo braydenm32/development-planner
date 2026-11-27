@@ -33,6 +33,10 @@ export interface Frame {
   streetEdge?: number
   /** How far the house's front is from the target towards the street, in metres: Street view never stands inside it. */
   houseEdge?: number
+  /** How wide the house is as seen from the street, in metres: Street view stands back until it fits. */
+  width?: number
+  /** The top of the house (roof or walls), in the view's units like the target: Street view stands back until it shows. */
+  top?: number
 }
 
 export const PRESETS: { id: Exclude<Preset, 'house'>; label: string; long: string }[] = [
@@ -49,6 +53,12 @@ export const EYE_HEIGHT = 1.6
 export const STREET_INSET = 1.2
 /** Street view never stands closer to the front of the house than this (m), so there's a house to see, not a wall: a house nearer the boundary is seen from out on the footpath. */
 export const STREET_ROOM = 6
+/** Street view leaves this much room round the house's front: 1.15 is the house and 15% more. */
+export const STREET_MARGIN = 1.15
+/** The furthest Street view steps out past the block's boundary to fit the house in (m): about across the road, where the footpath's ground still reads. */
+export const STREET_REACH = 15
+/** An upright phone is so narrow that across the road still shows half a house: there it may step out this far (m). */
+export const STREET_REACH_UPRIGHT = 30
 /** The opening view: a little higher than Street view, turned off square so two sides of the house show. */
 export const HOUSE_ELEVATION = 28
 export const HOUSE_TURN = 35
@@ -67,15 +77,19 @@ export function fitDistance(r: number, fovDeg: number, aspect: number): number {
   return r / Math.sin(Math.min(v, h))
 }
 
-/** Where a preset puts the camera. */
-export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: number): Pose {
+/**
+ * Where a preset puts the camera. `fovDeg` and `aspect` are the open part of the view's (what no
+ * panel covers); `freeHeight` is how much of the view's height that part is, which Street view
+ * needs to know how much its wider, level lens shows there.
+ */
+export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: number, freeHeight = 1): Pose {
   const t = f.target
   if (preset === 'above') {
     // Straight down, a hair south of the target, so north is at the top of the screen.
     const d = fitDistance(f.blockRadius * 1.02, fovDeg, aspect)
     return { position: [t[0], t[1] + d, t[2] + d * 1e-3], target: [...t] }
   }
-  if (preset === 'street') return streetPose(f, fovDeg, aspect)
+  if (preset === 'street') return streetPose(f, fovDeg, aspect, freeHeight)
   if (preset === 'house') {
     // The house filling the view, with a little of the ground round it: the block is a tap away (From above).
     const d = fitDistance(f.radius * 1.25, fovDeg, aspect)
@@ -99,23 +113,42 @@ export function presetPose(preset: Preset, f: Frame, fovDeg: number, aspect: num
  * Street view: standing on the ground on the street side, just inside the block's boundary, eyes
  * at EYE_HEIGHT, looking at the house as someone on the footpath would. It used to stand back far
  * enough to take the whole house in, which was often out past the block, where the survey's ground
- * stops and the view looked at the block's cut side. Without the boundary (no house to stand in
+ * stops and the view looked at the block's cut side. It steps back from there only as far as it
+ * takes to fit the whole front of the house in the view (HO-19, PH-22). Without the boundary (no house to stand in
  * front of yet), it stands back to take it all in. Without the ground (no survey under it), it
  * stands at the floor's level. It never looks up past level: the 3D view can't orbit below its target.
  */
-function streetPose(f: Frame, fovDeg: number, aspect: number): Pose {
+function streetPose(f: Frame, fovDeg: number, aspect: number, freeHeight: number): Pose {
   const t = f.target
   const exag = f.exaggeration ?? 1
+  const dir = towards(f.street)
+  const groundAt = (d: number) => {
+    const g = f.ground?.(t[0] + dir[0] * d, t[2] + dir[2] * d)
+    // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
+    return g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
+  }
   // Where the house comes closer to the boundary than that leaves room for (or over it), it stands
   // far enough in front of the house to see it, on the footpath.
-  const d = f.streetEdge !== undefined ? Math.max(f.streetEdge - STREET_INSET, (f.houseEdge ?? 0) + STREET_ROOM) : fitDistance(f.radius * 1.2, fovDeg, aspect)
-  const dir = towards(f.street)
+  const front = f.houseEdge ?? 0
+  const inside = f.streetEdge !== undefined ? Math.max(f.streetEdge - STREET_INSET, front + STREET_ROOM) : fitDistance(f.radius * 1.2, fovDeg, aspect)
+  let d = inside
+  if (f.streetEdge !== undefined) {
+    // Then back until the whole front fits the view, sides and top, with a margin: a two-storey
+    // house 9 m behind its boundary was one blank wall, and a door and a strip of wall on a phone
+    // held upright. Looking level the lens is the wide one and the eye line sits low (levelLens).
+    // The wide lens is the whole view's; the open part of it shows `freeHeight` of that.
+    const v = Math.max(Math.tan((fovDeg / 2) * RAD), Math.tan((LEVEL_FOV / 2) * RAD) * freeHeight)
+    const h = v * Math.max(aspect, 0.1)
+    const forWidth = f.width !== undefined ? ((f.width / 2) * STREET_MARGIN) / h : 0
+    const forTop = (at: number) => (f.top !== undefined ? (((f.top - (groundAt(at) + EYE_HEIGHT * exag)) / exag) * STREET_MARGIN) / (2 * v * (0.5 + RISE_SHARE)) : 0)
+    // The ground where it stands sets how tall the house looks: settle on it in two goes.
+    for (let i = 0; i < 2; i++) d = Math.max(inside, front + Math.max(STREET_ROOM, forWidth, forTop(d)))
+    // No further than across the road: past that the survey's ground is long gone.
+    d = Math.min(d, Math.max(inside, f.streetEdge + (aspect < 1 ? STREET_REACH_UPRIGHT : STREET_REACH)))
+  }
   const x = t[0] + dir[0] * d
   const z = t[2] + dir[2] * d
-  const g = f.ground?.(x, z)
-  // The frame's target is at eye height on the ground floor (siteFrame), 1.5 m over the floor.
-  const ground = g !== null && g !== undefined && Number.isFinite(g) ? g : t[1] - 1.5 * exag
-  const eye = ground + EYE_HEIGHT * exag
+  const eye = groundAt(d) + EYE_HEIGHT * exag
   return { position: [x, eye, z], target: [t[0], Math.min(t[1], eye - d * 0.02), t[2]] }
 }
 
@@ -160,6 +193,34 @@ export function northUp(p: Pose): Pose {
   return { position: add(p.target, fromSpherical(s.r, s.phi, 0)), target: [...p.target] }
 }
 
+/** A step of the camera from a key or a button: a turn about the house, a tilt, a zoom. */
+export interface CameraStep {
+  /** Steps to the right about the target (negative: left), each TURN_STEP. */
+  turn?: number
+  /** Steps up, towards looking straight down (negative: lower), each TILT_STEP. */
+  tilt?: number
+  /** Steps in (negative: out), each ZOOM_STEP_3D closer. */
+  zoom?: number
+}
+
+/** One press turns the view 15°, tilts it 10°, or moves a fifth closer. */
+export const TURN_STEP = Math.PI / 12
+export const TILT_STEP = Math.PI / 18
+export const ZOOM_STEP_3D = 1.25
+
+/**
+ * The camera one step on, about the same target, kept within what dragging allows: no closer or
+ * further than `min` and `max`, never under the ground (`maxPolar`), never quite straight down.
+ */
+export function steppedPose(p: Pose, by: CameraStep, limits: { min: number; max: number; maxPolar: number }): Pose {
+  const s = toSpherical(sub(p.position, p.target))
+  const r = Math.min(Math.max(s.r / ZOOM_STEP_3D ** (by.zoom ?? 0), limits.min), limits.max)
+  const phi = Math.min(Math.max(s.phi - (by.tilt ?? 0) * TILT_STEP, 0.02), limits.maxPolar)
+  // Turning right walks the camera to its right round the house, as dragging left does.
+  const theta = s.theta + (by.turn ?? 0) * TURN_STEP
+  return { position: add(p.target, fromSpherical(r, phi, theta)), target: [...p.target] }
+}
+
 /** The shortest turn from angle a to angle b, in radians. */
 export function shortestTurn(a: number, b: number): number {
   let d = (b - a) % (2 * Math.PI)
@@ -183,6 +244,11 @@ export function between(a: Pose, b: Pose, t: number): Pose {
   // Looking straight down, the azimuth only says which way is up: turn it the short way too.
   const theta = sa.theta + shortestTurn(sa.theta, sb.theta) * e
   return { position: add(target, fromSpherical(r, phi, theta)), target }
+}
+
+/** Whether the person has asked their system for less motion: the view then cuts to a preset instead of swinging round. */
+export function lessMotion(match: ((q: string) => { matches: boolean }) | undefined = globalThis.matchMedia?.bind(globalThis)): boolean {
+  return !!match && match('(prefers-reduced-motion: reduce)').matches
 }
 
 /** How long the move between two poses takes, in ms: longer for bigger turns, never sluggish. */

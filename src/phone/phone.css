@@ -246,9 +246,6 @@ body:has(.app-shell.phone) {
   top: calc(env(safe-area-inset-top) + var(--gap));
 }
 
-.app-shell.phone.presenting .peek-sheet {
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-}
 
 /* What floats over the canvas keeps clear of the peek sheet. */
 .app-shell.phone .shell-main {
@@ -298,6 +295,10 @@ body:has(.app-shell.phone) {
 
 .app-shell.phone .peek-sheet .sheet-grab {
   margin-bottom: 0;
+  /* The handle is a real button (it opens the overview from the keyboard): none of a button's own look. */
+  padding: 0;
+  border: 0;
+  cursor: pointer;
 }
 
 .peek-head {
@@ -460,15 +461,35 @@ body:has(.app-shell.phone) {
   display: none;
 }
 
+/* The line shows the numbers that fit whole, most wanted first (floor, checks, estimate): one
+   that doesn't fit wraps to a second row, out of sight, rather than being cut mid-number (PH-21). */
 .app-shell.phone .peek-sheet.slim .peek-line {
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  min-height: 40px;
+  column-gap: 12px;
+  height: 40px;
+  padding-right: 22px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   white-space: nowrap;
+}
+
+.app-shell.phone .peek-sheet .peek-line > span,
+.app-shell.phone .peek-sheet .peek-line > .peek-dot {
+  flex: none;
+}
+
+.app-shell.phone .peek-sheet .peek-line > span {
+  line-height: 40px;
+}
+
+.app-shell.phone .peek-sheet .peek-line > .ic:last-child {
+  position: absolute;
+  top: 12px;
+  right: 0;
 }
 
 .peek-line b {
@@ -515,9 +536,31 @@ body:has(.app-shell.phone) {
   color: #ffffff;
 }
 
-/* Under the switch on the plan, under the presets in 3D. */
+/* Under the switch on the plan, under the presets in 3D. The buttons take the height that is
+   free, above the compass and the Key (and the sun's card, and the section's heading), and go on
+   into a second column beside the first when it runs short, so none sits under the key numbers
+   or under a card (PH-06). The column only takes taps on its buttons. */
 .app-shell.phone .canvas-controls {
   top: calc(var(--gap) + 58px);
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, 44px);
+  grid-auto-columns: 44px;
+  align-content: start;
+  direction: rtl;
+  height: calc(100% - 58px - 52px - 3 * var(--gap) - var(--peek-h, 0px) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
+  min-height: 44px;
+  pointer-events: none;
+}
+
+.app-shell.phone .canvas-controls > * {
+  direction: ltr;
+  pointer-events: auto;
+}
+
+/* The Show menu's list drops over the key numbers rather than under them. */
+.app-shell.phone .preset-bar:has(.show-pop) {
+  z-index: 7;
 }
 
 .app-shell.phone .shell-main .level-chip.phone-level {
@@ -624,6 +667,19 @@ body:has(.app-shell.phone) {
   align-items: flex-start;
 }
 
+/* The ground's short rail has room for a name on two lines, as on a computer: "Move house" in full (final check, problem 9). */
+.app-shell.phone .tool-rail:not(.full) button {
+  height: auto;
+  min-height: 46px;
+  padding: 3px 0;
+}
+
+.app-shell.phone .tool-rail:not(.full) .tool-name {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.05;
+}
+
 .app-shell.phone .has-rail .plan-actions {
   left: calc(var(--gap) + 62px);
 }
@@ -706,6 +762,15 @@ body:has(.app-shell.phone) {
   height: 44px;
   padding: 0 8px;
   font-size: 15px;
+}
+
+/* On the narrowest phones every view still fits: a name goes to two lines rather than pushing
+   the last one out of the group, which clips it (final check, problem 2). */
+.app-shell.phone .preset-group button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.1;
+  text-align: center;
 }
 
 /* ---- Sheets that follow the finger ---- */
@@ -854,24 +919,69 @@ body:has(.app-shell.phone) {
   }
 
   .app-shell.phone .peek-sheet .peek-line {
+    position: relative;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
-    min-height: 36px;
+    column-gap: 16px;
+    height: 36px;
+    padding-right: 24px;
     overflow: hidden;
     color: var(--muted);
     font-size: 14px;
     white-space: nowrap;
   }
 
-  .app-shell.phone .float-col,
-  .app-shell.phone .inspector,
-  .app-shell.phone .overview-sheet {
-    max-height: 70%;
+  .app-shell.phone .peek-sheet .peek-line > span {
+    line-height: 36px;
+  }
+
+  .app-shell.phone .peek-sheet .peek-line > .ic:last-child {
+    top: 10px;
   }
 
   .app-shell.phone .overview-sheet {
     max-height: calc(100% - var(--bottom-h) - 8px);
+  }
+
+  /* A panel or the selection docks at the side, full height: there is width to spare and no height,
+     so the plan keeps most of the screen instead of a 70 px band above a bottom sheet (PH-10). */
+  .app-shell.phone .shell-main:is(.has-col, .has-inspector):not(.report) {
+    --side: min(360px, 46vw);
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report),
+  .app-shell.phone .has-col .float-col.tall:not(.report),
+  .app-shell.phone .inspector {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: var(--side, min(360px, 46vw));
+    max-height: none;
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report) .float-card,
+  .app-shell.phone .inspector {
+    border-radius: 14px 0 0 14px;
+    box-shadow: -8px 0 28px -10px rgba(0, 0, 0, 0.25);
+  }
+
+  .app-shell.phone .has-col .float-col:not(.report) .tab-panel {
+    flex: 1;
+  }
+
+  /* No handle to pull: the sheet is as tall as it gets, and its header's button puts it away. */
+  .app-shell.phone .has-col .float-col:not(.report) .tab-panel::before,
+  .app-shell.phone .inspector::before,
+  .app-shell.phone .has-col .float-col:not(.report) .sheet-grab,
+  .app-shell.phone .inspector .sheet-grab {
+    display: none;
+  }
+
+  /* What sits at the plan's right edge moves in beside the sheet. */
+  .app-shell.phone .shell-main:is(.has-col, .has-inspector):not(.report) :is(.view-edit, .canvas-controls, .plan-compass, .compass) {
+    right: calc(var(--gap) + var(--side));
   }
 }
 
@@ -982,12 +1092,17 @@ body:has(.app-shell.phone) {
     padding: 0 4px;
   }
 
-  .app-shell.phone .canvas-controls {
+  /* With a sheet at the side there's no room for the row: the buttons keep their column under View / Edit. */
+  .app-shell.phone .shell-main:not(.has-col, .has-inspector) .canvas-controls,
+  .app-shell.phone .shell-main.report .canvas-controls {
     top: var(--gap);
+    display: inline-flex;
     flex-direction: row;
+    direction: ltr;
+    height: auto;
   }
 
-  .app-shell.phone .canvas-plan .canvas-controls {
+  .app-shell.phone .canvas-plan:not(.has-col, .has-inspector) .canvas-controls {
     right: calc(var(--gap) + 168px);
   }
 
@@ -998,4 +1113,349 @@ body:has(.app-shell.phone) {
   .app-shell.phone .preset-group button {
     padding: 0 16px;
   }
+}
+
+/* ---- Approvals and Share read the house on a computer too (src/nav/route.ts) ---- */
+
+/* The selection's card there: its numbers as values, nothing to type in or delete, and one line
+   that says where it is changed, with the way there. */
+.app-shell:not(.phone) .inspector.read-only .view-lock-note.elsewhere {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 16px 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock-note.elsewhere button {
+  flex: none;
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock input,
+.app-shell:not(.phone) .inspector.read-only .view-lock select,
+.app-shell:not(.phone) .inspector.read-only .view-lock textarea,
+.app-shell:not(.phone) .inspector.read-only .view-lock .num-input {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  opacity: 1;
+  -webkit-text-fill-color: var(--text);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.app-shell:not(.phone) .inspector.read-only .view-lock button.danger,
+.app-shell:not(.phone) .inspector.read-only .view-lock .delete-row,
+.app-shell:not(.phone) .inspector.read-only .view-lock .floor-more {
+  display: none;
+}
+
+.app-shell.phone .view-lock-note.elsewhere {
+  display: flex;
+}
+
+/* ---- A tablet on its side: the computer's layout under a finger (src/phone/device.ts, PH-09) ---- */
+
+/* Its small controls grow towards 44 px; the panels' own fields keep the sizes their sheets give them. */
+@media (pointer: coarse) {
+  .app-shell:not(.phone) .undo-redo button,
+  .app-shell:not(.phone) .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .app-shell:not(.phone) .search-button,
+  .app-shell:not(.phone) .project-button,
+  .app-shell:not(.phone) .steps-button,
+  .app-shell:not(.phone) .canvas-controls button,
+  .app-shell:not(.phone) .top-bar .cl-chip {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .app-shell:not(.phone) .view-switch button {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  /* The tools at 44 px: a short screen scrolls the rail rather than closing its buttons up. */
+  .app-shell:not(.phone) .tool-rail.full button {
+    height: 44px;
+  }
+
+  .app-shell:not(.phone) .tool-rail {
+    max-height: calc(100% - 2 * var(--gap));
+    overflow-y: auto;
+  }
+
+  .app-shell:not(.phone) .chip,
+  .app-shell:not(.phone) .chips-cue .scroll-arrow,
+  .app-shell:not(.phone) .overview-button {
+    height: 34px;
+  }
+
+  .app-shell:not(.phone) .cue-item,
+  .app-shell:not(.phone) .menu-item {
+    min-height: 44px;
+  }
+}
+
+/* The tab panel's handle is a button on a phone: a tap, a click or Enter makes the panel taller
+   or shorter, as dragging it does (AX-13). */
+.app-shell.phone .float-card > button.sheet-grab {
+  flex: none;
+  width: 100%;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  appearance: none;
+}
+
+.app-shell.phone .float-card > button.sheet-grab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+/* iOS zooms the page when a field under 16 px takes focus, and the page's own pinch is off, so
+   there is no way back out (PH-08). Every typed or picked field is 16 px under a finger, a tablet
+   on its side too. */
+@media (max-width: 760px), (pointer: coarse) {
+  .app-shell:is(.phone, :not(.phone)) :is(input, select, textarea):not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']) {
+    font-size: 16px !important;
+  }
+}
+
+/* The keyboard covers the foot of the screen without moving the layout: the shell stops above
+   it, so the open sheet and the field being typed in are lifted clear (src/phone/native.ts). */
+.app-shell.phone {
+  height: calc(100% - var(--keyboard-inset, 0px));
+}
+
+/* Checks leads with its verdict on a phone: the line under the title would push it off the sheet (PH-33). */
+.app-shell.phone .tab-panel[aria-label='Checks'] > header p {
+  display: none;
+}
+
+/* With a sheet open (a tool's card, a tab's panel, the selection) the tool rail stops above it
+   and scrolls, so the tools under the sheet can still be reached (PH-12). */
+.app-shell.phone .has-rail:is(.has-col, .has-inspector) .tool-rail {
+  max-height: calc(100% - var(--gap) * 2 - 56px - var(--sheet-h, 0px));
+}
+
+/* The plan keeps its scale bar on a phone, beside the compass (PH-29). */
+.app-shell.phone .canvas-plan .scalebar {
+  display: flex;
+  right: calc(var(--gap) + 56px);
+  bottom: calc(var(--peek-h) + var(--gap) + var(--section-strip-h, 0px) + 12px);
+  font-size: 12px;
+  color: var(--text);
+  text-shadow: 0 0 3px #ffffff, 0 0 3px #ffffff;
+}
+
+.app-shell.phone .canvas-plan .scalebar-units {
+  display: none;
+}
+
+/* The level of the ground where the plan was tapped in View, as the 3D view shows it. */
+.plan-ground-pin {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Its own width, so the pin centres on the spot rather than on the zero-wide anchor's left edge. */
+.plan-ground-pin .ground-pin {
+  width: max-content;
+}
+
+/* A plan message in the toast keeps to one line where it fits, rather than wrapping at half the screen. */
+.app-shell.phone .toast {
+  width: max-content;
+}
+
+/* ---- Thumb-sized targets (PH-26) ---- */
+
+/* A check's pin is 18 to 22 px across: on a touch screen an unseen 44 px square round it takes the tap. */
+.ck-pin .ck-touch {
+  display: none;
+  fill: transparent;
+  stroke: none;
+}
+
+@media (pointer: coarse) {
+  .ck-pin .ck-touch {
+    display: inline;
+    pointer-events: all;
+  }
+}
+
+/* These are about the finger, not the width: a touch screen of any size gets them, a tablet on
+   its side in the computer's layout too (final check, problem 3). A narrow window is in the list
+   for a phone-sized desktop window, which has the phone's layout. `:is(.phone, :not(.phone))` is
+   every shell, at the weight `.app-shell.phone` had, so the phone's sizes in shell.css still give way. */
+@media (max-width: 760px), (pointer: coarse) {
+  /* Buttons that are a row of choices grow to 44 px. */
+  .app-shell:is(.phone, :not(.phone)) .sec-picks button,
+  .app-shell:is(.phone, :not(.phone)) .print-actions .segmented button,
+  .app-shell:is(.phone, :not(.phone)) .print-crop .segmented button,
+  .app-shell:is(.phone, :not(.phone)) .parts .part-group > button {
+    min-height: 44px;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .sec-picks button {
+    min-width: 44px;
+  }
+
+  /* A fold's own line is its handle: tall enough to tap, with its marker where it was. */
+  .app-shell:is(.phone, :not(.phone)) .panel-body summary,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop summary {
+    padding-block: 11px;
+  }
+
+  /* Links in a line of text, and the small buttons along the section strip and Costs, keep their
+     look: an unseen margin round each takes the tap, so nothing on the page moves. */
+  .app-shell:is(.phone, :not(.phone)) .panel-body button.link,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link,
+  .app-shell:is(.phone, :not(.phone)) .sstrip button.link,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip,
+  .app-shell:is(.phone, :not(.phone)) .ce-fold,
+  .app-shell:is(.phone, :not(.phone)) .ce-total button.link {
+    position: relative;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .panel-body button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip button.link::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold::after,
+  .app-shell:is(.phone, :not(.phone)) .sstrip-band::after,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip::after,
+  .app-shell:is(.phone, :not(.phone)) .ce-fold::after,
+  .app-shell:is(.phone, :not(.phone)) .ce-total button.link::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .sstrip-band::after,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip .chip::after {
+    inset: -8px 0;
+  }
+
+  /* Final check, problem 9: the rest a finger missed. Fold away / Show the live section and the
+     project menu's Replace… reach further; a glossary word in a label gets an unseen margin too. */
+  .app-shell:is(.phone, :not(.phone)) .menu-pop button.link::after {
+    inset: -14px -4px;
+  }
+
+  /* The strip's foot can sit on the sheet below: the fold's band reaches up over the plan instead. */
+  .app-shell:is(.phone, :not(.phone)) .sstrip-head .fold::after {
+    inset: -20px -4px -14px;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .term {
+    position: relative;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .term::after {
+    content: '';
+    position: absolute;
+    inset: -13px -10px;
+  }
+
+  /* The pieces of furniture to place, and the costs' number chips, are 44 px tall. */
+  .app-shell:is(.phone, :not(.phone)) .furniture-items button,
+  .app-shell:is(.phone, :not(.phone)) .costs-strip button.chip {
+    min-height: 44px;
+  }
+
+  /* The sheet's handle is a slim bar to look at: an unseen band round it takes the tap. */
+  .app-shell.phone .float-card > button.sheet-grab {
+    position: relative;
+  }
+
+  .app-shell.phone .float-card > button.sheet-grab::after {
+    content: '';
+    position: absolute;
+    inset: -12px 0 -8px;
+  }
+
+  /* Nothing meant to be read is under 12 px (PH-27): the page can't be pinched larger. */
+
+  .app-shell:is(.phone, :not(.phone)) :is(.site-label, .stair-label, .stair-dest, .setback-label, .drainage-label, .grade-suggest-text, .sstrip-boundary text, .sstrip-cut .tag, .sstrip.phone .sstrip-band, .needle span, .map-credit, .parts .part-each, .check-pin, .drive-profile text, .grade-suggest-n-text, .ck-pin text, .ground-meets-label, .furniture-code, .drive-arrows text, .rw-htag text, .drainage-fall text) {
+    font-size: 12px;
+  }
+
+  /* The tools' names at 12 px need a slightly wider rail (RAIL_CLEAR.phone in src/shell/AppShell.tsx follows). */
+  .app-shell:is(.phone, :not(.phone)) .tool-rail button {
+    width: 54px;
+  }
+
+  .app-shell:is(.phone, :not(.phone)) .tool-rail .tool-name {
+    max-width: 54px;
+    font-size: 12px;
+    letter-spacing: -0.02em;
+  }
+}
+
+.app-shell.phone .has-rail .plan-actions {
+  left: calc(var(--gap) + 66px);
+}
+
+/* ---- The waiting questions on a phone (PH-14, PH-15) ---- */
+
+/* The pill sits above the Key and the scale bar rather than on them. */
+.app-shell.phone .plan-editor .q-pill {
+  bottom: calc(var(--peek-h, 0px) + var(--gap) + var(--section-strip-h, 0px) + 54px);
+}
+
+/* While the questions are open, the drawing tip steps aside: the block stays in sight for the answer. */
+.app-shell.phone .plan-editor:has(.q-tray) .plan-hint {
+  display: none;
+}
+
+/* Open, the questions take the foot of the screen: the key numbers and the section's bar wait
+   underneath, so the block has the room above (the answer to the street question is one of its sides). */
+.app-shell.phone .plan-editor .q-tray {
+  right: 12px;
+  bottom: var(--gap);
+  left: 12px;
+  width: auto;
+  max-height: 62%;
+}
+
+.app-shell.phone .shell-main:has(.q-tray) .peek-sheet,
+.app-shell.phone .plan-editor:has(.q-tray) .sstrip {
+  visibility: hidden;
+}
+
+/* The questions' own card for the street side fills the tray rather than floating a second card over the block. */
+.app-shell.phone .plan-editor .q-tray .flow-card.street-ask {
+  position: static;
+  width: auto;
+  max-height: none;
+  transform: none;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+/* View on a plan with nothing drawn (src/phone/EmptyPlanCard.tsx): short, and clear of the buttons down the right. */
+.app-shell.phone .plan-hint.phone-empty {
+  top: 66px;
+  left: var(--gap);
+  right: 66px;
+  width: auto;
+  font-size: 14px;
+}
+
+.app-shell.phone .plan-hint.phone-empty :is(.plan-hint-go, .plan-hint-link) {
+  min-height: 44px;
+  font-size: 15px;
 }

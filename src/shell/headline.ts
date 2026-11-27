@@ -21,6 +21,12 @@ export interface ChecksHeadline {
   rest: string
 }
 
+/**
+ * The checks' one name, on the strip, the Overview and a phone's Key numbers: the plain word
+ * first, the planners' letters after it (the term tip says what CDC and DA stand for).
+ */
+export const checksName = (route: 'DA' | 'CDC'): string => (route === 'CDC' ? 'Fast-track (CDC) checks' : 'Council (DA) checks')
+
 export function checksHeadline(pathway: Pathway, results: CheckResult[]): ChecksHeadline {
   const verdict = verdictOf(results)
   const name = pathway === 'cdc' ? 'CDC' : 'DA'
@@ -42,17 +48,27 @@ export interface CostHeadline {
   high: number
   /** What the estimate has nothing for yet ("roof"); empty when complete. */
   missing: string[]
+  /** For a complete estimate that sits under the guide for custom-built houses: the guide's range (Costs › Estimate's cross-check). */
+  under?: { low: number; high: number }
 }
 
-export const costHeadline = (e: Estimate): CostHeadline => ({ ready: e.ready, total: e.total, low: e.low, high: e.high, missing: e.missing })
+export const costHeadline = (e: Estimate): CostHeadline => ({
+  ready: e.ready,
+  total: e.total,
+  low: e.low,
+  high: e.high,
+  missing: e.missing,
+  ...(e.against === 'under' && e.guide ? { under: e.guide } : {}),
+})
 
 /**
- * Every level's floor RL, lowest first: "RL 81.60" for one level, "81.60 / 84.60 / 86.10" for a
- * split-level house, so its other floors aren't hidden behind the lowest.
+ * Every level's floor RL, lowest first: "RL 81.60" for one level, "RL 81.60 / 84.60 / 86.10" for a
+ * split-level house, so its other floors aren't hidden behind the lowest. Always with "RL" first,
+ * as levels are written everywhere else.
  */
 export function floorsText(floors: { rl: number }[], ffl: number): string {
   if (floors.length < 2) return `RL ${(floors[0]?.rl ?? ffl).toFixed(2)}`
-  return floors.map(f => f.rl.toFixed(2)).join(' / ')
+  return `RL ${floors.map(f => f.rl.toFixed(2)).join(' / ')}`
 }
 
 /** "Floor level" or "Floor levels", as the plain label with the term after it. */

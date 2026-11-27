@@ -8,6 +8,7 @@ import { FLOOR_TYPES, FRAMED_FLOOR, floorTypeChoices, isLowestLevel } from '../p
 import { levelById } from '../plan/model'
 import { HOUSE_WALL_NOTE, OFFER_PLACEMENT, offeredHeight, offeredWall, type OfferPlacement } from '../plan/retainOffer'
 import { usePlan } from '../plan/store'
+import { keepAndStay, settled } from '../components/fieldKeys'
 import { acceptOffer, answerFloorType, dismissOffer, putOffFloorType, quietOffer, setOfferGap, setOfferPlacement, useFlow, type OfferState } from './store'
 
 /** How a level's floor is built: the common types, more on request, or decide later. */
@@ -115,12 +116,12 @@ export function OfferCard({ o }: { o: OfferState }) {
                     value={gapText ?? gap.toFixed(1)}
                     onFocus={e => {
                       choose('gap')
-                      setGapText(gap.toFixed(1))
                       e.target.select()
                     }}
                     onChange={e => setGapText(e.target.value)}
                     onBlur={commitGap}
-                    onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                    data-settled={settled(gapText, gap.toFixed(1))}
+                    onKeyDown={e => e.key === 'Enter' && keepAndStay(e.target as HTMLInputElement)}
                   />{' '}
                   m
                 </span>{' '}

@@ -1,7 +1,7 @@
 // Site › Block and Site › 3D, from the site's sections (src/components/SiteSections.tsx).
 
 import { useEffect } from 'react'
-import { ResetCameraButton, SiteFacts, ViewToggles } from '../../components/SiteSections'
+import { SiteFacts, ViewToggles } from '../../components/SiteSections'
 import type { ViewSettings } from '../../lib/storage'
 import { navigate, useRouter } from '../../nav/router'
 import { tabRoute } from '../../nav/route'
@@ -58,7 +58,7 @@ function LayerGuesses() {
   const id = useProjects().currentId
   const seen = useLayersSeen(s => s.seen.includes(layersKey(id, project.fileName)))
   const route = useRouter(s => s.route)
-  const n = guessCount(layers, project.roles)
+  const n = guessCount(layers, project)
   if (seen || n === 0) return null
   return (
     <p className="layer-guesses">
@@ -73,13 +73,14 @@ function LayerGuesses() {
 }
 
 export function Site3dTab() {
-  const { view, changeView, resetCamera, survey, terrain } = useShell()
+  const { view, changeView, survey, terrain } = useShell()
   const set = (patch: Partial<ViewSettings>) => changeView({ ...view, ...patch })
   return (
     <>
       <ViewToggles view={view} onChange={set} />
+      {/* One home for each switch and button: the 3D view's own Show menu and Reset camera. */}
+      <p className="muted small">The roof, each level, trees and furniture are under Show, at the top of the 3D view. Reset camera is at its bottom right.</p>
       {survey && terrain && <StreetSideLink survey={survey} terrain={terrain} />}
-      <ResetCameraButton onReset={resetCamera} />
     </>
   )
 }

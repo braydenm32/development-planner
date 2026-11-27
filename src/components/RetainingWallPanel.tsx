@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { DEFAULT_BENCH, earthworksOf, levelById, sortedLevels, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
-import { deleteSelection, moveWall, setWallLength, updateWall } from '../plan/ops'
+import { DEFAULT_BENCH, earthworksOf, levelById, padLevelOf, sortedLevels, wallLength, WALL_KINDS, type Plan, type Retain, type SideLevel, type Wall } from '../plan/model'
+import { deleteSelection, moveWall, setWallKind, setWallLength, updateWall } from '../plan/ops'
+import { wallLengthProblem } from '../plan/wallJoins'
 import { housePadRL, MIN_BENCH, sideRL } from '../plan/platforms'
 import { gapShift, HOUSE_WALL_NOTE } from '../plan/retainOffer'
 import { ENGINEER_TEXT, needsEngineer } from '../checks/engineer'
@@ -17,6 +18,7 @@ import {
   levelsForHeight,
   lowestOn,
   otherSide,
+  padLevels,
   retainingProfile,
   retainingSection,
   RETAINING_FREEBOARD,
@@ -33,9 +35,11 @@ import { money } from '../costs/format'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { Num, Select } from './fields'
-import { holdsBackSentence, SIDE_WORDS, sideLabel as sideWords } from './retainingWords'
+import { holdsBackSentence, levelLabel, SIDE_WORDS, sideLabel as sideWords } from './retainingWords'
 import { WallsHere } from './WallsHere'
+import { keepAndStay, settled } from './fieldKeys'
 import './retaining.css'
+import { forTouch } from '../phone/words'
 
 interface Props {
   wall: Wall
@@ -75,11 +79,14 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
   // Walls from older plans have no levels: show the side the ground says, and write nothing until asked.
   const r: Retain = w.retain ?? { high: prof.high ?? 'left' }
   const low = otherSide(r.high)
-  // The pad of the wall's own level: beside an upper split level, that level's.
-  const pad = housePadRL(plan, w.level)
-  const split = plan.levels.length > 1 && sortedLevels(plan)[0]?.id !== w.level
-  const padName = split ? `${levelById(plan, w.level)?.name ?? 'this level'} pad` : 'house pad'
-  const levelRL = (lv: SideLevel) => sideRL(plan, lv, w.level)
+  // The pad of the level the wall is beside (by where it was drawn, or picked here): beside an upper split level, that level's.
+  const wl = padLevelOf(plan, w)
+  const pad = housePadRL(plan, wl)
+  // The parts of the house on the ground it could be beside: asked only when there's more than one.
+  const besides = padLevels(plan)
+  const split = besides.length > 1 || (plan.levels.length > 1 && sortedLevels(plan)[0]?.id !== wl)
+  const padName = split ? `${levelById(plan, wl)?.name ?? 'this level'} pad` : 'house pad'
+  const levelRL = (lv: SideLevel) => sideRL(plan, lv, wl)
   const ew = earthworksOf(plan)
   // Any answer in the panel makes a wall just drawn a real one: it stays if it's left.
   const set = (next: Retain) => st.commit(p => updateWall(p, w.id, { retain: tidyRetain({ ...next, draft: undefined }) }))
@@ -200,10 +207,10 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
         <h2>{isNew ? (pieces > 1 ? `New retaining wall · ${pieces} pieces` : 'New retaining wall') : 'Retaining wall'}</h2>
         <p>
           {picking
-            ? 'Click the plan on the side the earth is on.'
+            ? forTouch('Click the plan on the side the earth is on.')
             : isNew
               ? `${pieces > 1 ? 'Drawn end to end: the answers here go to every piece. ' : ''}Say how high the earth behind it is, then keep it.`
-              : `${len.toFixed(1)} m long${split ? ` · ${levelById(plan, w.level)?.name ?? ''} level` : ''}.`}
+              : `${len.toFixed(1)} m long${split ? ` · beside the ${levelLabel(levelById(plan, wl)?.name ?? 'house')}` : ''}.`}
         </p>
       </header>
       {!isNew && <WallsHere wall={w} plan={plan} />}
@@ -235,6 +242,17 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
             </button>
           ))}
         </div>
+        {besides.length > 1 && (
+          <div className="rw-beside">
+            <Select
+              label="Beside"
+              value={besides.includes(wl) ? wl : besides[0]}
+              options={besides.map(id => ({ id, label: levelById(plan, id)?.name ?? id }))}
+              onChange={id => set({ ...r, pad: id === w.level ? undefined : id })}
+            />
+            <p className="rw-note">The part of the house this wall is next to: “the pad” here means the {padName}, {rl(pad)}.</p>
+          </div>
+        )}
         {wrongWay && <p className="rw-note rw-warn-text">The earth side is still lower than the open side. Say how high the earth behind it is, and that side is filled up.</p>}
         {filledTo !== null && <p className="rw-note">The downhill side is filled up to {rl(filledTo)} behind the wall.</p>}
       </div>
@@ -363,9 +381,9 @@ export function RetainingWallPanel({ wall: w, plan, survey, terrain, earth }: Pr
           </div>
         </dl>
         <div className="rw-size">
-          <Num label="Length (centreline)" unit="mm" value={len} min={0.05} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
-          <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
-          <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => updateWall(p, w.id, { kind }))} />
+          <Num label="Length" unit="mm" value={len} min={0.05} max={200} check={l => wallLengthProblem(plan, w.id, l)} onCommit={l => st.commit(p => setWallLength(p, w.id, l))} />
+          <Num label="Thickness" unit="mm" value={w.thickness} min={0.05} max={1} onCommit={thickness => st.commit(p => updateWall(p, w.id, { thickness }))} />
+          <Select label="Kind" value={w.kind} options={WALL_KINDS} onChange={kind => st.commit(p => setWallKind(p, w.id, kind))} />
         </div>
       </details>
 
@@ -474,7 +492,6 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
       placeholder={placeholder}
       value={editing ?? shown}
       onFocus={e => {
-        setEditing(shown)
         e.target.select()
         onFocus?.()
       }}
@@ -483,8 +500,9 @@ function NumberBox({ label, value, decimals, onCommit, placeholder, suffix, min,
         onBlur?.()
         commit()
       }}
+      data-settled={settled(editing, shown)}
       onKeyDown={e => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        if (e.key === 'Enter') keepAndStay(e.target as HTMLInputElement)
         if (e.key === 'Escape') {
           cancelled.current = true
           ;(e.target as HTMLInputElement).blur()

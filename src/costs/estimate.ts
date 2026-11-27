@@ -9,7 +9,7 @@ import { floorTypeInfo, type FloorTypeId } from '../plan/floorTypes'
 import { WET_ROOMS, type DesignQuantities } from '../plan/quantities'
 import { contribution, DA_FEE_YEAR, daFee, LSL, longServiceLevy, NO_FEE_CONTEXT, type FeeContext } from './govFees'
 import type { CostsData, Quote, Who } from './model'
-import { CHOICE_GROUPS, CHOICES, choiceRate, finishFactor, finishGuide, GROUPS, HOUSE_GROUPS, RANGE, rateInfo, WORKS_GROUPS, type ChoiceGroup, type GroupId, type RateId, type Unit } from './rates'
+import { CHOICE_GROUPS, CHOICES, choiceRate, finishFactor, finishGuide, finishLevel, GROUPS, HOUSE_GROUPS, RANGE, rateInfo, WORKS_GROUPS, type ChoiceGroup, type FinishLevel, type GroupId, type RateId, type Unit } from './rates'
 
 /** What a line measures, to point out on the plan. */
 export interface Target {
@@ -64,6 +64,8 @@ export interface CostGroup {
 
 export interface Estimate {
   who: Who
+  /** The finish level picked, which the guide and the fit-out rates go by. */
+  finish: FinishLevel
   groups: CostGroup[]
   /** Every line: the groups' lines, then the summary's (margin and contingency). */
   lines: CostLine[]
@@ -93,6 +95,17 @@ export interface Estimate {
    * per m² of floor), everything else as it is; null before there is any floor.
    */
   guide: { low: number; high: number } | null
+  /**
+   * Where the house itself sits against the guide for the finish picked: under it, in it or over
+   * it. Null before there is a floor, and while the estimate is missing things: a house with no
+   * windows reads cheap for the wrong reason.
+   */
+  against: 'under' | 'in' | 'over' | null
+  /**
+   * For an estimate under the guide: from its total up to the guide's low end, row by row, so the
+   * two figures on the screen are one sum. The rows' amounts and the total add up to `to`.
+   */
+  bridge: Bridge | null
   /** The total split into materials (and fees) and labour. */
   materials: number
   labour: number
@@ -106,6 +119,23 @@ export interface Estimate {
   ready: boolean
   /** What a house is priced on that the design doesn't have yet, in words ("roof", "windows"). */
   missing: string[]
+}
+
+/** What stands between an estimate and the low end of the guide over it. */
+export interface Bridge {
+  rows: {
+    /**
+     * margin: the builder's margin the guide has in it, when you build it yourself;
+     * house: what the lines don't count in the house itself;
+     * contingency: the contingency on those, as on everything else.
+     */
+    id: 'margin' | 'house' | 'contingency'
+    amount: number
+  }[]
+  /** The `house` row per m² of floor: the guide's low end less the house as the lines have it. */
+  perM2: number
+  /** The guide's low end: the total and every row, added up. */
+  to: number
 }
 
 /** Whole dollars, as a line's words say them. */
@@ -197,13 +227,13 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
       const id = `floor-${p.type}` as `floor-${FloorTypeId}`
       add(id, id, p.area, {
         label: floorTypeInfo(p.type).label,
-        from: q.ground.parts.length > 1 ? `Part of the ${q.ground.name.toLowerCase()}, from Design › Floors` : `${q.ground.name}, from Design › Floors`,
+        from: q.ground.parts.length > 1 ? `Part of the ${q.ground.name.toLowerCase()}, from Design › Levels` : `${q.ground.name}, from Design › Levels`,
         dp: 2,
         target: { kind: 'ground' },
         at: 'design/floors',
       })
     }
-  else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Floors', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
+  else add('floor-slab', 'floor-slab', 0, { label: 'Slab on ground', from: 'From Design › Levels', dp: 2, at: 'design/floors', missing: 'No floor enclosed by walls yet' })
   if (q.upper.area > 0) add('floor-upper', 'floor-upper', q.upper.area, { from: listOf(q.upper.names), dp: 2, target: { kind: 'floor' }, at: 'design/floors' })
   // A split level's slab poured on the ground under an upper level: once, as slab on ground.
   if (q.slabUnder.area > 0)
@@ -278,13 +308,16 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
   // Fit-out
   add('linings', 'linings', q.floorArea, { from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
   add('fix-out', 'fix-out', q.floorArea, { label: 'Fix-out: skirting, architraves, wardrobes', from: 'Per m² of floor', dp: 2, target: { kind: 'floor' }, at: 'design/rooms' })
-  add('floor-finishes', 'floor-finishes', q.finishes.area, {
+  // Spaces with no room in them yet have a floor to finish too.
+  const spare = q.unroomed?.count ? q.unroomed : null
+  const spaces = spare ? `${plural(spare.count, 'space')} with no room yet` : ''
+  add('floor-finishes', 'floor-finishes', q.finishes.area + (spare?.area ?? 0), {
     label: 'Floor finishes',
-    from: q.finishes.count ? 'Rooms, except a garage' : 'From Rooms & areas',
+    from: q.finishes.count ? `Rooms, except a garage${spare ? `, and ${spaces}` : ''}` : spare ? cap(spaces) : 'From Rooms & areas',
     dp: 2,
     target: { kind: 'rooms', ids: q.finishes.ids },
     at: 'design/rooms',
-    missing: q.finishes.count ? null : 'No rooms named yet',
+    missing: q.finishes.count || spare ? null : 'No rooms yet',
   })
   const wetIds: string[] = []
   let wetCount = 0
@@ -400,14 +433,36 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
     q.windows.count ? null : 'windows',
     q.externalDoors.count ? null : 'outside doors',
     q.finishes.count || wetCount ? null : 'rooms',
+    // A house with rooms but no bathroom or kitchen among them (by type, or by name) has neither
+    // priced: said, as a missing roof is. A garage or shed on its own needs neither.
+    q.finishes.count && !q.wet.bathroom.count ? 'bathroom' : null,
+    q.finishes.count && !q.wet.kitchen.count ? 'kitchen' : null,
   ].filter((m): m is string => m !== null)
-  const house = open.filter(l => HOUSE_GROUPS.includes(l.group as GroupId)).reduce((t, l) => t + l.amount, 0) * (data.who === 'builder' ? 1 + data.margin : 1)
+  const houseLines = open.filter(l => HOUSE_GROUPS.includes(l.group as GroupId)).reduce((t, l) => t + l.amount, 0)
+  const house = houseLines * (data.who === 'builder' ? 1 + data.margin : 1)
   // The guide's figure for the house has a builder's margin in it already; the contingency goes on top, as on the rest.
   const band = finishGuide(data.choices.finish)
   const rest = total - house * (1 + data.contingency)
   const guide = q.floorArea > 0 ? { low: rest + band.low * q.floorArea * (1 + data.contingency), high: rest + band.high * q.floorArea * (1 + data.contingency) } : null
+  const ready = q.walls.perimeter > 0
+  const housePerM2 = q.floorArea > 0 ? house / q.floorArea : null
+  const against = housePerM2 === null || !ready || missing.length > 0 ? null : housePerM2 < band.low ? 'under' : housePerM2 > band.high ? 'over' : 'in'
+  let bridge: Bridge | null = null
+  if (against === 'under' && guide) {
+    // The guide's house has a builder's margin in it. Building it yourself, that margin is the
+    // first thing between the two; the rest is what the lines don't count.
+    const short = band.low * q.floorArea - houseLines
+    const margin = data.who === 'owner' ? Math.min(short, houseLines * data.margin) : 0
+    const gap = band.low * q.floorArea - house - margin
+    const rows: Bridge['rows'] = []
+    if (margin > 0) rows.push({ id: 'margin', amount: margin })
+    if (gap > 0) rows.push({ id: 'house', amount: gap })
+    rows.push({ id: 'contingency', amount: (margin + gap) * data.contingency })
+    bridge = { rows, perM2: gap / q.floorArea, to: guide.low }
+  }
   return {
     who: data.who,
+    finish: finishLevel(data.choices.finish),
     groups,
     lines,
     works,
@@ -420,13 +475,15 @@ export function estimate(q: DesignQuantities, data: CostsData, fees: FeeContext 
     high: total * (1 + RANGE),
     floorArea: q.floorArea,
     perM2: q.floorArea > 0 ? total / q.floorArea : null,
-    housePerM2: q.floorArea > 0 ? house / q.floorArea : null,
+    housePerM2,
     guide,
+    against,
+    bridge,
     materials,
     labour: total - materials,
     quoted: open.filter(l => l.quote).length,
     quotable: open.length,
-    ready: q.walls.perimeter > 0,
+    ready,
     missing,
   }
 }

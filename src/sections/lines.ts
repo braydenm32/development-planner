@@ -40,12 +40,25 @@ export function flipSection(plan: Plan, id: string): Plan {
   return { ...plan, sections: sectionsOf(plan).map(s => (s.id === id ? { ...s, a: s.b, b: s.a } : s)) }
 }
 
+/** Two points this close (m) are the same end of a line. */
+const SAME_END = 0.01
+
+/**
+ * The section line that already runs where a cut does (either way round), or null. The live
+ * section under the plan is the viewer's own cut, not a drawing: this says whether its line has
+ * been kept as one (LD-25).
+ */
+export function sectionAlong(plan: Pick<Plan, 'sections'>, cut: { a: Vec2; b: Vec2 }): SectionLine | null {
+  const same = (p: Vec2, q: Vec2) => Math.hypot(p[0] - q[0], p[1] - q[1]) < SAME_END
+  return sectionsOf(plan).find(s => (same(s.a, cut.a) && same(s.b, cut.b)) || (same(s.a, cut.b) && same(s.b, cut.a))) ?? null
+}
+
 /** How a section is named on drawings and in lists: "Section A–A". */
 export const sectionName = (s: Pick<SectionLine, 'label'>) => `Section ${s.label}–${s.label}`
 
 /**
  * Snap the end of a line being drawn so it runs square to the house (or at 45°) when it is
- * within a few degrees of that; `free` (Shift) leaves it where it is.
+ * within a few degrees of that; `free` (Alt, or snapping switched off) leaves it where it is.
  */
 export function snapEnd(a: Vec2, p: Vec2, free: boolean): Vec2 {
   if (free) return p

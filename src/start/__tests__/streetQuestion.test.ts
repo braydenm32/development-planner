@@ -1,7 +1,7 @@
 // The street question after an import: a side of the block is picked on the card or by
 // clicking it on the plan, and asking again starts afresh from the low side.
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { askStreetSide, chooseStreetEdge, edgeNear, hoverStreetEdge, streetAsked, useStreetAsk } from '../streetQuestion'
 
 describe('a side of the block under the pointer', () => {
@@ -39,9 +39,32 @@ describe('the question', () => {
     hoverStreetEdge(1)
     expect(useStreetAsk.getState()).toMatchObject({ chosen: 2, hover: 1 })
     streetAsked()
-    expect(useStreetAsk.getState()).toEqual({ project: null, chosen: null, hover: null, answering: false })
+    expect(useStreetAsk.getState()).toEqual({ project: null, chosen: null, hover: null, answering: false, waiting: [] })
     askStreetSide('p2')
     expect(useStreetAsk.getState().chosen).toBeNull()
     streetAsked()
+  })
+
+  it('waits in this browser until it’s answered or put off, so a reload doesn’t lose it', async () => {
+    const kept = new Map<string, string>()
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v), removeItem: (k: string) => void kept.delete(k) })
+    askStreetSide('p3')
+    expect(useStreetAsk.getState().waiting).toEqual(['p3'])
+    expect(JSON.parse(localStorage.getItem('street-ask-v1') ?? '[]')).toEqual(['p3'])
+    // Another project's question doesn't take its place.
+    askStreetSide('p4')
+    expect(useStreetAsk.getState().waiting).toEqual(['p3', 'p4'])
+    // Answered or "Not sure yet": gone for that project only.
+    streetAsked()
+    expect(useStreetAsk.getState().waiting).toEqual(['p3'])
+    expect(JSON.parse(localStorage.getItem('street-ask-v1') ?? '[]')).toEqual(['p3'])
+    // A fresh page load reads it back.
+    vi.resetModules()
+    const reloaded = await import('../streetQuestion')
+    expect(reloaded.useStreetAsk.getState()).toMatchObject({ project: null, waiting: ['p3'] })
+    useStreetAsk.setState({ project: 'p3' })
+    streetAsked()
+    expect(localStorage.getItem('street-ask-v1')).toBeNull()
+    vi.unstubAllGlobals()
   })
 })

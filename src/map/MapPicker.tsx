@@ -1,11 +1,14 @@
 // An aerial map for finding the block: NSW imagery with the cadastre's lots on top. Drag to
-// move, the buttons or the wheel to zoom, click (or tap) a lot to pick it. While the lot is being
+// move, the buttons or the wheel to zoom, click (or tap) a lot to pick it. From the keyboard the
+// arrow keys move it, + and − zoom, and Enter picks the lot under the cross in the middle; the
+// four move buttons do the same for anyone who can't drag. While the lot is being
 // found it fills the canvas (`height="fill"`); once the survey is placed it's a small map in the
 // panel, with the survey's boundary drawn over the lot so the fit can be seen.
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { pointInPolygon } from '../lib/geom'
 import { tileLonLat, tileXY, type LonLat } from './geo'
+import { crossWords, lotAt, mapKey, PAN_STEP } from './keys'
 import { imageryTile, IMAGERY_CREDIT, lotsInBox, type Lot } from './services'
 import { pointWord } from './words'
 
@@ -43,6 +46,8 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
   const height = fill ? boxH : asked
   const [nearby, setNearby] = useState<Lot[]>([])
   const [drag, setDrag] = useState<{ x: number; y: number; moved: boolean } | null>(null)
+  /** The keyboard is driving: the cross shows, and what's under it is read out. */
+  const [keys, setKeys] = useState(false)
 
   useEffect(() => {
     const el = box.current
@@ -133,8 +138,23 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
     onView({ center: tileLonLat((ax - at[0] + width / 2) / TILE, (ay - at[1] + height / 2) / TILE, zz), zoom: zz })
   }
 
+  const pan = (dx: number, dy: number) => onView({ center: tileLonLat((cx + dx) / TILE, (cy + dy) / TILE, z), zoom: z })
+  const onKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget || e.ctrlKey || e.metaKey || e.altKey) return
+    const k = mapKey(e.key, e.shiftKey)
+    if (!k) return
+    e.preventDefault()
+    // The map's keys are its own: the plan beside it doesn't also zoom or nudge.
+    e.stopPropagation()
+    setKeys(true)
+    if ('pan' in k) pan(k.pan[0], k.pan[1])
+    else if ('zoom' in k) zoomTo(z + k.zoom)
+    else if (under) onPick(under)
+  }
+
   const down = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
+    setKeys(false)
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
     setDrag({ x: e.clientX, y: e.clientY, moved: false })
   }
@@ -158,6 +178,7 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
 
   const path = (ring: LonLat[]) => `M${ring.map(p => px(p).map(v => v.toFixed(1)).join(' ')).join('L')}Z`
   const sel = shown.find(l => l.id === selected)
+  const under = lotAt(view.center, shown)
 
   return (
     <div className={`map-picker${fill ? ' fill' : ''}`} style={fill ? undefined : { height }}>
@@ -172,8 +193,11 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
           const r = box.current!.getBoundingClientRect()
           zoomTo(z + (e.deltaY < 0 ? 1 : -1), [e.clientX - r.left, e.clientY - r.top])
         }}
+        onKeyDown={onKey}
+        onBlur={() => setKeys(false)}
+        tabIndex={0}
         role="application"
-        aria-label={`Aerial map. Drag to move, ${pointWord().toLowerCase()} a lot to pick it.`}
+        aria-label={`Aerial map. Drag or use the arrow keys to move, plus and minus to zoom. ${pointWord()} a lot to pick it, or press Enter for the lot under the cross in the middle.`}
       >
         {tiles.map(t => (
           <img key={t.key} src={t.url} alt="" draggable={false} className="map-tile" style={{ left: t.x, top: t.y }} onLoad={() => tileDone(true)} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; tileDone(false) }} />
@@ -186,13 +210,34 @@ export function MapPicker({ view, onView, lots, selected, onPick, outline, heigh
           {outline && outline.length > 2 && <path d={path(outline)} className="map-survey" />}
         </svg>
         {z < LOTS_FROM && <div className="map-hint">Zoom in to see the lots</div>}
+        {keys && <span className="map-cross" aria-hidden="true" />}
       </div>
+      {keys && (
+        <p className="sr-only" role="status">
+          {crossWords(under, z >= LOTS_FROM)}
+        </p>
+      )}
       <div className="map-zoom">
         <button className="icon-button" aria-label="Zoom in" onClick={() => zoomTo(z + 1)} disabled={z >= MAX_ZOOM}>
           +
         </button>
         <button className="icon-button" aria-label="Zoom out" onClick={() => zoomTo(z - 1)} disabled={z <= MIN_ZOOM}>
           −
+        </button>
+      </div>
+      {/* Moving the map without a drag: each press is one arrow key's worth. */}
+      <div className="map-pan" role="group" aria-label="Move the map">
+        <button className="icon-button up" aria-label="Move the map north" onClick={() => pan(0, -PAN_STEP)}>
+          ↑
+        </button>
+        <button className="icon-button left" aria-label="Move the map west" onClick={() => pan(-PAN_STEP, 0)}>
+          ←
+        </button>
+        <button className="icon-button down" aria-label="Move the map south" onClick={() => pan(0, PAN_STEP)}>
+          ↓
+        </button>
+        <button className="icon-button right" aria-label="Move the map east" onClick={() => pan(PAN_STEP, 0)}>
+          →
         </button>
       </div>
       <div className="map-credit">{IMAGERY_CREDIT}</div>

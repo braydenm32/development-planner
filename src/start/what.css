@@ -51,6 +51,14 @@
   line-height: 1.45;
 }
 
+.st-for {
+  max-width: 62ch;
+  margin: -8px 0 18px;
+  color: var(--st-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .st-main .st-choices {
   clear: both;
 }

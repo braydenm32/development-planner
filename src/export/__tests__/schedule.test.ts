@@ -28,7 +28,7 @@ describe('door and window schedule', () => {
   })
 
   it('writes a CSV in millimetres with the caveat last, quoting commas', () => {
-    const csv = scheduleCsv([{ id: 'D1', floor: 'Ground, rear', type: 'Door', room: 'Hall', wall: 'External wall, 1.00 m', width: 0.82, height: 2.04, sill: 0 }])
+    const csv = scheduleCsv([{ id: 'D1', opening: 'door_1', floor: 'Ground, rear', type: 'Door', room: 'Hall', wall: 'External wall, 1.00 m', width: 0.82, height: 2.04, sill: 0 }])
     const lines = csv.trimEnd().split('\r\n')
     expect(lines[0]).toBe('Mark,Floor,Type,Room,Wall,Width (mm),Height (mm),Sill height (mm)')
     expect(lines[1]).toBe('D1,"Ground, rear",Door,Hall,"External wall, 1.00 m",820,2040,0')

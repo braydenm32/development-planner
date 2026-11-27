@@ -4,19 +4,20 @@
 // time in place. A question just asked lights the pill once the tool is put down, not while
 // you're still drawing.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hideHint, TIPS, useHintPrefs } from '../guide/hints'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
 import { Icon } from '../nav/icons'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
+import { groundedLevels } from '../plan/levelMenu'
 import type { Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import { StreetAsk } from '../start/StreetAsk'
 import { answerStreet, useStreetPending } from '../start/streetQuestion'
 import { FloorTypeCard, OfferCard } from './FlowCards'
-import { questionOpened, questionsFor, useQuestionContext, waiting, type Question } from './questions'
+import { openAt, questionOpened, questionsFor, setQuestionsCover, staysInView, useQuestionContext, waiting, type Question } from './questions'
 import { useFlow } from './store'
 import { usePhoneMode } from '../phone/device'
 
@@ -38,9 +39,11 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   const hints = useHintPrefs()
   const facts = useQuestionContext(s => s.facts)
   const tool = usePlan(s => s.tool)
+  // A split level that sits on the ground is asked its floor type too, and keeps waiting through a reload.
+  const onGround = useMemo(() => groundedLevels(plan, survey, terrain.grid), [plan, survey, terrain])
   const qs = useMemo(
-    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, offer, hints, facts }),
-    [plan, level, street, ask, dismissed, offer, hints, facts],
+    () => questionsFor({ plan, level, street, ask: ask && { level: ask.space.level }, dismissed, onGround, offer, hints, facts }),
+    [plan, level, street, ask, dismissed, onGround, offer, hints, facts],
   )
   const [open, setOpen] = useState(false)
   const [answering, setAnswering] = useState<string | null>(null)
@@ -65,6 +68,49 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asked])
 
+  // Picking up a drawing tool folds the list (its own "Add a roof" button does, and so does a key):
+  // open, it sits beside the tool's card over the house and would take the clicks meant for the plan (HO-15).
+  useEffect(() => {
+    if (tool === 'select') return
+    setAnswering(null)
+    setOpen(false)
+  }, [tool])
+  // On a phone the open list covers the lower half of the plan: the plan is told how much, and
+  // fits the block above it, since the street question's answer is a side of the block (PH-15).
+  const tray = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = tray.current
+    if (!phone || !open || !el) return
+    // From the tray's top to the foot of the plan it sits in.
+    const measure = () => setQuestionsCover(Math.round((el.parentElement ?? el).getBoundingClientRect().bottom - el.getBoundingClientRect().top) + 12)
+    measure()
+    // An answer's card arrives a moment after the list opens, and is taller.
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    ro?.observe(el)
+    return () => {
+      ro?.disconnect()
+      setQuestionsCover(0)
+    }
+  }, [phone, open])
+
+  // On a computer the pill and the open list sit above the plan's hint at the foot, however many
+  // lines it has just grown to ("The walls close round a space…"): its height, for flow.css.
+  const pill = useRef<HTMLButtonElement>(null)
+  const shown = qs.length > 0
+  useLayoutEffect(() => {
+    const editor = (tray.current ?? pill.current)?.closest<HTMLElement>('.plan-editor')
+    const hint = editor?.querySelector<HTMLElement>(':scope > .readout')
+    if (phone || !editor || !hint) return
+    const measure = () => editor.style.setProperty('--readout-h', `${Math.round(hint.getBoundingClientRect().height)}px`)
+    measure()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    ro?.observe(hint)
+    return () => {
+      ro?.disconnect()
+      editor.style.removeProperty('--readout-h')
+    }
+  }, [phone, open, shown])
+
   if (!qs.length) return null
   const n = waiting(qs)
   // Something you did just asked; say so once the tool is down, so drawing isn't interrupted.
@@ -73,11 +119,15 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   if (!open)
     return (
       <button
+        ref={pill}
         type="button"
         className={`q-pill${fresh ? ' fresh' : ''}`}
         onClick={() => {
-          if (viewOnly) usePhoneMode.getState().setMode('edit')
+          const first = openAt(qs, phone)
+          // The street side is a fact about the block, not a drawing: a phone answers it without leaving View (PH-15).
+          if (viewOnly && !staysInView(qs)) usePhoneMode.getState().setMode('edit')
           setOpen(true)
+          setAnswering(first)
         }}
         aria-expanded={false}
       >
@@ -92,7 +142,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
     setOpen(false)
   }
   return (
-    <section className="q-tray" aria-label="Questions waiting for you">
+    <section ref={tray} className="q-tray" aria-label="Questions waiting for you" data-owns-keys>
       <header>
         {current ? (
           <button type="button" className="q-back" onClick={() => setAnswering(null)}>
@@ -112,7 +162,7 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
       ) : (
         <ul className="q-list">
           {qs.map(q => (
-            <Row key={q.id} q={q} phone={phone} answer={() => setAnswering(q.id)} />
+            <Row key={q.id} q={q} phone={phone} answer={() => setAnswering(q.id)} fold={close} />
           ))}
         </ul>
       )}
@@ -120,14 +170,22 @@ export function QuestionTray({ plan, level, survey, terrain, phone, viewOnly = f
   )
 }
 
-function Row({ q, phone, answer }: { q: Question; phone: boolean; answer: () => void }) {
+function Row({ q, phone, answer, fold }: { q: Question; phone: boolean; answer: () => void; fold: () => void }) {
   const tip = q.hint ? TIPS[q.hint] : null
   const detail = tip ? (phone ? tip.phone : tip.desk) : q.detail
   let action
   if (tip)
     action = (
       <>
-        <button type="button" className="q-go" onClick={() => usePlan.getState().setTool(tip.tool)}>
+        <button
+          type="button"
+          className="q-go"
+          onClick={() => {
+            // The next click belongs to the plan: the list folds as its tool starts.
+            usePlan.getState().setTool(tip.tool)
+            fold()
+          }}
+        >
           {tip.button}
         </button>
         <button type="button" className="q-hide" aria-label={`Hide the tip: ${tip.title}`} title="Hide this tip" onClick={() => hideHint(q.hint!)}>

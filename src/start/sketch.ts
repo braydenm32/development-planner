@@ -23,6 +23,16 @@ export interface SketchBlock {
 
 /** RL of the ground at the street edge: an assumed datum, as surveyors use before levels are known. */
 export const SKETCH_DATUM = 100
+/**
+ * A level on a sketch block in everyday words: "2.00 m above the street". The RL 100 at the street
+ * is made up, so an RL means nothing to the person yet; it stays in the tooltip for when the
+ * survey comes.
+ */
+export function aboveStreet(rl: number): string {
+  const d = Math.round((rl - SKETCH_DATUM) * 100) / 100
+  return d === 0 ? 'level with the street' : `${Math.abs(d).toFixed(2)} m ${d > 0 ? 'above' : 'below'} the street`
+}
+
 /** The sheet used when no size is given. */
 export const ROUGH_SIZE = { width: 20, depth: 40 }
 /** The sketch block's south-west corner, in made-up site coordinates. */
@@ -35,21 +45,39 @@ export const SKETCH_LAYERS: Record<string, LayerRole> = {
   SKETCH_CONTOURS: 'contour',
 }
 
-/** Check typed numbers; `null` for a blank width and depth (no size given). Throws a plain message. */
-export function readSketchSize(width: string, depth: string, fall: string, street: StreetSide): SketchBlock {
-  const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')))
-  const w = num(width)
-  const d = num(depth)
-  const f = num(fall) ?? 0
-  if (w === null && d === null) return { ...ROUGH_SIZE, fall: f, street, rough: true }
-  if (w === null || d === null) throw new Error('Type both the width and the depth, or leave both empty to set them later.')
-  for (const [v, name] of [
-    [w, 'width'],
-    [d, 'depth'],
-  ] as const) {
-    if (!Number.isFinite(v) || v < LIMITS.min || v > LIMITS.max) throw new Error(`The block’s ${name} needs to be between ${LIMITS.min} and ${LIMITS.max} m.`)
+const typed = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')))
+
+/** The start screen's number boxes, in the order they are read. */
+export const SKETCH_FIELDS = ['width', 'depth', 'fall'] as const
+export type SketchField = (typeof SKETCH_FIELDS)[number]
+
+/**
+ * What is wrong with each typed number, box by box, so every bad box is marked at once and not
+ * only the first; empty when the block can be made. A blank width and depth is no size given.
+ */
+export function sketchProblems(width: string, depth: string, fall: string): Partial<Record<SketchField, string>> {
+  const out: Partial<Record<SketchField, string>> = {}
+  const size = { width: typed(width), depth: typed(depth) }
+  for (const name of ['width', 'depth'] as const) {
+    const v = size[name]
+    const other = size[name === 'width' ? 'depth' : 'width']
+    if (v === null) {
+      if (other !== null) out[name] = 'Type both the width and the depth, or leave both empty to set them later.'
+    } else if (!Number.isFinite(v) || v < LIMITS.min || v > LIMITS.max) out[name] = `The block’s ${name} needs to be between ${LIMITS.min} and ${LIMITS.max} m.`
   }
-  if (!Number.isFinite(f) || Math.abs(f) > LIMITS.fall) throw new Error(`The fall needs to be within ${LIMITS.fall} m.`)
+  const f = typed(fall) ?? 0
+  if (!Number.isFinite(f) || Math.abs(f) > LIMITS.fall) out.fall = `The fall needs to be within ${LIMITS.fall} m.`
+  return out
+}
+
+/** Check typed numbers; `null` for a blank width and depth (no size given). Throws a plain message: the first box's. */
+export function readSketchSize(width: string, depth: string, fall: string, street: StreetSide): SketchBlock {
+  const problems = sketchProblems(width, depth, fall)
+  for (const name of SKETCH_FIELDS) if (problems[name]) throw new Error(problems[name])
+  const w = typed(width)
+  const d = typed(depth)
+  const f = typed(fall) ?? 0
+  if (w === null || d === null) return { ...ROUGH_SIZE, fall: f, street, rough: true }
   return { width: w, depth: d, fall: f, street }
 }
 
@@ -60,7 +88,8 @@ export const SIDE_NAME: Record<StreetSide, string> = { N: 'north', E: 'east', S:
 
 /** "15 × 30 m, flat, street to the south". */
 export function describeSketch(b: SketchBlock): string {
-  const size = b.rough ? 'size not set yet' : `${b.width} × ${b.depth} m`
+  // With no size given the block is still drawn, at the default: say the size it has, and that it wasn't chosen.
+  const size = b.rough ? `${b.width} × ${b.depth} m (default size, not set yet)` : `${b.width} × ${b.depth} m`
   const fall = b.fall ? `${Math.abs(b.fall)} m ${b.fall > 0 ? 'up' : 'down'} to the back` : 'flat'
   return `${size}, ${fall}, street to the ${SIDE_NAME[b.street]}`
 }
@@ -141,4 +170,17 @@ export const isSketch = (p: Pick<SavedProject, 'sketch'> | null | undefined): bo
 export function sketchAround(w: number, d: number): SketchBlock {
   const fit = (v: number) => Math.min(LIMITS.max, Math.max(12, Math.ceil(v + 12)))
   return { width: fit(w), depth: fit(d), fall: 0, street: 'S' }
+}
+
+/**
+ * Where the chip goes on a computer's plan, from the room in the top row between the floor's chip
+ * and the compass (px) and its own width with and without the block's size: in the row whole, or
+ * as "Sketch block" and its button alone; with no room there, a line under the compass, except
+ * while the selection's card is open, when it would sit on the house and take the clicks meant
+ * for it, so it waits (it's in Site › Block too) until the card closes.
+ */
+export function chipFit(room: number, full: number, short: number, inspector: boolean): 'row' | 'short' | 'drop' | 'off' {
+  if (full <= room) return 'row'
+  if (short <= room) return 'short'
+  return inspector ? 'off' : 'drop'
 }

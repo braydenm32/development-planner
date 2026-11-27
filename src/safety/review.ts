@@ -5,7 +5,7 @@ import type { SavedProject } from '../lib/storage'
 import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import { projectThumbnail, totalFloorArea } from '../projects/summary'
 import { m2 } from '../shell/format'
-import { isSketch } from '../start/sketch'
+import { describeSketch, isSketch } from '../start/sketch'
 import { fitOnBlock, groundUnder, heightToKeep, levelsOff, type Fit, type Site } from './align'
 import { foundText, rlRangeText, siteAreaText } from './readBack'
 import type { Review, ReviewChoice } from './store'
@@ -13,10 +13,10 @@ import type { Review, ReviewChoice } from './store'
 const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const rl = (v: number) => `RL ${v.toFixed(2)}`
 
-/** "2 floors: Ground floor, First floor". */
+/** "2 levels: Ground floor, First floor". */
 function floors(plan: Plan): string {
   const names = sortedLevels(plan).map(l => l.name)
-  return `${count(names.length, 'floor')}: ${names.join(', ')}`
+  return `${count(names.length, 'level')}: ${names.join(', ')}`
 }
 
 /** A plan in one line: "24 walls, 7 rooms, 2 roofs · 182.40 m²", or "nothing drawn yet". */
@@ -38,7 +38,7 @@ function planFacts(plan: Plan): Review['facts'] {
   const area = totalFloorArea(plan)
   return [
     { label: 'Floor area', value: area > 0 ? m2(area) : 'none enclosed yet' },
-    { label: 'Floors', value: floors(plan) },
+    { label: 'Levels', value: floors(plan) },
     { label: 'Drawn', value: planLine(plan).split(' · ')[0] },
   ]
 }
@@ -132,9 +132,14 @@ export function surveyReview(i: SurveyReviewInput): Review {
   const only = choices.length === 1 ? choices[0] : null
 
   const changes = [
-    i.old ? `The survey: ${i.old.fileName} becomes ${next.fileName}.` : `The survey: ${next.fileName}.`,
+    // One sketch to another (Change size, or a new street side): say what changes about the block, with no talk of survey files.
+    i.old?.sketch && next.sketch
+      ? `The sketch block: ${describeSketch(i.old.sketch)} becomes ${describeSketch(next.sketch)}.`
+      : i.old
+        ? `The survey: ${i.old.fileName} becomes ${next.fileName}.`
+        : `The survey: ${next.fileName}.`,
     sketchAfter ? 'The block is a sketch until the survey comes.' : `The block: ${siteAreaText(to.terrain.stats)}, ${rlRangeText(to.terrain.stats)}.`,
-    'Survey layers are read fresh from the new file.',
+    ...(next.sketch ? [] : ['Survey layers are read fresh from the new file.']),
     ...(only?.detail ? [drawn ? `The house goes in the middle of the ${sketchBefore ? 'surveyed' : 'new'} block. ${only.detail}` : only.detail] : []),
   ]
   const kept = [
@@ -146,7 +151,7 @@ export function surveyReview(i: SurveyReviewInput): Review {
   ]
   return {
     kind: 'replace-survey',
-    title: sketchBefore && !sketchAfter ? `Use ${next.fileName} as your block?` : `Replace the survey with ${next.fileName}?`,
+    title: sketchBefore && !sketchAfter ? `Use ${next.fileName} as your block?` : sketchBefore && sketchAfter ? 'Change the sketch block?' : `Replace the survey with ${next.fileName}?`,
     file: next.fileName,
     facts: sketchAfter
       ? [{ label: 'Block', value: next.fileName.replace(/^Sketch block\s*/, '') }]
@@ -163,7 +168,7 @@ export function surveyReview(i: SurveyReviewInput): Review {
     choices: only ? [] : choices,
     choice: only?.id,
     thumb: only ? only.thumb : choices.length ? undefined : thumbOf(to, i.moved ?? plan),
-    confirm: sketchBefore && !sketchAfter ? 'Use this survey' : 'Replace survey',
+    confirm: sketchBefore && !sketchAfter ? 'Use this survey' : sketchBefore && sketchAfter ? 'Change the sketch' : 'Replace survey',
     replaces: true,
   }
 }
@@ -229,7 +234,7 @@ export function newPlanReview(plan: Plan, site: Site | null): Review {
     kind: 'new-plan',
     title: 'Start the plan again?',
     facts: [{ label: 'Now', value: planLine(plan) }],
-    changes: ['Clears the walls, rooms, roofs, stairs, areas and furniture on every floor of this project, and the cut and fill settings.'],
+    changes: ['Clears the walls, rooms, roofs, stairs, outdoor areas and furniture on every level of this project, and the cut and fill settings.'],
     kept: [
       `The survey, and the house’s spot on the block (floor at ${rl(floorRL(plan))}).`,
       'Undo puts this plan back. To keep it and draw another, use Duplicate under All projects, or New project for another block.',
@@ -255,6 +260,10 @@ export interface ProjectReviewInput {
   costs?: string | null
   /** The project open now, which stays. */
   current: string | null
+  /** What in the file's plan couldn't be read and is left out, in words: "1 wall and 1 door". */
+  dropped?: string
+  /** The file carries the DA pack's site details (address, Lot/DP, prepared by). */
+  daDetails?: boolean
 }
 
 /** What a project file holds besides its plan, in words: "12 site features · 2 levels · block 480 m²". */
@@ -280,7 +289,10 @@ export function projectReview(i: ProjectReviewInput): Review {
       { label: 'Plan', value: planLine(i.plan) },
       { label: 'With', value: holds(i) },
       ...(i.costs ? [{ label: 'Costs', value: i.costs }] : []),
+      ...(i.daDetails ? [{ label: 'DA pack', value: 'site address, Lot and DP, prepared by' }] : []),
     ],
+    // A file with broken entries still opens, but never silently.
+    warning: i.dropped ? `Part of this file couldn’t be read: ${i.dropped} will be left out. The rest opens as it was saved.` : null,
     changes: [`Adds “${i.name}” to your projects and opens it.`],
     kept: [i.current ? `“${i.current}” stays as it is, under All projects.` : 'Nothing is replaced.'],
     confirm: 'Open as a new project',

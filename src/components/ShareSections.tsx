@@ -1,16 +1,21 @@
 // Share's sections: the 3D print settings and parts, the PDF plans, and sending the project
 // file. Share › Plans, Send, 3D print and Share's More render them (src/shell/tabs).
 
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
-import { fitsBed, type PrintSettings } from '../print/build'
-import { LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
+import { fitsBed, type PrintInput, type PrintSettings } from '../print/build'
+import { aroundHouseVolume, LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
 import { pointAtParts, usePrintHover } from '../print/hover'
 import { planPages } from '../share/pages'
-import type { Paper } from '../share/plans'
+import { autoFloorScale, FLOOR_SCALES, floorScaleOf, sheetFrame, type FloorScale, type Paper } from '../share/plans'
+import { projectsNow } from '../projects/session'
+import { showToast } from '../safety/store'
+import { keepStripSection } from '../sectionStrip/keep'
+import { sectionName } from '../sections/lines'
+import { usePlan } from '../plan/store'
 import { Num, Select } from './fields'
-import { printReady, save3mf, savePlansPdf, saveProjectFile, saveStls, type DownloadProps, type PdfInput, type PrintState } from './printFiles'
+import { printReady, save3mf, savePlansPdf, saveProjectFile, saveStls, toastDownloaded, type DownloadProps, type PdfInput, type PrintState } from './printFiles'
 import '../share/share.css'
 
 export type { PrintState }
@@ -96,7 +101,7 @@ const box = (b: readonly number[]) => `${b.map(size).join(' × ')} mm`
  * and a smaller scale above a litre, the largest scale that prints the terrain in one piece, and
  * what doesn't fit.
  */
-export function PrintParts({ print, settings }: { print: PrintState; settings: PrintSettings }) {
+export function PrintParts({ print, settings, input }: { print: PrintState; settings: PrintSettings; input?: Pick<PrintInput, 'plan' | 'survey' | 'ground'> }) {
   const model = print.model
   const groups = useMemo(() => (model ? partGroups(model) : []), [model])
   const hot = usePrintHover(s => s.ids)
@@ -107,6 +112,8 @@ export function PrintParts({ print, settings }: { print: PrintState; settings: P
   const tooBig = groups.filter(g => !fitsBed(g.biggest[0], g.biggest[1], settings))
   const whole = model.terrainSize ? scaleThatFits(model.terrainSize, settings.scale, settings) : null
   const under = scaleUnder(total, settings.scale)
+  // What the smaller terrain would really take, so the hint never promises a litre it can't keep.
+  const around = total > LITRE && settings.terrain === 'block' && input ? aroundHouseVolume(model, input, settings) : null
   const point = (g: PartGroup | null) => pointAtParts(g ? g.ids : [])
   return (
     <>
@@ -163,7 +170,9 @@ export function PrintParts({ print, settings }: { print: PrintState; settings: P
           That’s over a litre of plastic.{' '}
           {under ? `At 1:${under} it comes under a litre.` : 'Even the smallest scale takes more than that.'}
           {!settings.hollow ? ' Hollowing the terrain underneath saves a lot.' : ''}
-          {settings.terrain === 'block' ? ' So does printing only the ground around the house.' : ''}
+          {around !== null && around < total - 1
+            ? ` Printing only the ground around the house, out to ${Number(settings.margin.toFixed(1))} m, would take about ${Math.round(around).toLocaleString('en-AU')} cm³, ${around > LITRE ? 'still over a litre' : 'under a litre'}.`
+            : ''}
         </p>
       )}
       {model.terrainSize && (
@@ -198,7 +207,7 @@ export function PrintDownloads(p: DownloadProps) {
     <div className="print-foot">
       <Download3mfButton {...p} />
       <DownloadStlsButton {...p} />
-      <p className="muted">3MF opens in most slicers with every part named and laid out; the STLs come as a ZIP, one file per part.</p>
+      <p className="muted">3MF opens in most slicers with every part named and set out side by side; the STLs come as a ZIP, one file per part.</p>
     </div>
   )
 }
@@ -223,8 +232,8 @@ export function PrintInstructions() {
   return (
     <>
       <p className="muted small">
-        3MF opens in most slicers (Bambu Studio, PrusaSlicer, Cura) with every part named, coloured and laid out on the bed. The STL
-        download is a ZIP with one file per part.
+        3MF opens in most slicers (Bambu Studio, PrusaSlicer, Cura) with every part named, coloured and set out side by side: use your
+        slicer’s Arrange to fit them to your bed. The STL download is a ZIP with one file per part, and a note of the scale.
       </p>
       <p className="muted small">
         Print each part the way up it sits, flat side down; nothing needs supports. The lowest floor drops into a shallow pocket in the
@@ -260,55 +269,121 @@ export function PdfSketchToggle({ on, onChange }: { on: boolean; onChange: (on: 
 }
 
 /** What the plan set holds, behind "What's in it". */
-export function PlansContents() {
+export function PlansContents({ children }: { children?: ReactNode }) {
   return (
     <details className="sh-whats">
-      <summary>What’s in it</summary>
+      <summary>{children ? 'What’s in it, and pages to leave out' : 'What’s in it'}</summary>
       <p className="muted small">
         A site plan with boundary distances, key numbers and the site features (with a key, and what to check with council), a floor plan for each level with
         wall lengths, a roof plan, the sections and elevations, and a shadow diagram for 21 June at 9 am, 12 pm and 3 pm, all to a printed scale. The plans
         have a north arrow that follows the view.
       </p>
+      {children}
     </details>
+  )
+}
+
+const scaleLabel = (s: FloorScale) => (s === 'auto' ? 'Auto' : `1:${s}`)
+
+/** The scale of the floor and roof plans: Auto fits them all at one scale; a picked scale prints that, and says when it won't fit. */
+export function FloorScaleSelect(p: Pick<PdfInput, 'plan' | 'up' | 'paper' | 'pdfFurniture' | 'floorScale'> & { onFloorScale: (s: FloorScale) => void }) {
+  const picked = p.floorScale ?? 'auto'
+  const auto = useMemo(() => autoFloorScale(p.plan, p.up, sheetFrame(p.paper).area, p.pdfFurniture), [p.plan, p.up, p.paper, p.pdfFurniture])
+  return (
+    <>
+      <label className="pdf-paper">
+        <span>Floor plan scale</span>
+        <select value={String(picked)} onChange={e => p.onFloorScale(floorScaleOf(Number(e.target.value)))}>
+          {FLOOR_SCALES.map(s => (
+            <option key={s} value={String(s)}>
+              {s === 'auto' ? `Auto (1:${auto})` : scaleLabel(s)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {picked !== 'auto' && picked < auto && (
+        <p className="muted small pdf-scale-note">
+          At 1:{picked} the house is bigger than the {p.paper} sheet, so the floor plans will be cut off at its edges. Auto prints them at 1:{auto}.
+        </p>
+      )}
+    </>
+  )
+}
+
+/** The line that leads the plan set, on a computer and on a phone alike (PH-23). */
+export function PlansCaveat() {
+  return (
+    <p className="sh-lede">
+      <b>Concept plans, not for building or lodging.</b> A set to scale for your builder, designer or a first talk with council.
+    </p>
+  )
+}
+
+/** The pages of the plan set, each with a switch to leave it out; `furniture` adds its own switches under them. */
+export function PdfPages(p: Pick<PdfInput, 'plan' | 'survey' | 'leaveOut'> & { onLeaveOut: (keys: string[]) => void; furniture: ReactNode }) {
+  const leaveOut = p.leaveOut ?? []
+  const pages = useMemo(() => planPages(p.plan), [p.plan])
+  const tick = (key: string, on: boolean) => p.onLeaveOut(on ? leaveOut.filter(k => k !== key) : [...leaveOut, key])
+  // The section under the plan (in Design and Earthworks) is a way of looking, not a section line:
+  // one click keeps it as Section A–A, which the PDF then draws.
+  const hasHouse = pages.some(x => x.key === 'elevation' && x.drawn)
+  const useStripSection = () => {
+    const line = keepStripSection(p.survey, projectsNow().opened?.id ?? null)
+    if (!line) return
+    const after = usePlan.getState().plan
+    showToast({
+      text: `${sectionName(line)} added where the section under the plan cuts. Move it in Design › Sections.`,
+      undo: () => {
+        if (usePlan.getState().plan === after) usePlan.getState().undo()
+      },
+    })
+  }
+  return (
+    <fieldset className="pdf-pages">
+      <legend>Pages</legend>
+      {pages.map(x => (
+        <Fragment key={x.key}>
+          <label className={`check${x.drawn ? '' : ' undrawn'}`}>
+            <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
+            <span>
+              {x.label}
+              {!x.drawn && <span className="muted"> {x.key === 'section' ? '(no section line yet)' : '(not drawn yet)'}</span>}
+            </span>
+          </label>
+          {x.key === 'section' && !x.drawn && hasHouse && (
+            <button className="link small pdf-page-do" onClick={useStripSection} title="Keeps the live section shown under the plan in Design as Section A–A, so it prints">
+              Use the live section under the plan
+            </button>
+          )}
+        </Fragment>
+      ))}
+      {p.furniture}
+    </fieldset>
   )
 }
 
 /**
  * Share › Plans: the caveat first, the pages as ticks (a page with nothing drawn says so and
- * can't be ticked), then Paper beside Download PDF, and what the set holds behind a fold.
+ * can't be ticked), then Paper and the floor plan scale beside Download PDF, and what the set
+ * holds behind a fold.
  */
-export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; furniture: ReactNode }) {
+export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; onPaper: (paper: Paper) => void; onFloorScale: (s: FloorScale) => void; furniture: ReactNode }) {
   const [pdfError, setPdfError] = useState<string | null>(null)
   const leaveOut = p.leaveOut ?? []
   const pages = useMemo(() => planPages(p.plan), [p.plan])
   const ticked = pages.filter(x => x.drawn && !leaveOut.includes(x.key)).length
-  const tick = (key: string, on: boolean) => p.onLeaveOut(on ? leaveOut.filter(k => k !== key) : [...leaveOut, key])
   const downloadPdf = () => {
     setPdfError(null)
     try {
-      savePlansPdf(p)
+      toastDownloaded(savePlansPdf(p))
     } catch (err) {
       setPdfError((err as Error).message || 'The plans could not be drawn.')
     }
   }
   return (
     <>
-      <p className="sh-lede">
-        <b>Concept plans, not for building or lodging.</b> A set to scale for your builder, designer or a first talk with council.
-      </p>
-      <fieldset className="pdf-pages">
-        <legend>Pages</legend>
-        {pages.map(x => (
-          <label key={x.key} className={`check${x.drawn ? '' : ' undrawn'}`}>
-            <input type="checkbox" checked={x.drawn && !leaveOut.includes(x.key)} disabled={!x.drawn} onChange={e => tick(x.key, e.target.checked)} />
-            <span>
-              {x.label}
-              {!x.drawn && <span className="muted"> (not drawn yet)</span>}
-            </span>
-          </label>
-        ))}
-        {p.furniture}
-      </fieldset>
+      <PlansCaveat />
+      <PdfPages plan={p.plan} survey={p.survey} leaveOut={p.leaveOut} onLeaveOut={p.onLeaveOut} furniture={p.furniture} />
       <div className="pdf-go">
         <label className="pdf-paper">
           <span>Paper</span>
@@ -320,6 +395,7 @@ export function PdfPlans(p: PdfInput & { onLeaveOut: (keys: string[]) => void; o
             ))}
           </select>
         </label>
+        <FloorScaleSelect {...p} />
         <button className="secondary" onClick={downloadPdf} disabled={ticked === 0}>
           Download PDF
         </button>
@@ -342,8 +418,9 @@ export function SendProject({ plan, project, onOpenProject, download = true }: {
       <details className="sh-whats">
         <summary>What’s in it</summary>
         <p className="muted small">
-          The survey, the plan and the site features. Drawings go in only where you ticked that under Site features. A project file you open
-          here becomes a new project; this one stays as it is under All projects.
+          The survey, the plan, the site features and your costs, and the site address, Lot and DP and Prepared by from Approvals › DA pack if you
+          typed them. Drawings go in only where you ticked that under Site features. Your print and view settings stay on this device. A
+          project file you open here becomes a new project; this one stays as it is under All projects.
         </p>
       </details>
       <div className="row">

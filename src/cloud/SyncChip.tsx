@@ -72,7 +72,7 @@ function SyncPop({ wrap, onClose }: { wrap: RefObject<HTMLDivElement | null>; on
     fn()
   }
   return (
-    <div ref={pop} className="cl-pop" role="dialog" aria-label="Cloud saves">
+    <div ref={pop} className="cl-pop" role="dialog" aria-label="Cloud saves" data-overlay>
       <div className={`cl-status ${look.tone}`}>
         <Icon name={look.icon} size={18} />
         <p>{look.detail}</p>

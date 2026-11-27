@@ -521,10 +521,14 @@ describe('a wall just drawn', () => {
 })
 
 describe('the engineer figure', () => {
-  it('is the 600 mm the checks use, from that height up', () => {
+  it('is the 600 mm the checks use, for walls over it (DB-23)', () => {
     expect(ENGINEER_HEIGHT).toBe(0.6)
     expect(needsEngineer(0.8)).toBe(true)
-    expect(needsEngineer(0.6)).toBe(true)
+    // Every label says "over 600 mm": a wall built to hold back 0.60 m isn't over it.
+    expect(needsEngineer(0.6)).toBe(false)
+    expect(needsEngineer(0.6 + 1e-7)).toBe(false)
+    expect(needsEngineer(0.604)).toBe(false)
+    expect(needsEngineer(0.61)).toBe(true)
     expect(needsEngineer(0.59)).toBe(false)
   })
 })

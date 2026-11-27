@@ -209,12 +209,91 @@ body:has(.app-shell) {
   width: 42px;
 }
 
-.scroll-cue.narrow .scroll-arrow {
-  width: 20px;
+/* The tabs' "+3": it lists the hidden tabs by name (src/shell/Nav.tsx). */
+.scroll-arrow.menu {
+  width: 50px;
+  gap: 2px;
 }
 
-.scroll-cue.narrow .tab-bar {
-  scroll-padding-inline: 20px;
+.scroll-arrow.menu[aria-expanded='true'] {
+  background: var(--line-soft);
+}
+
+.tab-cue:not(.free) .tab-bar {
+  scroll-padding-inline: 0 50px;
+}
+
+/* With tabs hidden, the row ends clear of the "+3", so the last tab never sits under it. */
+.tab-cue:not(.free):is(.more-before, .more-after) .tab-bar::after {
+  content: '';
+  flex: none;
+  width: 50px;
+}
+
+.cue-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #ffffff;
+  box-shadow:
+    0 18px 50px -12px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.cue-item {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r);
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cue-item:hover,
+.cue-item:focus-visible {
+  background: var(--line-soft);
+}
+
+/* A phone's tabs scroll under the finger and none hides: an end with more fades out. */
+.scroll-cue.free::before,
+.scroll-cue.free::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 1px;
+  z-index: 1;
+  width: 22px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out;
+}
+
+.scroll-cue.free::before {
+  left: 0;
+  background: linear-gradient(to right, #ffffff 15%, rgba(255, 255, 255, 0));
+}
+
+.scroll-cue.free::after {
+  right: 0;
+  background: linear-gradient(to left, #ffffff 15%, rgba(255, 255, 255, 0));
+}
+
+.scroll-cue.free.more-before::before,
+.scroll-cue.free.more-after::after {
+  opacity: 1;
+}
+
+.scroll-cue.free .tab-bar {
+  scroll-padding-inline: 22px;
 }
 
 .scroll-arrow:hover {
@@ -359,6 +438,11 @@ body:has(.app-shell) {
 }
 
 /* No hover on a phone: a tap would leave the tip hanging. */
+/* Put away with Esc (src/shell/tips.ts), until the pointer or the focus moves on. */
+.app-shell button[data-tip][data-tip-off]::after {
+  display: none;
+}
+
 .app-shell.phone button[data-tip]::after {
   display: none;
 }
@@ -390,6 +474,78 @@ body:has(.app-shell) {
 .app-shell .row kbd,
 .app-shell h2 kbd {
   margin-left: 6px;
+}
+
+/* The tabs come first: on a narrower window the top bar's own controls give up room so that all of
+   an area's tabs show from 1280 px up (Design has eight). The save notice goes to its time and then
+   its tick (the whole of it is in its tip and its popover), Search to its icon, and the project's
+   name shortens; under that the tabs that don't fit are listed under the "+3". */
+@media (max-width: 1799px) {
+  .app-shell:not(.phone) .top-bar .ls-chip.quiet .ls-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1659px) {
+  .app-shell:not(.phone) .search-button {
+    width: 34px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app-shell:not(.phone) .search-button .desk-only {
+    display: none;
+  }
+}
+
+@media (max-width: 1499px) {
+  /* Only while all is well: a problem with saving keeps its words. */
+  .app-shell:not(.phone) .top-bar .ls-chip.quiet .ls-at,
+  .app-shell:not(.phone) .top-bar .cl-chip.quiet .cl-chip-label {
+    display: none;
+  }
+
+  .app-shell:not(.phone) .top-bar .cl-chip {
+    padding: 0 7px;
+  }
+
+  .app-shell:not(.phone) .project-button {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 1399px) {
+  .app-shell:not(.phone) .top-bar {
+    gap: 8px;
+  }
+
+  .app-shell:not(.phone) .top-actions {
+    gap: 6px;
+  }
+
+  .app-shell:not(.phone) .tab {
+    padding: 0 10px;
+  }
+
+  .app-shell:not(.phone) .view-switch button .ic {
+    display: none;
+  }
+}
+
+@media (max-width: 1329px) {
+  .app-shell:not(.phone) .project-button {
+    max-width: 130px;
+  }
+}
+
+@media (max-width: 1099px) {
+  .app-shell:not(.phone) .steps-button span {
+    display: none;
+  }
+
+  .app-shell:not(.phone) .project-button {
+    max-width: 110px;
+  }
 }
 
 /* ---- Project menu ---- */
@@ -451,6 +607,12 @@ body:has(.app-shell) {
 .menu-item:focus-visible {
   background: var(--line-soft);
   outline: none;
+}
+
+/* The fill alone is the hover look and too faint to find (1.1:1): the keyboard's row gets the usual ring. */
+.menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .menu-item .ic {
@@ -773,9 +935,15 @@ button.chip:hover .chip-label {
 .app-shell .canvas-plan .readout > .notice,
 .app-shell .canvas-plan .readout > .ground-readout {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* Two lines as written; the third is for wider letter and word spacing set by the reader (WCAG 1.4.12), which used to cut the hint short. */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   white-space: normal;
+}
+
+/* The hint's own link (Go to Design, where the plan only reads the house) takes a click; the rest lets it through to the plan. */
+.app-shell .readout button.link {
+  pointer-events: auto;
 }
 
 /* While the pointer reads the ground, that line has the box to itself; the tool's hint comes back after. */
@@ -786,6 +954,42 @@ button.chip:hover .chip-label {
 .app-shell .readout > span:has(b) {
   flex: none;
 }
+
+/* The ground readout is a sentence, not a number: it takes the box's width and wraps to its second
+   line instead of running out under the view bar (HO-14, DB-26). */
+.app-shell .canvas-plan .readout > .ground-readout {
+  flex: 1 1 100%;
+}
+
+/* How much room the plan has between what floats at its sides: along its top (--row-room) and
+   along its foot (--foot-room, where the view bar keeps to the right edge under the selection's
+   card). The chips and buttons fold or step aside when it runs short. Each clamp below is a length
+   that is 0 or its full size either side of a width: clamp(0px, (limit - room) * 999, size). */
+.app-shell:not(.phone) .shell-main {
+  --row-room: calc(100vw - var(--nav-w) - var(--free-left, 14px) - var(--free-right, 16px));
+  --foot-room: calc(100vw - var(--nav-w) - var(--free-left, 14px) - 16px - var(--foot-right, 0px));
+  /* Under 628 px the hint has a line of its own above the Key and the view bar, and what sat there
+     (the questions' pill, the scale bar, a card) moves up by --foot-lift. */
+  --foot-lift: clamp(0px, (628px - var(--foot-room)) * 999, 62px);
+}
+
+/* Under 880 px at the foot (a panel or a tool's card open on a small window), the view bar's
+   buttons keep their icons and drop their names, so the hint beside them still has room. */
+.app-shell:not(.phone) .canvas-controls button > span {
+  max-width: clamp(0px, (var(--foot-room) - 880px) * 999, 120px);
+  margin-left: clamp(-7px, (880px - var(--foot-room)) * -999, 0px);
+  overflow: hidden;
+}
+
+/* With no room beside the view bar at all, the plan's hint moves up to its own line, the width of
+   the plan's free part: its sentence is never cut off under the buttons (HO-14, DB-26). There the
+   width it keeps clear of is nothing, so --controls-w, which its max-width subtracts, cancels out. */
+.app-shell:not(.phone) .shell-main.canvas-plan .readout {
+  --controls-w: calc(var(--view-bar-w, 470px) - min(var(--foot-lift) * 99, var(--view-bar-w, 470px) + 104px));
+  left: calc(var(--free-left, 16px) + 94px - min(var(--foot-lift) * 2, 94px));
+  bottom: calc(var(--gap) + var(--section-strip-h, 0px) + min(var(--foot-lift), 44px));
+}
+
 
 /* The Key pill, at the foot beside the hint; its key opens upwards. */
 .app-shell .plan-actions {
@@ -821,13 +1025,35 @@ button.chip:hover .chip-label {
   left: calc(var(--free-left, 16px));
 }
 
+/* The floor's chip keeps to the plan's free part, beside the compass, never under the selection's
+   card: it wraps instead. With under 400 px of plan across (a small window with a panel and the
+   card open) the compass steps down under it, so the chip has the row (final check 4). */
+.app-shell:not(.phone) .shell-main.canvas-plan .level-chip.level-menu {
+  max-width: min(420px, calc(var(--row-room) - 8px - clamp(0px, (var(--row-room) - 400px) * 999, 52px)));
+}
+
+/* Narrow, its button's words wrap whole (Drawing on / Living level · FFL…) and the ghosts' note goes. */
+.app-shell:not(.phone) .shell-main.canvas-plan .level-menu-button {
+  flex-wrap: wrap;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan .level-chip.level-menu > .muted {
+  max-height: clamp(0px, (var(--row-room) - 400px) * 999, 80px);
+  overflow: hidden;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan .plan-compass {
+  top: calc(16px + clamp(0px, (400px - var(--row-room)) * 999, 112px));
+}
+
 /* A hidden panel's pill sits in the chip's corner: the chip goes under it. */
 .app-shell:not(.phone) .has-pill .level-chip {
   top: calc(var(--gap) + 44px);
 }
 
+/* Beside the selection's card, whichever width it has (--free-right: AppShell's inset). */
 .app-shell .has-inspector .plan-compass {
-  right: 326px;
+  right: calc(var(--free-right, 330px) - 4px);
 }
 
 .app-shell .canvas-3d .compass {
@@ -878,6 +1104,12 @@ button.chip:hover .chip-label {
   cursor: pointer;
 }
 
+/* Design's rail is fifteen tools long: on a short window its buttons close up so the last one
+   still shows (15 buttons, their gaps, the five group lines and the bars above the canvas). */
+.app-shell:not(.phone) .tool-rail.full button {
+  height: clamp(30px, calc((100vh - 232px) / 15), 42px);
+}
+
 .tool-rail .tool-name {
   max-width: 48px;
   overflow: hidden;
@@ -885,6 +1117,19 @@ button.chip:hover .chip-label {
   line-height: 1.1;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* The ground's short rail has room for a name on two lines: "Move house" in full. */
+.app-shell:not(.phone) .tool-rail:not(.full) button {
+  height: auto;
+  min-height: 42px;
+  padding: 3px 0;
+}
+
+.app-shell:not(.phone) .tool-rail:not(.full) .tool-name {
+  max-width: 50px;
+  white-space: normal;
+  text-align: center;
 }
 
 .tool-rail button:hover {
@@ -1013,6 +1258,8 @@ button.chip:hover .chip-label {
 }
 
 .plain.small {
+  /* Done, Options, Fold away: small words, but 24 px of height to hit (WCAG 2.5.8). */
+  min-height: 24px;
   font-size: 12.5px;
 }
 
@@ -1023,7 +1270,9 @@ button.chip:hover .chip-label {
   right: var(--gap);
   z-index: 5;
   width: 300px;
-  max-height: calc(100% - 92px);
+  /* It stops above the view bar (Fit house, Picture, North up) and the section under the plan,
+     and scrolls inside, so neither is ever under it (LD-18). */
+  max-height: calc(100% - 92px - var(--section-strip-h, 0px));
   overflow-y: auto;
 }
 
@@ -1508,7 +1757,14 @@ button.ov-verdict:hover {
   align-content: start;
 }
 
-.ov-group > h3 {
+/* Beats the float card's small grey h3. */
+.app-shell .ov-group > .ov-head > h3 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.ov-group > .ov-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1522,7 +1778,7 @@ button.ov-verdict:hover {
 }
 
 /* Open, at the end of each group's heading: a whole finger's worth on a phone. */
-.app-shell.phone .ov-group > h3 > button.link {
+.app-shell.phone .ov-group > .ov-head > button.link {
   min-width: 44px;
   min-height: 44px;
   padding: 0 4px;
@@ -1702,7 +1958,12 @@ button.ov-verdict:hover {
 .pi-kind {
   flex: none;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
+}
+
+/* The highlighted row's tint takes the grey below 4.5:1: a shade darker there (final check, problem 10). */
+.palette-list li.on .pi-kind:not(.run) {
+  color: #565b62;
 }
 
 .pi-kind.run {
@@ -1811,19 +2072,8 @@ button.ov-verdict:hover {
   font-size: 14px;
 }
 
-/* The tabs scroll, as on a desktop: a name that would be cut off hides behind an arrow, and the
-   open tab is scrolled into view (Nav.tsx). A phone's bar can be narrower than a long name
-   ("Retaining walls" opened from a link): the open tab then fits between the arrows, shortened
-   if it must, rather than hiding as a cut-off one would (C38). */
-.app-shell.phone .tab.on {
-  display: block;
-  flex: none;
-  max-width: calc(100% - 2 * 20px - 6px);
-  overflow: hidden;
-  padding: 0 3px;
-  line-height: var(--top-h);
-  text-overflow: ellipsis;
-}
+/* The tabs scroll under the finger and every name shows whole, however long ("Retaining walls");
+   the open tab is scrolled to the middle of the bar (Nav.tsx), with a fade at an end that has more. */
 
 .app-shell.phone .top-actions {
   gap: 0;
@@ -2174,8 +2424,34 @@ button.ov-verdict:hover {
   background: var(--line);
 }
 
+/* The header stays put as the list scrolls, so Close and the handle are always there; no
+   subtitle on a phone (it wrapped to three lines), and a full 44 px Close (PH-17). */
 .app-shell.phone .overview-sheet > header {
-  padding: 8px 8px 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 6px 4px 6px 18px;
+  background: #ffffff;
+}
+
+.app-shell.phone .overview-sheet > header > .muted {
+  display: none;
+}
+
+.app-shell.phone .overview-sheet > header .ov-steps {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.app-shell.phone .overview-sheet > header .ov-steps + .icon-button {
+  margin-left: 0;
+}
+
+.app-shell.phone .overview-sheet > header .icon-button {
+  flex: none;
+  width: 44px;
+  height: 44px;
 }
 
 .app-shell.phone .ov-cols {
@@ -2209,6 +2485,23 @@ button.ov-verdict:hover {
 
 .app-shell.phone .palette-list li {
   min-height: 52px;
+}
+
+/* A feature's row is two lines on a phone, like the tabs' and commands': its name whole (it was cut
+   to 18 characters, so several rows read the same), with where it lives under it (PH-30). */
+.app-shell.phone .pi-feature .pi-text {
+  display: grid;
+  gap: 0;
+}
+
+.app-shell.phone .pi-feature .pi-label {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.app-shell.phone .pi-feature .pi-where {
+  max-width: none;
 }
 
 .app-shell.phone .palette-foot {

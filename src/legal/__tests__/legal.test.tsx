@@ -6,9 +6,12 @@ import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { PAGE_IDS, formatHash, parseHash } from '../../nav/route'
 import { Caveat } from '../Caveat'
-import { ACCURACY_TITLE, CAVEAT, CAVEAT_LINE, CONTACT_EMAIL, LAST_UPDATED } from '../caveat'
+import { ACCURACY_TITLE, ACCURACY_UPDATED, CAVEAT, CAVEAT_LINE, CONTACT_EMAIL, LAST_UPDATED } from '../caveat'
 import { LegalFooter } from '../LegalFooter'
 import { LegalPage } from '../LegalPage'
+import { councilsSoFar } from '../councils'
+import { COUNCILS } from '../../checks/councils'
+import { startAtTop } from '../startAtTop'
 import { PAGE_TITLES } from '../titles'
 import { planSetPdf } from '../../share/plans'
 import { parseDxf } from '../../lib/dxf'
@@ -31,18 +34,63 @@ describe('routes to the pages', () => {
 })
 
 describe('the pages', () => {
+  it('the brand is a link into the app, for a page opened on its own', () => {
+    expect(html('terms')).toMatch(/<a class="lg-brand" href="#\/projects"/)
+  })
+
+  it('a new page starts at its top with focus on its heading', () => {
+    // The pages scroll inside .lg-page: a footer link used to open the next page at the same depth.
+    const scroller = { scrollTop: 1532 }
+    const focused: unknown[] = []
+    startAtTop(scroller, { focus: o => focused.push(o) })
+    expect(scroller.scrollTop).toBe(0)
+    // preventScroll: focusing the heading must not scroll it under the sticky header.
+    expect(focused).toEqual([{ preventScroll: true }])
+    // The heading can take that focus without being a tab stop.
+    expect(html('privacy')).toContain('<h1 tabindex="-1">')
+  })
+
   it('each has a heading, a way home and the contact address', () => {
     for (const page of PAGE_IDS) {
       const h = html(page)
-      expect(h).toContain(`<h1>${PAGE_TITLES[page].replace('?', '?')}</h1>`)
+      expect(h).toContain(`<h1 tabindex="-1">${PAGE_TITLES[page].replace('?', '?')}</h1>`)
       expect(h).toContain('Back')
       expect(h).toContain(`mailto:${CONTACT_EMAIL}`)
     }
   })
 
   it('date the three that are documents', () => {
-    for (const page of ['privacy', 'terms', 'accuracy'] as const) expect(textOf(html(page))).toContain(`Last updated ${LAST_UPDATED}`)
+    for (const page of ['privacy', 'terms'] as const) expect(textOf(html(page))).toContain(`Last updated ${LAST_UPDATED}`)
     expect(LAST_UPDATED).toBe('9 November 2026')
+    // How accurate is this? changes with what the checks cover, so it has its own date.
+    expect(textOf(html('accuracy'))).toContain(`Last updated ${ACCURACY_UPDATED}`)
+  })
+
+  it('name every council the checks know, on About and on How accurate is this?', () => {
+    // Both pages said "one council (Wollongong so far)" while the picker offered four.
+    expect(COUNCILS.length).toBeGreaterThan(1)
+    expect(councilsSoFar(['Kiama'])).toBe('one council so far (Kiama)')
+    expect(councilsSoFar(['Kiama', 'Wollongong'])).toBe('two councils so far (Kiama and Wollongong)')
+    expect(councilsSoFar()).toBe('four councils so far (Blue Mountains, Central Coast, Kiama and Wollongong)')
+    for (const page of ['about', 'accuracy'] as const) {
+      const t = textOf(html(page))
+      expect(t, page).toContain(councilsSoFar())
+      for (const c of COUNCILS) expect(t, `${page}: ${c.name}`).toContain(c.name)
+      expect(t, page).not.toMatch(/one council/)
+    }
+  })
+
+  it('say what the surveyor’s file can be, and don’t list as missing what the checks now cover', () => {
+    const about = textOf(html('about'))
+    for (const s of ['DXF', 'LandXML', 'CSV']) expect(about, s).toContain(s)
+    const t = textOf(html('accuracy'))
+    const [good, limits] = t.slice(t.indexOf('Planning checks')).split('What they don’t cover')
+    // The checks have driveway rows and a shadow-on-the-neighbours row; the page lists them as covered.
+    for (const s of ['the driveway and its crossing', 'winter sun to your living rooms', 'where your shadow falls on the neighbours']) expect(good, s).toContain(s)
+    expect(limits).not.toContain('garages and parking')
+    expect(limits).not.toContain('sun to neighbours')
+    // What is still left out stays said.
+    for (const s of ['private open space', 'garage doors and parking spaces', 'where the neighbours’ windows and open space are', 'section 10.7 planning certificate']) expect(limits, s).toContain(s)
   })
 
   it('say what is kept, and what is not', () => {
@@ -63,7 +111,7 @@ describe('the pages', () => {
 
   it('cover each result on How accurate is this?', () => {
     const t = textOf(html('accuracy'))
-    for (const s of ['Cut and fill', 'Retaining walls', 'over 1.0 m', 'Planning checks', 'Housing Code', '20%', '3D prints', 'PDF plans']) expect(t, s).toContain(s)
+    for (const s of ['Cut and fill', 'Retaining walls', 'over 600 mm', 'Planning checks', 'Housing Code', '20%', '3D prints', 'PDF plans']) expect(t, s).toContain(s)
   })
 
   it('say how rough the state’s ground levels are, and what reading them sends', () => {

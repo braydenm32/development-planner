@@ -9,7 +9,8 @@ import type { Tool } from '../plan/store'
 import { DrivewayTab, CutFillTab, PlaceTab } from './tabs/EarthworksTabs'
 import { ChecksTab } from './tabs/ChecksTab'
 import { OptionsTab } from '../options/OptionsTab'
-import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab } from './tabs/DesignTabs'
+import { FloorsTab, FurnitureTab, RoofsTab, RoomsTab, WallsTab } from './tabs/DesignTabs'
+import { FlipPlanSection } from '../components/TransformTools'
 import { OfferSettings } from '../flow/OfferSettings'
 import * as More from './tabs/MoreSections'
 import { ExportTab } from '../export/ExportTab'
@@ -30,6 +31,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'site/sun': SiteSunTab,
   'design/floors': FloorsTab,
   'design/rooms': RoomsTab,
+  'design/walls': WallsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
   'design/sections': SectionsTab,
@@ -62,8 +64,10 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   'wall-preset': More.WallPresetSection,
   'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
+  'flip-plan': FlipPlanSection,
   origin: More.OriginSection,
   'earthworks-margin': More.MarginSection,
+  'slab-bed': More.SlabBedSection,
   'subfloor-gap': More.SubfloorSection,
   'retaining-offer': OfferSettings,
   'cost-rates': RatesSection,

@@ -1,0 +1,149 @@
+/* Mouse and keyboard habits on the plan (src/pointer): Space to pan, the right-click menu, a
+   length typed on its label, the grid and the snapping badge. */
+
+/* Space held: the plan is there to be dragged, whatever the tool. */
+.plan-svg[data-pan],
+.plan-svg[data-pan] * {
+  cursor: grab !important;
+}
+
+/* ---- A wall's length, clicked to type it ---- */
+
+.plan-svg text.dim-click {
+  cursor: text;
+}
+
+.plan-svg text.dim-click:hover {
+  fill: var(--accent, #2346d0);
+  text-decoration: underline;
+}
+
+.dim-edit {
+  position: absolute;
+  z-index: 9;
+  display: grid;
+  gap: 3px;
+  padding: 5px 4px 5px 5px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--overlay-line, #dcdfe3);
+  border-radius: var(--r-lg, 4px);
+  background: var(--panel, #ffffff);
+  box-shadow: 0 10px 28px -12px rgba(22, 24, 27, 0.35);
+}
+
+.dim-edit .num-input input {
+  width: 84px;
+}
+
+/* The reason a length can't be used, on its own slip under the box so it can run wider than it. */
+.dim-edit .num-hint {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max-content;
+  max-width: 280px;
+  margin: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--overlay-line, #dcdfe3);
+  border-radius: var(--r, 3px);
+  background: var(--panel, #ffffff);
+}
+
+/* ---- The right-click menu ---- */
+
+.plan-menu {
+  position: absolute;
+  z-index: 12;
+  min-width: 216px;
+  max-width: 300px;
+  padding: 4px;
+  border: 1px solid var(--overlay-line, #dcdfe3);
+  border-radius: var(--r-lg, 4px);
+  background: var(--panel, #ffffff);
+  box-shadow: 0 10px 28px -12px rgba(22, 24, 27, 0.35);
+  font-size: 13px;
+}
+
+.plan-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--r, 3px);
+  background: none;
+  color: var(--text, #16181b);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-menu button:hover,
+.plan-menu button:focus-visible {
+  background: var(--accent-soft, #eef1fc);
+}
+
+.plan-menu button:focus-visible {
+  outline: 2px solid var(--accent, #2346d0);
+  outline-offset: -2px;
+}
+
+.plan-menu button.rule {
+  margin-top: 4px;
+  border-top: 1px solid var(--line, #e1e4e7);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  padding-top: 7px;
+}
+
+.plan-menu button.danger {
+  color: var(--danger, #b3261e);
+}
+
+.plan-menu kbd {
+  margin-left: auto;
+  padding: 2px 5px;
+  border: 1px solid var(--line, #e1e4e7);
+  border-radius: 4px;
+  color: var(--muted, #6b7077);
+  font: 500 11px/1.2 inherit;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* ---- The grid ---- */
+
+.plan-grid path {
+  fill: none;
+}
+
+.plan-grid path.fine {
+  stroke: rgba(40, 60, 90, 0.2);
+}
+
+.plan-grid path.bold {
+  stroke: rgba(40, 60, 90, 0.42);
+}
+
+.plan-grid rect {
+  pointer-events: none;
+}
+
+.snap-key .muted {
+  color: var(--muted);
+}
+
+/* Beside the pointer while a point would go down unsnapped. */
+.snap-off-tag {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--warn-ink, #9a4a00);
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}

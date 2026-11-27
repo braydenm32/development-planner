@@ -135,6 +135,12 @@ function smooth(z: Float32Array, nx: number, ny: number): Float32Array {
   const out = new Float32Array(z.length)
   for (let j = 0; j < ny; j++) {
     for (let i = 0; i < nx; i++) {
+      // The outer ring of cells (the margin outside the block) keeps its value: half a kernel there
+      // would pull a slope's edge towards the middle, and a block's lowest corner read 10 to 30 mm high.
+      if (i === 0 || j === 0 || i === nx - 1 || j === ny - 1) {
+        out[j * nx + i] = z[j * nx + i]
+        continue
+      }
       let sum = 0
       let n = 0
       for (let dj = -1; dj <= 1; dj++) {
@@ -210,6 +216,19 @@ function siteStats(grid: Heightfield, boundary: Vec2[]): SiteStats {
       n++
     }
   }
+  // The block runs right to its boundary: the lowest and highest ground are often on it (a corner),
+  // which the cells inside miss by up to a cell. Walked every half metre, as the stormwater's low
+  // point is, so "Levels" and "Low point of the block" agree, and a sketch's fall reads as typed.
+  boundary.forEach((a, k) => {
+    const b = boundary[(k + 1) % boundary.length]
+    const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.5))
+    for (let i = 0; i < steps; i++) {
+      const h = grid.sample(a[0] + ((b[0] - a[0]) * i) / steps, a[1] + ((b[1] - a[1]) * i) / steps)
+      if (!Number.isFinite(h)) continue
+      if (h < minRL) minRL = h
+      if (h > maxRL) maxRL = h
+    }
+  })
   const steep = Float64Array.from(slopes).sort()
   const maxSlope = steep.length ? steep[Math.floor(STEEPEST_PERCENTILE * (steep.length - 1))] : 0
   // Downhill is the negative gradient; bearing measured clockwise from north (+y).

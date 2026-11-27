@@ -5,6 +5,8 @@
 // The definitions are general (NSW, where the checks come from); the checks panel has the exact
 // clauses.
 
+import { ENGINEER_TEXT } from '../checks/engineer'
+
 export interface Term {
   id: string
   /** As the app writes it: "FFL". */
@@ -18,21 +20,22 @@ export interface Term {
 }
 
 export const TERMS: Term[] = [
-  { id: 'ffl', short: 'FFL', long: 'Finished floor level', says: 'The height of the top of a finished floor, as an RL. The ground floor’s FFL sets how high or low the house sits on the block.', match: /\bFFL\b/ },
+  { id: 'ffl', short: 'FFL', long: 'Finished floor level', says: 'The floor level: the height of the top of a level’s finished floor, as an RL. The lowest level’s FFL sets how high or low the house sits on the block.', match: /\bFFL\b/ },
   { id: 'rl', short: 'RL', long: 'Reduced level', says: 'A height in metres above a fixed datum, usually AHD. Every level on a survey is an RL, so RL 45.50 is 45.5 m above it.', match: /\bRL\b/ },
   { id: 'ahd', short: 'AHD', long: 'Australian Height Datum', says: 'The datum most Australian surveys measure heights from: roughly mean sea level.', match: /\bAHD\b/ },
-  { id: 'cdc', short: 'CDC', long: 'Complying development certificate', says: 'A quick approval for a house that meets fixed rules (in NSW, the Housing Code). A council or a registered certifier issues it, without a full council assessment.', match: /\bCDC\b/ },
+  { id: 'cdc', short: 'CDC', long: 'Complying development certificate', says: 'The fast-track approval, also called complying development: for a house that meets fixed rules (in NSW, the Housing Code). A council or a registered certifier issues it, without a full council assessment.', match: /\bCDC\b/ },
   { id: 'da', short: 'DA', long: 'Development application', says: 'The usual council approval. The council weighs the design against its LEP and DCP, and neighbours can comment. It’s the way to go when a design doesn’t fit the CDC rules.', match: /\bDA\b/ },
+  { id: 'planning-certificate', short: 'Planning certificate', long: 'Section 10.7 certificate', says: 'A certificate the council issues for a lot, for a fee, listing the planning rules that apply to it: its zone, and whether it’s heritage, flood or bushfire land. It says for sure whether the fast-track (CDC) route is open. A contract of sale has one attached.', match: /section 10\.7( planning)? certificate|planning certificate/i },
   { id: 'lep', short: 'LEP', long: 'Local environmental plan', says: 'The council’s legal planning rules: zones, and limits such as building height and floor space ratio.', match: /\bLEP\b/ },
   { id: 'dcp', short: 'DCP', long: 'Development control plan', says: 'The council’s detailed guidelines for a DA: setbacks, landscaping, privacy, cut and fill and the like.', match: /\bDCP\b/ },
   { id: 'fsr', short: 'FSR', long: 'Floor space ratio', says: 'Gross floor area divided by the block’s area. A ratio of 0.5:1 on a 600 m² block allows 300 m² of floor.', match: /\bFSR\b|floor space ratio/i },
-  { id: 'gfa', short: 'GFA', long: 'Gross floor area', says: 'The floor area of every storey, measured to the inside of the outside walls. The rules say what counts: one garage space, for example, often doesn’t.', match: /\bGFA\b|gross floor area/i },
+  { id: 'gfa', short: 'GFA', long: 'Gross floor area', says: 'The floor area of every level, measured to the inside of the outside walls, with the walls between rooms counted. The rules say what counts: the checks here leave out one garage space, up to 18 m². The plain “Floor area” on the strip and in Costs is bigger: it goes to the outside of the walls.', match: /\bGFA\b|gross floor area/i },
   { id: 'height', short: 'Building height', says: 'The most the house rises above the natural ground under it: the ground as it was before any digging. The rules set a limit.', match: /\bbuilding height\b|\babove ground\b/i },
-  { id: 'storey', short: 'Storey', says: 'A floor of the house. A split level, where floors step up the slope side by side, can still count as one storey if no floor sits over another.', match: /\bstoreys?\b/i },
+  { id: 'storey', short: 'Storey', says: 'What the planning rules count: a level of the house that sits over another. The app calls each one a level. A split level, where levels step up the slope side by side, can still count as one storey if no level sits over another.', match: /\bstoreys?\b/i },
   { id: 'cut-fill', short: 'Cut and fill', says: 'Cut is earth dug away to make level ground for the house; fill is earth put back to build ground up. Both are measured in cubic metres (m³).', match: /\bcut and fill\b|\bcut · fill\b|\bcut\b|\bfill\b/i },
   { id: 'out-of-balance', short: 'Out of balance', says: 'When the cut and the fill are far from equal, so earth has to be trucked away or brought in. Raising or lowering the floor can balance them.', match: /out of balance/i },
-  { id: 'batter', short: 'Batter', says: 'A slope of earth left at the edge of a cut or fill instead of a wall. 2:1 means 2 m across for every 1 m up or down: the bigger the number, the gentler the slope.', match: /\bbatters?\b/i },
-  { id: 'retaining-wall', short: 'Retaining wall', says: 'A wall that holds back ground that’s higher on one side. Taller ones (often over 1 m, or near a boundary) need an engineer.', match: /\bretaining walls?\b|\btallest wall\b/i },
+  { id: 'batter', short: 'Batter', says: 'A slope of earth left at the edge of a cut or fill instead of a wall. Written 1 in 2, which means 2 m across for every 1 m up or down: the bigger the second number, the gentler the slope.', match: /\bbatters?\b/i },
+  { id: 'retaining-wall', short: 'Retaining wall', says: `A wall that holds back ground that’s higher on one side. One holding back over ${ENGINEER_TEXT} needs an engineer’s certificate under the NSW Housing Code; a council’s own rule can differ.`, match: /\bretaining walls?\b|\btallest wall\b/i },
   { id: 'setback', short: 'Setback', says: 'How far the house sits from a boundary. The rules set a least distance at the front, the sides and the rear.', match: /\bsetbacks?\b/i },
   { id: 'building-line', short: 'Building line', says: 'The line a house must sit behind, a set distance back from the front boundary. A lot’s width is measured along it.', match: /\bbuilding line\b/i },
   { id: 'battle-axe', short: 'Battle-axe lot', says: 'A block behind another, reached by a long, narrow driveway (the handle). Its setbacks are often worked out differently.', match: /\bbattle-axe\b/i },
@@ -42,13 +45,22 @@ export const TERMS: Term[] = [
   { id: 'easement', short: 'Easement', says: 'A strip of the block that someone else has a right to use, often for drains or sewer pipes. Building over one usually isn’t allowed.', match: /\beasements?\b/i },
   { id: 'basix', short: 'BASIX', says: 'The NSW sustainability index. Every new house needs a BASIX certificate setting what it must achieve for water, energy and comfort.', match: /\bBASIX\b/ },
   { id: 'contour', short: 'Contour', says: 'A line joining ground at the same level. Close together means steep; far apart means gentle.', match: /\bcontours?\b/i },
-  { id: 'fall', short: 'Fall', says: 'How much the ground drops across a distance. A block that falls 3 m front to back is 3 m lower at the back.', match: /\bfall\b|\bcross-fall\b/i },
+  { id: 'fall', short: 'Fall', says: 'How much the ground drops across a distance. A block that falls 3 m front to back is 3 m lower at the back.', match: /\bfall\b/i },
+  // The driveway's words: each check says it plainly first, with the engineer's word after it.
+  { id: 'grade', short: 'Grade', says: 'How steep something is along its length. 1 in 10 (10%) rises or falls 1 m for every 10 m along. About 1 in 4 (25%) is as steep as a car can drive.', match: /\bgrades?\b/i },
+  { id: 'cross-fall', short: 'Cross-fall', says: 'How much a driveway or path tilts from one side to the other, across the way you travel. More than about 1 in 16 is too much to drive or park on comfortably.', match: /\bcross-fall\b/i },
+  { id: 'crossing', short: 'Footpath crossing', says: 'Where a driveway crosses the footpath and the kerb to reach the road, also called a crossover. The council sets its shape and levels, and builds or approves it.', match: /\bcrossing\b|\bcrossover\b/i },
+  { id: 'layback', short: 'Layback', says: 'The kerb ramp: the sloped piece of kerb at a driveway that a car’s wheels roll up, in place of the upright kerb. It rises about 150 to 200 mm from the gutter.', match: /\blayback\b|\bkerb ramp\b/i },
+  { id: 'summit', short: 'Summit', says: 'A hump: where a driveway’s slope changes over a crest, as it does leaving a level garage floor to head downhill. A sharp one can catch the middle of a car’s underside.', match: /\bsummit\b|\bhump\b/i },
+  { id: 'sag', short: 'Sag', says: 'A dip: where a driveway’s slope changes through a hollow, as it does where a steep drive meets a flatter footpath. A sharp one can catch a car’s front or rear bumper.', match: /\bsag\b|\bdip\b/i },
+  { id: 'transition', short: 'Transition', says: 'A short stretch of driveway, about 2 m long, at a slope in between the ones either side of a hump or a dip, so a car’s underside and bumpers clear it.', match: /\btransitions?\b/i },
+  { id: 'design-car', short: 'B85 and B99 cars', says: 'The two standard cars the Australian parking standard (AS/NZS 2890.1) checks a driveway with. The B85 is an ordinary car, sized to cover 85 in 100 cars on the road, used for turning in. The B99 is a large one, sized to cover nearly all of them, used for whether the underside scrapes.', match: /\bB85\b|\bB99\b/ },
   { id: 'slab', short: 'Slab on ground', says: 'A concrete floor poured on a level pad of ground. On a slope, the pad is made by cutting and filling.', match: /\bslab\b/i },
   { id: 'piers', short: 'Piers', says: 'Posts or footings that hold a framed floor up off the ground, so the ground under it can stay as it is.', match: /\bpiers\b/i },
 ]
 
 /** Words a field label explains by itself; everyday words (cut, fill, slab) only where asked. */
-export const LABEL_TERMS = ['ffl', 'rl', 'ahd', 'cdc', 'da', 'lep', 'dcp', 'fsr', 'gfa', 'batter', 'setback', 'building-line', 'battle-axe', 'landscaped', 'private-open-space', 'tpz', 'easement', 'basix']
+export const LABEL_TERMS = ['ffl', 'rl', 'ahd', 'cdc', 'da', 'lep', 'dcp', 'fsr', 'gfa', 'batter', 'setback', 'building-line', 'battle-axe', 'landscaped', 'private-open-space', 'tpz', 'easement', 'basix', 'crossing', 'layback', 'cross-fall']
 
 const BY_ID = new Map(TERMS.map(t => [t.id, t]))
 

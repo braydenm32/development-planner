@@ -73,8 +73,9 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
           <path d={o.clip} />
         </clipPath>
         <defs>
+          {/* The two lean opposite ways, so above and below are told apart without their colours (greyscale, a print, forced colours). */}
           {(['above', 'below'] as const).map(side => (
-            <pattern key={side} id={`ground-hatch-${side}`} patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform="rotate(45)">
+            <pattern key={side} id={`ground-hatch-${side}`} patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform={`rotate(${side === 'above' ? 45 : -45})`}>
               <line x1={0} y1={0} x2={0} y2={gap} stroke={side === 'above' ? FILL : CUT} strokeWidth={1.2 / unit} strokeOpacity={subtle ? 0.18 : 0.32} />
             </pattern>
           ))}
@@ -98,23 +99,48 @@ export function GroundOverlay({ overlay: o, toScreen, size, subtle, avoid, near,
 /** How strongly each layer of the works tint is painted: clearly there from the first 20 mm, a shade more every half metre. */
 const worksOpacity = (k: number) => (k === 0 ? 0.22 : 0.12)
 
+/** Darker inks of the two tints, for the small marks drawn on them. */
+const CUT_MARK = '#8a4410'
+const FILL_MARK = '#2c5a94'
+
 /**
  * The cut and fill itself, on Earthworks › Cut & fill: the finished ground against the natural
  * ground, solid and only where the earth is moved, with a line round the edge of the works.
+ * Cut carries small − marks and fill small + marks (earth taken away, earth added), because the
+ * orange and the blue are about as light as each other and merge in greyscale or a print.
  */
 export function WorksTint({ overlay: o, toScreen }: { overlay: Works; toScreen: (p: Vec2) => Vec2 }) {
   const at = toScreen([o.x0, o.y0])
   const ex = toScreen([o.x0 + o.cell, o.y0])
   const ey = toScreen([o.x0, o.y0 + o.cell])
-  const matrix = [ex[0] - at[0], ex[1] - at[1], ey[0] - at[0], ey[1] - at[1], at[0], at[1]].map(n => n.toFixed(4)).join(' ')
+  const m = [ex[0] - at[0], ex[1] - at[1], ey[0] - at[0], ey[1] - at[1]]
+  const matrix = [...m, at[0], at[1]].map(n => n.toFixed(4)).join(' ')
+  // The marks are sized in screen pixels and kept upright however the plan is turned.
+  const unit = Math.hypot(m[0], m[1]) || 1
+  const turn = (Math.atan2(m[1], m[0]) * 180) / Math.PI
+  const upright = `rotate(${(m[0] * m[3] - m[1] * m[2] < 0 ? turn : -turn).toFixed(2)})`
+  const gap = 16 / unit
+  const arm = 2.5 / unit
+  const mark = { strokeWidth: 1.2 / unit, strokeOpacity: 0.6, strokeLinecap: 'round' as const }
   return (
     <g className="ground-overlay works-tint">
       <g transform={`matrix(${matrix})`} clipPath="url(#works-clip)">
         <clipPath id="works-clip">
           <path d={o.clip} />
         </clipPath>
+        <defs>
+          <pattern id="works-marks-cut" patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform={upright}>
+            <line x1={gap / 2 - arm} y1={gap / 2} x2={gap / 2 + arm} y2={gap / 2} stroke={CUT_MARK} {...mark} />
+          </pattern>
+          <pattern id="works-marks-fill" patternUnits="userSpaceOnUse" width={gap} height={gap} patternTransform={upright}>
+            <line x1={gap / 2 - arm} y1={gap / 2} x2={gap / 2 + arm} y2={gap / 2} stroke={FILL_MARK} {...mark} />
+            <line x1={gap / 2} y1={gap / 2 - arm} x2={gap / 2} y2={gap / 2 + arm} stroke={FILL_MARK} {...mark} />
+          </pattern>
+        </defs>
         {o.fill.map((d, k) => d && <path key={`fill-${k}`} d={d} fill={FILL} fillOpacity={worksOpacity(k)} fillRule="evenodd" />)}
         {o.cut.map((d, k) => d && <path key={`cut-${k}`} d={d} fill={CUT} fillOpacity={worksOpacity(k)} fillRule="evenodd" />)}
+        {o.fill[0] && <path className="works-marks" d={o.fill[0]} fill="url(#works-marks-fill)" fillRule="evenodd" />}
+        {o.cut[0] && <path className="works-marks" d={o.cut[0]} fill="url(#works-marks-cut)" fillRule="evenodd" />}
         <path className="works-edge" d={o.edge} />
       </g>
     </g>
@@ -260,10 +286,10 @@ export function GroundKey({
       {on && floor && works && (
         <ul>
           <li>
-            <i className="solid" style={{ background: CUT }} /> Ground cut down
+            <i className="solid marks cut" style={{ backgroundColor: CUT }} /> Ground cut down (− marks)
           </li>
           <li>
-            <i className="solid" style={{ background: FILL }} /> Ground filled up
+            <i className="solid marks fill" style={{ backgroundColor: FILL }} /> Ground filled up (+ marks)
           </li>
           <li>
             <i className="works" /> Edge of the works
@@ -277,7 +303,7 @@ export function GroundKey({
             <i className="hatch" style={{ backgroundColor: FILL }} /> Floor above ground{lowest ? ' (fill or piers)' : ''}
           </li>
           <li>
-            <i className="hatch" style={{ backgroundColor: CUT }} /> Floor below ground (cut)
+            <i className="hatch back" style={{ backgroundColor: CUT }} /> Floor below ground (cut)
           </li>
           <li>
             <i className="meets" /> Ground meets floor
@@ -298,7 +324,7 @@ export function GroundReadout({ ground, floor, lowest }: { ground: number; floor
       {floor !== null && (
         <>
           {' '}
-          · floor RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
+          · FFL RL {floor.toFixed(2)} · {floorVsGround(ground, floor, lowest)}
         </>
       )}
     </span>

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { garageFloor } from '../../plan/__tests__/fixtures'
+import { grossFloorArea } from '../../plan/keyNumbers'
 import { normalizePlan, type Opening, type Plan } from '../../plan/model'
 import { addRoof } from '../../plan/ops'
 import { levelOutlines } from '../../plan/roof'
 import { basixOf } from '../model'
-import { BASIX_LINKS, basixCsv, basixFacts, checklistRows, compassOf, facadeOf, floorAreas, livingOrientations, readyCount, windowAreaByFacade, windowFacings } from '../basix'
+import { BASIX_LINKS, basixCsv, basixFacts, basixFileName, checklistRows, compassOf, facadeOf, floorAreas, livingOrientations, readyCount, windowAreaByFacade, windowFacings } from '../basix'
 
 const win = (id: string, wall: string, offset: number, width = 1.2, height = 1.2): Opening => ({ id, wall, kind: 'window', offset, width, height, sill: 0.9, flipHinge: false, flipSwing: false })
 
@@ -68,11 +69,14 @@ describe('living areas and floor area', () => {
     const plan = garageFloor()
     const f = floorAreas(plan)
     // The garage floor is about 9.8 × 13.7 m to the outside of its walls, with notches: around 92 m².
-    expect(f.gross).toBeGreaterThan(85)
-    expect(f.gross).toBeLessThan(100)
+    // Both figures are on the inside faces (DB-29): the floor inside its outside walls, less the garage inside its own.
+    const g = grossFloorArea(plan)
+    expect(f.inside).toBeCloseTo(g.inside, 9)
+    expect(f.inside).toBeLessThan(g.outside)
+    expect(f.inside).toBeGreaterThan(g.outside - 12)
     expect(f.garages).toBeGreaterThan(30)
-    expect(f.garages).toBeLessThan(f.gross)
-    expect(f.conditioned).toBeCloseTo(f.gross - f.garages, 9)
+    expect(f.garages).toBeLessThan(f.inside)
+    expect(f.conditioned).toBeCloseTo(f.inside - f.garages, 9)
   })
 })
 
@@ -105,6 +109,10 @@ describe('the checklist', () => {
     expect(rows.find(r => r.id === 'hot-water')!.value).toBe('Electric heat pump')
     expect(rows.find(r => r.id === 'pool')!.value).toBe('Yes, about 30,000 L')
     expect(rows.find(r => r.id === 'insulation')!.value).toBe('R4 ceiling')
+  })
+
+  it('names the CSV like every other download: the project name in lower case', () => {
+    expect(basixFileName('Example split-level house')).toBe('example-split-level-house-basix-checklist.csv')
   })
 
   it('downloads as a CSV that says what it is not, with the links', () => {

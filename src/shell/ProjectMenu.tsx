@@ -6,6 +6,7 @@ import { CloudMenuItem } from '../cloud/CloudCard'
 import { LocalSaveLine } from '../cloud/LocalSave'
 import { TextField } from '../components/fields'
 import { Icon } from '../nav/icons'
+import { useModal } from '../nav/useModal'
 import { HOMES, type ActionId } from '../nav/menu'
 import { usePlan } from '../plan/store'
 import { projectTitle } from '../share/project'
@@ -31,6 +32,8 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
   // A phone's top bar has no room for Check everything: it leads the menu there instead.
   const phone = usePhone()
 
+  // Tab stays in the menu, Esc closes it wherever focus is, and focus goes back to its button (src/nav/useModal.ts).
+  useModal(pop, open, () => onOpenChange(false), { focus: 'none', returnTo: button })
   // Focus the asked-for item, or the first, when the menu opens; close on a click outside.
   useEffect(() => {
     if (!open) return
@@ -46,18 +49,7 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
     return () => window.removeEventListener('pointerdown', away)
   }, [open, focusItem, onOpenChange])
 
-  const close = () => {
-    onOpenChange(false)
-    button.current?.focus()
-  }
-
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      e.stopPropagation()
-      close()
-      return
-    }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
     if ((e.target as HTMLElement).tagName === 'INPUT') return
     const items = [...(pop.current?.querySelectorAll<HTMLElement>('button[data-item], [data-item] input') ?? [])]
@@ -72,16 +64,18 @@ export function ProjectMenu({ open, onOpenChange, focusItem, run }: Props) {
       <button
         ref={button}
         className="project-button"
-        aria-haspopup="true"
+        aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
         title="Project menu"
+        // A phone shows only "⋯" (drawn in CSS), which is no name to a screen reader (AX-21).
+        aria-label={phone ? `Project menu: ${title}` : undefined}
       >
         <span className="project-title">{title}</span>
         <Icon name="chevD" size={14} />
       </button>
       {open && (
-        <div ref={pop} className="menu-pop" role="dialog" aria-label="Project" onKeyDown={onKey}>
+        <div ref={pop} className="menu-pop" role="dialog" aria-label="Project" data-overlay onKeyDown={onKey}>
           {phone && plan && (
             <button
               data-item="check-everything"

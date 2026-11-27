@@ -39,6 +39,8 @@ export interface QuestionInput {
   /** The flow's floor type question (just asked), and levels whose question was put off. */
   ask: { level: string } | null
   dismissed: ReadonlySet<string>
+  /** The levels that sit on the ground (see onGroundLevels): each is asked its floor type. Without it, the lowest alone. */
+  onGround?: ReadonlySet<string>
   offer: OfferState | null
   hints: HintPrefs
   /** Facts the checks can't work out from the plan (Approvals › Checks' "Add a fact"). */
@@ -54,7 +56,7 @@ export function questionsFor(q: QuestionInput): Question[] {
   // it was put off: "Floor type not chosen" stays until it is, through a reload too.
   for (const l of sortedLevels(plan)) {
     // A split level near the ground is asked too (the flow's own question), and stays once put off.
-    const grounded = isLowestLevel(plan, l.id) || q.ask?.level === l.id || q.dismissed.has(l.id)
+    const grounded = isLowestLevel(plan, l.id) || q.ask?.level === l.id || q.dismissed.has(l.id) || !!q.onGround?.has(l.id)
     if (!grounded || levelFloorAnswer(plan, l.id) !== undefined) continue
     const walls = plan.walls.filter(w => w.level === l.id && w.kind !== 'retaining')
     const enclosed = planarFaces(walls).some(f => f.area > 0) || plan.rooms.some(r => r.level === l.id)
@@ -65,7 +67,7 @@ export function questionsFor(q: QuestionInput): Question[] {
       kind: 'floor-type',
       level: l.id,
       title: `Floor type not chosen: ${l.name}`,
-      detail: later ? 'Put off for now. It builds as a slab on ground until it’s set.' : 'Slab, piers or something else: it changes the earthworks.',
+      detail: later ? `Put off for now. It builds as ${isLowestLevel(plan, l.id) ? 'a slab on ground' : 'a framed floor'} until it’s set.` : 'Slab, piers or something else: it changes the earthworks.',
       fresh: q.ask?.level === l.id,
     })
   }
@@ -98,9 +100,16 @@ interface QuestionContext {
   facts: number
   /** Open the list at this question; bumped each time it's asked. */
   asked: { id: string; n: number } | null
+  /** How much of the plan's foot the open list covers on a phone (px), so the block fits above it; 0 elsewhere. */
+  covers: number
 }
 
-export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0, asked: null }))
+export const useQuestionContext = create<QuestionContext>(() => ({ facts: 0, asked: null, covers: 0 }))
+
+/** The open list's height on a phone, or 0 when it folds away. */
+export function setQuestionsCover(covers: number) {
+  if (useQuestionContext.getState().covers !== covers) useQuestionContext.setState({ covers })
+}
 
 /** Open the question list at a question, to answer it (once the plan shows the list). */
 export const askQuestion = (id: string) => useQuestionContext.setState(s => ({ asked: { id, n: (s.asked?.n ?? 0) + 1 } }))
@@ -111,3 +120,17 @@ export const questionOpened = () => useQuestionContext.setState({ asked: null })
 export function setQuestionFacts(facts: number) {
   if (useQuestionContext.getState().facts !== facts) useQuestionContext.setState({ facts })
 }
+
+/** The questions answered in the list's place, with their own card. */
+const ANSWERED_HERE = new Set<Question['kind']>(['street', 'floor-type', 'retain-offer'])
+
+/**
+ * Where the list opens. On a phone with one question waiting that is answered here, straight at
+ * its choices: the list of one, with an Answer button to tap, only stood between (PH-15).
+ */
+export function openAt(qs: Pick<Question, 'id' | 'kind'>[], phone: boolean): string | null {
+  return phone && qs.length === 1 && ANSWERED_HERE.has(qs[0].kind) ? qs[0].id : null
+}
+
+/** Whether a phone in View can answer what waits without switching to Edit: only the street question does. */
+export const staysInView = (qs: Pick<Question, 'kind'>[]) => qs.length > 0 && qs.every(q => q.kind === 'street')

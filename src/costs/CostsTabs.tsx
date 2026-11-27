@@ -3,7 +3,7 @@
 // and notes. Everything reads the one estimate (src/costs/estimate.ts) worked
 // out from the design's own quantities.
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { Icon } from '../nav/icons'
 import { areaById, MORE, type NumberId } from '../nav/menu'
 import { navigate, useRouter } from '../nav/router'
@@ -15,10 +15,11 @@ import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
 import { m2 } from '../shell/format'
+import { ScrollCue } from '../shell/ScrollCue'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
-import { atName, dateText, delta, estimateCsv, incompleteText, money, NO_TOTAL, parseMoney, qtyText, rateText, shortMoney } from './format'
+import { atName, bridgeSteps, crossCheckText, dateText, delta, estimateCsv, finishName, incompleteText, money, NO_TOTAL, parseMoney, qtyText, rateText, shortMoney } from './format'
 import { today, type CostsData } from './model'
 import {
   CHOICE_GROUPS,
@@ -28,6 +29,7 @@ import {
   finishGuide,
   GROUPS,
   MARGIN,
+  NOT_COUNTED,
   OWNER_BUILDER,
   RANGE,
   RATE_GROUPS,
@@ -38,6 +40,7 @@ import {
   type RateId,
 } from './rates'
 import { useCosts, type Pointed } from './store'
+import { keepAndStay, settled } from '../components/fieldKeys'
 import { useEstimate, useFeeContext, useQuantities } from './useEstimate'
 import './costs.css'
 
@@ -84,7 +87,8 @@ function EstimateBody({ d }: { d: Loaded }) {
   // Leaving the estimate stops pointing at its lines (a hovered line unmounts without a mouseleave).
   useEffect(() => () => useCosts.setState({ hover: null, opened: null }), [])
   const download = () => {
-    const f = { name: `${fileSafe(projectTitle(d.plan))}-estimate.csv`, data: estimateCsv(e, projectTitle(d.plan), RATES_AS_AT), type: 'text/csv' }
+    // A byte order mark first, so Excel reads "m²" and "’" as they are (it takes a bare UTF-8 CSV for Windows-1252).
+    const f = { name: `${fileSafe(projectTitle(d.plan))}-estimate.csv`, data: `\uFEFF${estimateCsv(e, projectTitle(d.plan), RATES_AS_AT)}`, type: 'text/csv' }
     if (phone) void shareOrSave(f, `${projectTitle(d.plan)}: estimate`)
     else saveFile(f.name, f.data, f.type)
   }
@@ -97,7 +101,7 @@ function EstimateBody({ d }: { d: Loaded }) {
             <div className="ce-range tnum">
               Likely {money(e.low)} to {money(e.high)}
             </div>
-            <div className="ce-range-why">± {Math.round(RANGE * 100)}%: an early estimate can land this far either way.</div>
+            <div className="ce-range-why">± {Math.round(RANGE * 100)}% on what’s counted: an early estimate is this rough.</div>
             {e.missing.length > 0 && <div className="ce-incomplete">{incompleteText(e.missing)}</div>}
           </div>
         ) : (
@@ -136,36 +140,56 @@ function EstimateBody({ d }: { d: Loaded }) {
       <WhoBuilds />
       <div className="ce-list">
         <MaterialsFold d={d} />
-        {e.groups.map(g => {
-          const on = open.includes(g.id)
-          return (
-            <div key={g.id} className={`ce-grp${on ? ' open' : ''}${g.id === 'gov' ? ' gov' : ''}`}>
-              <button className="ce-gh" aria-expanded={on} onClick={() => useCosts.getState().toggleGroup(g.id)}>
-                <Icon name="chevR" size={14} />
-                <span className="ce-gl">{g.label}</span>
-                {g.quoted ? <span className="ce-qchip">{g.quoted} {g.id === 'gov' ? 'from council' : 'quoted'}</span> : <span />}
-                <span className="ce-amt tnum">{money(g.total)}</span>
-              </button>
-              {on && (
-                <div className="ce-lines">
-                  {g.id === 'gov' && <p className="muted small ce-gov-note">Rough figures from the NSW scales and the council’s plan. Open a line to put in the council’s own figure.</p>}
-                  {ob && (
-                    <div className="ce-colhead" aria-hidden="true">
-                      <span />
-                      <span>Quantity</span>
-                      <span>Materials</span>
-                      <span>Labour</span>
-                    </div>
-                  )}
-                  {g.lines.map(l => (
-                    <Line key={l.id} l={l} ob={ob} on={opened === l.id} />
-                  ))}
-                </div>
-              )}
+        {/* A table to a screen reader (item, quantity, rate, amount), with the look of a folded list (AX-24). */}
+        <div role="table" aria-label="Estimate" className="ce-table">
+          <div role="rowgroup" className="ce-sr">
+            <div role="row">
+              <span role="columnheader">Item</span>
+              <span role="columnheader">Quantity</span>
+              <span role="columnheader">{ob ? 'Materials and fees' : 'Rate'}</span>
+              <span role="columnheader">{ob ? 'Labour' : 'Amount'}</span>
             </div>
-          )
-        })}
-        <Summary e={e} />
+          </div>
+          {e.groups.map(g => {
+            const on = open.includes(g.id)
+            return (
+              <div key={g.id} role="rowgroup" className={`ce-grp${on ? ' open' : ''}${g.id === 'gov' ? ' gov' : ''}`}>
+                <div role="row" className="ce-gh" onClick={() => useCosts.getState().toggleGroup(g.id)}>
+                  <span role="rowheader" className="ce-gl">
+                    <button className="ce-fold" aria-expanded={on}>
+                      <Icon name="chevR" size={14} />
+                      {g.label}
+                    </button>
+                    {g.quoted > 0 && (
+                      <span className="ce-qchip">
+                        {g.quoted} {g.id === 'gov' ? 'from council' : 'quoted'}
+                      </span>
+                    )}
+                  </span>
+                  <Tail ob={ob}>{money(g.total)}</Tail>
+                </div>
+                {on && (
+                  <div role="none" className="ce-lines">
+                    {g.id === 'gov' && <Wide className="muted small ce-gov-note">Rough figures from the NSW scales and the council’s plan. Open a line to put in the council’s own figure.</Wide>}
+                    {ob && (
+                      <div className="ce-colhead" aria-hidden="true">
+                        <span />
+                        <span>Quantity</span>
+                        <span>Materials</span>
+                        <span>Labour</span>
+                      </div>
+                    )}
+                    {g.lines.map(l => (
+                      <Line key={l.id} l={l} ob={ob} on={opened === l.id} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          <Summary e={e} />
+        </div>
+        <BridgeTable e={e} />
       </div>
       <div className="ce-foot">
         <p className="muted">Starting rates are rough NSW {RATES_AS_AT.slice(-4)} figures from public guides. A quote replaces the estimate on its line.</p>
@@ -177,53 +201,77 @@ function EstimateBody({ d }: { d: Loaded }) {
   )
 }
 
+/** A row's cells after its name: the amount under the money columns, and nothing under the others, so each lines up with its header. */
+function Tail({ ob, children }: { ob: boolean; children: ReactNode }) {
+  return (
+    <>
+      <span role="cell" className="ce-fill" aria-colspan={ob ? undefined : 2} />
+      <span role="cell" className="ce-amt tnum" aria-colspan={ob ? 2 : undefined}>
+        {children}
+      </span>
+    </>
+  )
+}
+
+/** A row that is one cell across the table: a note, or a line's quote form. */
+function Wide({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div role="row" className={className}>
+      <div role="cell" aria-colspan={4}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Under the groups, always unfolded: what they come to, the builder's margin, the contingency and
  * the total, so the two biggest additions aren't hidden in a group of their own.
  */
 function Summary({ e }: { e: Estimate }) {
   const pct = (x: number) => `${Number((x * 100).toFixed(1))}%`
+  const ob = e.who === 'owner'
   return (
-    <div className="ce-sum tnum" role="group" aria-label="Total">
-      <div className="ce-sum-row">
-        <span>Subtotal</span>
-        <span>{money(e.subtotal)}</span>
+    <div className="ce-sum tnum" role="rowgroup">
+      <div className="ce-sum-row" role="row">
+        <span role="rowheader">Subtotal</span>
+        <Tail ob={ob}>{money(e.subtotal)}</Tail>
       </div>
       {e.who === 'builder' ? (
-        <div className="ce-sum-row" onMouseEnter={() => useCosts.setState({ hover: null })}>
-          <span>
+        <div className="ce-sum-row" role="row" onMouseEnter={() => useCosts.setState({ hover: null })}>
+          <span role="rowheader">
             Builder’s margin {pct(e.margin.share)}
             <small>Overheads and profit, on the building work</small>
           </span>
-          <span>+{money(e.margin.amount)}</span>
+          <Tail ob={ob}>+{money(e.margin.amount)}</Tail>
         </div>
       ) : (
-        <div className="ce-sum-row muted">
-          <span>
+        <div className="ce-sum-row muted" role="row">
+          <span role="rowheader">
             No builder’s margin
             <small>You build it, as owner-builder</small>
           </span>
-          <span>$0</span>
+          <Tail ob={ob}>$0</Tail>
         </div>
       )}
-      <div className="ce-sum-row">
-        <span>
+      <div className="ce-sum-row" role="row">
+        <span role="rowheader">
           Contingency {pct(e.contingency.share)}
           <small>For what can’t be seen yet, on everything above</small>
         </span>
-        <span>+{money(e.contingency.amount)}</span>
+        <Tail ob={ob}>+{money(e.contingency.amount)}</Tail>
       </div>
-      <div className="ce-sum-row total">
-        <span>Total</span>
-        <span>{e.ready ? money(e.total) : '—'}</span>
+      <div className="ce-sum-row total" role="row">
+        <span role="rowheader">Total</span>
+        <Tail ob={ob}>{e.ready ? money(e.total) : '—'}</Tail>
       </div>
-      <p className="muted small">
+      <Wide className="muted small ce-sum-note">
         Change the margin or contingency in{' '}
         <button className="link" onClick={() => go(MORE, 'cost-rates')}>
           More › Rates
         </button>
         .
-      </p>
+      </Wide>
     </div>
   )
 }
@@ -291,40 +339,54 @@ function Line({ l, ob, on }: { l: CostLine; ob: boolean; on: boolean }) {
     if (useCosts.getState().hover?.line === l.id) useCosts.setState({ hover: null })
   }
   const toggle = () => useCosts.setState(s => ({ opened: s.opened?.line === l.id ? null : pointedOf(l) }))
-  const qty = qtyText(l)
-  const cells = (
+  const what = (
     <>
-      <span className="ce-what">
-        {l.label}
-        <small>{l.quote ? `${l.group === 'gov' ? 'Your figure' : 'Quote'} · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
-      </span>
-      <span className="ce-qty tnum">{qty}</span>
-      {ob ? (
-        <>
-          <span className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>{money(l.materials)}</span>
-          <span className="ce-amt tnum muted">{money(l.labour)}</span>
-        </>
-      ) : (
-        <>
-          <span className="ce-rate tnum">{l.rate === null || l.unit === 'item' ? '' : rateText(l.rate, l.unit)}</span>
-          <span className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
-            {money(l.amount)}
-            {l.quote && <s>{money(l.estimate)}</s>}
-          </span>
-        </>
-      )}
+      {l.label}
+      <small>{l.quote ? `${l.group === 'gov' ? 'Your figure' : 'Quote'} · ${l.quote.from || 'no name given'}` : (l.missing ?? l.from)}</small>
     </>
   )
+  // The line's name opens it (a quote, where its quantity comes from); a click anywhere on the row does too.
   return (
-    <div className={`ce-ln${on ? ' on' : ''}${l.missing ? ' missing' : ''}`} onMouseEnter={point} onMouseLeave={unpoint}>
-      {l.computed ? (
-        <div className="ce-ln-main">{cells}</div>
-      ) : (
-        <button className="ce-ln-main" aria-expanded={on} onClick={toggle} onFocus={point} onBlur={unpoint} title={on ? undefined : l.group === 'gov' ? 'Put in the council’s own figure' : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
-          {cells}
-        </button>
+    <div role="none" className={`ce-ln${on ? ' on' : ''}${l.missing ? ' missing' : ''}`} onMouseEnter={point} onMouseLeave={unpoint}>
+      <div role="row" className="ce-ln-main" onClick={l.computed ? undefined : toggle}>
+        <span role="rowheader" className="ce-what">
+          {l.computed ? (
+            what
+          ) : (
+            <button className="ce-fold" aria-expanded={on} onFocus={point} onBlur={unpoint} title={on ? undefined : l.group === 'gov' ? 'Put in the council’s own figure' : l.quote ? 'Change or remove the quote' : 'Add a quote for this line'}>
+              {what}
+            </button>
+          )}
+        </span>
+        <span role="cell" className="ce-qty tnum">
+          {qtyText(l)}
+        </span>
+        {ob ? (
+          <>
+            <span role="cell" className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
+              {money(l.materials)}
+            </span>
+            <span role="cell" className="ce-amt tnum muted">
+              {money(l.labour)}
+            </span>
+          </>
+        ) : (
+          <>
+            <span role="cell" className="ce-rate tnum">
+              {l.rate === null || l.unit === 'item' ? '' : rateText(l.rate, l.unit)}
+            </span>
+            <span role="cell" className={`ce-amt tnum${l.quote ? ' quoted' : ''}`}>
+              {money(l.amount)}
+              {l.quote && <s>{money(l.estimate)}</s>}
+            </span>
+          </>
+        )}
+      </div>
+      {on && (
+        <Wide>
+          <QuoteForm l={l} onDone={() => useCosts.setState({ opened: null })} />
+        </Wide>
       )}
-      {on && <QuoteForm l={l} onDone={() => useCosts.setState({ opened: null })} />}
     </div>
   )
 }
@@ -420,7 +482,7 @@ function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
         <span className="cm-linked">
           {floor} · from{' '}
           <button className="link" onClick={() => goAt('design/floors')}>
-            Design › Floors
+            Design › Levels
           </button>
         </span>
       </div>
@@ -449,17 +511,17 @@ function MaterialRows({ d, detail = false }: { d: Loaded; detail?: boolean }) {
 }
 
 /**
- * The estimate beside what the rough guide for the finish picked would make it, and in a line why
- * they differ. While the estimate is missing things (no windows, say) the house reads cheap for
- * the wrong reason, so it says what to draw instead of comparing.
+ * The cross-check under the headline: what RLB's guide for the finish picked would make the same
+ * design, where the estimate sits against it, and what to make of that in a sentence. One figure
+ * is the estimate; this one only checks it (HO-08). While the estimate is missing things (no
+ * windows, say) the house reads cheap for the wrong reason, so it says what to draw instead of
+ * comparing.
  */
 export function FinishGuide({ e }: { e: Estimate }) {
-  const finish = useCosts(s => s.data.choices.finish)
   if (e.housePerM2 === null || !e.guide) return null
-  const g = finishGuide(finish)
-  const name = CHOICES.finish.options.find(o => o.id === finish)?.label ?? 'Mid'
-  const where = e.housePerM2 < g.low ? 'under' : e.housePerM2 > g.high ? 'over' : 'in'
-  if (e.missing.length > 0 || !e.ready)
+  const g = finishGuide(e.finish)
+  const name = finishName(e)
+  if (e.against === null)
     return (
       <p className="ce-guide tnum" title={FINISH_GUIDE_SOURCE}>
         <span>
@@ -468,32 +530,96 @@ export function FinishGuide({ e }: { e: Estimate }) {
         <span className="ce-guide-wait">Compare once the estimate is complete</span>
       </p>
     )
-  const why =
-    where === 'under'
-      ? 'Why the gap: the guide is RLB’s range for custom-built Sydney houses; the quantities price only what’s drawn, at rough rates. Project-home builders often land nearer the quantities.'
-      : where === 'over'
-        ? 'The house comes in over RLB’s range for custom-built Sydney houses at this finish. Check the rates and quotes for anything unusual.'
-        : 'The house sits within RLB’s range for custom-built Sydney houses at this finish.'
+  const tag = e.against === 'in' ? 'The estimate is within it' : e.against === 'under' ? 'The estimate is under it' : 'The estimate is over it'
+  const text = crossCheckText(e)
+  // The verdict leads, in the under case, so it is what gets read.
+  const lead = e.against === 'under' ? text.slice(0, text.indexOf('.') + 1) : ''
   return (
-    <div className="ce-guide" title={FINISH_GUIDE_SOURCE}>
+    <div className="ce-guide" role="group" aria-label="Cross-check" title={FINISH_GUIDE_SOURCE}>
       <p className="ce-two tnum">
+        <span className="ce-guide-k">Cross-check</span>
         <span>
-          From quantities <b>{shortMoney(e.total)}</b>
-        </span>
-        <span aria-hidden="true">·</span>
-        <span>
-          From the {name.toLowerCase()} finish guide{' '}
+          Custom-built at a {name.toLowerCase()} finish{' '}
           <b>
             {shortMoney(e.guide.low)} to {shortMoney(e.guide.high)}
           </b>
         </span>
-        <span className={`ce-guide-tag ${where}`}>{where === 'in' ? 'Within the guide' : where === 'under' ? 'Under the guide' : 'Over the guide'}</span>
+        <span className={`ce-guide-tag ${e.against}`}>{tag}</span>
       </p>
       <p className="ce-why">
-        {why}
-        {e.who === 'owner' && ' The guide has a builder’s margin in it.'}
+        {lead && <b>{lead}</b>}
+        {text.slice(lead.length)}
+        {e.bridge && (
+          <>
+            {' '}
+            <button
+              className="link"
+              onClick={() => reveal(document.getElementById(BRIDGE_ID))}
+            >
+              What’s not in the quantities yet
+            </button>
+          </>
+        )}
       </p>
     </div>
+  )
+}
+
+const BRIDGE_ID = 'ce-bridge'
+
+/**
+ * Bring something in the estimate's list into view and put the focus on it. Only the list (on a
+ * phone, the page) scrolls: scrollIntoView would also shift the panel under the strip.
+ */
+function reveal(el: HTMLElement | null) {
+  if (!el) return
+  let box = el.parentElement
+  while (box && !(box.scrollHeight > box.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement
+  box?.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 8 })
+  el.focus({ preventScroll: true })
+}
+
+/**
+ * Under the total, for an estimate that sits under the guide: the sum from one to the other, so
+ * the two figures on the screen are one story. Each row is what it is, in dollars, and they add
+ * up to the cross-check's low end.
+ */
+function BridgeTable({ e }: { e: Estimate }) {
+  const b = bridgeSteps(e)
+  if (!b) return null
+  return (
+    <table className="ce-bridge tnum" id={BRIDGE_ID} tabIndex={-1}>
+      <caption>
+        What’s not in the quantities yet
+        <small>From the estimate up to the low end of the cross-check. Not a quote: prices from builders replace it.</small>
+      </caption>
+      <thead className="ce-sr">
+        <tr>
+          <th scope="col">Step</th>
+          <th scope="col">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {b.steps.map((x, i) => (
+          <tr key={x.label}>
+            <th scope="row">
+              {x.label}
+              {x.note && <small>{x.note}</small>}
+            </th>
+            <td>
+              {i > 0 && '+'}
+              {money(x.amount)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">{b.to.label}</th>
+          <td>{money(b.to.amount)}</td>
+        </tr>
+      </tfoot>
+    </table>
   )
 }
 
@@ -529,7 +655,7 @@ export function MaterialsTab() {
   return d ? (
     <>
       <MaterialRows d={d} detail />
-      <p className="muted small">Each choice shows what it adds or saves against the one picked now, with every other line as it is. How the floor is built is chosen in Design › Floors, where it also sets the earthworks.</p>
+      <p className="muted small">Each choice shows what it adds or saves against the one picked now, with every other line as it is. How the floor is built is chosen in Design › Levels, where it also sets the earthworks.</p>
     </>
   ) : (
     <Waiting />
@@ -821,11 +947,11 @@ function RateRow({
           <input
             inputMode="decimal"
             value={editing ?? shown}
-            onFocus={() => setEditing(shown)}
             onChange={e => setEditing(e.target.value)}
             onBlur={commitText}
+            data-settled={settled(editing, shown)}
             onKeyDown={e => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Enter') keepAndStay(e.target as HTMLInputElement)
               if (e.key === 'Escape') {
                 setEditing(null)
                 ;(e.target as HTMLInputElement).blur()
@@ -856,6 +982,17 @@ export function AboutCostsSection() {
       <p className="small">
         A builder adds a margin for overheads and profit on the building work. Building it yourself leaves that out, adds the owner-builder permit and course, and shows how much
         is materials and how much is labour if you hire trades. Then a contingency goes on top. The likely range is {Math.round(RANGE * 100)}% either way.
+      </p>
+      <h3>The cross-check</h3>
+      <p className="small">
+        The estimate prices what is drawn at rough trade rates, so it is a floor, not a budget. Under it is a cross-check: what the same house would come to at RLB’s 2026 figures for
+        one-off houses in Sydney at the finish picked, with everything else as estimated. Where the estimate sits under that, “What’s not in the quantities yet” (under the total)
+        is the sum from one to the other: mostly a one-off builder’s prices over the rates here, and things with no line yet ({NOT_COUNTED.join(', ')}).
+      </p>
+      <h3>How amounts are written</h3>
+      <p className="small">
+        In the estimate, the quotes and the CSV, amounts are whole dollars, so the lines add up. Where the total is quoted at a glance (the strip, the Overview, the cross-check) it
+        is rounded to three figures: $561k, $1.06M.
       </p>
       <h3>Council and government fees</h3>
       <p className="small">
@@ -889,8 +1026,10 @@ export function AboutCostsSection() {
 // The strip
 
 /**
- * The Costs area's line under the top bar: Estimate $X ± 20% · Per m² · N of M lines quoted ·
- * Overview. The estimate and per m² step back to a label while the Estimate panel shows them.
+ * The Costs area's line under the top bar: Estimate $X ± 20% · Cross-check · Per m² · N of M lines
+ * quoted · Overview. The estimate and per m² step back to a label while the Estimate panel shows
+ * them. The total is rounded here as on every strip (src/costs/format.ts has the rule); the
+ * dollars are a hover away. Chips that don't fit page sideways, as the main strip's do (PH-21).
  */
 export function CostsStrip({
   d,
@@ -906,46 +1045,82 @@ export function CostsStrip({
   overviewOpen: boolean
 }) {
   const e = useEstimate(d)
+  const phone = usePhone()
   const to = (tab: string) => () => navigate(tabRoute(route, 'costs', tab))
+  const exact = `${money(e.total)}, likely ${money(e.low)} to ${money(e.high)}`
+  const perM2 = e.perM2 !== null && (
+    <>
+      <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
+    </>
+  )
+  // The other figure on the Estimate tab, so the strip doesn't quote one without the other (HO-08).
+  // Not on a phone: its strip has room for one chip at a time, and this one is wider than that.
+  const check = !phone && e.against !== null && e.guide && (
+    <>
+      <span className="chip-label">Cross-check</span>{' '}
+      <b className="tnum">
+        {shortMoney(e.guide.low)} to {shortMoney(e.guide.high)}
+      </b>
+    </>
+  )
+  const checkTitle = e.against === null ? undefined : crossCheckText(e)
   return (
     <div className="summary-strip costs-strip" role="region" aria-label="Costs">
-      <div className="chips">
-        {shown.cost ? (
-          // Already in the panel: still there to read, quieter (C33).
-          <>
-            <span className="chip echo" title={`Also ${shown.cost}.`}>
-              <span className="chip-label">Estimate</span> <b className="tnum">{e.ready ? money(e.total) : '–'}</b>
-            </span>
-            {e.perM2 !== null && (
-              <span className="chip echo" title={`Also ${shown.cost}.`}>
-                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
-              </span>
-            )}
-          </>
-        ) : (
-          <>
-            {e.ready ? (
-              <button className="chip" onClick={to('estimate')} title={incompleteText(e.missing) || undefined}>
-                <span className="chip-label">Estimate</span> <b className="tnum">{money(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
-                {e.missing.length > 0 && <span className="badge warn">Incomplete</span>}
-              </button>
+      <ScrollCue
+        className="chips-cue"
+        label="numbers"
+        count={!phone}
+        free={phone}
+        render={ref => (
+          <div className="chips" ref={ref as RefObject<HTMLDivElement | null>}>
+            {shown.cost ? (
+              // Already in the panel: still there to read, quieter (C33).
+              <>
+                <span className="chip echo" title={`${exact}. Also ${shown.cost}.`}>
+                  <span className="chip-label">Estimate</span> <b className="tnum">{e.ready ? shortMoney(e.total) : '–'}</b>
+                </span>
+                {check && (
+                  <span className="chip echo" title={checkTitle}>
+                    {check}
+                  </span>
+                )}
+                {perM2 && (
+                  <span className="chip echo" title={`Also ${shown.cost}.`}>
+                    {perM2}
+                  </span>
+                )}
+              </>
             ) : (
-              <button className="chip ghost" onClick={to('estimate')} title={NO_TOTAL}>
-                Estimate <em>no walls yet</em>
-              </button>
+              <>
+                {e.ready ? (
+                  <button className="chip" onClick={to('estimate')} title={[exact, incompleteText(e.missing)].filter(Boolean).join('. ')}>
+                    <span className="chip-label">Estimate</span> <b className="tnum">{shortMoney(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
+                    {e.missing.length > 0 && <span className="badge warn">Incomplete</span>}
+                  </button>
+                ) : (
+                  <button className="chip ghost" onClick={to('estimate')} title={NO_TOTAL}>
+                    Estimate <em>no walls yet</em>
+                  </button>
+                )}
+                {check && (
+                  <button className="chip" onClick={to('estimate')} title={checkTitle}>
+                    {check}
+                  </button>
+                )}
+                {perM2 && (
+                  <button className="chip" onClick={to('estimate')}>
+                    {perM2}
+                  </button>
+                )}
+              </>
             )}
-            {e.perM2 !== null && (
-              <button className="chip" onClick={to('estimate')}>
-                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
-              </button>
-            )}
-          </>
+            <button className="chip" onClick={to('quotes')}>
+              <i className="dot accent" />
+              {e.quoted} of {e.quotable} lines quoted
+            </button>
+          </div>
         )}
-        <button className="chip" onClick={to('quotes')}>
-          <i className="dot accent" />
-          {e.quoted} of {e.quotable} lines quoted
-        </button>
-      </div>
+      />
       <button className={`overview-button${overviewOpen ? ' on' : ''}`} onClick={onOverview} aria-expanded={overviewOpen}>
         Overview <Icon name={overviewOpen ? 'chevU' : 'chevD'} size={14} />
       </button>

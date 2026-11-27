@@ -6,12 +6,53 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { useCamera } from '../cameraStore'
 import { release, sheetOffset, SHEETS, shouldClose, shouldGrow } from '../sheetDrag'
+import { peekRelease, PULL_TO_FOLD, PULL_TO_OPEN, readPeekSize } from '../peekSize'
 import { StreetSideField, StreetSideLink } from '../StreetSide'
 import { usePlan } from '../../plan/store'
 import { withStreetSide } from '../../plan/streetSide'
 import { house, loadBlock, words } from './block'
 import { buildIndex, search } from '../../nav/search'
 import { PaletteOffer } from '../../shell/CommandPalette'
+
+// PH-04: the Key numbers sheet has three stops: its line, its card, and the Overview.
+describe('the Key numbers sheet', () => {
+  it('starts as one line, so the plan and the 3D view have the screen, and remembers the card', () => {
+    expect(readPeekSize(null)).toBe('line')
+    expect(readPeekSize('nonsense')).toBe('line')
+    expect(readPeekSize('card')).toBe('card')
+  })
+
+  it('opens every number on a tap, from the line or the card', () => {
+    expect(peekRelease(0, false, true, true)).toBe('open')
+    expect(peekRelease(0, false, false, true)).toBe('open')
+  })
+
+  it('goes a stop up on a pull up: the line to the card, the card to every number', () => {
+    expect(peekRelease(PULL_TO_OPEN, true, true, true)).toBe('card')
+    expect(peekRelease(PULL_TO_OPEN, true, false, true)).toBe('open')
+    expect(peekRelease(PULL_TO_OPEN - 1, true, true, true)).toBe('stay')
+  })
+
+  it('folds the card down to its line on a pull down, which it used to resist', () => {
+    expect(peekRelease(-PULL_TO_FOLD, true, false, true)).toBe('line')
+    expect(peekRelease(-PULL_TO_FOLD + 1, true, false, true)).toBe('stay')
+    // The line has nowhere lower to go.
+    expect(peekRelease(-200, true, true, true)).toBe('stay')
+  })
+
+  it('opens every number on a pull up where it has to stay one line (editing, or turned sideways)', () => {
+    expect(peekRelease(PULL_TO_OPEN, true, true, false)).toBe('open')
+    expect(peekRelease(-200, true, true, false)).toBe('stay')
+  })
+
+  it('shows the numbers that fit whole on its line, the most wanted first, and has room under the buttons', () => {
+    const css = readFileSync(new URL('../phone.css', import.meta.url), 'utf8')
+    // The line wraps what doesn't fit out of sight instead of cutting a number in half (PH-21).
+    expect(css).toMatch(/\.peek-sheet\.slim \.peek-line \{[^}]*flex-wrap: wrap;[^}]*height: 40px;[^}]*overflow: hidden;/)
+    // The view buttons take the free height and wrap into a second column (PH-06).
+    expect(css).toMatch(/\.app-shell\.phone \.canvas-controls \{[^}]*grid-template-rows: repeat\(auto-fill, 44px\);[^}]*var\(--peek-h, 0px\)/)
+  })
+})
 
 describe('dragging a sheet down', () => {
   it('closes it past a quarter of its height, and at least 80 px', () => {
@@ -117,7 +158,7 @@ describe('search on a phone, choosing an action', () => {
     expect(html).toMatch(/^<div class="palette-backdrop offering">/)
     expect(html).not.toContain('palette-input')
     expect(html).not.toContain('palette-list')
-    expect(words(html)).toContain('It’s here now. Run it? Run now Not now')
+    expect(words(html)).toContain('It’s here now. Do it? Do it now Not now')
   })
 
   it('shows the offer as a bar along the bottom, with the place it went to showing above it', () => {

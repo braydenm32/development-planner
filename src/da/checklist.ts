@@ -109,7 +109,7 @@ export const DA_ITEMS: DaItem[] = [
     id: 'floor-plans',
     title: 'Floor plans',
     sheets: ['floor'],
-    toDraw: 'Draw the walls under Design › Floors.',
+    toDraw: 'Draw the walls under Design › Plan.',
     sources: ['state', 'wollongong', 'kiama', 'blue-mountains', 'central-coast'],
     says: { wollongong: 'Council asks for 1:100.' },
   },
@@ -124,7 +124,7 @@ export const DA_ITEMS: DaItem[] = [
     id: 'elevations',
     title: 'Elevations',
     sheets: ['elevation'],
-    toDraw: 'Draw the walls under Design › Floors; the elevations draw themselves from the walls and the survey’s ground.',
+    toDraw: 'Draw the walls under Design › Plan; the elevations draw themselves from the walls and the survey’s ground.',
     sources: ['state', 'wollongong', 'kiama', 'blue-mountains', 'central-coast'],
     says: { 'central-coast': 'An elevation to each side.', 'blue-mountains': 'Natural and proposed ground, and floor, ceiling and ridge levels.' },
   },
@@ -168,6 +168,7 @@ export const DA_ITEMS: DaItem[] = [
     id: 'controls',
     title: 'Table of the planning controls (for the SEE)',
     sheets: ['checks'],
+    toDraw: 'Switch on your council under Approvals › Checks, so its controls can be checked.',
     sources: ['state', 'blue-mountains'],
   },
   {
@@ -310,6 +311,8 @@ export interface ChecklistInput {
   sheets: Partial<Record<DaSheet, string[]>>
   /** The plan has a driveway. */
   driveway: boolean
+  /** No council is on, so the controls sheet holds the Housing Code (CDC) checks, not a council's DA rules. */
+  housingCode?: boolean
 }
 
 const list = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`)
@@ -349,7 +352,8 @@ export function checklistRows(input: ChecklistInput): ChecklistRow[] {
     const base = { id: item.id, title: item.title, sources: item.sources, unverified: !!item.unverified }
     if (item.sheets) {
       const nums = item.sheets.flatMap(s => input.sheets[s] ?? [])
-      if (nums.length) rows.push({ ...base, status: 'in-pack', sheets: sheetRange(nums), detail: says ?? '' })
+      const cdc = item.id === 'controls' && input.housingCode ? 'The Housing Code (CDC) checks, as no council is switched on. Switch yours on under Approvals › Checks for its DA controls.' : undefined
+      if (nums.length) rows.push({ ...base, status: 'in-pack', sheets: sheetRange(nums), detail: cdc ?? says ?? '' })
       else rows.push({ ...base, status: 'not-drawn', detail: item.toDraw ?? 'Not in the plan yet.' })
       continue
     }

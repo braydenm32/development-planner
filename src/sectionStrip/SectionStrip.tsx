@@ -16,13 +16,16 @@ import { paintSectionBody, spread } from '../sections/paint'
 import { svgPainter } from '../sections/svgPainter'
 import { sectionDrawing } from '../sections/section'
 import { rlText } from '../sections/common'
+import { addSection, sectionAlong, sectionName } from '../sections/lines'
+import { showToast } from '../safety/store'
 import { floorRL, levelById, sortedLevels, type Plan } from '../plan/model'
 import { usePlan } from '../plan/store'
 import type { Earth } from '../plan/useEarthworks'
 import { draggedRL, heightRange, moveLevel, placeEaves, roofCuts, snapEaves, stairsOnLevel, stripFrame, topRL, type StripFrame } from './geometry'
-import { FOLDED_H, MAX_H, MIN_H, PHONE_H, setStripHeight, setStripOpen, useStrip, type Cut } from './store'
+import { FOLDED_H, MAX_H, MIN_H, phoneHeight, setStripHeight, setStripOpen, setStripTight, stripTight, useStrip, type Cut } from './store'
 import '../sections/sections.css'
 import './strip.css'
+import { forTouch } from '../phone/words'
 
 /** Height of the strip's heading (px). */
 const HEAD_H = FOLDED_H
@@ -82,8 +85,15 @@ export function SectionStrip(props: SectionStripProps) {
   const width = Math.max(0, planW - from)
   const left = Math.max(0, coverL - from)
   const open = useStrip(s => s.open)
+  const foldedForRoom = useStrip(s => s.tight && !s.open && (s.choice ?? s.auto))
   const stored = useStrip(s => s.height)
-  const height = !open ? FOLDED_H : phone ? PHONE_H : stored
+  // A small window with a panel and the selection's card open leaves little plan: the strip folds for now.
+  const room = planW - coverL - right
+  useLayoutEffect(() => {
+    setStripTight(!phone && stripTight(room, window.innerHeight))
+  }, [phone, room])
+  useEffect(() => () => setStripTight(false), [])
+  const height = !open ? FOLDED_H : phone ? phoneHeight() : stored
   const level = usePlan(s => s.activeLevel)
   const frame: StripFrame = stripFrame(cut, S, k)
   const oriented = frame.cut
@@ -98,6 +108,21 @@ export function SectionStrip(props: SectionStripProps) {
     [plan, survey, terrain, grid, ax, ay, bx, by],
   )
   const roofs = useMemo(() => roofCuts(plan, { a: [ax, ay], b: [bx, by] }), [plan, ax, ay, bx, by])
+  // The live section is this viewer's slice, not one of the plan's drawings, until its line is kept as one.
+  const kept = sectionAlong(plan, { a: [ax, ay], b: [bx, by] })
+  const keepAsDrawing = () => {
+    const before = usePlan.getState().plan
+    if (!before) return
+    const { plan: next, line } = addSection(before, [ax, ay], [bx, by])
+    usePlan.getState().commit(() => next)
+    const after = usePlan.getState().plan
+    showToast({
+      text: `Kept as ${sectionName(line)}. It’s in Design › Sections and prints with the PDF plans.`,
+      undo: () => {
+        if (usePlan.getState().plan === after) usePlan.getState().undo()
+      },
+    })
+  }
 
   // How far the drawing's been dragged up or down (m), on the level drawn on: a new level brings it back to the middle.
   const [panned, setPanned] = useState({ level: '', by: 0 })
@@ -134,11 +159,12 @@ export function SectionStrip(props: SectionStripProps) {
 
   const painted = useMemo(() => {
     if (!open || bodyH <= 0) return null
-    const p = svgPainter(true)
+    // A phone's labels stay at 12 px (PH-27).
+    const p = svgPainter(phone ? 'phone' : true)
     paintSectionBody(p, drawing, s => x0 + s * k, z => (zTop - z) * k, bodyH, k)
     return p.els
     // The painter reads only these.
-  }, [open, bodyH, drawing, x0, k, zTop])
+  }, [open, bodyH, drawing, x0, k, zTop, phone])
 
   // ---- Level bands ----
   const levels = sortedLevels(plan)
@@ -186,7 +212,7 @@ export function SectionStrip(props: SectionStripProps) {
       st().preview(() => moveLevel(d.start, d.id, rl))
       const name = levelById(d.start, d.id)?.name ?? 'Level'
       const now = st().plan ?? d.start
-      setBubble({ x: at.x, y: at.y, lines: [`${name} · floor RL ${rlText(rl)} (${signed(rl - d.rl)})`, ...stairsOnLevel(now, d.id)] })
+      setBubble({ x: at.x, y: at.y, lines: [`${name} · FFL RL ${rlText(rl)} (${signed(rl - d.rl)})`, ...stairsOnLevel(now, d.id)] })
     } else {
       const roof = d.start.roofs.find(r => r.id === d.id)
       if (!roof) return
@@ -263,7 +289,7 @@ export function SectionStrip(props: SectionStripProps) {
           onPointerCancel={() => finish(true)}
           onWheel={e => setPan(pan + e.deltaY / Math.max(k, 1) / 4)}
           role="img"
-          aria-label={`Section through the house, ${ends[0]} to ${ends[1]}`}
+          aria-label={`Live section through the house, ${ends[0]} to ${ends[1]}`}
         >
           {/* Each level's floor, faintly across the strip; the one being drawn on in the accent colour. */}
           {levels.map(l => {
@@ -348,7 +374,7 @@ export function SectionStrip(props: SectionStripProps) {
         )}
         {!frame.linedUp && (
           <p className="sstrip-tilt" style={{ left: bandX + 150 }}>
-            The cut runs at an angle on the plan, so the section is centred under it.{' '}
+            The live section’s line runs at an angle on the plan, so the section is centred under it.{' '}
             <button type="button" className="link" onClick={onLineUp}>
               Turn the plan to line them up
             </button>
@@ -365,7 +391,7 @@ export function SectionStrip(props: SectionStripProps) {
           className="sstrip-grab"
           role="separator"
           aria-orientation="horizontal"
-          aria-label="Resize the section"
+          aria-label="Resize the live section"
           aria-valuemin={MIN_H}
           aria-valuemax={MAX_H}
           aria-valuenow={height}
@@ -382,7 +408,8 @@ export function SectionStrip(props: SectionStripProps) {
         />
       )}
       <header className="sstrip-head" style={{ paddingLeft: Math.max(12, left + 4), paddingRight: Math.max(12, right + 4) }}>
-        <h2>Section</h2>
+        {/* "Live": the viewer's own slice through the plan, where a section line (Design › Sections) is a drawing kept with it. */}
+        <h2>Live section</h2>
         <span className="muted ends">
           {ends[0]} → {ends[1]}
         </span>
@@ -403,14 +430,21 @@ export function SectionStrip(props: SectionStripProps) {
           </ul>
         )}
         <span className="grow" />
-        {open && editable && <span className="muted hint">Click a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
+        {open && editable && <span className="muted hint">{forTouch('Click')} a level to draw on it · drag it to move its floor · drag an eave to snap</span>}
+        {open && kept && <span className="muted hint">Kept as {sectionName(kept)}</span>}
+        {open && editable && !kept && drawing.walls.length > 0 && (
+          <button type="button" className="plain small" onClick={keepAsDrawing} title="Keep this line as a section drawing: it is listed in Design › Sections and prints with the PDF plans">
+            Add to drawings
+          </button>
+        )}
         {!alongHouse && (
-          <button type="button" className="plain small" onClick={onReset} title="Put the cut back through the middle of the house, along it">
+          <button type="button" className="plain small" onClick={onReset} title="Put the live section’s line back through the middle of the house, along it">
             Along the house
           </button>
         )}
+        {foldedForRoom && <span className="muted hint">Folded to leave room for the plan</span>}
         <button type="button" className="plain small fold" onClick={() => setStripOpen(!open)} aria-expanded={open}>
-          <Icon name={open ? 'chevD' : 'chevU'} size={14} /> {open ? 'Fold away' : 'Show the section'}
+          <Icon name={open ? 'chevD' : 'chevU'} size={14} /> {open ? 'Fold away' : 'Show the live section'}
         </button>
       </header>
       {body}

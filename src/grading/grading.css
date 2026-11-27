@@ -10,7 +10,8 @@
   --grade-field-line: #cfd3d8;
   --grade-cut: #e3874a;
   --grade-fill: #5d8fca;
-  --grade-amber: #c06a08;
+  /* Dark enough for 11 px words on white (4.9:1). */
+  --grade-amber: #a85f00;
   --grade-r: 3px;
 }
 
@@ -372,7 +373,7 @@
 .grade-implied {
   --grade-ink: #16181b;
   --grade-line: #e1e4e7;
-  --grade-amber: #c06a08;
+  --grade-amber: #a85f00;
   --grade-r: 3px;
   display: grid;
   gap: 8px;

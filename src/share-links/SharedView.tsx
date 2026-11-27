@@ -256,11 +256,11 @@ export function Viewer({ shared, view: canvas, setView: changeCanvas }: { shared
             {by}
           </div>
           <div className="top-actions">
-            <div className="view-switch desk-only" role="group" aria-label="Canvas">
+            <div className="view-switch desk-only" role="group" aria-label="View">
               {(['plan', '3d'] as const).map(v => (
                 <button key={v} className={canvas === v ? 'on' : ''} aria-pressed={canvas === v} onClick={() => setView(v)}>
                   <Icon name={v === 'plan' ? 'plan' : 'cube'} size={15} />
-                  {v === 'plan' ? 'Plan' : '3D'}
+                  {v === 'plan' ? '2D' : '3D'}
                 </button>
               ))}
             </div>
@@ -440,7 +440,7 @@ function Numbers({
   // A number already on the canvas steps back in the strip, as in the app (CALM 5).
   const shown: Partial<Record<NumberId, string>> = {}
   if (canvas === 'plan' && sortedLevels(plan)[0]?.id === level) shown.ffl = 'on plan'
-  if (canvas === 'plan' && selectedRoof && numbers.roof?.roof.id === selectedRoof) shown['roof-height'] = 'selected'
+  if (canvas === 'plan' && selectedRoof && numbers.roof?.roof.id === selectedRoof && Math.abs(numbers.roof.height - (numbers.height ?? 0)) < 0.005) shown['roof-height'] = 'selected'
   const route: AppRoute = { kind: 'app', area: 'design', tab: 'plan', view: canvas }
   return (
     <>
@@ -483,6 +483,7 @@ function Skeleton() {
 
 const TROUBLE_TITLE: Record<SharedTrouble['kind'], string> = {
   off: 'This link isn’t working',
+  incomplete: 'This link isn’t complete or has expired',
   slow: 'Too many tries',
   offline: 'You’re offline',
   broken: 'This shared project couldn’t open',
@@ -498,12 +499,15 @@ export function Trouble({ trouble, retry }: { trouble: SharedTrouble; retry: () 
         <p>{trouble.message || 'This link doesn’t open anything now. It may have been turned off, or copied wrong.'}</p>
         {trouble.kind === 'off' ? (
           <p className="muted">Ask the person who sent it for a new link.</p>
-        ) : (
+        ) : trouble.kind === 'incomplete' ? null : (
           <button className="shared-retry" onClick={retry}>
             Try again
           </button>
         )}
-        <p className="muted small">Contour &amp; Gable · shared view</p>
+        <p className="muted small">
+          {/* The way out: the planner's own front page (a plain link, so the page starts afresh there). */}
+          <a href={import.meta.env?.BASE_URL ?? '/'}>Contour &amp; Gable</a> · shared view
+        </p>
       </div>
     </div>
   )

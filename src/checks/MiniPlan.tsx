@@ -53,7 +53,11 @@ export function MiniPlan({ ms }: { ms: Measures }) {
         const same = pins.slice(0, i).filter(q => targets[q.id] && Math.hypot(targets[q.id].at[0] - target.at[0], targets[q.id].at[1] - target.at[1]) * k < 12).length
         const [x, y] = P(target.at)
         return (
-          <g key={p.id} className={`ck-pin ${p.word}${p.id === shown ? ' on' : ''}`} transform={`translate(${(x + same * 18).toFixed(1)} ${y.toFixed(1)})`} role="button" tabIndex={0} aria-label={`${p.n}: ${p.title}`} onClick={() => revealCheck(p.id)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && revealCheck(p.id)}>
+          <g key={p.id} className={`ck-pin ${p.word}${p.id === shown ? ' on' : ''}`} transform={`translate(${(x + same * 24).toFixed(1)} ${y.toFixed(1)})`} role="button" tabIndex={0} aria-label={`${p.n}: ${p.title}`} onClick={() => revealCheck(p.id)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && revealCheck(p.id)}>
+            {/* The dot stays small on the small plan; an unseen 24 px circle round it takes the finger (WCAG 2.5.8), so pins sharing a spot sit 24 apart. */}
+            <circle className="ck-hit" r={12} />
+            {/* A thumb-sized target round the pin on a touch screen (PH-26): a rect, so the pin's circle styles leave it alone. */}
+            <rect className="ck-touch" x={-22} y={-22} width={44} height={44} />
             <circle r={9} />
             <text dy="0.35em">{p.n}</text>
           </g>

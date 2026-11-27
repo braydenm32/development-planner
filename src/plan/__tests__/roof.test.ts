@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { signedArea, type Vec2 } from '../../lib/geom'
 import { isWatertight } from '../../lib/terrainMesh'
 import type { Roof, RoofType } from '../model'
-import { addRoof } from '../ops'
-import { defaultGables, levelOutlines, outlineAround, ROOF_EDGE, roofGeometry } from '../roof'
+import { addRoof, updateRoof } from '../ops'
+import { defaultGables, levelOutlines, outlineAround, ROOF_EDGE, roofGeometry, roofPlateLift } from '../roof'
 import { straightSkeleton } from '../skeleton'
 import { garageFloor } from './fixtures'
 
@@ -138,6 +138,63 @@ describe('roofs', () => {
     expect(hip.lines).toHaveLength(5) // ridge and four hips
     const gable = roofGeometry(roof(rect, 'gable'))
     expect(gable.lines).toHaveLength(1) // just the ridge
+  })
+
+  describe('the eaves level at the wall plate', () => {
+    // 10 × 4 m walls at 45°: the ridge is 2 m above the plate, whatever the overhang.
+    const zs = (r: Roof) => roofGeometry(r).mesh.pos.filter((_, i) => i % 3 === 2)
+
+    it.each(['hip', 'gable'] as const)('keeps a %s roof’s ridge where it is as the overhang widens, and runs the eave down past the plate', type => {
+      for (const overhang of [0, 0.45, 0.9]) {
+        const g = roofGeometry(roof(rect, type, { overhang, plateLift: 0 }))
+        expect(g.height).toBeCloseTo(2 + ROOF_EDGE, 9)
+        expect(Math.max(...zs(roof(rect, type, { overhang, plateLift: 0 })))).toBeCloseTo(2 + ROOF_EDGE, 9)
+        // The underside of the eave is the overhang × tan(pitch) below the top of the walls.
+        expect(Math.min(...zs(roof(rect, type, { overhang, plateLift: 0 })))).toBeCloseTo(-overhang, 9)
+        expect(isWatertight(g.mesh.tris)).toBe(true)
+      }
+    })
+
+    it('does the same for a skillion: its low side is the roof’s depth above the plate at the wall', () => {
+      for (const overhang of [0, 0.45, 0.9]) {
+        const g = roofGeometry(roof(rect, 'skillion', { lowEdge: 0, overhang, plateLift: 0 }))
+        // It rises 4 m across the walls, and on over the high side's overhang.
+        expect(g.height).toBeCloseTo(4 + overhang + ROOF_EDGE, 9)
+        expect(isWatertight(g.mesh.tris)).toBe(true)
+      }
+    })
+
+    it.each(['hip', 'gable', 'skillion'] as const)('builds a closed %s roof on every shape', type => {
+      for (const pts of [rect, L, T, U]) {
+        const g = roofGeometry(roof([...pts], type, { overhang: 0.6, pitch: 30, plateLift: 0 }))
+        expect(g.error).toBeNull()
+        expect(isWatertight(g.mesh.tris)).toBe(true)
+      }
+    })
+
+    it('leaves a roof saved before that at the height it had, and holds it there when its overhang changes', () => {
+      // Saved with a 0.5 m overhang at 45°: the eaves level was out at its edge, so the roof sits 0.5 m higher at the wall.
+      const old = roof(rect, 'hip', { overhang: 0.5 })
+      expect(old.plateLift).toBeUndefined()
+      expect(roofPlateLift(old)).toBeCloseTo(0.5, 9)
+      expect(roofGeometry(old).height).toBeCloseTo(2.5 + ROOF_EDGE, 9)
+      expect(Math.min(...zs(old))).toBe(0)
+      // Widening it writes that lift down first: the ridge stays put.
+      const plan = { ...garageFloor(), roofs: [old] }
+      const wider = updateRoof(plan, 'r', { overhang: 0.9 }).roofs[0]
+      expect(wider.plateLift).toBeCloseTo(0.5, 9)
+      expect(roofGeometry(wider).height).toBeCloseTo(2.5 + ROOF_EDGE, 9)
+      // A change that isn't to its slope leaves it as it was saved.
+      expect(updateRoof(plan, 'r', { lowEdge: 1 }).roofs[0].plateLift).toBeUndefined()
+      // A flat roof has no slope to lift.
+      expect(roofPlateLift(roof(rect, 'flat', { overhang: 0.5 }))).toBe(0)
+    })
+
+    it('gives every new roof the eaves level at the wall plate', () => {
+      const p = addRoof(garageFloor(), 'level_ground', rect, { type: 'hip', pitch: 45, overhang: 0.6 })
+      expect(p.roofs[0].plateLift).toBe(0)
+      expect(roofGeometry(p.roofs[0]).height).toBeCloseTo(2 + ROOF_EDGE, 9)
+    })
   })
 
   it('roofs the garage floor from the outside of its walls', () => {

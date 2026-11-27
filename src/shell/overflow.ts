@@ -16,20 +16,28 @@ export interface Overflow {
   after: number
 }
 
+/** Edges are measured in fractions of a pixel and scroll positions in whole ones: this much over still counts as fitting. */
+const SLACK = 1.5
+
 /**
  * Which items show whole in the row's window. Where more is hidden at an end, its arrow
- * (`arrow` px wide) takes that much of the window, so an item under it hides too.
+ * (`arrow` px wide, or one width for each end) takes that much of the window, so an item under
+ * it hides too. Two never hide: the item at `keep` (the open tab: the bar always says where you
+ * are), and one wider than the window that starts in it, which no scrolling could show whole.
  */
-export function overflowOf(items: Span[], scrollLeft: number, clientWidth: number, scrollWidth: number, arrow: number): Overflow {
+export function overflowOf(items: Span[], scrollLeft: number, clientWidth: number, scrollWidth: number, arrow: number | { before: number; after: number }, keep = -1): Overflow {
+  const arrows = typeof arrow === 'number' ? { before: arrow, after: arrow } : arrow
   const moreBefore = scrollLeft > 1
-  const moreAfter = scrollLeft + clientWidth < scrollWidth - 1
-  const from = scrollLeft + (moreBefore ? arrow : 0)
-  const to = scrollLeft + clientWidth - (moreAfter ? arrow : 0)
+  const moreAfter = scrollLeft + clientWidth < scrollWidth - SLACK
+  const from = scrollLeft + (moreBefore ? arrows.before : 0)
+  const to = scrollLeft + clientWidth - (moreAfter ? arrows.after : 0)
   const mid = (from + to) / 2
   let before = 0
   let after = 0
-  const cut = items.map(s => {
-    const out = s.left < from - 0.5 || s.right > to + 0.5
+  const cut = items.map((s, i) => {
+    if (i === keep) return false
+    const tooWide = s.right - s.left > to - from
+    const out = tooWide ? s.left < from - SLACK || s.left >= to : s.left < from - SLACK || s.right > to + SLACK
     if (out) {
       if ((s.left + s.right) / 2 < mid) before++
       else after++
@@ -42,24 +50,33 @@ export function overflowOf(items: Span[], scrollLeft: number, clientWidth: numbe
 /**
  * Where to scroll for the arrow at one end: forwards, the first hidden item lands just after the
  * start's arrow, with as many after it as fit; backwards, the last hidden one before the window
- * lands just before the end's arrow.
+ * lands just before the end's arrow. Every press moves the row on: an item that is already as far
+ * along as it can go (one wider than the window) is passed over for the next.
  */
 export function pageTo(items: Span[], scrollLeft: number, clientWidth: number, scrollWidth: number, arrow: number, dir: 1 | -1): number {
   const { cut } = overflowOf(items, scrollLeft, clientWidth, scrollWidth, arrow)
   const max = Math.max(0, scrollWidth - clientWidth)
   const view = scrollLeft + clientWidth / 2
-  let target = scrollLeft
+  const clamp = (x: number) => Math.min(max, Math.max(0, Math.round(x)))
   if (dir > 0) {
-    const i = items.findIndex((s, k) => cut[k] && (s.left + s.right) / 2 > view)
-    if (i < 0) return max
-    target = items[i].left - arrow
-  } else {
-    let i = -1
-    items.forEach((s, k) => {
-      if (cut[k] && (s.left + s.right) / 2 < view) i = k
-    })
-    if (i < 0) return 0
-    target = items[i].right - clientWidth + arrow
+    for (let k = 0; k < items.length; k++) {
+      const s = items[k]
+      if (!cut[k] || (s.left + s.right) / 2 <= view) continue
+      const target = clamp(s.left - arrow)
+      if (target > scrollLeft + 1) return target
+    }
+    return max
   }
-  return Math.min(max, Math.max(0, Math.round(target)))
+  for (let k = items.length - 1; k >= 0; k--) {
+    const s = items[k]
+    if (!cut[k] || (s.left + s.right) / 2 >= view) continue
+    const target = clamp(s.right - clientWidth + arrow)
+    if (target < scrollLeft - 1) return target
+  }
+  return 0
+}
+
+/** "1 more tab", "3 more tabs": `label` is the plural ("tabs", "numbers"). */
+export function moreText(n: number, label: string): string {
+  return `${n} more ${n === 1 ? label.replace(/s$/, '') : label}`
 }

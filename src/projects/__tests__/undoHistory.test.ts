@@ -56,17 +56,42 @@ describe('Undo and Redo after a reload', () => {
     expect(app.st().future).toHaveLength(0)
   })
 
+  // LD-35: an Undo, then a reload before the history's own write was due, used to lose Redo
+  // (the plan had saved, its history hadn't). The two go in one write now.
+  it('keeps Redo when the page closes straight after an Undo', async () => {
+    let app = await load()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    app.st().commit(dropWall)
+    app.st().commit(dropWall)
+    await app.settle()
+    app.st().undo()
+    // What the page does as it closes: the plan's save, with nothing waited for after it.
+    await app.session.flushPlan()
+
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.walls).toHaveLength(9)
+    expect(app.st().future).toHaveLength(1)
+    app.st().redo()
+    expect(app.st().plan!.walls).toHaveLength(8)
+  })
+
   it('writes once the edits settle, not on every one', async () => {
     const app = await load()
     const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    const before = app.session.projectsNow().list.find(m => m.id === id)!.revision
     for (let i = 0; i < 5; i++) app.st().commit(dropWall)
-    await app.actions.flush()
     expect((await app.actions.read(id))?.history).toBeUndefined()
-    await new Promise(r => setTimeout(r, app.history.HISTORY_SETTLE_MS + 150))
+    // The plan's save takes the history with it: one write for the five edits, not one each.
     await app.actions.flush()
     const saved = (await app.actions.read(id))?.history as { past: Plan[]; future: Plan[] }
     expect(saved.past).toHaveLength(5)
     expect(saved.future).toEqual([])
+    expect(app.session.projectsNow().list.find(m => m.id === id)!.revision).toBe(before + 1)
+    // And nothing more is written when the history's own wait is over.
+    await new Promise(r => setTimeout(r, app.history.HISTORY_SETTLE_MS + 150))
+    await app.actions.flush()
+    expect(app.session.projectsNow().list.find(m => m.id === id)!.revision).toBe(before + 1)
   })
 
   it('never mixes two projects’ histories, even when one opens before the other’s save', async () => {
@@ -118,6 +143,24 @@ describe('Undo and Redo after a reload', () => {
     expect(app.st().plan!.walls).toEqual(garageFloor().walls)
   })
 
+  it('a reload leaves "How is this floor built?" waiting, and adds no step that undoes nothing', async () => {
+    let app = await load()
+    // A plan made in today's app (floorsByLevel) whose ground floor has rooms and no floor type yet.
+    const { id } = await app.actions.create({ survey: survey(), plan: { ...garageFloor(), floorsByLevel: true } })
+    app.st().commit(dropWall)
+    app.st().commit(dropWall)
+    await app.settle()
+    expect(app.st().plan!.levels[0].floorType).toBeUndefined()
+
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.levels[0].floorType).toBeUndefined()
+    expect(app.st().past).toHaveLength(2)
+    // Undo takes back the last real edit.
+    app.st().undo()
+    expect(app.st().plan!.walls).toHaveLength(9)
+  })
+
   it('keeps the last hundred steps', async () => {
     const app = await load()
     const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
@@ -141,21 +184,22 @@ describe('Undo and Redo after a reload', () => {
     // Marked from Approvals › Checks: the site features' history, with Site › Features not open.
     setTreeRemoval('tree1', true)
     expect(site().data.features[0].remove).toBe(true)
-    expect(undoTarget('undo')).toBe(site())
+    expect(undoTarget('undo').kind).toBe('site')
+    expect(undoTarget('undo').label).toBe('mark tree for removal')
     undoTarget('undo').undo()
     expect(site().data.features[0].remove).toBeFalsy()
     // Redo puts it back; with the site's steps taken back, Undo goes on to the plan's.
-    expect(undoTarget('redo')).toBe(site())
+    expect(undoTarget('redo').kind).toBe('site')
     undoTarget('undo').undo()
     expect(app.st().plan!.walls).toEqual(garageFloor().walls)
-    // Redo follows the history just changed: the plan's step comes back.
+    // Redo brings back the step undone last: the plan's.
     undoTarget('redo').redo()
     expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 1)
-    // Marking again, then editing the plan, makes the plan's history the one Undo works on.
+    // Marking again, then editing the plan, makes the plan's step the one Undo takes back.
     setTreeRemoval('tree1', true)
-    expect(undoTarget('undo')).toBe(site())
+    expect(undoTarget('undo').kind).toBe('site')
     app.st().commit(dropWall)
-    expect(undoTarget('undo')).toBe(app.st())
+    expect(undoTarget('undo').kind).toBe('plan')
   })
 
   it('opens a project saved before histories were kept with an empty one', async () => {
@@ -169,5 +213,30 @@ describe('Undo and Redo after a reload', () => {
     app.st().commit(dropWall)
     await app.settle()
     expect(((await app.actions.read(id))!.history as { past: Plan[] }).past).toHaveLength(1)
+  })
+
+  // Final check 8: leaving the page (pagehide, or the tab hidden) saves at once what was waiting
+  // its 400 ms, and first keeps what is being typed in a box, which would otherwise only be kept
+  // as the box lost focus, which a reload never does.
+  it('saves the edit waiting, the history beside it and what is being typed, as the page is left', async () => {
+    let app = await load()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    await app.settle()
+    app.st().commit(dropWall)
+    let blurred = 0
+    // A name box whose blur keeps what was typed in it, as fields.tsx's do.
+    const box = { tagName: 'INPUT', type: 'text', blur: () => (blurred++, app.st().commit(dropWall)) }
+    expect(app.session.leavePage(box as unknown as Element)).toBe(box)
+    expect(blurred).toBe(1)
+    // Nothing waited for: the page may be gone a moment later.
+    app = await load()
+    await app.actions.open(id)
+    expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 2)
+    expect(app.st().past).toHaveLength(2)
+    // A button with focus is left alone; so is nothing.
+    const button = { tagName: 'BUTTON', blur: () => blurred++ }
+    expect(app.session.leavePage(button as unknown as Element)).toBeNull()
+    expect(app.session.leavePage(null)).toBeNull()
+    expect(blurred).toBe(1)
   })
 })

@@ -10,6 +10,14 @@ import type { Vec2 } from '../lib/geom'
 export const FOLDED_H = 34
 /** Height of the strip on a phone, where it can't be resized (px). */
 export const PHONE_H = 176
+
+/**
+ * Its height on this phone: turned sideways the screen is short, and the strip keeps to a third
+ * of it, so it never reaches the level chip at the top of the plan.
+ */
+export function phoneHeight(screenH: number = typeof window === 'undefined' ? Infinity : window.innerHeight): number {
+  return Math.round(Math.min(PHONE_H, Math.max(FOLDED_H + 60, screenH * 0.34)))
+}
 /** The strip's height on a computer before it's resized, and the least and most it takes (px). */
 export const DEFAULT_H = 300
 export const MIN_H = 150
@@ -22,9 +30,18 @@ export interface Cut {
 }
 
 interface StripState {
+  /** Whether it's open now: the viewer's own choice, or until they make one, `auto`. */
   open: boolean
+  /** What the viewer chose with Fold away or Show the section, kept in this browser; null until they do. */
+  choice: boolean | null
+  /** Whether it opens by itself: on a computer, once there is a house to cut through (setStripAuto). */
+  auto: boolean
   /** Its height on a computer (px), heading included. */
   height: number
+  /** The plan has too little room left for it (stripTight): it folds for now, without that being kept as a choice. */
+  tight: boolean
+  /** Shown all the same while tight: the viewer asked for it. */
+  tightShown: boolean
   /** Each project's cut, by project id, once it's been moved; a project not listed cuts along its house. */
   cuts: Record<string, Cut>
 }
@@ -39,15 +56,27 @@ const isVec = (v: unknown): v is Vec2 => Array.isArray(v) && v.length === 2 && f
 
 export const clampHeight = (h: number) => Math.round(Math.min(MAX_H, Math.max(MIN_H, h)))
 
-/** The strip's settings as saved, or the defaults when there are none or they can't be read. */
-export function readPrefs(raw: string | null): Pick<StripState, 'open' | 'height'> {
+/**
+ * The strip's settings as saved, or the defaults when there are none or they can't be read.
+ * Folded away is always the viewer's choice. Open is theirs only when saved as chosen: older
+ * settings saved "open" for everyone, whether they had asked for it or not.
+ */
+export function readPrefs(raw: string | null): Pick<StripState, 'choice' | 'height'> {
   try {
-    const v = JSON.parse(raw ?? 'null') as { open?: unknown; height?: unknown } | null
-    return { open: v?.open !== false, height: finite(v?.height) ? clampHeight(v.height) : DEFAULT_H }
+    const v = JSON.parse(raw ?? 'null') as { open?: unknown; chose?: unknown; height?: unknown } | null
+    const choice = v?.open === false ? false : v?.open === true && v.chose === true ? true : null
+    return { choice, height: finite(v?.height) ? clampHeight(v.height) : DEFAULT_H }
   } catch {
-    return { open: true, height: DEFAULT_H }
+    return { choice: null, height: DEFAULT_H }
   }
 }
+
+/**
+ * Whether the strip opens by itself, before the viewer has chosen: never on a phone, where the
+ * plan needs the screen (PH-03), and on a computer only once a floor is drawn, so a new project
+ * starts with the whole canvas for the block (HO-10, CB-37).
+ */
+export const opensItself = (phone: boolean, houseDrawn: boolean) => !phone && houseDrawn
 
 /** The cuts as saved, dropping anything that isn't one. */
 export function readCuts(raw: string | null): Record<string, Cut> {
@@ -78,16 +107,50 @@ function save(key: string, value: unknown) {
   }
 }
 
-export const useStrip = create<StripState>(() => ({ ...readPrefs(load(PREFS)), cuts: readCuts(load(CUTS)) }))
+export const useStrip = create<StripState>(() => {
+  const prefs = readPrefs(load(PREFS))
+  // Folded until the plan says there's a house (setStripAuto), unless the viewer chose.
+  return { ...prefs, auto: false, tight: false, tightShown: false, open: prefs.choice ?? false, cuts: readCuts(load(CUTS)) }
+})
+
+/** Open as chosen, or as the plan has it, unless folded for room. */
+const openNow = (s: Pick<StripState, 'choice' | 'auto' | 'tight' | 'tightShown'>) => (s.choice ?? s.auto) && (!s.tight || s.tightShown)
+
+/** Plan narrower than this between the panel and the selection's card (px)… */
+export const TIGHT_W = 400
+/** …on a window shorter than this (px): the strip folds to leave the plan some room. */
+export const TIGHT_H = 900
+
+/**
+ * Whether the plan is too cramped for the strip on a computer: a small window with a panel and the
+ * selection's card both open leaves a strip of plan 200 px wide, and the strip took most of its height.
+ */
+export const stripTight = (planRoom: number, windowH: number) => planRoom < TIGHT_W && windowH < TIGHT_H
 
 const savePrefs = () => {
-  const { open, height } = useStrip.getState()
-  save(PREFS, { open, height })
+  const { choice, height } = useStrip.getState()
+  save(PREFS, choice === null ? { height } : { open: choice, chose: true, height })
 }
 
+/** Fold away, or Show the section: the viewer's choice, which is kept. */
 export function setStripOpen(open: boolean) {
-  useStrip.setState({ open })
+  // Shown while the plan is cramped, it stays shown until the room changes.
+  useStrip.setState({ open, choice: open, tightShown: open && useStrip.getState().tight })
   savePrefs()
+}
+
+/** The plan has room for the strip, or not (stripTight): folded for now, back as it was when there's room. */
+export function setStripTight(tight: boolean) {
+  const s = useStrip.getState()
+  if (s.tight === tight) return
+  useStrip.setState({ tight, tightShown: false, open: openNow({ ...s, tight, tightShown: false }) })
+}
+
+/** Whether the strip opens by itself (see opensItself): it does unless the viewer has chosen. */
+export function setStripAuto(auto: boolean) {
+  const s = useStrip.getState()
+  if (s.auto === auto) return
+  useStrip.setState({ auto, open: openNow({ ...s, auto }) })
 }
 
 export const toggleStrip = () => setStripOpen(!useStrip.getState().open)
@@ -111,7 +174,7 @@ export function setCut(project: string, cut: Cut | null, keep = true) {
 export function stripSpace(shows: boolean, open: boolean, height: number, phone: boolean): number {
   if (!shows) return 0
   if (!open) return FOLDED_H
-  return phone ? PHONE_H : height
+  return phone ? phoneHeight() : height
 }
 
 export function useStripSpace(shows: boolean, phone: boolean): number {

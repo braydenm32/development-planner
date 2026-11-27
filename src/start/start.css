@@ -6,7 +6,8 @@
   --st-muted: #6b7077;
   --st-line: #e1e4e7;
   --st-line-soft: #eef0f2;
-  --st-field-line: #cfd3d8;
+  /* The same field edge as inside the app: 3:1 on white, so a box can be found. */
+  --st-field-line: #8e959d;
   --st-accent: #2346d0;
   --st-accent-soft: #eef1fc;
   --st-paper: #fcfcfd;
@@ -338,6 +339,21 @@
   box-shadow: 0 0 0 1px var(--st-accent);
 }
 
+/* A number that can't be used: red round the box, with the reason listed above the button. */
+.st-field.bad {
+  border-color: var(--st-danger);
+  box-shadow: 0 0 0 1px var(--st-danger);
+}
+
+.st-field.bad:focus-within {
+  box-shadow: 0 0 0 1px var(--st-danger), 0 0 0 3px var(--st-accent);
+}
+
+.st-errors {
+  display: grid;
+  gap: 2px;
+}
+
 /* The field shows the focus ring, so the input inside doesn't draw a second one. */
 .start-screen .st-field input:focus-visible {
   outline: none;
@@ -355,6 +371,11 @@
 
 .st-field span {
   color: var(--st-muted);
+}
+
+/* The project's name is words, not a measurement. */
+.st-field.st-name input {
+  font-variant-numeric: normal;
 }
 
 .st-seg {
@@ -455,6 +476,16 @@
 
   .st-field input {
     font-size: 16px;
+  }
+
+  /* The address search too: under 16 px iOS zooms the page on focus (PH-08), and 44 px to tap (PH-26). */
+  .st-wide .map-search :is(input[type='search'], button[type='submit']) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .st-seg button {
+    min-width: 44px;
   }
 }
 
@@ -558,6 +589,82 @@
   left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
 }
 
+/* On a computer the floor's chip has the top left of the plan, so the notice sits at the top right,
+   beside the compass, as wide as the room between them (HO-13). Short of room (a tool's card open,
+   a small window) it drops to a line of its own under the compass: --row-room is the width of the
+   plan's free part (shell.css), and each clamp is 0 or its full size either side of 880 px. */
+.app-shell:not(.phone) .sketch-chip {
+  --tight: clamp(0px, (880px - var(--row-room)) * 999, 60px);
+  top: calc(12px + var(--tight));
+  left: auto;
+  right: calc(var(--free-right, 16px) + 60px - var(--tight));
+  transform: none;
+  max-width: calc(var(--row-room) - 16px - clamp(0px, (var(--row-room) - 880px) * 999, 490px));
+}
+
+/* Placed by measuring (SketchChip, chipFit): in the top row whole or short, under the compass, or
+   waiting while the selection's card is open, so it never sits on the house (final check 4). */
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-row,
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-short {
+  top: 12px;
+  right: calc(var(--free-right, 16px) + 60px);
+  max-width: none;
+}
+
+/* Its own box on a computer, so its width can be measured even while folded away. */
+.app-shell:not(.phone) .sketch-chip .sk-what {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.app-shell:not(.phone) .sketch-chip.fit-short .sk-what,
+.app-shell:not(.phone) .sketch-chip.fit-drop .sk-what {
+  max-width: 0;
+  overflow: hidden;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-drop {
+  top: 72px;
+  right: var(--free-right, 16px);
+  max-width: none;
+}
+
+.app-shell:not(.phone) .shell-main.canvas-plan:not(.report) .sketch-chip.fit-off {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* In 3D the camera buttons have the top middle: the notice goes under them (CB-32, LD-17). */
+.app-shell:not(.phone) .canvas-3d .sketch-chip {
+  top: 58px;
+  right: auto;
+  left: calc(var(--free-left, 14px) + (100% - var(--free-left, 14px)) / 2);
+  transform: translateX(-50%);
+  max-width: calc(100% - var(--free-left, 14px) - 32px);
+}
+
+/* On Costs the plan's top left says what a line measures, and its foot has no hint: the notice sits there, beside the view bar. */
+.app-shell:not(.phone) .shell-main.report.canvas-plan .sketch-chip {
+  top: auto;
+  right: auto;
+  bottom: var(--gap);
+  left: var(--free-left, 14px);
+  max-width: calc(100% - var(--free-left, 14px) - var(--controls-w, 470px) - 2 * var(--gap) - 12px);
+}
+
+/* The empty floor's tip steps down a line when the notice has dropped under the floor's chip. */
+.app-shell:not(.phone) .shell-main:has(.sketch-chip) .plan-hint {
+  top: calc(60px + clamp(0px, (880px - var(--row-room)) * 999, 52px));
+}
+
+/* In the row, the tip keeps its place. */
+.app-shell:not(.phone) .shell-main:has(.sketch-chip.fit-row, .sketch-chip.fit-short, .sketch-chip.fit-off) .plan-hint {
+  top: 60px;
+}
+
 /* On a phone: under the floor chip, clear of the tool rail (in Edit) and the canvas buttons down the right. */
 .app-shell.phone .sketch-chip {
   top: 64px;
@@ -585,9 +692,10 @@
   margin: 0 0 8px;
 }
 
+/* Two boxes to a row, each as wide as its half of the card (a box's own width would push the second off it, LD-17). */
 .sketch-size {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px 10px;
 }
 
@@ -600,6 +708,9 @@
 
 .sketch-size input,
 .sketch-size select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   min-height: 30px;
   font: inherit;
   color: #16181b;

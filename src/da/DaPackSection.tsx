@@ -4,12 +4,13 @@
 
 import { useState } from 'react'
 import { TextField } from '../components/fields'
-import { saveDaPack, type PdfInput } from '../components/printFiles'
+import { saveDaPack, toastDownloaded, type PdfInput } from '../components/printFiles'
 import { useMap } from '../map/store'
 import { tabRoute } from '../nav/route'
 import { navigate, useRouter } from '../nav/router'
 import { setDaDetail, useDaDetails, type DaDetails } from './details'
 import { daOf, setDaRevision } from './model'
+import { packRoute } from './route'
 
 /** A detail typed as it should read on the title block; it can be cleared to fall back to the map's. */
 function DetailField({ id, label, hint, field }: { id: string; label: string; hint: string; field: keyof DaDetails }) {
@@ -42,7 +43,7 @@ export function DaPackSection(p: PdfInput) {
   const download = () => {
     setError(null)
     try {
-      saveDaPack(p)
+      toastDownloaded(saveDaPack(p))
     } catch (err) {
       setError((err as Error).message || 'The DA pack could not be drawn.')
     }
@@ -53,6 +54,11 @@ export function DaPackSection(p: PdfInput) {
   const toMap = () => {
     const r = useRouter.getState().route
     if (r.kind === 'app') navigate(tabRoute(r, 'site', 'map'))
+  }
+  const route = packRoute(p.plan)
+  const toChecks = () => {
+    const r = useRouter.getState().route
+    if (r.kind === 'app') navigate(tabRoute(r, 'approvals', 'checks'))
   }
   return (
     <>
@@ -67,6 +73,16 @@ export function DaPackSection(p: PdfInput) {
           stormwater concept and a table of the planning controls, each sheet with a title block. Every page is in it, whatever is ticked above.
         </p>
       </details>
+      {route.pick ? (
+        <div className="sh-callout da-route" role="note">
+          <p>{route.text}</p>
+          <button className="secondary" onClick={toChecks}>
+            Pick your council
+          </button>
+        </div>
+      ) : (
+        <p className="muted small da-route">{route.text}</p>
+      )}
       {!hasAddress && (
         <div className="sh-callout" role="note">
           <p>
@@ -85,7 +101,7 @@ export function DaPackSection(p: PdfInput) {
         <TextField label="Revision" value={daOf(p.plan).revision} onCommit={setDaRevision} />
       </div>
       <p className="muted small">
-        {lot ? 'Left blank, the address and Lot/DP come from Site › Map. ' : ''}These go on the PDF’s title blocks only: they’re kept with this project, not sent with share links.
+        {lot ? 'Left blank, the address and Lot/DP come from Site › Map. ' : ''}These go on the PDF’s title blocks. They’re kept with this project and in the project file you download as a backup; share links never carry them.
       </p>
       <div className="row">
         <button className="secondary" onClick={download}>

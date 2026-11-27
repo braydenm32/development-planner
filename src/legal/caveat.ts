@@ -5,6 +5,8 @@
 export const CONTACT_EMAIL = 'hello@contourandgable.com'
 /** The date on the privacy policy, the terms and How accurate is this? Change it when they change. */
 export const LAST_UPDATED = '9 November 2026'
+/** How accurate is this? changes with what the checks cover, so it carries its own date. */
+export const ACCURACY_UPDATED = '27 November 2026'
 /** The most one account may keep in the cloud (worker/src/projects.ts QUOTA_MB_DEFAULT). */
 export const STORAGE_LIMIT_MB = 50
 

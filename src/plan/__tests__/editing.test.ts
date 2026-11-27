@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { emptyPlan, wallLength } from '../model'
 import { addLevelAbove, addOpening, addWall, deleteSelection, moveJoint, moveWall, setWallLength } from '../ops'
-import { snap } from '../snap'
+import { snap, typedLengthEnd } from '../snap'
 import { garageFloor } from './fixtures'
 
 const style = { kind: 'external' as const, thickness: 0.27 }
@@ -36,12 +36,13 @@ describe('editing walls', () => {
     expect(p.openings.some(o => o.wall === 'east')).toBe(false)
   })
 
-  it('keeps a new opening inside its wall', () => {
+  it('keeps a new opening inside its wall, clear of the wall that turns the corner', () => {
     const plan = garageFloor()
     const wall = plan.walls.find(w => w.id === 'hall_n')!
     const p = addOpening(plan, wall, 'door', 0, { width: 0.82, height: 2.04, sill: 0 })
     const o = p.openings.at(-1)!
-    expect(o.offset).toBeCloseTo(0.41, 9)
+    // Half the door, past half the 300 mm east wall it starts at.
+    expect(o.offset).toBeCloseTo(0.56, 9)
   })
 
   it('starts a new level with a copy of the external walls below', () => {
@@ -67,6 +68,21 @@ describe('snapping', () => {
     const hit = snap([8.05, 6.05], { walls, anchor: [0.15, 6.0], tol: 0.1 })
     expect(hit.kind).toBe('wall')
     expect(hit.p[0]).toBeCloseTo(8.1, 9)
+  })
+
+  it('keeps a typed length square, wherever the pointer aims, unless Shift is held (CB-17)', () => {
+    // Pointer 8° off east: a typed 4000 runs due east, exactly 4 m.
+    expect(typedLengthEnd([1, 2], [6, 2.7], 4, false)).toEqual([5, 2])
+    // Near a diagonal it takes the 45° step, the same steps the pointer snaps to.
+    const d = typedLengthEnd([0, 0], [3, 2.6], 2, false)!
+    expect(d[0]).toBeCloseTo(Math.SQRT2, 9)
+    expect(d[1]).toBeCloseTo(Math.SQRT2, 9)
+    // Shift: straight at the pointer.
+    const f = typedLengthEnd([0, 0], [3, 4], 5, true)!
+    expect(f[0]).toBeCloseTo(3, 9)
+    expect(f[1]).toBeCloseTo(4, 9)
+    expect(typedLengthEnd([0, 0], [0, 0], 5, false)).toBeNull()
+    expect(typedLengthEnd([0, 0], [1, 0], 0, false)).toBeNull()
   })
 
   it('falls back to a 50 mm grid', () => {

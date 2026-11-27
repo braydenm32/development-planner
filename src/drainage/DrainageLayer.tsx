@@ -34,7 +34,7 @@ export function DrainageLayer(props: Props) {
 const fmt = (p: Vec2) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`
 
 function Layer({ plan, survey, terrain, S, k }: Props) {
-  const report = useMemo(() => fallReport(plan, survey, terrain, streetEdgeOf(plan, survey, terrain.stats.fallBearing)), [plan, survey, terrain])
+  const report = useMemo(() => fallReport(plan, survey, terrain, streetEdgeOf(plan, survey)), [plan, survey, terrain])
   const spots = useMemo(() => downpipeSpots(plan), [plan])
   const site = (p: Vec2) => S(fromSite(p, plan.placement, survey.origin))
 
