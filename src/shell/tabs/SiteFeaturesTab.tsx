@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { useRouter } from '../../nav/router'
 import { SiteFeaturesPanel } from '../../site/SiteFeaturesPanel'
 import { useSiteStore } from '../../site/store'
-import { TO_CHECK_ID } from '../../site/sync'
+import { DRAWINGS_ID, TO_CHECK_ID } from '../../site/sync'
 import { useShell } from '../context'
 import { canEdit, usePhone, usePhoneMode } from '../../phone/device'
 import { switchView } from '../useSite'
@@ -19,15 +19,17 @@ export function SiteFeaturesTab() {
   // A phone in View reads the features only (the shell's ViewLock says how to Edit).
   const viewOnly = !canEdit(usePhone(), usePhoneMode(s => s.mode))
 
-  // Scroll to the To check list and flash it, once the features have loaded.
+  // Scroll to the To check list (or the drawings) and flash it, once the features have loaded.
   useEffect(() => {
-    if (focus !== TO_CHECK_ID || !loaded) return
-    const el = document.getElementById(TO_CHECK_ID)
+    if ((focus !== TO_CHECK_ID && focus !== DRAWINGS_ID) || !loaded) return
+    const el = document.getElementById(focus)
     if (el) {
       el.scrollIntoView({ block: 'start', behavior: 'smooth' })
       el.classList.remove('flash')
       void el.offsetWidth
       el.classList.add('flash')
+      // Straight to Add a drawing… for the keyboard too.
+      if (focus === DRAWINGS_ID) el.querySelector<HTMLElement>('[data-add-drawing]')?.focus({ preventScroll: true })
     }
     useRouter.setState({ focus: null })
   }, [focus, loaded])

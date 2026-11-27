@@ -526,6 +526,14 @@ export const AREAS: Area[] = [
       subtitle: 'The house plan’s own file and tools you rarely need.',
       items: [
         {
+          // First, where a first-time user sees it: tracing lives with Site › Features › Drawings (CB-27).
+          id: 'trace-plan',
+          label: 'Trace a plan picture',
+          icon: 'layers',
+          keywords: ['trace', 'trace a plan', 'tracing', 'background', 'background image', 'blueprint', 'underlay', 'floor plan picture', 'photo of a plan', 'scan', 'pdf plan', 'existing plan'],
+          features: ['design-trace-plan'],
+        },
+        {
           id: 'plan-file',
           label: 'House plan file',
           icon: 'file',

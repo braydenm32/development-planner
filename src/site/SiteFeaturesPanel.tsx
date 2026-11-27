@@ -23,7 +23,7 @@ import { isPdf, isPicture, loadDrawing, pdfPageCount } from './pdfLoad'
 import { readDrawing, type FoundGroup } from './pdfRead'
 import type { VectorPage } from './pdfVector'
 import { allFeatures, removeFeature, storeExtraDxf, storeOverlayFiles, updateFeature, updateOverlay, useSiteFeatures, useSiteStore, type Overlay, type SiteTool } from './store'
-import { TO_CHECK_ID, useSiteWarnings } from './sync'
+import { DRAWINGS_ID, TO_CHECK_ID, useSiteWarnings } from './sync'
 import { srzRadius, tpzRadius } from './warnings'
 import { TreeRemoval } from '../checks/TreeRemoval'
 import './site.css'
@@ -199,12 +199,12 @@ function Drawings({ survey, onShowPlan }: { survey: Survey; onShowPlan: () => vo
   }
 
   return (
-    <div className="sf-section">
+    <div className="sf-section" id={DRAWINGS_ID}>
       <h3>Drawings</h3>
       {!overlays.length && (
         <p className="muted small">
-          Lay a detail survey or site plan over the plan (PDF, PNG or JPG), line it up by two points, then add the trees, easements and
-          fences it shows. It stays in this browser.
+          Lay a detail survey, site plan or a picture of a floor plan over the plan (PDF, PNG or JPG), line it up by two points, then add
+          the trees, easements and fences it shows, or draw the walls over it in Design. It stays in this browser.
         </p>
       )}
       <div className="sf-drawings" style={{ display: 'grid', gap: 8 }}>
@@ -229,7 +229,7 @@ function Drawings({ survey, onShowPlan }: { survey: Survey; onShowPlan: () => vo
         </div>
       )}
       <div className="sf-row" style={{ marginTop: 8 }}>
-        <button type="button" className="sf-btn" disabled={!!busy} onClick={() => input.current?.click()}>
+        <button type="button" className="sf-btn" data-add-drawing disabled={!!busy} onClick={() => input.current?.click()}>
           {busy ?? 'Add a drawing…'}
         </button>
         <input
