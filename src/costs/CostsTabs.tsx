@@ -3,7 +3,7 @@
 // and notes. Everything reads the one estimate (src/costs/estimate.ts) worked
 // out from the design's own quantities.
 
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { Icon } from '../nav/icons'
 import { areaById, MORE, type NumberId } from '../nav/menu'
 import { navigate, useRouter } from '../nav/router'
@@ -15,6 +15,7 @@ import { saveFile } from '../lib/download'
 import { fileSafe } from '../print/export'
 import { projectTitle } from '../share/project'
 import { m2 } from '../shell/format'
+import { ScrollCue } from '../shell/ScrollCue'
 import { useLoaded, type Loaded } from '../shell/useSite'
 import { Waiting } from '../shell/tabs/Waiting'
 import { CHOICE_LINES, choiceDeltas, rateFor, type CostLine, type Estimate } from './estimate'
@@ -1024,8 +1025,10 @@ export function AboutCostsSection() {
 // The strip
 
 /**
- * The Costs area's line under the top bar: Estimate $X ± 20% · Per m² · N of M lines quoted ·
- * Overview. The estimate and per m² step back to a label while the Estimate panel shows them.
+ * The Costs area's line under the top bar: Estimate $X ± 20% · Cross-check · Per m² · N of M lines
+ * quoted · Overview. The estimate and per m² step back to a label while the Estimate panel shows
+ * them. The total is rounded here as on every strip (src/costs/format.ts has the rule); the
+ * dollars are a hover away. Chips that don't fit page sideways, as the main strip's do (PH-21).
  */
 export function CostsStrip({
   d,
@@ -1041,46 +1044,82 @@ export function CostsStrip({
   overviewOpen: boolean
 }) {
   const e = useEstimate(d)
+  const phone = usePhone()
   const to = (tab: string) => () => navigate(tabRoute(route, 'costs', tab))
+  const exact = `${money(e.total)}, likely ${money(e.low)} to ${money(e.high)}`
+  const perM2 = e.perM2 !== null && (
+    <>
+      <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
+    </>
+  )
+  // The other figure on the Estimate tab, so the strip doesn't quote one without the other (HO-08).
+  // Not on a phone: its strip has room for one chip at a time, and this one is wider than that.
+  const check = !phone && e.against !== null && e.guide && (
+    <>
+      <span className="chip-label">Cross-check</span>{' '}
+      <b className="tnum">
+        {shortMoney(e.guide.low)} to {shortMoney(e.guide.high)}
+      </b>
+    </>
+  )
+  const checkTitle = e.against === null ? undefined : crossCheckText(e)
   return (
     <div className="summary-strip costs-strip" role="region" aria-label="Costs">
-      <div className="chips">
-        {shown.cost ? (
-          // Already in the panel: still there to read, quieter (C33).
-          <>
-            <span className="chip echo" title={`Also ${shown.cost}.`}>
-              <span className="chip-label">Estimate</span> <b className="tnum">{e.ready ? money(e.total) : '–'}</b>
-            </span>
-            {e.perM2 !== null && (
-              <span className="chip echo" title={`Also ${shown.cost}.`}>
-                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
-              </span>
-            )}
-          </>
-        ) : (
-          <>
-            {e.ready ? (
-              <button className="chip" onClick={to('estimate')} title={incompleteText(e.missing) || undefined}>
-                <span className="chip-label">Estimate</span> <b className="tnum">{money(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
-                {e.missing.length > 0 && <span className="badge warn">Incomplete</span>}
-              </button>
+      <ScrollCue
+        className="chips-cue"
+        label="numbers"
+        count={!phone}
+        narrow={phone}
+        render={ref => (
+          <div className="chips" ref={ref as RefObject<HTMLDivElement | null>}>
+            {shown.cost ? (
+              // Already in the panel: still there to read, quieter (C33).
+              <>
+                <span className="chip echo" title={`${exact}. Also ${shown.cost}.`}>
+                  <span className="chip-label">Estimate</span> <b className="tnum">{e.ready ? shortMoney(e.total) : '–'}</b>
+                </span>
+                {check && (
+                  <span className="chip echo" title={checkTitle}>
+                    {check}
+                  </span>
+                )}
+                {perM2 && (
+                  <span className="chip echo" title={`Also ${shown.cost}.`}>
+                    {perM2}
+                  </span>
+                )}
+              </>
             ) : (
-              <button className="chip ghost" onClick={to('estimate')} title={NO_TOTAL}>
-                Estimate <em>no walls yet</em>
-              </button>
+              <>
+                {e.ready ? (
+                  <button className="chip" onClick={to('estimate')} title={[exact, incompleteText(e.missing)].filter(Boolean).join('. ')}>
+                    <span className="chip-label">Estimate</span> <b className="tnum">{shortMoney(e.total)}</b> <span className="chip-label">± {Math.round(RANGE * 100)}%</span>
+                    {e.missing.length > 0 && <span className="badge warn">Incomplete</span>}
+                  </button>
+                ) : (
+                  <button className="chip ghost" onClick={to('estimate')} title={NO_TOTAL}>
+                    Estimate <em>no walls yet</em>
+                  </button>
+                )}
+                {check && (
+                  <button className="chip" onClick={to('estimate')} title={checkTitle}>
+                    {check}
+                  </button>
+                )}
+                {perM2 && (
+                  <button className="chip" onClick={to('estimate')}>
+                    {perM2}
+                  </button>
+                )}
+              </>
             )}
-            {e.perM2 !== null && (
-              <button className="chip" onClick={to('estimate')}>
-                <span className="chip-label">All in</span> <b className="tnum">{money(e.perM2)}</b> <span className="chip-label">per m²</span>
-              </button>
-            )}
-          </>
+            <button className="chip" onClick={to('quotes')}>
+              <i className="dot accent" />
+              {e.quoted} of {e.quotable} lines quoted
+            </button>
+          </div>
         )}
-        <button className="chip" onClick={to('quotes')}>
-          <i className="dot accent" />
-          {e.quoted} of {e.quotable} lines quoted
-        </button>
-      </div>
+      />
       <button className={`overview-button${overviewOpen ? ' on' : ''}`} onClick={onOverview} aria-expanded={overviewOpen}>
         Overview <Icon name={overviewOpen ? 'chevU' : 'chevD'} size={14} />
       </button>

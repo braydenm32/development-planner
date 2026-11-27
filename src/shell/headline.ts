@@ -42,9 +42,18 @@ export interface CostHeadline {
   high: number
   /** What the estimate has nothing for yet ("roof"); empty when complete. */
   missing: string[]
+  /** For a complete estimate that sits under the guide for custom-built houses: the guide's range (Costs › Estimate's cross-check). */
+  under?: { low: number; high: number }
 }
 
-export const costHeadline = (e: Estimate): CostHeadline => ({ ready: e.ready, total: e.total, low: e.low, high: e.high, missing: e.missing })
+export const costHeadline = (e: Estimate): CostHeadline => ({
+  ready: e.ready,
+  total: e.total,
+  low: e.low,
+  high: e.high,
+  missing: e.missing,
+  ...(e.against === 'under' && e.guide ? { under: e.guide } : {}),
+})
 
 /**
  * Every level's floor RL, lowest first: "RL 81.60" for one level, "81.60 / 84.60 / 86.10" for a

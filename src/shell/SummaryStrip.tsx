@@ -230,10 +230,13 @@ export function SummaryStrip({ route, numbers: n, checks, verdict, cost, shown, 
 /** The estimate's total, to its tab. */
 function CostChip({ cost, route, readOnly }: { cost: CostHeadline; route: AppRoute; readOnly: boolean }) {
   if (!cost.ready) return null
-  const title = `Likely ${shortMoney(cost.low)} to ${shortMoney(cost.high)}${cost.missing.length ? `. Incomplete: no ${cost.missing.join(', no ')}` : ''}`
+  // Under the guide for custom-built houses, the figure is a floor: said here as on Costs › Estimate (HO-08).
+  const floor = cost.under ? `. A floor, not a budget: custom-built houses like it run ${shortMoney(cost.under.low)} to ${shortMoney(cost.under.high)} (Costs › Estimate)` : ''
+  const title = `Likely ${shortMoney(cost.low)} to ${shortMoney(cost.high)}${cost.missing.length ? `. Incomplete: no ${cost.missing.join(', no ')}` : ''}${floor}`
   const body = (
     <>
       <span className="chip-label">Estimate</span> <b>{shortMoney(cost.total)}</b>
+      {cost.under && <span className="chip-note">or more</span>}
       {cost.missing.length > 0 && <span className="badge warn">Incomplete</span>}
     </>
   )

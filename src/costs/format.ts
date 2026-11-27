@@ -1,5 +1,12 @@
-// How costs read: whole dollars with thousands commas, quantities as the panel they come
-// from shows them, and the estimate as a CSV file for a spreadsheet.
+// How costs read: quantities as the panel they come from shows them, and the estimate as a CSV
+// file for a spreadsheet.
+//
+// Money is written one of two ways, by this rule (LD-27, AX-35):
+// - In the estimate's own working (Costs: its headline, lines, totals, quotes and rates, and the
+//   CSV) amounts are whole dollars with thousands commas, `money`, so the lines add up by hand.
+// - Wherever a total is quoted at a glance (the strip in every area, Costs' own included, the
+//   Overview, the phone's sheet, Check everything, and the cross-check's range) it is rounded to
+//   three figures, `shortMoney`: "$561k", "$1.06M". A hover on the Costs strip gives the dollars.
 
 import { CAVEAT_LINE } from '../legal/caveat'
 import { areaById } from '../nav/menu'

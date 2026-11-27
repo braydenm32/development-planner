@@ -11,7 +11,16 @@ const NARROW_W = 20
 
 function spans(row: HTMLElement): { kids: HTMLElement[]; items: Span[] } {
   const kids = [...row.children].filter((k): k is HTMLElement => k instanceof HTMLElement && k.offsetWidth > 0)
-  return { kids, items: kids.map(k => ({ left: k.offsetLeft, right: k.offsetLeft + k.offsetWidth })) }
+  // To the fraction of a pixel: offsetLeft and offsetWidth each round, and three chips' rounding
+  // could put the last one a pixel past the row's end, so it hid with nothing left to page to.
+  const at = row.getBoundingClientRect().left - row.clientLeft - row.scrollLeft
+  return {
+    kids,
+    items: kids.map(k => {
+      const r = k.getBoundingClientRect()
+      return { left: r.left - at, right: r.right - at }
+    }),
+  }
 }
 
 /** Hides the row's items that don't show whole, and says how many are hidden at each end. */
