@@ -9,7 +9,10 @@ import { buildTerrain } from '../../lib/terrain'
 import { impliedTotals, impliedWalls } from '../../grading/implied'
 import { levelLabel } from '../../components/retainingWords'
 import { sectionDrawing } from '../../sections/section'
+import { buildingFootprint, levelFloorAreas, levelsBeside } from '../geometry'
+import { levelSummaries } from '../keyNumbers'
 import { normalizePlan, padLevelOf, toSite, type Plan, type Wall } from '../model'
+import { designQuantities } from '../quantities'
 import { earthworksPlatforms, padSteps, pierOutlines, piersId } from '../platforms'
 import { addEdgeWalls, houseEdgeWalls } from '../retainEdges'
 import { nearestPadLevel, padLevels, retainingProfile } from '../retaining'
@@ -189,5 +192,54 @@ describe('a level named in a retaining wall row (LF-28, AX-36)', () => {
     expect(levelLabel('Living level')).toBe('Living level')
     expect(levelLabel('Ground floor')).toBe('Ground floor')
     expect(levelLabel('Rumpus')).toBe('Rumpus level')
+  })
+})
+
+describe('the wall two split levels share (DB-11)', () => {
+  it('is counted once in the floor area, and the areas add up to what the house covers', () => {
+    const plan = splitLevelPlan()
+    const levels = levelSummaries(plan)
+    // 10.27 × 8.27 for the ground floor; the split level's 4.27 × 8.27 less the 0.27 m wall strip it shares.
+    expect(levels[0].gross.area).toBeCloseTo(10.27 * 8.27, 6)
+    expect(levels[1].gross.area).toBeCloseTo(4 * 8.27, 6)
+    const total = levels.reduce((t, l) => t + l.gross.area, 0)
+    expect(total).toBeCloseTo(buildingFootprint(plan), 6)
+    expect(total).toBeCloseTo(14.27 * 8.27, 6)
+    const q = designQuantities(plan, null, [])
+    expect(q.floorArea).toBeCloseTo(total, 6)
+    expect(q.ground!.area).toBeCloseTo(total, 6)
+    expect(levelFloorAreas(plan).get(S)).toBeCloseTo(4 * 8.27, 6)
+  })
+
+  it('is inside the house: clad only where it rises above the lower part, and a door in it is an internal door', () => {
+    const plan = splitLevelPlan()
+    const q = designQuantities(plan, null, [])
+    // The outside of the whole house, 2 × (14.27 + 8.27) at 2.7 m high, and the 1.5 m of the split
+    // level's wall (and its two 0.27 m ends) that stands above the lower part's ceiling. Before,
+    // each level's own perimeter was clad full height, the shared 8.27 m wall twice over.
+    const round = 2 * (14.27 + 8.27)
+    expect(q.walls.perimeter).toBeCloseTo(round + 8.27 + 2 * 0.27, 1)
+    expect(q.walls.gross).toBeCloseTo(round * 2.7 + (8.27 + 2 * 0.27) * 1.5, 0)
+    expect(q.walls.gross).toBeLessThan(2 * (10.27 + 8.27) * 2.7 + 2 * (4.27 + 8.27) * 2.7 - 30)
+    expect(q.walls.ids).toHaveLength(6)
+    expect(q.walls.ids).not.toContain(`${G}_3`)
+    expect(q.walls.ids).not.toContain(`${S}_1`)
+    const door = { id: 'd', wall: `${S}_1`, kind: 'door' as const, offset: 4, width: 0.82, height: 2.04, sill: 0, flipHinge: false, flipSwing: false }
+    const withDoor = designQuantities({ ...plan, openings: [door] }, null, [])
+    expect(withDoor.internalDoors.count).toBe(1)
+    expect(withDoor.externalDoors.count).toBe(0)
+    expect(withDoor.walls.openings).toBe(0)
+  })
+
+  it('leaves a storey over another, and a single level, as they were', () => {
+    const stacked = splitLevelPlan()
+    stacked.levels[1].elevation = 3
+    const levels = levelSummaries(stacked)
+    expect(levels[1].gross.area).toBeCloseTo(4.27 * 8.27, 6)
+    expect(levelsBeside(stacked, S)).toHaveLength(0)
+    expect(levelsBeside(splitLevelPlan(), S).map(l => l.id)).toEqual([G])
+    const q = designQuantities(stacked, null, [])
+    expect(q.walls.perimeter).toBeCloseTo(2 * (10.27 + 8.27) + 2 * (4.27 + 8.27), 6)
+    expect(q.walls.ids).toHaveLength(8)
   })
 })

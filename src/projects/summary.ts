@@ -1,6 +1,6 @@
 import type { Vec2 } from '../lib/geom'
-import { buildingOutline, planarFaces } from '../plan/geometry'
-import { floorRL, sortedLevels, toSite, type Plan } from '../plan/model'
+import { buildingOutline, levelFloorAreas, planarFaces } from '../plan/geometry'
+import { floorRL, toSite, type Plan } from '../plan/model'
 import type { ProjectNumbers, ProjectThumbnail } from './types'
 
 /** What the card needs from the open project's site, as the app already has it. */
@@ -16,7 +16,7 @@ export interface SiteForSummary {
  * panel's "Floor area (outside of walls)" does, then added up.
  */
 export function totalFloorArea(plan: Plan): number {
-  return sortedLevels(plan).reduce((t, l) => t + buildingOutline(planarFaces(plan.walls.filter(w => w.level === l.id))).area, 0)
+  return [...levelFloorAreas(plan).values()].reduce((t, a) => t + a, 0)
 }
 
 export function projectNumbers(site: SiteForSummary | null, plan: Plan | null): ProjectNumbers {

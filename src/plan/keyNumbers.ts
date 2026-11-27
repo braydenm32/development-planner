@@ -5,7 +5,7 @@ import { balancingShift, type EarthworksResult, type PreparedEarthworks } from '
 import { centroidOf, signedArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import { bearingName, type Terrain } from '../lib/terrain'
-import { buildingOutline, planarFaces, roomShape } from './geometry'
+import { buildingOutline, levelFloorAreas, planarFaces, roomShape } from './geometry'
 import { floorRL, slabBedOf, sortedLevels, toSite, type Area, type Level, type Plan, type Placement, type Roof, type Room, type Wall } from './model'
 import { boundaryClearances, type BoundaryClearance } from './placement'
 import { roofGeometry, type RoofGeometry } from './roof'
@@ -15,18 +15,22 @@ export interface LevelSummary {
   level: Level
   rooms: { room: Room; area: number | null }[]
   areas: { area: Area; size: number }[]
-  /** The outside of the walls: its rings and floor area. */
+  /**
+   * The outside of the walls: its rings and floor area. A wall shared with a lower level beside it
+   * (a split level) is counted in that level's area, not twice (levelFloorAreas).
+   */
   gross: { outlines: Vec2[][]; area: number }
 }
 
 /** Rooms, outdoor areas and floor area of each level, lowest first. */
 export function levelSummaries(plan: Plan): LevelSummary[] {
+  const floor = levelFloorAreas(plan)
   return sortedLevels(plan).map(l => {
     const walls = plan.walls.filter(w => w.level === l.id)
     const faces = planarFaces(walls)
     const rooms = plan.rooms.filter(r => r.level === l.id).map(r => ({ room: r, area: roomShape(r, faces)?.area ?? null }))
     const areas = plan.areas.filter(a => a.level === l.id).map(a => ({ area: a, size: Math.abs(signedArea(a.pts)) }))
-    return { level: l, rooms, areas, gross: buildingOutline(faces) }
+    return { level: l, rooms, areas, gross: { outlines: buildingOutline(faces).outlines, area: floor.get(l.id) ?? 0 } }
   })
 }
 
