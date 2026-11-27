@@ -81,6 +81,9 @@ export function FurniturePicker() {
   const group = catalogItem(defaults.kind)?.group ?? 'bedroom'
   const searching = query.trim() !== ''
   const items = searching ? searchCatalog(query) : CATALOG.filter(c => c.group === group)
+  // The option Tab lands on: the one last focused, else the piece picked, else the first.
+  const [active, setActive] = useState<string | null>(null)
+  const roving = (items.find(c => c.key === active) ?? items.find(c => c.key === defaults.kind) ?? items[0])?.key
   return (
     <div className="tool-options">
       <label className="num furniture-search">
@@ -119,6 +122,9 @@ export function FurniturePicker() {
             key={c.key}
             role="option"
             aria-selected={c.key === defaults.kind}
+            // One Tab stop for the whole list, as the tool rail is; the arrow keys move within it (src/nav/arrowKeys.ts).
+            tabIndex={c.key === roving ? 0 : -1}
+            onFocus={() => setActive(c.key)}
             className={c.key === defaults.kind ? 'on' : ''}
             onClick={() => st.setFurnitureDefaults({ ...defaults, kind: c.key })}
             onPointerDown={e => drag.start(c, e)}
