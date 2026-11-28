@@ -201,7 +201,18 @@ The same app in its own window for Windows, Mac and Linux (built with [Tauri](ht
 
 Cloud saves, sign-in and view-only links stay on the website for now. The desktop app has every file with it, so it needs no service worker.
 
-**Getting it**: the **Desktop app** workflow builds the installers for every pull request that changes the desktop app (in the run's **Artifacts**), and puts them on a draft release for a tag like `desktop-v0.1.0`. They aren't code-signed yet: on Windows choose **More info › Run anyway**; on a Mac, right-click the app and choose **Open** the first time (or **System Settings › Privacy & Security › Open Anyway**).
+**Getting it**: the **Desktop app** workflow builds the installers for every pull request that changes the desktop app (in the run's **Artifacts**), and puts them on a draft release for a tag like `desktop-v0.1.0`. The Mac app is signed with a Developer ID and notarised by Apple once these repository secrets are set (**Settings › Secrets and variables › Actions**); until then it's signed ad hoc, and you right-click it and choose **Open** the first time. The Windows installer isn't signed: choose **More info › Run anyway**.
+
+| Secret | What it is |
+| --- | --- |
+| `APPLE_CERTIFICATE` | The **Developer ID Application** certificate with its private key, exported from Keychain Access as a `.p12`, then base64: `base64 -i DeveloperID.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_PASSWORD` | The password you gave the `.p12` when exporting it |
+| `APPLE_SIGNING_IDENTITY` | The certificate's full name, as `security find-identity -v -p codesigning` lists it: `Developer ID Application: Your Name (TEAMID1234)` |
+| `APPLE_ID` | The Apple Account email of the developer account |
+| `APPLE_PASSWORD` | An app-specific password for that account (account.apple.com › Sign-In and Security › App-Specific Passwords), not the account password |
+| `APPLE_TEAM_ID` | The 10-character Team ID (developer.apple.com › Account › Membership details) |
+
+The first three sign the app; the last three notarise it. The Mac job's **Check the Mac signature** step shows what it was signed with and whether Gatekeeper accepts it.
 
 **Building it yourself**: install [Rust](https://rustup.rs) and, on Linux, the [Tauri system libraries](https://tauri.app/start/prerequisites/), then:
 

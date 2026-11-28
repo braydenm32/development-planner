@@ -59,8 +59,52 @@ jobs:
       - run: npm ci
       - name: Desktop tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+      # Mac signing and notarising, once the Apple secrets are in the repo (Settings › Secrets and
+      # variables › Actions; see README › Desktop app). Only the secrets that are set are passed on, so
+      # with none the Mac app is still built, signed ad hoc ("-") as before.
+      - name: Mac signing
+        if: matrix.name == 'mac'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            {
+              # One line, whichever way the .p12 was turned into base64.
+              echo "APPLE_CERTIFICATE=$(printf %s "$APPLE_CERTIFICATE" | tr -d '\n\r ')"
+              echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+              echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+            } >> "$GITHUB_ENV"
+            echo "Signing with the Developer ID certificate."
+            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              {
+                echo "APPLE_ID=$APPLE_ID"
+                echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+                echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+              } >> "$GITHUB_ENV"
+              echo "Notarising with Apple."
+            else
+              echo "::warning::Signed but not notarised: APPLE_ID, APPLE_PASSWORD or APPLE_TEAM_ID is missing."
+            fi
+          else
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+            echo "No Developer ID certificate in the secrets: signing ad hoc."
+          fi
       - name: Build
         run: npx tauri build ${{ matrix.args }}
+      - name: Check the Mac signature
+        if: matrix.name == 'mac'
+        shell: bash
+        run: |
+          app=$(find src-tauri/target -maxdepth 6 -path '*/release/bundle/macos/*.app' | head -1)
+          codesign -dv --verbose=2 "$app" 2>&1 | grep -E 'Authority|TeamIdentifier|Signature' || true
+          spctl -a -vv "$app" 2>&1 || echo "::notice::Gatekeeper doesn't accept this build yet (expected until it is signed and notarised)."
+          xcrun stapler validate "$app" 2>&1 || true
       - name: Collect the installers
         shell: bash
         run: |
