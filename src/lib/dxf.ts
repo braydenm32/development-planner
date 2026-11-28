@@ -59,18 +59,61 @@ const UNIT_SCALE: Record<number, number> = {
   14: 0.1, // dm
 }
 
+/** The next line of `text` from `at`: its start and end (without the line break), and where the next one starts. */
+function nextLine(text: string, at: number): [number, number, number] {
+  let end = text.indexOf('\n', at)
+  if (end < 0) end = text.length
+  const stop = end > at && text.charCodeAt(end - 1) === 13 ? end - 1 : end
+  return [at, stop, end + 1]
+}
+
+const isSpace = (c: number) => c === 32 || c === 9
+
+/** The line between `a` and `b`, without the spaces round it. */
+function trimmed(text: string, a: number, b: number): string {
+  while (a < b && isSpace(text.charCodeAt(a))) a++
+  while (b > a && isSpace(text.charCodeAt(b - 1))) b--
+  return text.slice(a, b)
+}
+
+/**
+ * The file as code / value pairs. Read straight along the text, line by line, without splitting
+ * it into lines first: a large survey (tens of megabytes) needs a fraction of the memory.
+ */
 function readPairs(text: string): Pair[] {
   if (text.slice(0, 64).includes(BINARY_DXF))
     throw new DxfError('This DXF is saved in binary form, which the planner can’t read. Ask your surveyor for an ASCII DXF, or save it as one from a CAD program.')
-  const lines = text.split(/\r\n|\r|\n/)
+  // Old Macs' lone \r between lines: made \n, so each line ends the same way.
+  if (text.indexOf('\n') < 0 && text.indexOf('\r') >= 0) text = text.replace(/\r/g, '\n')
   const pairs: Pair[] = []
-  for (let i = 0; i + 1 < lines.length; i += 2) {
-    const code = parseInt(lines[i].trim(), 10)
-    if (Number.isNaN(code)) {
-      // Where it went wrong is no help to the person, but is to whoever looks at the file.
-      throw new DxfError(`This file doesn’t read as a DXF (it goes wrong at line ${i + 1}). It may be damaged, or saved in a form the planner can’t read. Ask your surveyor to send it again as an ASCII DXF.`)
+  let at = 0
+  let line = 0
+  while (at < text.length) {
+    const [a, b, next] = nextLine(text, at)
+    if (next > text.length) break // a code with no value after it
+    const [c, d, after] = nextLine(text, next)
+    let code = 0
+    let digits = 0
+    let neg = false
+    let k = a
+    while (k < b && isSpace(text.charCodeAt(k))) k++
+    if (text.charCodeAt(k) === 45) {
+      neg = true
+      k++
     }
-    pairs.push([code, lines[i + 1].trim()])
+    for (; k < b; k++) {
+      const ch = text.charCodeAt(k)
+      if (ch < 48 || ch > 57) break
+      code = code * 10 + (ch - 48)
+      digits++
+    }
+    if (!digits) {
+      // Where it went wrong is no help to the person, but is to whoever looks at the file.
+      throw new DxfError(`This file doesn’t read as a DXF (it goes wrong at line ${line + 1}). It may be damaged, or saved in a form the planner can’t read. Ask your surveyor to send it again as an ASCII DXF.`)
+    }
+    pairs.push([neg ? -code : code, trimmed(text, c, d)])
+    at = after
+    line += 2
   }
   return pairs
 }

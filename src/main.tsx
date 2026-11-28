@@ -14,6 +14,7 @@ import { SharedView, Trouble } from './share-links/SharedView'
 import { ErrorBoundary } from './shell/ErrorBoundary'
 import { OfflineLayer } from './offline/OfflineLayer'
 import { startOffline } from './offline/register'
+import { startDesktop } from './desktop/files'
 
 // A share link (#/view/<token>) opens the shared view on its own: no projects, no sign-in.
 const shared = readShareHash(location.hash)
@@ -33,6 +34,8 @@ window.addEventListener('hashchange', across)
 window.addEventListener('popstate', across)
 
 // Working offline: the service worker, in a built app only (src/offline).
+// The desktop app's folders and slicer first: there, files never go through the browser's download.
+startDesktop()
 startOffline()
 
 createRoot(document.getElementById('root')!).render(

@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { toastDownloaded } from '../components/printFiles'
+import { DesktopFolders } from '../desktop/DesktopPanel'
 import { Waiting } from '../shell/tabs/Waiting'
 import { useLoaded } from '../shell/useSite'
 import { sortedLevels } from '../plan/model'
@@ -12,6 +13,15 @@ import './export.css'
 import '../share/share.css'
 
 const mm = (m: number) => Math.round(m * 1000)
+
+// .glb first, the one to pick for most programs; then SketchUp's, BIM's, and the plain ones.
+const MODEL_BUTTONS: [ModelFormat, string][] = [
+  ['glb', 'Download .glb'],
+  ['dae', 'SketchUp (.dae)'],
+  ['ifc', 'BIM (.ifc)'],
+  ['obj', 'OBJ (.zip)'],
+  ['stl', 'Plain mesh (.stl)'],
+]
 
 export function ExportTab() {
   const d = useLoaded()
@@ -47,6 +57,7 @@ export function ExportTab() {
   }
   return (
     <>
+      <DesktopFolders />
       <h3>DXF for your surveyor or engineer</h3>
       <p className="muted small">On the survey’s own eastings and northings, so it lays straight over their file.</p>
       <details className="sh-whats">
@@ -79,15 +90,32 @@ export function ExportTab() {
 
       <h3>3D model</h3>
       <p className="muted small">
-        The house and the block as the 3D view shows them, in real metres. A .glb (the one to pick) opens in Blender and most renderers and imports into SketchUp; OBJ is the
-        old standby that nearly every 3D program reads.
+        The house and the block as the 3D view shows them, in real metres, for other 3D programs. Pick the one your program reads:
       </p>
+      <ul className="muted small model-formats">
+        <li>
+          <b>.glb</b>: Blender, Windows 3D Viewer, web 3D viewers and most renderers. One file with its colours.
+        </li>
+        <li>
+          <b>.dae (COLLADA)</b>: SketchUp Pro (File › Import), 3ds Max, Cinema 4D. Keeps the colours.
+        </li>
+        <li>
+          <b>.ifc (BIM)</b>: Revit, ArchiCAD, SketchUp Pro and free IFC viewers. Walls, slabs, roofs, doors and windows come in as their own kinds, on a storey per level.
+        </li>
+        <li>
+          <b>OBJ</b>: the old standby nearly every 3D program reads, with its .mtl and textures in a ZIP.
+        </li>
+        <li>
+          <b>.stl</b>: one plain mesh in millimetres, no colours. For SketchUp for Web (the free one) and anything else.
+        </li>
+      </ul>
       <details className="sh-whats">
         <summary>What’s in it</summary>
         <p className="muted small">
           The ground and the block, then each level in its own group: walls with their openings, floors and slabs, roofs, stairs, retaining walls, the
-          driveway and outdoor areas, and furniture, each named (“Ground floor outside walls”) and in its own colour. Y is up and north is −Z. The origin
-          is the middle of the block at the bottom of the block’s base; the file notes its easting, northing and RL. The OBJ comes in a ZIP with its .mtl.
+          driveway and outdoor areas, and furniture, each named (“Ground floor outside walls”) and in its own colour. In the .glb and OBJ, Y is up and north is −Z;
+          in the .dae, .ifc and .stl, Z is up and north is +Y. The origin is the middle of the block at the bottom of the block’s base; the file notes its easting,
+          northing and RL. Only the .glb and OBJ carry the finishes’ textures; the others carry their colours.
         </p>
       </details>
       <label className="check">
@@ -99,13 +127,11 @@ export function ExportTab() {
         Include furniture
       </label>
       <div className="row">
-        {/* .glb first, the one to pick: one file with its colours inside, read by more programs. */}
-        <button className="secondary" disabled={!!model.busy} onClick={() => saveTheModel('glb')}>
-          {model.busy === 'glb' ? 'Making the model…' : 'Download 3D model (.glb)'}
-        </button>
-        <button className="secondary" disabled={!!model.busy} onClick={() => saveTheModel('obj')}>
-          {model.busy === 'obj' ? 'Making the model…' : 'Download OBJ (.zip)'}
-        </button>
+        {MODEL_BUTTONS.map(([format, label]) => (
+          <button key={format} className="secondary" disabled={!!model.busy} onClick={() => saveTheModel(format)}>
+            {model.busy === format ? 'Making the model…' : label}
+          </button>
+        ))}
       </div>
       {model.error && <p className="error">{model.error}</p>}
 

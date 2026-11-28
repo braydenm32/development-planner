@@ -211,9 +211,33 @@ export function registerPicker(el: HTMLInputElement | null) {
   picker = el
 }
 
+/** Opens a picker of its own instead of the browser's (the desktop app's, in its projects folder). */
+let ownPicker: ((mode: PickMode) => void) | null = null
+
+export function setOwnPicker(p: ((mode: PickMode) => void) | null): void {
+  ownPicker = p
+}
+
+/** What a picked file is handed to: the same as the hidden input's choice (SafetyLayer registers it). */
+let pickedHandler: ((f: File, mode: PickMode) => void) | null = null
+
+export function registerPicked(h: ((f: File, mode: PickMode) => void) | null): void {
+  pickedHandler = h
+}
+
+/** A file picked some other way than the hidden input: opened exactly as one picked there would be. */
+export function handlePicked(f: File, mode: PickMode): void {
+  pickMode = mode
+  pickedHandler?.(f, mode)
+}
+
 /** Open the file picker. Returns false where there's none (tests, or before the app has drawn). */
 export function pickFile(mode: PickMode): boolean {
   pickMode = mode
+  if (ownPicker) {
+    ownPicker(mode)
+    return true
+  }
   if (!picker) return false
   picker.accept = ACCEPT[mode]
   picker.click()

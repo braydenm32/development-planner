@@ -1,3 +1,4 @@
+import { ProjectCopyKeeper } from './desktop/DesktopPanel'
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { FoldingContext } from './components/folding'
 import { OrientationControl } from './components/OrientationControl'
@@ -421,6 +422,7 @@ export default function App() {
     <FoldingContext.Provider value={folding}>
       <SafetyLayer />
       <ColumnsSheet />
+      <ProjectCopyKeeper project={project} />
       <AppShell
         canvas={canvas}
         projectsHome={home(true)}

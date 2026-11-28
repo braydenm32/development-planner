@@ -1,6 +1,7 @@
 // Share's sections: the 3D print settings and parts, the PDF plans, and sending the project
 // file. Share › Plans, Send, 3D print and Share's More render them (src/shell/tabs).
 
+import { SendToSlicerButton, SlicerPicker } from '../desktop/DesktopPanel'
 import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
@@ -205,6 +206,8 @@ export function PrintParts({ print, settings, input }: { print: PrintState; sett
 export function PrintDownloads(p: DownloadProps) {
   return (
     <div className="print-foot">
+      <SlicerPicker />
+      <SendToSlicerButton {...p} />
       <Download3mfButton {...p} />
       <DownloadStlsButton {...p} />
       <p className="muted">3MF opens in most slicers with every part named and set out side by side; the STLs come as a ZIP, one file per part.</p>

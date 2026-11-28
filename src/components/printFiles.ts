@@ -1,7 +1,7 @@
 // Saving the print parts, the plan set, the DA pack and the project file: what the download
 // buttons in Share, and ⌘K, call.
 
-import { saveFile } from '../lib/download'
+import { saveFile, savesElsewhere } from '../lib/download'
 import type { SavedProject } from '../lib/storage'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -43,9 +43,17 @@ export const printReady = (print: PrintState) => !!print.model && !print.busy &&
 const printBase = (plan: Plan, settings: PrintSettings) => `${fileSafe(projectTitle(plan))}-1-${settings.scale}`
 
 /** Save the print parts as one 3MF; false if they aren't ready. */
-export function save3mf({ plan, settings, print }: DownloadProps): boolean {
-  if (!printReady(print) || !print.model) return false
-  saveFile(`${printBase(plan, settings)}.3mf`, to3mf(print.model.parts, projectTitle(plan)), 'model/3mf')
+/** The print parts as a 3MF, or null if they aren't ready. */
+export function print3mfFile({ plan, settings, print }: DownloadProps): OutFile | null {
+  if (!printReady(print) || !print.model) return null
+  return { name: `${printBase(plan, settings)}.3mf`, data: to3mf(print.model.parts, projectTitle(plan)), type: 'model/3mf' }
+}
+
+/** Save the print parts as a 3MF; false if they aren't ready. */
+export function save3mf(p: DownloadProps): boolean {
+  const f = print3mfFile(p)
+  if (!f) return false
+  saveFile(f.name, f.data, f.type)
   return true
 }
 
@@ -82,7 +90,10 @@ export const pdfChoices = (p: { paper: Paper; pdfFurniture: boolean; pdfSketch?:
 })
 
 /** Say a file went to the browser's downloads, by name, so a click on Download is seen to have worked. */
-export const toastDownloaded = (name: string) => showToast({ text: `Downloaded ${name}` })
+export const toastDownloaded = (name: string) => {
+  // The desktop app says where it saved the file itself, once it has.
+  if (!savesElsewhere()) showToast({ text: `Downloaded ${name}` })
+}
 
 /** A file to hand over: saved, or shared on a phone. */
 export interface OutFile {

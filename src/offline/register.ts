@@ -4,6 +4,7 @@
 // reloads on its own. Never registered by the dev server or in the tests (import.meta.env.PROD).
 
 import { leavePage, projectActions } from '../projects/session'
+import { isDesktop } from '../desktop/bridge'
 import { SERVICE_WORKER_OFF } from './killSwitch'
 import { useOffline } from './state'
 
@@ -71,6 +72,8 @@ async function turnOff() {
 /** Start working offline (from src/main.tsx). Does nothing in the dev server, the tests, or a browser without service workers. */
 export function startOffline(): void {
   if (!import.meta.env.PROD || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+  // The desktop app has every file with it already, and its pages aren't served from the web.
+  if (isDesktop()) return
   if (SERVICE_WORKER_OFF) return void turnOff().catch(() => undefined)
   // After the page has loaded, so keeping the files never slows the first visit.
   const go = () => void register().catch(() => undefined)
