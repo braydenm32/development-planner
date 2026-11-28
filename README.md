@@ -201,7 +201,7 @@ The same app in its own window for Windows, Mac and Linux (built with [Tauri](ht
 
 Cloud saves, sign-in and view-only links stay on the website for now. The desktop app has every file with it, so it needs no service worker.
 
-**Getting it**: the **Desktop app** workflow builds the installers for every pull request that changes the desktop app (in the run's **Artifacts**), and puts them on a draft release for a tag like `desktop-v0.1.0`. The Mac app is signed with a Developer ID and notarised by Apple once these repository secrets are set (**Settings › Secrets and variables › Actions**); until then it's signed ad hoc, and you right-click it and choose **Open** the first time. The Windows installer isn't signed: choose **More info › Run anyway**.
+**Getting it**: the **Desktop app** workflow builds the installers for every pull request that changes the desktop app (in the run's **Artifacts**), and puts them on a draft release for a tag like `desktop-v0.5.0`. The Mac app is signed with a Developer ID and notarised by Apple once these repository secrets are set (**Settings › Secrets and variables › Actions**); until then it's signed ad hoc, and you right-click it and choose **Open** the first time. The Windows installer isn't signed: choose **More info › Run anyway**.
 
 | Secret | What it is |
 | --- | --- |
