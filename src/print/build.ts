@@ -30,13 +30,20 @@ import { roofEavesRL, wallTopRL } from '../plan/roofline'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import type { SiteFeature } from '../site/model'
 import { featureSolids } from '../site/printFeatures'
+import { thinSpots } from './thin'
 
 /** Print settings; every length here is in millimetres on the printed model. */
 export interface PrintSettings {
   /** The model is 1:scale. */
   scale: number
-  /** Thinnest wall, post or roof edge worth printing. */
+  /** Thinnest wall, post or roof edge worth printing. Never less than two lines of plastic (`line`). */
   minFeature: number
+  /**
+   * The width of one line of plastic from the printer: its nozzle, near enough. Nothing in the
+   * model is left narrower than two of them side by side (two perimeters), which is the least
+   * that prints as a solid wall rather than a single thread.
+   */
+  line: number
   /** Gap left between parts that fit together. */
   clearance: number
   /** How far parts key into each other. */
@@ -63,6 +70,7 @@ export interface PrintSettings {
 export const DEFAULT_PRINT: PrintSettings = {
   scale: 100,
   minFeature: 1.2,
+  line: 0.2,
   clearance: 0.2,
   key: 1.2,
   base: 3,
@@ -81,6 +89,12 @@ export const DEFAULT_PRINT: PrintSettings = {
  * browser that kept 220 × 220 kept the old default rather than a bed someone typed: it reads as
  * today's default.
  */
+/** The least width that prints as a solid wall: two lines of plastic side by side (mm). */
+export const leastWidth = (s: Pick<PrintSettings, 'line'>): number => 2 * (s.line > 0 ? s.line : DEFAULT_PRINT.line)
+
+/** The thinnest wall or post as printed (mm): what was asked for, and never less than two lines. */
+export const thinnest = (s: Pick<PrintSettings, 'line' | 'minFeature'>): number => Math.max(s.minFeature, leastWidth(s))
+
 export function withCurrentBed(s: PrintSettings): PrintSettings {
   return s.bedX === 220 && s.bedY === 220 ? { ...s, bedX: DEFAULT_PRINT.bedX, bedY: DEFAULT_PRINT.bedY } : s
 }
@@ -180,6 +194,11 @@ export interface PrintModel {
   parts: PrintPart[]
   /** Things changed to make the model printable, in plain words. */
   notes: string[]
+  /**
+   * The check that everything is wide enough to print: the least width (mm, two lines of
+   * plastic), and the parts that still have a strip narrower than it, by name (none, normally).
+   */
+  printable: { least: number; thin: string[] }
   /** Degrees the model is turned (counter-clockwise from east) so the block's long side runs along the bed. */
   turn: number
   /** The whole terrain's footprint (mm), before it's cut into tiles; null without one. */
@@ -241,13 +260,18 @@ function minWidth(pts: Vec2[]): number {
  * drop into slots under the part above, and the lowest floor sits in a shallow pocket
  * in the ground.
  */
-export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, settings: PrintSettings): PrintModel {
+/** `checkLevels`: how many levels of each part the last thin-strip check looks at, at most. */
+export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, settings: PrintSettings, opts: { checkLevels?: number } = {}): PrintModel {
   const { Manifold, CrossSection, Mesh } = wasm
   const { plan, survey, ground } = input
   const pl = plan.placement
   const k = 1000 / settings.scale
   const toM = (mm: number) => mm / k
-  const minW = toM(settings.minFeature)
+  // Nothing narrower than two lines of plastic: the thinnest asked for is raised to that.
+  const leastMm = leastWidth(settings)
+  const minMm = thinnest(settings)
+  const minW = toM(minMm)
+  const least = toM(leastMm)
   const c = toM(settings.clearance)
   const eps = toM(0.01)
   const notes: string[] = []
@@ -275,6 +299,8 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   }
   const minus = (a: Manifold | null, b: Manifold | null) => (a && b ? keep(a.subtract(b)) : a)
   const grow = (cs: CrossSection | null, d: number) => (cs ? keep(cs.offset(d, 'Miter', 4)) : null)
+  /** A plan shape without its slivers: what's left after shrinking by half the least width and growing back. */
+  const sturdy = (cs: CrossSection | null): CrossSection | null => (cs && !cs.isEmpty() ? grow(grow(cs, -least / 2), least / 2) : cs)
   const square = (p: Vec2, size: number): Vec2[] => {
     const h = size / 2
     return [
@@ -291,7 +317,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   if (thin.length) {
     const t = Math.min(...thin.map(w => w.thickness))
     notes.push(
-      `Walls thinner than ${settings.minFeature} mm are printed ${settings.minFeature} mm thick (the thinnest would be ${(t * k).toFixed(1)} mm at 1:${settings.scale}).`,
+      `Walls thinner than ${minMm} mm are printed ${minMm} mm thick (the thinnest would be ${(t * k).toFixed(1)} mm at 1:${settings.scale}).`,
     )
   }
 
@@ -307,6 +333,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   const parts: { id: string; name: string; kind: PartKind; solid: Manifold }[] = []
   const furnitureLeftOut: string[] = []
   let furnitureThickened = false
+  let openingsThickened = false
 
   const info: LevelPart[] = levels.map((level, i) => {
     const walls = houseWalls(plan.walls.filter(w => w.level === level.id)).map(w => (w.thickness < minW ? { ...w, thickness: minW } : w))
@@ -371,10 +398,25 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       const len = wallLength(w)
       const d = wallDir(w)
       const openings = plan.openings.filter(o => o.wall === w.id)
-      for (const piece of wallPieces(len, (L.wallTop.get(w.id) ?? L.top) - L.ffl, openings)) {
-        const s0 = piece.s0 <= 1e-6 ? -1e3 : piece.s0
-        const s1 = piece.s1 >= len - 1e-6 ? 1e3 : piece.s1
-        wallSolids.push(prism([site(sliceAlong(poly, w.a, d, s0, s1))], L.ffl + piece.z0, L.ffl + piece.z1))
+      const wallHeight = (L.wallTop.get(w.id) ?? L.top) - L.ffl
+      for (const piece of wallPieces(len, wallHeight, openings)) {
+        let { s0, s1, z0, z1 } = piece
+        // The strip of wall between two openings, or beside one, is widened to the thinnest that
+        // prints; the wall under a sill or over a head is made at least two layers deep.
+        const fullHeight = z0 <= 1e-9 && z1 >= wallHeight - 1e-9
+        if (fullHeight && s1 - s0 < minW - 1e-9) {
+          const mid = Math.min(Math.max((s0 + s1) / 2, minW / 2), Math.max(len - minW / 2, minW / 2))
+          s0 = mid - minW / 2
+          s1 = mid + minW / 2
+          openingsThickened = true
+        } else if (!fullHeight && z1 - z0 < least - 1e-9) {
+          if (z0 <= 1e-9) z1 = Math.min(z0 + least, wallHeight)
+          else z0 = Math.max(z1 - least, 0)
+          openingsThickened = true
+        }
+        if (s0 <= 1e-6) s0 = -1e3
+        if (s1 >= len - 1e-6) s1 = 1e3
+        wallSolids.push(prism([site(sliceAlong(poly, w.a, d, s0, s1))], L.ffl + z0, L.ffl + z1))
       }
     }
     let walls = union(wallSolids)
@@ -383,9 +425,17 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     // whichever level it's drawn on, so one roofline over a split level keys onto all its walls.
     const aboveShape = above ? shape(above.outlines) : null
     if (above && aboveShape) {
-      if (above.bottom < Math.max(L.top, ...L.wallTop.values())) walls = minus(walls, extrude(grow(aboveShape, eps), above.bottom, above.bottom + 100))
+      if (above.bottom < Math.max(L.top, ...L.wallTop.values())) {
+        walls = minus(walls, extrude(grow(aboveShape, eps), above.bottom, above.bottom + 100))
+        // A wall that stands a little outside the floor above keeps a fin beside that floor's
+        // edge: where it's too narrow to print, it stops under the floor like the rest.
+        const outside = L.footprint ? keep(L.footprint.subtract(grow(aboveShape, eps)!)) : null
+        const fins = outside && !outside.isEmpty() ? keep(outside.subtract(sturdy(outside)!)) : null
+        if (fins && !fins.isEmpty()) walls = minus(walls, extrude(grow(fins, eps), above.bottom, above.bottom + 100))
+      }
       if (L.footprint) {
-        const under = keep(L.footprint.intersect(aboveShape))
+        // Only where there's enough wall to key in: a sliver of wall under the floor's edge isn't one.
+        const under = sturdy(keep(L.footprint.intersect(aboveShape)))
         pieces.push(extrude(under, Math.min(above.bottom, L.top), above.bottom + slot))
       }
     }
@@ -394,7 +444,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       const roofShape = shape(meeting.map(r => roofGeometry(r).outline).filter(o => o.length >= 3).map(site))
       if (!roofShape || !carry) continue
       const free = aboveShape ? keep(roofShape.subtract(aboveShape)) : roofShape
-      pieces.push(extrude(keep(carry.intersect(free)), top - eps, top + key))
+      pieces.push(extrude(sturdy(keep(carry.intersect(free))), top - eps, top + key))
     }
     pieces.push(walls)
 
@@ -515,7 +565,8 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     roofNames.set(id, `Roof over ${levelNames.map(n => n.toLowerCase()).join(' and ')}`)
     parts.push({ id, name: 'Roof', kind: 'roof', solid })
   }
-  if (furnitureThickened) notes.push(`Thin parts of the furniture are printed ${settings.minFeature} mm thick.`)
+  if (openingsThickened) notes.push(`Narrow strips of wall between and around doors and windows are printed ${minMm} mm wide, so the openings there are a little smaller.`)
+  if (furnitureThickened) notes.push(`Thin parts of the furniture are printed ${minMm} mm thick.`)
   if (furnitureLeftOut.length) {
     const n = furnitureLeftOut.length
     notes.push(`${n} piece${n > 1 ? 's' : ''} of furniture outside the house ${n > 1 ? 'are' : 'is'} left out, as there is no floor part under ${n > 1 ? 'them' : 'it'}.`)
@@ -596,11 +647,12 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     if (all && inLot) extras.push(keep(all.intersect(inLot)))
   }
   if (settings.siteFeatures && input.features?.length) {
-    const { solids, summary } = featureSolids(input.features, survey.boundary, { Manifold, prism, keep, groundAt, minW })
+    const { solids, summary, trunksThickened } = featureSolids(input.features, survey.boundary, { Manifold, prism, keep, groundAt, minW, toM })
     const all = union(solids)
     const inLot = prism([lot], baseZ, 1e4)
     if (all && inLot) extras.push(keep(all.intersect(inLot)))
     if (summary) notes.push(summary)
+    if (trunksThickened) notes.push(`${trunksThickened === 1 ? 'A tree’s trunk is' : `${trunksThickened} trees’ trunks are`} printed thicker than drawn, and every trunk widens under its canopy, so it holds the canopy without snapping.`)
   }
   terrain = union([terrain, ...extras])
   // Around the house, slabs, decks and driveways stop where the ground does.
@@ -613,11 +665,36 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
       ...pierPosts.map(p => prism([square(p, pierSize)], groundAt(p) - 0.2, ground0.bottom + key)),
     ])
   }
+  // Turned so the block's long side runs along the bed (x): where a terrain too big for the bed
+  // will be cut into tiles, the hollow pockets keep clear, so no tile has a thread-thin rib along
+  // its cut face.
+  const turn = (longSideTurn(lot) * 180) / Math.PI
+  const tileCuts = (): Manifold | null => {
+    if (!settings.tiles || !terrain) return null
+    const turned = Math.abs(turn) > 1e-9 ? keep(terrain.rotate([0, 0, -turn])) : terrain
+    const b = turned.boundingBox()
+    const w = b.max[0] - b.min[0]
+    const d = b.max[1] - b.min[1]
+    const grid = fitsBed(w * k, d * k, settings) ? null : tileGrid(w * k, d * k, settings)
+    if (!grid) return null
+    const half = toM(1.2)
+    const bands: (Manifold | null)[] = []
+    for (let i = 1; i < grid[0]; i++) {
+      const x = b.min[0] + (w * i) / grid[0]
+      bands.push(prism([[[x - half, b.min[1] - 1], [x + half, b.min[1] - 1], [x + half, b.max[1] + 1], [x - half, b.max[1] + 1]]], b.min[2] - 1, b.max[2] + 1))
+    }
+    for (let j = 1; j < grid[1]; j++) {
+      const y = b.min[1] + (d * j) / grid[1]
+      bands.push(prism([[[b.min[0] - 1, y - half], [b.max[0] + 1, y - half], [b.max[0] + 1, y + half], [b.min[0] - 1, y + half]]], b.min[2] - 1, b.max[2] + 1))
+    }
+    const all = union(bands)
+    return all && Math.abs(turn) > 1e-9 ? keep(all.rotate([0, 0, turn])) : all
+  }
   // Hollow from underneath: a grid of pockets open at the bottom, each roofed a little below the
   // lowest ground over it, with thin ribs between them so each roof is a short bridge that prints
   // without supports. The edges stay solid. A solid block of ground is most of the plastic.
   if (settings.hollow && terrain) {
-    const pockets = hollowPockets()
+    const pockets = minus(hollowPockets(), tileCuts())
     if (pockets) {
       terrain = minus(terrain, pockets)
       notes.push('The terrain is hollow underneath, in pockets with thin ribs between, so it uses far less plastic; print it flat side down as usual.')
@@ -673,7 +750,6 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
 
   // ---- To millimetres ----
   // Turned so the block's long side runs along the bed (x), then moved to start at 0, 0.
-  const turn = (longSideTurn(lot) * 180) / Math.PI
   const cosT = Math.cos((-turn * Math.PI) / 180)
   const sinT = Math.sin((-turn * Math.PI) / 180)
   let ox = Infinity
@@ -685,6 +761,7 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   if (Math.abs(turn) >= 0.5) notes.push(`The model is turned ${Math.abs(Math.round(turn))}° so the block’s long side runs along the bed${cropped ? '' : ', which takes fewer tiles'}.`)
   let terrainSize: [number, number] | null = null
   const out: PrintPart[] = []
+  const stillThin: string[] = []
   const emit = (id: string, name: string, kind: PartKind, m: Manifold, of?: string) => {
     if (m.isEmpty()) return
     if (m.status() !== 'NoError') {
@@ -693,6 +770,8 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
     }
     const g = m.getMesh()
     const box = m.boundingBox()
+    // The last check: is every level of it at least two lines of plastic across?
+    if (thinSpots(m, leastMm, { most: opts.checkLevels ?? 40 }).length) stillThin.push(name)
     out.push({
       id,
       name,
@@ -707,7 +786,11 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
   }
   for (const p of parts) {
     const turned = Math.abs(turn) > 1e-9 ? keep(p.solid.rotate([0, 0, -turn])) : p.solid
-    const m = keep(keep(keep(turned.translate([-ox, -oy, -baseZ])).scale(k)).simplify(0.01))
+    // The terrain's mesh is tidied (it is most of the triangles). Floors and roofs are left exactly
+    // as cut: tidying them could fold one of the 0.01 mm steps they are cut with and leave the top
+    // of a wall sloping.
+    const placed = keep(keep(turned.translate([-ox, -oy, -baseZ])).scale(k))
+    const m = p.kind === 'terrain' ? keep(placed.simplify(0.01)) : placed
     const box = m.boundingBox()
     const w = box.max[0] - box.min[0]
     const d = box.max[1] - box.min[1]
@@ -739,6 +822,10 @@ export function buildPrintModel(wasm: ManifoldToplevel, input: PrintInput, setti
         : `${p.name} is ${Math.round(w)} × ${Math.round(d)} mm, so it is cut into ${nx * ny} pieces (${labels.join(', ')}) to fit a ${settings.bedX} × ${settings.bedY} mm bed. Glue them together before it goes on the part below.`,
     )
   }
+  if (stillThin.length) {
+    const names = stillThin.length > 3 ? `${stillThin.slice(0, 3).join(', ')} and ${stillThin.length - 3} more` : stillThin.join(', ')
+    notes.unshift(`${names} ${stillThin.length === 1 ? 'has' : 'have'} a strip narrower than ${leastMm} mm (two ${leastMm / 2} mm lines) that couldn’t be thickened automatically; your slicer may leave it out. A bigger scale usually fixes it.`)
+  }
   for (const x of pool) x.delete()
-  return { parts: out, notes, turn, terrainSize }
+  return { parts: out, notes, turn, terrainSize, printable: { least: leastMm, thin: stillThin } }
 }

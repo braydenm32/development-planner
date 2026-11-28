@@ -5,7 +5,7 @@ import { SendToSlicerButton, SlicerPicker } from '../desktop/DesktopPanel'
 import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SavedProject } from '../lib/storage'
 import type { Plan } from '../plan/model'
-import { fitsBed, type PrintInput, type PrintSettings } from '../print/build'
+import { fitsBed, leastWidth, thinnest, type PrintInput, type PrintSettings } from '../print/build'
 import { aroundHouseVolume, LITRE, partGroups, plasticOf, scaleThatFits, scaleUnder, type PartGroup } from '../print/fit'
 import { pointAtParts, usePrintHover } from '../print/hover'
 import { planPages } from '../share/pages'
@@ -80,14 +80,16 @@ export function FineTuningFields({ settings, onChange: set }: { settings: PrintS
   return (
     <>
       <div className="tool-options">
-        <Num label="Thinnest wall or post" unit="mm" decimals={2} min={0.4} max={5} value={settings.minFeature} onCommit={minFeature => set({ minFeature })} />
+        <Num label="Printer line width (nozzle)" unit="mm" decimals={2} min={0.1} max={1.2} value={settings.line} onCommit={line => set({ line, minFeature: Math.max(settings.minFeature, 2 * line) })} />
+        <Num label="Thinnest wall or post" unit="mm" decimals={2} min={leastWidth(settings)} max={5} value={thinnest(settings)} onCommit={minFeature => set({ minFeature })} />
         <Num label="Gap between parts" unit="mm" decimals={2} min={0} max={1} value={settings.clearance} onCommit={clearance => set({ clearance })} />
         <Num label="Key depth" unit="mm" decimals={2} min={0} max={5} value={settings.key} onCommit={key => set({ key })} />
         <Num label="Base under the lowest ground" unit="mm" decimals={1} min={1} max={20} value={settings.base} onCommit={base => set({ base })} />
       </div>
       <p className="muted small">
-        Thin walls are thickened to the thinnest width your printer can manage. Raise the gap if parts are too tight to fit
-        together.
+        Nothing is printed narrower than two lines of plastic side by side ({leastWidth(settings)} mm): thin walls, posts, tree trunks and the
+        strips between windows are thickened, and the notes under the parts say what was. Raise the gap if parts are too tight to
+        fit together.
       </p>
     </>
   )
@@ -189,6 +191,11 @@ export function PrintParts({ print, settings, input }: { print: PrintState; sett
         <p className="notice small">
           {tooBig.map(x => x.name).join(', ')} {tooBig.length > 1 ? "don't" : "doesn't"} fit a {settings.bedX} × {settings.bedY} mm bed.
           Try a smaller scale{settings.tiles ? '' : ' or cut big parts into pieces'}.
+        </p>
+      )}
+      {model.printable.thin.length === 0 && (
+        <p className="muted small print-checked">
+          Checked: every part is at least {model.printable.least} mm across everywhere (two {model.printable.least / 2} mm lines of plastic), so nothing is too thin to print.
         </p>
       )}
       {model.notes.length > 0 && (

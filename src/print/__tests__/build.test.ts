@@ -13,7 +13,9 @@ import { addFurniture, addLevelAbove, addRoof, addStair, newStair, updateRoom } 
 import { earthworksBarriers, earthworksPlatforms } from '../../plan/platforms'
 import { levelOutlines } from '../../plan/roof'
 import { ceilingRL, matchRoofline, setEavesRL } from '../../plan/roofline'
-import { BED_SLACK, buildPrintModel, DEFAULT_PRINT, fitsBed, longSideTurn, type PrintModel, type PrintPart } from '../build'
+import { BED_SLACK, buildPrintModel, DEFAULT_PRINT, fitsBed, leastWidth, longSideTurn, thinnest, type PrintModel, type PrintPart } from '../build'
+import { thinSpots, thinStrips } from '../thin'
+import type { SiteFeature } from '../../site/model'
 import { aroundHouseVolume, partGroups, plasticOf, scaleThatFits, scaleUnder } from '../fit'
 
 let wasm: ManifoldToplevel
@@ -397,3 +399,118 @@ describe('roofs on their eaves line', () => {
   })
 })
 
+
+describe('nothing too thin to print', () => {
+  // Checked more finely than the app does: three times as many levels of every part. (On the
+  // build's own solids: reading a part's mesh back in welds the 0.01 mm steps parts are cut with.)
+  const fine = { checkLevels: 120 }
+
+  it('takes two lines of plastic as the least width, and never a thinner wall than that', () => {
+    expect(DEFAULT_PRINT.line).toBe(0.2)
+    expect(leastWidth(DEFAULT_PRINT)).toBeCloseTo(0.4)
+    expect(thinnest({ line: 0.2, minFeature: 1.2 })).toBe(1.2)
+    expect(thinnest({ line: 0.2, minFeature: 0.1 })).toBeCloseTo(0.4)
+    expect(thinnest({ line: 0.4, minFeature: 0.5 })).toBeCloseTo(0.8)
+    // Settings saved before there was a line width read as 0.2 mm.
+    expect(leastWidth({ line: undefined as unknown as number })).toBeCloseTo(0.4)
+  })
+
+  it('finds a strip narrower than the least width, and not a tip that tapers away', () => {
+    const { CrossSection } = wasm
+    // A 10 x 10 block with a 0.3 mm fin 5 mm long on one side, and a sharp corner on another.
+    const block = new CrossSection([[[0, 0], [10, 0], [10, 10], [0, 10]], [[10, 4], [15, 4], [15, 4.3], [10, 4.3]], [[0, 10], [10, 10], [5, 14]]], 'NonZero')
+    const strips = thinStrips(block, 0.4)
+    expect(strips.length).toBe(1)
+    const b = strips[0].bounds()
+    expect(b.min[0]).toBeGreaterThan(9.9)
+    expect(b.max[0]).toBeCloseTo(15, 1)
+    expect(thinStrips(block, 0.2).length).toBe(0)
+    strips.forEach(x => x.delete())
+    block.delete()
+    // The same fin as a solid 3 mm tall is found; a wedge that tapers to an edge is not.
+    const fin = wasm.Manifold.union([wasm.Manifold.cube([10, 10, 3]), wasm.Manifold.cube([5, 0.3, 3]).translate([10, 4, 0])])
+    expect(thinSpots(fin, 0.4).length).toBeGreaterThan(0)
+    const wedge = wasm.Manifold.extrude(new CrossSection([[[0, 0], [10, 0], [5, 4]]], 'NonZero'), 20).rotate([90, 0, 0])
+    expect(thinSpots(wedge, 0.4).length).toBe(0)
+  })
+
+  it('leaves no strip narrower than 0.4 mm in any part, at every scale, tiled and hollow, with furniture and site features', () => {
+    const { plan, survey, ground } = setup()
+    const b = survey.boundary
+    const cx = b.reduce((a, p) => a + p[0], 0) / b.length
+    const cy = b.reduce((a, p) => a + p[1], 0) / b.length
+    const features = [
+      { id: 't1', type: 'tree', geom: { kind: 'point', at: [b[0][0] * 0.8 + cx * 0.2, b[0][1] * 0.8 + cy * 0.2] } },
+      { id: 'f1', type: 'fence', geom: { kind: 'line', pts: [b[0], b[1]] } },
+    ] as unknown as SiteFeature[]
+    for (const scale of [50, 75, 100, 200]) {
+      for (const minFeature of [1.2, 0.4]) {
+        const model = buildPrintModel(wasm, { plan, survey, ground, features }, { ...DEFAULT_PRINT, scale, minFeature, furniture: true, siteFeatures: true }, fine)
+        expect(model.printable, `1:${scale}, ${minFeature} mm`).toEqual({ least: 0.4, thin: [] })
+        expect(model.notes.some(n => /couldn’t be thickened/.test(n))).toBe(false)
+      }
+    }
+  }, 120000)
+
+  it('widens the strip of wall between two windows, and says so', () => {
+    const { plan, survey, ground } = setup()
+    // Two windows 30 mm apart on the east wall: 0.3 mm of wall between them at 1:100.
+    const twin = {
+      ...plan,
+      openings: [
+        ...plan.openings.filter(o => o.id !== 'office_window'),
+        { id: 'w_a', wall: 'east', kind: 'window' as const, offset: 1.0, width: 0.9, height: 1.2, sill: 0.9, flipHinge: false, flipSwing: false },
+        { id: 'w_b', wall: 'east', kind: 'window' as const, offset: 1.93, width: 0.9, height: 1.2, sill: 0.9, flipHinge: false, flipSwing: false },
+      ],
+    }
+    const model = buildPrintModel(wasm, { plan: twin, survey, ground }, { ...DEFAULT_PRINT, minFeature: 0.4 }, fine)
+    expect(model.notes.some(n => /between and around doors and windows are printed 0.4 mm wide/.test(n))).toBe(true)
+    expect(model.printable.thin).toEqual([])
+    // With nothing narrow, it says nothing.
+    const plain = buildPrintModel(wasm, { plan, survey, ground }, DEFAULT_PRINT)
+    expect(plain.notes.some(n => /doors and windows/.test(n))).toBe(false)
+  })
+
+  it('gives a tree a trunk that can carry its canopy, and says when it was thickened', () => {
+    const { plan, survey, ground } = setup()
+    const b = survey.boundary
+    const cx = b.reduce((a, p) => a + p[0], 0) / b.length
+    const cy = b.reduce((a, p) => a + p[1], 0) / b.length
+    const at: Vec2 = [b[0][0] * 0.8 + cx * 0.2, b[0][1] * 0.8 + cy * 0.2]
+    const tree = (extra: object) => [{ id: 't1', type: 'tree', geom: { kind: 'point', at }, ...extra }] as unknown as SiteFeature[]
+    const settings = { ...SOLID, siteFeatures: true, tiles: false }
+    const bare = buildPrintModel(wasm, { plan, survey, ground }, settings).parts.find(p => p.id === 'terrain')!
+    // A 6 m canopy on a 0.3 m trunk, 8 m tall: 60 mm of canopy at 1:100.
+    const thin = buildPrintModel(wasm, { plan, survey, ground, features: tree({ trunk: 0.3, canopy: 6, height: 8 }) }, settings)
+    expect(thin.notes.some(n => /trunk is printed thicker than drawn/.test(n))).toBe(true)
+    const withTree = thin.parts.find(p => p.id === 'terrain')!
+    // The trunk alone, between the ground and the cup under the canopy: at least a sixth of the canopy across.
+    const m = solidOf(withTree)
+    const base = solidOf(bare)
+    const only = m.subtract(base)
+    const top = only.boundingBox().max[2]
+    // What a level of the tree alone is across (the widest piece of it, past any speck left by the subtraction).
+    const across = (z: number) => {
+      const level = only.slice(z)
+      let best = 0
+      for (const piece of level.decompose()) {
+        const b = piece.bounds()
+        if (piece.area() > 5) best = Math.max(best, Math.min(b.max[0] - b.min[0], b.max[1] - b.min[1]))
+        piece.delete()
+      }
+      level.delete()
+      return best
+    }
+    // 80 mm tall; the canopy is the top 48 mm. Low on the trunk it's a sixth of the canopy across, not the 3 mm drawn.
+    const trunk = across(top - 70)
+    expect(trunk).toBeGreaterThanOrEqual(60 / 6 - 0.5)
+    expect(trunk).toBeLessThan(14)
+    // Just under the canopy it has widened into a cup, and the canopy is its full width.
+    expect(across(top - 26)).toBeGreaterThan(trunk + 6)
+    expect(across(top - 24)).toBeGreaterThan(45)
+    ;[m, base, only].forEach(x => x.delete())
+    // A trunk drawn thick enough is left as drawn.
+    const stout = buildPrintModel(wasm, { plan, survey, ground, features: tree({ trunk: 2.2, canopy: 6, height: 8 }) }, settings)
+    expect(stout.notes.some(n => /printed thicker than drawn/.test(n))).toBe(false)
+  })
+})

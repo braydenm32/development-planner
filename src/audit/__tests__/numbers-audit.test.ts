@@ -1981,7 +1981,11 @@ describe('sample survey and plan (made up)', () => {
     expect(tiled.map(p => p.name)).toEqual(['Terrain A1', 'Terrain B1', 'Terrain A2', 'Terrain B2'])
     expect(Math.max(wd('A1')[0], wd('A2')[0]) + Math.max(wd('B1')[0], wd('B2')[0])).toBeCloseTo(W, 1)
     expect(Math.max(wd('A1')[1], wd('B1')[1]) + Math.max(wd('A2')[1], wd('B2')[1])).toBeCloseTo(Dd, 1)
-    expect(tiled.reduce((t, p) => t + p.volume, 0)).toBeCloseTo(whole.volume, 0)
+    // The tiles hold a little more plastic than the terrain in one piece: the hollow underside
+    // stops 1.2 mm short of each cut, so no tile ends in a rib too thin to print.
+    const tilesVolume = tiled.reduce((t, p) => t + p.volume, 0)
+    expect(tilesVolume).toBeGreaterThan(whole.volume)
+    expect(tilesVolume).toBeLessThan(whole.volume * 1.06)
     record('tilesAddUp', { whole: [W, Dd], cell: [W / 2, Dd / 2], tiles: Object.fromEntries(['A1', 'B1', 'A2', 'B2'].map(n => [n, wd(n)])), volume: { tiles: tiled.reduce((t, p) => t + p.volume, 0), whole: whole.volume } })
   }, 120_000)
 
