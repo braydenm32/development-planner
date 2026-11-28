@@ -73,6 +73,10 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # Which secrets this job can see (never their values).
+          for n in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -n "${!n}" ]; then echo "$n: set"; else echo "$n: missing"; fi
+          done
           if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
             {
               # One line, whichever way the .p12 was turned into base64.
