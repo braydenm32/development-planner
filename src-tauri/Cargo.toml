@@ -1,6 +1,6 @@
 [package]
 name = "contour-and-gable"
-version = "0.5.0"
+version = "0.5.1"
 description = "Contour and Gable: plan a house on a contour survey, offline, with your files in a folder"
 edition = "2021"
 license = "UNLICENSED"
