@@ -987,3 +987,45 @@
 .ls-line.warn .ls-line-head .ic {
   color: var(--cl-warn-text);
 }
+
+/* ---- Signing the desktop app in: the code shown in the app and in the browser ---- */
+
+.cl-linkcode {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+
+.cl-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+  color: var(--cl-muted, #5b6472);
+}
+
+.cl-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: cl-spin 0.9s linear infinite;
+}
+
+@keyframes cl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.5;
+  }
+}

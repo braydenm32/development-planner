@@ -1,6 +1,7 @@
 // The cloud on the Projects home and the start screen: a card to sign in (or one quiet line once
 // he has said Not now), the line that says how saving is going, and each card's "This device only".
 
+import { isDesktop } from '../desktop/bridge'
 import { useState } from 'react'
 import { Icon } from '../nav/icons'
 import { cloudActions, useCloud } from './state'
@@ -49,14 +50,18 @@ export function CloudCard() {
           <Icon name="cloud" size={22} />
         </span>
         <div className="cl-card-text">
-          <h2 id="cl-card-title">Sign in to save to the cloud</h2>
-          <p>Your projects open on your other devices, and are safe if this one is lost. Sign in with a passkey: Face ID, Touch ID, Windows Hello or your phone.</p>
+          <h2 id="cl-card-title">{isDesktop() ? 'Sign in to open your projects from the website' : 'Sign in to save to the cloud'}</h2>
+          <p>
+            {isDesktop()
+              ? 'The projects you saved on contourandgable.com open here, and what you change here is saved back. Your browser opens to check it’s you.'
+              : 'Your projects open on your other devices, and are safe if this one is lost. Sign in with a passkey: Face ID, Touch ID, Windows Hello or your phone.'}
+          </p>
         </div>
         <div className="cl-card-actions">
           <button className="cl-btn primary" onClick={() => cloudActions.open('sign-in')}>
             Sign in
           </button>
-          {signup !== 'closed' && (
+          {signup !== 'closed' && !isDesktop() && (
             <button className="cl-btn" onClick={() => cloudActions.open('create')}>
               Create account
             </button>

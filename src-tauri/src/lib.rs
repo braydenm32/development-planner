@@ -195,6 +195,23 @@ async fn open_default(path: String) -> Result<(), String> {
     tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
 
+/// Whether a web address may be opened in the browser: https only, nothing odd in it.
+fn web_url_ok(url: &str) -> bool {
+    url.len() <= 2000
+        && url.starts_with("https://")
+        && url.len() > "https://".len()
+        && !url.chars().any(|c| c.is_whitespace() || c.is_control())
+}
+
+/// Open a web page in the computer's browser (to sign in to the cloud).
+#[tauri::command]
+async fn open_url(url: String) -> Result<(), String> {
+    if !web_url_ok(&url) {
+        return Err("Only https web addresses can be opened.".into());
+    }
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[derive(Serialize, Clone)]
 struct Slicer {
     name: String,
@@ -342,6 +359,7 @@ pub fn run() {
             pick_file,
             reveal,
             open_default,
+            open_url,
             find_slicers,
             open_with
         ])
@@ -352,6 +370,16 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opens_only_https_pages() {
+        assert!(web_url_ok("https://contourandgable.com/?app-link=K7QX-3MPA"));
+        assert!(!web_url_ok("http://contourandgable.com/"));
+        assert!(!web_url_ok("file:///etc/passwd"));
+        assert!(!web_url_ok("https://"));
+        assert!(!web_url_ok("https://a.example/ b"));
+        assert!(!web_url_ok("javascript:alert(1)"));
+    }
 
     #[test]
     fn names_slicers() {

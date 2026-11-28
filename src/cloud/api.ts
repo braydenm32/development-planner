@@ -1,9 +1,11 @@
 // The cloud API (worker/src/api.ts), from the app: same origin, the session in an HttpOnly
-// cookie the app never sees, and the X-BHP header on every change (the CSRF guard).
+// cookie the app never sees, and the X-BHP header on every change (the CSRF guard). The desktop
+// app calls the website's API with a token instead (./endpoint.ts).
 //
 // On GitHub Pages there is no /api/: health() says so and nothing else is ever called.
 
 import type { ProjectMeta } from '../projects/types'
+import { apiBase, signedInWith } from './endpoint'
 
 export const CSRF_HEADER = 'x-bhp'
 /** Records are uploaded in parts of this size (the Worker's PART_MAX). */
@@ -86,6 +88,15 @@ export interface Health {
   email: boolean
 }
 
+/** A sign-in link for the desktop app (worker/src/appLink.ts). */
+export interface AppLink {
+  code: string
+  secret: string
+  /** The page to open in a browser. */
+  url: string
+  expires: number
+}
+
 export interface CloudApi {
   health(): Promise<Health | null>
   session(): Promise<CloudUser | null>
@@ -101,7 +112,15 @@ export interface CloudApi {
   /** Signed out: email a sign-in code to the address, if an account has it (the reply can't say). */
   emailCode(email: string): Promise<void>
   /** Signed out: the address and its code start a session. */
-  emailSignIn(email: string, code: string): Promise<{ user: CloudUser }>
+  emailSignIn(email: string, code: string): Promise<{ user: CloudUser; token?: string }>
+  /** The desktop app: ask for a sign-in link to open in a browser (a code to show, a secret to keep). */
+  linkStart(): Promise<AppLink>
+  /** The desktop app: has the browser approved it yet? The session token and who, once it has; null while waiting. */
+  linkClaim(code: string, secret: string): Promise<{ token: string; user: CloudUser } | null>
+  /** The browser: is this link still good? Null when it ran out or was used. */
+  linkCheck(code: string): Promise<{ code: string; expires: number } | null>
+  /** The browser, signed in: let the desktop app showing this code in. */
+  linkApprove(code: string): Promise<void>
   /** Signed in: email a code to an address being added, to check it's theirs. The address as kept. */
   emailAdd(email: string): Promise<string>
   /** Signed in: that code makes the address the account's. */
@@ -129,17 +148,18 @@ export interface ApiOptions {
 }
 
 export function createCloudApi(opts: ApiOptions = {}): CloudApi {
-  const base = opts.base ?? `${import.meta.env?.BASE_URL ?? '/'}api/`
+  const base = opts.base ?? apiBase()
   const doFetch = opts.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init))
 
   async function call(path: string, init: RequestInit = {}): Promise<Response> {
     const method = init.method ?? 'GET'
-    const headers: Record<string, string> = { ...(init.headers as Record<string, string>) }
+    const who = signedInWith()
+    const headers: Record<string, string> = { ...(init.headers as Record<string, string>), ...who.headers }
     if (method !== 'GET' && method !== 'HEAD') headers[CSRF_HEADER] = '1'
     if (typeof init.body === 'string') headers['content-type'] = 'application/json'
     let res: Response
     try {
-      res = await doFetch(base + path, { ...init, method, headers, credentials: 'same-origin', cache: 'no-store' })
+      res = await doFetch(base + path, { ...init, method, headers, credentials: who.credentials, cache: 'no-store' })
     } catch {
       throw new OfflineError()
     }
@@ -179,6 +199,23 @@ export function createCloudApi(opts: ApiOptions = {}): CloudApi {
     newRecoveryCode: async () => (await post<{ recoveryCode: string }>('auth/recovery-code')).recoveryCode,
     emailCode: async email => void (await post('auth/email/start', { email })),
     emailSignIn: (email, code) => post('auth/email/verify', { email, code }),
+    linkStart: () => post('app/link'),
+    async linkClaim(code, secret) {
+      const res = await call('app/link/claim', { method: 'POST', body: JSON.stringify({ code, secret }) })
+      const body = (await res.json().catch(() => null)) as Record<string, unknown> | null
+      if (res.status === 202) return null
+      if (!res.ok) throw new CloudError(res.status, body)
+      return body as { token: string; user: CloudUser }
+    },
+    async linkCheck(code) {
+      try {
+        return await json<{ code: string; expires: number }>(`app/link/${enc(code)}`)
+      } catch (e) {
+        if (e instanceof CloudError && e.status === 404) return null
+        throw e
+      }
+    },
+    linkApprove: async code => void (await post(`app/link/${enc(code)}/approve`)),
     emailAdd: async email => (await post<{ email: string }>('account/email/start', { email })).email,
     emailConfirm: async (email, code) => (await post<{ email: string }>('account/email/confirm', { email, code })).email,
     emailRemove: async () => void (await post('account/email/remove')),

@@ -3,6 +3,7 @@
 // in a header so it stays out of addresses and logs (worker/src/shares.ts).
 
 import { CloudError, CSRF_HEADER, OfflineError, type RecordRef } from '../cloud/api'
+import { apiBase, signedInWith } from '../cloud/endpoint'
 import type { ProjectMeta } from '../projects/types'
 
 /** The header the token goes in. */
@@ -54,7 +55,7 @@ export class BadAnswerError extends Error {
 }
 
 export function createShareApi(opts: { base?: string; fetch?: typeof fetch } = {}): ShareApi {
-  const base = opts.base ?? `${import.meta.env?.BASE_URL ?? '/'}api/`
+  const base = opts.base ?? apiBase()
   const doFetch = opts.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init))
 
   async function call(path: string, init: RequestInit = {}, token?: string): Promise<Response> {
@@ -62,10 +63,13 @@ export function createShareApi(opts: { base?: string; fetch?: typeof fetch } = {
     const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) }
     if (method !== 'GET') headers[CSRF_HEADER] = '1'
     if (token !== undefined) headers[SHARE_HEADER] = token
+    // The owner's side is signed in (a cookie on the web, the desktop app's token).
+    const who = signedInWith()
+    if (token === undefined) Object.assign(headers, who.headers)
     let res: Response
     try {
       // A viewer's request carries no cookie: only the token opens a shared project.
-      res = await doFetch(base + path, { ...init, method, headers, credentials: token === undefined ? 'same-origin' : 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' })
+      res = await doFetch(base + path, { ...init, method, headers, credentials: token === undefined ? who.credentials : 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' })
     } catch {
       throw new OfflineError()
     }

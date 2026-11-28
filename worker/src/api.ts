@@ -1,17 +1,20 @@
 // The API under /api/. Every request that changes something must carry the X-BHP header and,
 // when the browser says where it came from, come from this same origin: a page on another site
 // can do neither, so a signed-in browser can't be made to change anything from elsewhere.
+// The desktop app is the one other origin let in (with CORS): it signs in with a token it holds,
+// never a cookie (./session.ts, ./appLink.ts), so a page elsewhere has nothing to borrow.
 
 import { account, canSave, deleteAccount, keepAccount } from './account'
-import { addComment, deleteComment, listComments, resolveComment, setLinkComments, sharedComments } from './comments'
+import { COMMENTER_HEADER, addComment, deleteComment, listComments, resolveComment, setLinkComments, sharedComments } from './comments'
 import { loginOptions, loginVerify, logout, newCode, passkeyOptions, passkeyVerify, recoverOptions, recoverVerify, signupOptions, signupState, signupVerify } from './auth'
 import { emailOn } from './email'
 import { emailAddConfirm, emailAddStart, emailRemove, emailSigninStart, emailSigninVerify } from './emailAuth'
 import type { Env, WaitUntil } from './env'
 import { errorResponse, HttpError, json } from './http'
 import { commitProject, deleteProject, getBlob, getProject, listProjects, missingBlobs, putBlob } from './projects'
-import { readSession, requireUser } from './session'
-import { createShare, extendShare, listShares, openShared, PUBLIC_HEADERS, restoreShare, revokeShare, sharedBlob } from './shares'
+import { linkApprove, linkCheck, linkClaim, linkStart } from './appLink'
+import { APP_ORIGINS, fromApp, readSession, requireUser } from './session'
+import { createShare, extendShare, listShares, openShared, PUBLIC_HEADERS, restoreShare, revokeShare, SHARE_HEADER, sharedBlob } from './shares'
 
 /** The header the app sends with every change (CSRF guard). */
 export const CSRF_HEADER = 'x-bhp'
@@ -21,6 +24,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD'])
 function checkSameOrigin(req: Request, url: URL) {
   if (SAFE_METHODS.has(req.method)) return
   if (req.headers.get(CSRF_HEADER) !== '1') throw new HttpError(403, 'csrf', 'This request didn’t come from the app.')
+  if (fromApp(req)) return
   const origin = req.headers.get('origin')
   if (origin && origin !== url.origin) throw new HttpError(403, 'csrf', 'This request didn’t come from the app.')
   const site = req.headers.get('sec-fetch-site')
@@ -55,6 +59,11 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/auth\/recovery-code$/, newCode],
   ['POST', /^\/api\/auth\/email\/start$/, (env, req, now, _params, ctx) => emailSigninStart(env, req, now, ctx)],
   ['POST', /^\/api\/auth\/email\/verify$/, emailSigninVerify],
+  // Signing the desktop app in (./appLink.ts).
+  ['POST', /^\/api\/app\/link$/, linkStart],
+  ['POST', /^\/api\/app\/link\/claim$/, linkClaim],
+  ['GET', /^\/api\/app\/link\/([^/]+)$/, (env, req, now, [code]) => linkCheck(env, req, now, code)],
+  ['POST', /^\/api\/app\/link\/([^/]+)\/approve$/, (env, req, now, [code]) => linkApprove(env, req, now, code)],
   ['POST', /^\/api\/auth\/logout$/, (env, req) => logout(env, req)],
   ['GET', /^\/api\/account$/, account],
   ['POST', /^\/api\/account\/delete$/, deleteAccount],
@@ -99,9 +108,24 @@ function decodePart(s: string): string {
 }
 
 /** `ctx`: the Worker's, for work after the reply (tests leave it out, and that work is done first). */
+/** What the desktop app may send across origins (CORS). */
+const APP_CORS = {
+  'access-control-allow-methods': 'GET, HEAD, POST, PUT, DELETE',
+  'access-control-allow-headers': `authorization, content-type, ${CSRF_HEADER}, ${SHARE_HEADER}, ${COMMENTER_HEADER}`,
+  'access-control-max-age': '86400',
+}
+
 export async function handleApi(req: Request, env: Env, now = Date.now(), ctx?: WaitUntil): Promise<Response> {
+  const origin = req.headers.get('origin') ?? ''
+  const app = APP_ORIGINS.has(origin)
+  // The browser's check before the desktop app's request; any other origin gets no CORS at all.
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: app ? { 'access-control-allow-origin': origin, vary: 'Origin', ...APP_CORS } : { vary: 'Origin' } })
   const res = await route(req, env, now, ctx)
   if (isPublic(new URL(req.url).pathname)) for (const [k, v] of Object.entries(PUBLIC_HEADERS)) res.headers.set(k, v)
+  if (app) {
+    res.headers.set('access-control-allow-origin', origin)
+    res.headers.append('vary', 'Origin')
+  }
   return res
 }
 

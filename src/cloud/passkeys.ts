@@ -2,8 +2,10 @@
 // @simplewebauthn/browser, with what went wrong said in plain words.
 
 import { browserSupportsWebAuthn, startAuthentication, startRegistration, WebAuthnError, type PublicKeyCredentialCreationOptionsJSON, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
+import { isDesktop } from '../desktop/bridge'
 
-export const passkeysWork = () => browserSupportsWebAuthn()
+/** Passkeys belong to the website's address, so not in the desktop app: it signs in through a browser. */
+export const passkeysWork = () => !isDesktop() && browserSupportsWebAuthn()
 
 /** Make a passkey from the server's options; resolves with the answer to send back. */
 export const makePasskey = (options: unknown) => startRegistration({ optionsJSON: options as PublicKeyCredentialCreationOptionsJSON })
