@@ -625,6 +625,20 @@ button.secondary:hover {
   stroke-width: 1;
 }
 
+/* The side a first wall drawn by a face goes (src/plan/wallFace.ts). */
+.face-side path {
+  fill: var(--accent);
+}
+
+.face-side text {
+  fill: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+}
+
 .guide {
   stroke: #d0743c;
   stroke-width: 1;

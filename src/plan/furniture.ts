@@ -1,6 +1,6 @@
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import { catalogItem, catalogSolids, catalogSymbol, CUSTOM_BOX, type SymbolPart, type Solid } from './furnitureCatalog'
-import { newId, wallDir, wallLength, type Furniture, type Wall } from './model'
+import { newId, wallDir, wallLength, type Furniture, type Plan, type Wall } from './model'
 
 export { CATALOG, FURNITURE_GROUPS, catalogItem, type CatalogItem, type FurnitureGroup } from './furnitureCatalog'
 
@@ -9,7 +9,8 @@ export function newFurniture(kind: string, level: string, at: Vec2, rotation = 0
   const item = catalogItem(kind)
   if (!item) return null
   const [width, depth, height] = item.size
-  return { id: newId('furniture'), level, kind, at: [at[0], at[1]], rotation: normDeg(rotation), width, depth, height }
+  // A pool starts in the ground and a tank on a level base (both only once they're outside the house).
+  return { id: newId('furniture'), level, kind, at: [at[0], at[1]], rotation: normDeg(rotation), width, depth, height, ...(item.sits ? { ground: { sits: item.sits } } : {}) }
 }
 
 export function furnitureName(f: Pick<Furniture, 'kind' | 'label'>): string {
@@ -56,18 +57,39 @@ export function furnitureContains(f: Placed, p: Vec2): boolean {
   return pointInPolygon(p[0], p[1], furnitureCorners(f))
 }
 
+/** A point in the item's own frame, mirrored across its width when the piece is. */
+const own = (f: Pick<Furniture, 'mirrored'>, p: Vec2): Vec2 => (f.mirrored ? [-p[0], p[1]] : p)
+
 /** The plan symbol in the plan frame, with the appliance note (REF, DW) if it has one. */
 export function furnitureSymbol(f: Furniture): { parts: SymbolPart[]; code: string | null } {
   const item = catalogItem(f.kind)
-  const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, q)), closed: p.closed }))
+  const parts = catalogSymbol(item, f.width, f.depth).map(p => ({ pts: p.pts.map(q => furnitureToPlan(f, own(f, q))), closed: p.closed }))
   // A custom box carries the name it was given, kept short enough to sit on it.
   const named = f.kind === CUSTOM_BOX ? f.label?.trim().slice(0, 14) : undefined
-  return { parts, code: item?.code ?? (named || null) }
+  // A pool or tank set in the ground says so, as a plan note would.
+  const inGround = !!item?.sits && f.ground?.sits === 'in' ? 'IN GROUND' : null
+  const code = item?.code ?? (named || null)
+  return { parts, code: inGround ? (code ? `${code} ${inGround}` : inGround) : code }
 }
 
 /** The 3D shape in the plan frame, heights above the floor. */
 export function furnitureSolids(f: Furniture): Solid[] {
-  return catalogSolids(catalogItem(f.kind), f.width, f.depth, f.height).map(s => ({ ...s, pts: s.pts.map(q => furnitureToPlan(f, q)) }))
+  return catalogSolids(catalogItem(f.kind), f.width, f.depth, f.height).map(s => ({ ...s, pts: s.pts.map(q => furnitureToPlan(f, own(f, q))) }))
+}
+
+/** Whether a piece has a left and a right hand worth mirroring: what the Mirror button and H offer. */
+export const isHanded = (f: Pick<Furniture, 'kind'>) => !!catalogItem(f.kind)?.handed
+
+/** The piece mirrored left to right, or back; a piece that isn't mirrored carries no flag. */
+export function mirrored(f: Furniture): Furniture {
+  const { mirrored: was, ...rest } = f
+  return was ? rest : { ...rest, mirrored: true }
+}
+
+/** The plan with one piece mirrored (or back): what the card's Mirror, the menu and H do, as one undo step. */
+export function mirrorFurniture(plan: Plan, id: string): Plan {
+  if (!plan.furniture.some(f => f.id === id)) return plan
+  return { ...plan, furniture: plan.furniture.map(f => (f.id === id ? mirrored(f) : f)) }
 }
 
 /** Change an item's size, keeping its back where it is (so it stays against its wall). */

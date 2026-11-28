@@ -76,7 +76,8 @@ describe('furniture catalog', () => {
       const [w, d, h] = c.size
       expect(w, c.key).toBeGreaterThanOrEqual(0.3)
       expect(d, c.key).toBeGreaterThanOrEqual(0.3)
-      expect(Math.max(w, d), c.key).toBeLessThanOrEqual(5)
+      // A swimming pool is the one piece bigger than a car.
+      expect(Math.max(w, d), c.key).toBeLessThanOrEqual(c.key === 'pool' ? 8 : 5)
       expect(h, c.key).toBeGreaterThan(0)
       expect(h, c.key).toBeLessThanOrEqual(2.4)
     }

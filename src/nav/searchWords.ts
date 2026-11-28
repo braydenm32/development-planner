@@ -19,18 +19,23 @@ export const MORE_WORDS: Record<string, string[]> = {
   'stair-defaults': ['staircase'],
   'tool-area': ['balcony', 'verandah', 'veranda', 'porch', 'terrace', 'paving', 'path', 'lawn', 'courtyard', 'alfresco', 'pergola', 'carport'],
   'tool-sketch': ['curved', 'curved wall', 'round', 'rectangle', 'square', 'box', 'shape', 'grid', 'guides'],
-  'tool-wall': ['rectangle', 'box', 'partition'],
+  'tool-wall': ['rectangle', 'box', 'partition', 'outside face', 'inside face', 'wall face', 'justification', 'wall alignment', 'set out', 'clear size', 'overall size'],
   'tool-roof': ['roofing', 'ridge', 'skillion roof'],
   'tool-furniture': ['couch', 'lounge', 'bath', 'shower', 'toilet', 'vanity', 'basin', 'sink', 'fridge', 'oven', 'wardrobe', 'desk', 'chair', 'decorate', 'furnish'],
   furniture: ['couch', 'furnish', 'decorate'],
-  'open-example': ['template', 'templates', 'starter', 'sample house', 'ready made'],
+  'open-example': ['sample house'],
   'save-state': ['saving', 'where is my work', 'is it saved', 'how do I save'],
   'kbd-copy': ['copy and paste'],
   'kbd-turn': ['rotate furniture', 'flip furniture'],
   'kbd-fields': ['metric', 'mm', 'metres or millimetres'],
-  materials: ['colour', 'colours', 'finishes', 'cladding colour'],
+  // Walk-through is here now (CB-20, HO-31, PH-35).
+  'cmd-walk-through': ['walk', 'vr', 'virtual tour', 'fly through', 'look inside', 'inside the house'],
   'camera-street': ['walk around', 'look around', 'eye level'],
+  // View from a photo (src/photoview): the words a homeowner or a planner would use.
+  'cmd-photo-view': ['view from the street', 'view from next door', 'neighbours view', 'from the neighbours', 'streetscape', 'montage', 'superimpose', 'overlay a photo', 'my photo', 'window view', 'deck view', 'view from the deck'],
   'cmd-picture': ['jpg', 'jpeg', 'photo', 'snapshot', 'save image'],
+  'cmd-model': ['gltf', 'glb', 'obj', 'sketchup', 'skp', 'blender', 'render', 'rendering', 'model export', 'export model', '3d file', 'fbx', 'dae', 'collada', 'twinmotion', 'lumion', 'enscape', 'architect model'],
+  'cmd-model-obj': ['obj', 'wavefront', 'mtl', 'sweet home 3d', 'model export'],
   'plan-overlays': ['grid', 'snapping'],
   sun: ['daylight'],
 }
@@ -49,7 +54,7 @@ export const LEADS: Record<string, string> = {
   printing: 'tab:share/plans',
   rotate: 'tab:earthworks/place',
   turn: 'tab:earthworks/place',
-  template: 'command:open-example',
+  template: 'more:starter-houses',
   save: 'command:save-state',
   level: 'tab:design/floors',
   levels: 'tab:design/floors',
@@ -63,6 +68,10 @@ export const LEADS: Record<string, string> = {
   balcony: 'command:tool-area',
   curved: 'command:tool-sketch',
   rectangle: 'command:rect-room',
+  // How the house looks in 3D (CB-21); a price for a material is Costs › Materials.
+  colour: 'tab:design/finishes',
+  color: 'tab:design/finishes',
+  texture: 'tab:design/finishes',
 }
 
 export interface NotHere {
@@ -78,9 +87,7 @@ export interface NotHere {
 /** What other planners do that this one doesn't: search says so, instead of "Nothing matches". */
 export const NOT_HERE: NotHere[] = [
   { id: 'imperial', words: ['feet', 'foot', 'inches', 'inch', 'imperial', 'ft', 'yards'], label: 'Feet and inches', says: 'Not in this planner: it works in metres and millimetres only.' },
-  { id: 'render', words: ['render', 'rendering', 'photorealistic', 'realistic', 'texture', 'textures', 'wallpaper', 'paint'], label: 'Rendered pictures and textures', says: 'Not in this planner: the 3D view shows shape, levels and shadows in plain colours.' },
-  { id: 'walk', words: ['walk', 'walkthrough', 'walk-through', 'first person', 'vr', 'virtual tour', 'fly through'], label: 'Walking through the house', says: 'Not in this planner: the 3D view orbits the outside, with Street view for eye level.' },
-  { id: 'mirror', words: ['mirror', 'flip', 'reflect'], label: 'Mirror or flip the plan', says: 'Not in this planner: turn the house under Earthworks › Place, or turn furniture with Q.' },
+  { id: 'render', words: ['rendering', 'photorealistic', 'realistic', 'photo-real', 'wallpaper'], label: 'Photo-real pictures', says: 'Not in this planner: no photo-real pictures. Design › Finishes sets the cladding, roof, colours and floors in the 3D view.' },
   { id: 'skylight', words: ['skylight', 'roof window', 'dormer'], label: 'Skylights and dormers', says: 'Not in this planner: roofs are hip, gable or skillion, with no openings in them.' },
   { id: 'beam', words: ['beam', 'beams', 'column', 'columns', 'post', 'structure', 'structural', 'truss', 'rafters'], label: 'Beams, posts and framing', says: 'Not in this planner: it draws walls, floors and roofs, and leaves the structure to your engineer.' },
   { id: 'electrical', words: ['electrical', 'power point', 'powerpoint', 'lighting plan', 'plumbing', 'wiring'], label: 'Electrical and plumbing plans', says: 'Not in this planner: it stops at walls, rooms, roofs and the ground.' },

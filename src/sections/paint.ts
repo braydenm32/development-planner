@@ -4,7 +4,8 @@
 
 import { FLOOR_STRUCTURE } from '../plan/model'
 import { rlText, type Box, type LevelMark, type Pt } from './common'
-import type { ElevationDrawing } from './elevation'
+import type { ElevationDrawing, ElevationOpening } from './elevation'
+import { openingMarks } from './openingMarks'
 import type { SectionDrawing } from './section'
 
 export type Drawing = SectionDrawing | ElevationDrawing
@@ -31,7 +32,7 @@ export type ShapeStyle =
   | 'scale-light'
 
 /** Lines. */
-export type LineStyle = 'stair-beyond' | 'natural' | 'finished' | 'ceiling' | 'level' | 'boundary' | 'dim' | 'axis' | 'roof-edge' | 'detail' | 'height'
+export type LineStyle = 'stair-beyond' | 'natural' | 'finished' | 'ceiling' | 'level' | 'boundary' | 'dim' | 'axis' | 'roof-edge' | 'detail' | 'height' | 'swing'
 
 export type Ink = 'ink' | 'muted' | 'accent' | 'boundary'
 
@@ -156,7 +157,9 @@ export function paintDrawing(p: Painter, d: Drawing, x: number, y: number, k: nu
     for (const s of d.shapes) {
       if (s.kind === 'wall') {
         p.shape(s.pts.map(P), 'wall-face')
-        for (const o of s.openings) opening(p, o.kind, rect(o.box), k)
+        // Where two finishes meet (src/finishes): drawn before the openings, which cover it.
+        for (const [a, b] of s.splits ?? []) p.line([P(a), P(b)], 'detail')
+        for (const o of s.openings) opening(p, o, rect(o.box), k)
       } else {
         for (const t of s.tris) p.shape(t.map(P), 'roof-face')
         for (const [a, b] of s.edges) p.line([P(a), P(b)], 'roof-edge')
@@ -284,14 +287,14 @@ export function paintSectionBody(p: Painter, d: SectionDrawing, X: (s: number) =
   for (const run of d.natural) p.line(run.map(P), 'natural')
 }
 
-/** A window, door or other opening on a wall's face. */
-function opening(p: Painter, kind: string, r: Pt[], k: number) {
+/** A window, door or other opening on a wall's face, with the marks for how it opens (openingMarks). */
+function opening(p: Painter, o: ElevationOpening, r: Pt[], k: number) {
   const [x0, y1] = r[0]
   const [x1, y0] = r[2]
+  const kind = o.kind
   const style: ShapeStyle = kind === 'window' ? 'window' : kind === 'door' ? 'door' : kind === 'garage' ? 'garage' : 'opening'
   p.shape(r, style)
-  if (kind === 'window' && x1 - x0 > 1.3 * k) p.line([[(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1]], 'detail')
-  if (kind === 'garage') for (let y = y0 + 0.5 * k; y < y1 - 0.1 * k; y += 0.5 * k) p.line([[x0, y], [x1, y]], 'detail')
+  for (const m of openingMarks(o, x0, x1, y0, y1, k)) p.line(m.pts, m.style)
 }
 
 /** Each floor's name and its floor-to-ceiling height, inside the first span the cut makes through it. */

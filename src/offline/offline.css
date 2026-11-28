@@ -1,0 +1,111 @@
+/* Working offline: the plain "needs a connection" line, the top bar's Offline chip and the note
+   about a new version. In the calm look of the cloud and toast notes (ink on white, hairlines). */
+
+.needs-connection {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #f0deae;
+  border-radius: 4px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.needs-connection .ic {
+  flex: none;
+  margin-top: 2px;
+}
+
+.needs-connection b {
+  font-weight: 600;
+}
+
+/* Above the cloud's sheets' scrim, where it sits in the body of one. */
+.cl-body > .needs-connection {
+  margin-top: 0;
+}
+
+.of-note {
+  position: fixed;
+  left: 16px;
+  bottom: 22px;
+  z-index: 36;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 14px;
+  border-radius: 4px;
+  background: #16181b;
+  color: #ffffff;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.of-note > span {
+  padding: 4px 0;
+}
+
+.of-note button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.of-note .of-reload {
+  background: #2346d0;
+  font-weight: 600;
+}
+
+.of-note .of-close {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  color: #c9ccd1;
+}
+
+.of-note button:hover {
+  filter: brightness(1.15);
+}
+
+.of-note button:focus-visible {
+  outline: 2px solid #8da0e6;
+  outline-offset: 2px;
+}
+
+/* In the app: in the middle, above the plan's hint bar and the Undo toast's place, so neither
+   hides the other and it never covers the tool rail or a panel's foot. */
+body:has(.app-shell) .of-note {
+  left: 50%;
+  bottom: 136px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* On a phone: above the bottom bar and the toast. */
+body:has(.app-shell.phone) .of-note {
+  left: 12px;
+  right: 12px;
+  bottom: calc(124px + env(safe-area-inset-bottom));
+  max-width: none;
+  transform: none;
+  white-space: normal;
+}
+
+body:has(.app-shell.phone) .of-note > span {
+  flex: 1;
+}

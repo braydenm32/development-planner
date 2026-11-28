@@ -498,18 +498,18 @@ function housingCode(ms: Measures): CheckResult[] {
     id: 'hc-cut',
     title: 'Depth of cut',
     status: !e ? 'pass' : e.cutNear <= 1 + 1e-6 && e.cutMid <= 2 + 1e-6 && e.cutFar <= 3 + 1e-6 ? 'pass' : 'fail',
-    value: e ? `${m(e.cutNear)} within 1 m of the boundary, ${m(e.cutMid)} at 1 to 1.5 m, ${m(e.cutFar)} beyond` : 'No cut and fill',
+    value: e ? `${m(e.cutNear)} within 1 m of the boundary, ${m(e.cutMid)} at 1 to 1.5 m, ${m(e.cutFar)} beyond` : noCutFill(ms),
     limit: '1 m, 2 m and 3 m',
-    note: [e ? worstCutWords(e) : '', 'Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).'].filter(Boolean).join(' '),
+    note: [e ? worstCutWords(e) : '', drivesNote(ms), 'Measured on the levelled ground, so pier holes don’t count (since the Oct 2024 update they’re left out where an engineer supports them). Limited to 1 m on class 3 or 4 acid sulfate soils or within 40 m of a natural waterbody (not looked up yet).'].filter(Boolean).join(' '),
     source: HC('cl 3.30'),
   })
   out.push({
     id: 'hc-fill',
     title: 'Fill outside the house',
     status: !e ? 'pass' : atMost(e.fillOutside, 1),
-    value: e ? `${m(e.fillOutside)} at most` : 'No cut and fill',
+    value: e ? `${m(e.fillOutside)} at most` : noCutFill(ms),
     limit: '1 m above existing ground',
-    note: [e?.fillOutsideAt && e.fillOutside > 1 + 1e-6 ? spotWords(e.fillOutsideAt) : '', 'No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).'].filter(Boolean).join(' '),
+    note: [e?.fillOutsideAt && e.fillOutside > 1 + 1e-6 ? spotWords(e.fillOutsideAt) : '', drivesNote(ms), 'No limit under the house itself (any level’s floor). Fill over 150 mm can cover at most half the landscaped area (not checked yet).'].filter(Boolean).join(' '),
     source: HC('cl 3.30'),
     ...fixAtSpot(e && e.fillOutside > 1 + 1e-6 ? e.fillOutsideAt : null),
   })
@@ -517,12 +517,13 @@ function housingCode(ms: Measures): CheckResult[] {
     id: 'hc-works-boundary',
     title: 'Earthworks clear of the boundary',
     status: !e || e.closestWorks === null ? 'pass' : e.closestWorks > 1 ? 'pass' : 'fail',
-    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${worksEdgeName(ms, e)}` : 'No cut and fill',
+    value: e && e.closestWorks !== null ? `Closest ${m(e.closestWorks)} from ${worksEdgeName(ms, e)}` : noCutFill(ms),
     limit: 'The foot and the top of each earth slope (batter) stay more than 1 m from the side and rear boundaries',
     note: [
       e?.closestAt && e.closestWorks !== null && e.closestWorks <= 1 ? spotWords(e.closestAt) : '',
       e && e.nearBoundary.length > 1 ? `Within 1 m of a boundary: ${e.nearBoundary.map(x => `${x.source.name} (${m(x.d)} from ${edgeWords(ms, x.edge)})`).join('; ')}.` : '',
       e && !e.sideRearOnly ? (s.battleAxe ? 'On a battle-axe lot every boundary is measured.' : 'Measured to every boundary, the front included, until you pick the street side under Lot facts.') : '',
+      drivesNote(ms),
     ].filter(Boolean).join(' ') || undefined,
     source: HC('cl 3.30'),
     ...fixAtSpot(e?.closestWorks !== null && (e?.closestWorks ?? Infinity) <= 1 ? e?.closestAt : null),
@@ -537,7 +538,7 @@ function housingCode(ms: Measures): CheckResult[] {
     status: tall.length ? 'warn' : 'pass',
     value: wallsValue(ms),
     limit: `Over ${ENGINEER_TEXT} needs a professional engineer’s certificate; no taller than the cut or fill they hold`,
-    note: [tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over ${ENGINEER_TEXT}${impliedWords(tall)}: allowed with an engineer’s certificate.` : '', impliedNote(ms)].filter(Boolean).join(' ') || undefined,
+    note: [tall.length ? `${tall.length} wall${tall.length > 1 ? 's' : ''} over ${ENGINEER_TEXT}${impliedWords(tall)}: allowed with an engineer’s certificate.` : '', impliedNote(ms), drivesNote(ms)].filter(Boolean).join(' ') || undefined,
     source: HC('cl 3.30'),
     walls: tall.filter(w => !w.implied).map(w => w.id),
   })
@@ -627,6 +628,19 @@ function impliedWords(walls: WallNumbers[]): string {
   if (!n) return ''
   return n === walls.length ? (n === 1 ? ' (implied)' : ' (all implied)') : ` (${n} implied)`
 }
+
+/** Said on the earthworks and wall rows when a driveway with levels, or a pool or tank in or on the ground, is in the cut and fill: these rows leave it out. */
+const drivesNote = (ms: Measures): string =>
+  [
+    ms.drivesLeftOut ? 'Drives aren’t counted here: their cut and fill is in the volumes and costs.' : '',
+    ms.piecesLeftOut ? 'Pools and tanks aren’t counted here: their cut and fill is in the volumes and costs, and a pool’s dig is assessed under its own rules.' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+/** An earthworks row's value with nothing to measure: the drive's (or pool's and tank's) own cut and fill, when there is some, is left out. */
+const noCutFill = (ms: Measures): string =>
+  ms.drivesLeftOut && ms.piecesLeftOut ? 'Only the drive’s, pool’s or tank’s cut and fill' : ms.drivesLeftOut ? 'Only the drive’s cut and fill' : ms.piecesLeftOut ? 'Only the pool’s or tank’s cut and fill' : 'No cut and fill'
 
 /** What an implied wall is, once, where a row counts any. */
 const impliedNote = (ms: Measures): string =>
@@ -755,7 +769,7 @@ function frontCheck(ms: Measures, c: Council, fr: FrontRule, f: Edge | undefined
 function cutFillCheck(ms: Measures, c: Council, r: CutFillRule): CheckResult {
   const e = ms.earth
   const limit = `${r.nearCut !== undefined ? `Cut ${len(r.nearCut)} within 1 m of a boundary, ${len(r.cut)} elsewhere` : `Cut ${len(r.cut)}`}; fill ${len(r.fill)}${r.outsideHouse ? ', outside the house' : ''}`
-  if (!e) return { id: 'da-cut-fill', title: 'Depth of cut and fill', status: 'pass', value: 'No cut and fill', limit, source: cite(c, r.source) }
+  if (!e) return { id: 'da-cut-fill', title: 'Depth of cut and fill', status: 'pass', value: noCutFill(ms), limit, note: drivesNote(ms) || undefined, source: cite(c, r.source) }
   const cut = r.outsideHouse ? e.cutOutside : r.nearCut !== undefined ? Math.max(e.cutMid, e.cutFar) : e.maxCut
   const fill = r.outsideHouse ? e.fillOutside : e.maxFill
   const over = cut > r.cut + 1e-6 || fill > r.fill + 1e-6 || (r.nearCut !== undefined && e.cutNear > r.nearCut + 1e-6)
@@ -765,7 +779,7 @@ function cutFillCheck(ms: Measures, c: Council, r: CutFillRule): CheckResult {
     status: over ? (r.generally ? 'warn' : 'fail') : 'pass',
     value: `${r.nearCut !== undefined ? `Cut ${m(e.cutNear)} within 1 m of the boundary, ${m(cut)} elsewhere` : `Cut ${m(cut)}`}; fill ${m(fill)}${r.outsideHouse ? ', outside the house' : ''}`,
     limit,
-    note: `${over && r.generally ? 'The DCP says “generally”, so more needs a case in the DA. ' : ''}Measured from the natural ground to the levelled ground.`,
+    note: [`${over && r.generally ? 'The DCP says “generally”, so more needs a case in the DA. ' : ''}Measured from the natural ground to the levelled ground.`, drivesNote(ms)].filter(Boolean).join(' '),
     source: cite(c, r.source),
   }
 }
@@ -909,7 +923,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       id: 'da-batters',
       title: 'Batter slopes',
       status: steep ? 'fail' : 'pass',
-      value: e ? battersText(e.cutBatter, e.fillBatter) : 'No cut and fill',
+      value: e ? battersText(e.cutBatter, e.fillBatter) : noCutFill(ms),
       limit: `No steeper than 1 in ${num(run)}${c.batters.prefer ? ` (1 in ${num(c.batters.prefer)} preferred)` : ''}`,
       note: steep ? `Set the batters to 1 in ${num(run)} under Earthworks › Cut & fill. The volumes grow.` : undefined,
       source: cite(c, c.batters.source),
@@ -929,7 +943,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
       status: hit ? 'warn' : 'pass',
       value: `Deepest cut or fill ${m(deep)}; block slope ${ms.slopePct.toFixed(1)}%`,
       limit: `Needed for earthworks over ${num(g.depth)} m high or on land of ${num(g.slope)}% or more`,
-      note: `${hit ? `Not a fail: ${g.why}. ` : ''}${g.also ?? ''}` || undefined,
+      note: [`${hit ? `Not a fail: ${g.why}. ` : ''}${g.also ?? ''}`, drivesNote(ms)].filter(Boolean).join(' ') || undefined,
       source: cite(c, g.source),
     })
   }
@@ -975,6 +989,7 @@ export function councilChecks(ms: Measures, c: Council): CheckResult[] {
             ? `${flagged.length === 1 ? 'One wall holds' : `${flagged.length} walls hold`} back over ${ENGINEER_TEXT} and ${flagged.length === 1 ? 'is' : 'are'} within this council’s heights: the planner still flags ${flagged.length === 1 ? 'it' : 'them'} for an engineer, the ${ENGINEER_SOURCE} figure it uses everywhere.`
             : '',
           impliedNote(ms),
+          drivesNote(ms),
         ]
           .filter(Boolean)
           .join(' ') || undefined,

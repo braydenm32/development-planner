@@ -193,13 +193,17 @@ describe('the tilt across the drive (DB-14)', () => {
     expect(r.source.clause).toMatch(/AS\/NZS 2890\.1:2004 cl 2\.4\.6/)
     expect(r.source.confidence).toBe('unverified')
   })
-  it('passes up to 1 in 16 and fails past it, saying what the figure is of', () => {
+  it('passes up to 1 in 16 and warns (never fails) past it, saying what the figure is of', () => {
     expect(row(rows(line({ crossFall: 0.06, built: false })), 'drive-crossfall').status).toBe('pass')
     const r = row(rows(line({ crossFall: 0.18, built: false })), 'drive-crossfall')
-    expect(r.status).toBe('fail')
+    expect(r.status).toBe('warn')
     expect(r.value).toBe('Tilts 1 in 5.6 (18%) sideways at most, on the ground it follows')
+    expect(r.note).toMatch(/worth checking with whoever designs the drive/)
+    expect(r.source.confidence).toBe('unverified')
     expect(r.note).toMatch(/give it a level at the street end or the garage end under Levels/)
     expect(r.title).toBe('Tilt across the drive (cross-fall)')
+    // Built to its levels and still tilted: a warning too.
+    expect(row(rows(line({ crossFall: 0.18, built: true })), 'drive-crossfall').status).toBe('warn')
   })
   it('has no row when the tilt can’t be read', () => {
     expect(rows(line({ crossFall: null })).some(r => r.id === 'drive-crossfall')).toBe(false)

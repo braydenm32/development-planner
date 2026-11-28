@@ -24,6 +24,7 @@ import {
 import { earthworksPlatforms, padSteps, pierOutlines } from '../plan/platforms'
 import { slabBedOf } from '../plan/model'
 import { levelBuildsAs } from '../plan/floorTypes'
+import { levelsOf, pieceShape } from '../plan/groundPieces'
 import { retainingProfile, topAt } from '../plan/retaining'
 import { ROOF_EDGE, roofGeometry, type RoofMesh } from '../plan/roof'
 import { mm1, stairLayout } from '../plan/stairs'
@@ -299,6 +300,13 @@ export function sectionDrawing(line: SectionLine, input: DrawingInput): SectionD
         for (const s of postStations(s0, s1)) post(s, top - DECK_DEPTH, POST_W)
       }
     }
+  }
+
+  // Pools and tanks in the ground or on their base: the shell's walls and floor, or the tank, at their own levels.
+  for (const f of plan.furniture) {
+    const lv = levelsOf(plan, f, survey.origin, natural)
+    if (!lv) continue
+    for (const p of pieceShape(f, lv).solids) for (const [s0, s1] of spansInside(a, b, [p.pts])) slabs.push({ s0, s1, z0: p.z0, z1: p.z1 })
   }
 
   // Retaining walls: from a little under the lower ground to the wall's top, as its panel works it out.

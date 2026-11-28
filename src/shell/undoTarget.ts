@@ -85,10 +85,46 @@ function settle(k: UndoKind, past: number, future: number) {
   else if (u < 0) undone = [...(Array(-u).fill(k) as UndoKind[]), ...undone]
 }
 
+/** Set while saved histories are put back after a reload (src/projects/undoHistory.ts): not steps. */
+let quiet = false
+
+/** Put histories back without counting it as steps; `putBackOrder` sets the order after. */
+export function quietly(fn: () => void) {
+  quiet = true
+  try {
+    fn()
+  } finally {
+    quiet = false
+  }
+}
+
+/** The order as it is now, to save with the histories. */
+export const undoOrderNow = (): { done: UndoKind[]; undone: UndoKind[] } => ({ done, undone })
+
+/**
+ * The saved order back, made to fit the histories as they were put back: steps trimmed off
+ * the oldest end leave the order there, and a step saved after the order (the page closed
+ * before it was written) is the latest. Older saves without an order count the plan's steps only.
+ */
+export function putBackOrder(saved?: { done?: unknown; undone?: unknown }) {
+  const valid = (l: unknown): UndoKind[] => (Array.isArray(l) ? l.filter((k): k is UndoKind => KINDS.includes(k as UndoKind)) : [])
+  done = valid(saved?.done)
+  undone = valid(saved?.undone)
+  for (const k of KINDS) {
+    const s = source(k).store.getState()
+    const d = countOf(done, k) - s.past.length
+    if (d > 0) done = without(done, k, d, 'oldest')
+    else if (d < 0) done = [...done, ...(Array(-d).fill(k) as UndoKind[])]
+    const u = countOf(undone, k) - s.future.length
+    if (u > 0) undone = without(undone, k, u, 'oldest')
+    else if (u < 0) undone = [...(Array(-u).fill(k) as UndoKind[]), ...undone]
+  }
+}
+
 for (const k of KINDS) {
   const src = source(k)
   src.store.subscribe((s, prev) => {
-    if (s.past === prev.past && s.future === prev.future) return
+    if (quiet || (s.past === prev.past && s.future === prev.future)) return
     const dp = s.past.length - prev.past.length
     const df = s.future.length - prev.future.length
     const now = src.now()

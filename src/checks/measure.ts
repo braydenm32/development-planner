@@ -3,7 +3,7 @@
 // roofAboveGround, distances to the boundary from boundaryClearances, retaining walls from
 // retainingProfiles and the finished ground from the cut and fill.
 
-import { groundSourceAt, type EarthworksResult, type PreparedEarthworks } from '../lib/earthworks'
+import { evaluateEarthworks, groundSourceAt, prepWithout, type EarthworksResult, type PreparedEarthworks } from '../lib/earthworks'
 import { bounds, pointInPolygon, signedArea, unionArea, type Vec2 } from '../lib/geom'
 import type { Survey } from '../lib/survey'
 import type { Terrain } from '../lib/terrain'
@@ -23,6 +23,7 @@ import type { SunFacts } from '../sun/facts'
 import { checkSettingsOf } from './councils'
 import { earthSource, worksNearBoundary, type EarthSource, type NearBoundary } from './earthSources'
 import { isPadId } from '../plan/platforms'
+import { isPieceId } from '../plan/groundPieces'
 import { worksOf, type Works, type WorksGround } from './trees'
 import type { CheckSettings, CheckTree } from './types'
 
@@ -154,6 +155,10 @@ export interface Measures {
   sun?: SunFacts | null
   /** Each driveway on the lowest level, out to where it meets the street (src/plan/crossing.ts). */
   drives: DriveLine[]
+  /** A driveway with levels is in the cut and fill, and the earthworks and retaining wall rows leave its works out (see checkedEarth). */
+  drivesLeftOut?: boolean
+  /** The same for a pool or tank set in or on the ground. */
+  piecesLeftOut?: boolean
 }
 
 /** The nearest point to p on the segment a–b. */
@@ -315,6 +320,23 @@ function earthNumbers(plan: Plan, prep: PreparedEarthworks, result: EarthworksRe
   }
 }
 
+/**
+ * The cut and fill the earthworks and retaining wall checks measure: the whole model without its
+ * driveways, pools and tanks. A drive with levels is graded in with the rest (3D, sections, volumes
+ * and costs), but the owner's call is that a drive's own cut and fill never fails or warns a check;
+ * a pool's or tank's likewise, as a pool's dig is assessed under its own rules. Each platform's
+ * level ground is worked out on its own, so leaving these out leaves the house pad and the rest as they are.
+ */
+export function checkedEarth<E extends NonNullable<MeasureInput['earth']>>(plan: Plan, earth: E): E {
+  const drives = new Set(plan.areas.filter(a => areaKind(a) === 'driveway').map(a => a.id))
+  // Pools and tanks too: a pool's dig is assessed under its own rules, not the house's earthworks limits.
+  const leftOut = (id: string | undefined) => id !== undefined && (drives.has(id) || isPieceId(id))
+  if (!earth.prep.platforms.some(p => leftOut(p.id))) return earth
+  const prep = prepWithout(earth.prep, p => leftOut(p.id))
+  const platforms = earth.platforms.filter(p => !leftOut((p as { id?: string }).id))
+  return { ...earth, prep, result: evaluateEarthworks(prep), platforms }
+}
+
 /** The house's highest point above the natural ground under it: the app's one building height (see buildingHeight). */
 export const houseHeight = buildingHeight
 
@@ -365,7 +387,9 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
   })
 
   const groundOutline = (outlinesBy[0] ?? []).map(site)
-  const ground = earth?.result.grid ?? terrain.grid
+  // The drives' own cut and fill is left out of what the earthworks and wall rows measure.
+  const checked = earth && checkedEarth(plan, earth)
+  const ground = checked?.result.grid ?? terrain.grid
   const walls = retainingProfiles(plan, survey.origin, ground).map(p => {
     const a = toSite(p.wall.a, pl, survey.origin)
     const z = toSite(p.wall.b, pl, survey.origin)
@@ -380,7 +404,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
   })
 
   // The earthworks as the app holds them (with the retaining walls' strips); a bare result has no walls drawn.
-  const whole = earth ? (earth.strips ? (earth as Earth) : ({ ...earth, strips: [] } as Earth)) : null
+  const whole = checked ? (checked.strips ? (checked as Earth) : ({ ...checked, strips: [] } as Earth)) : null
   const implied = impliedWalls(survey, whole).map((w, i): WallNumbers => {
     let d = Infinity
     for (const [p, q] of segmentsOf(w.path)) {
@@ -389,6 +413,17 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     }
     return { id: `implied:${i}`, height: w.height, toBoundary: Math.max(0, d), a: w.a, b: w.b, implied: true }
   })
+
+  const footprintSite = all.map(site)
+  const sideRear = settings.battleAxe ? undefined : front
+  const numbersOf = (e: NonNullable<MeasureInput['earth']>) => earthNumbers(plan, e.prep, e.result, b, footprintSite, sideRear)
+  /** The checked earthworks' numbers; the ground disturbed (for erosion control, which never fails) counts the drives too. */
+  const earthOf = (c: MeasureInput['earth'], whole: MeasureInput['earth']): EarthNumbers | null => {
+    if (!c || !whole) return null
+    const n = c.platforms.length ? numbersOf(c) : null
+    if (c === whole || !whole.platforms.length) return n
+    return n ? { ...n, disturbed: numbersOf(whole).disturbed } : null
+  }
 
   const out = outsideLot(all, pl, survey)
   const roomsArea = summaries.reduce((t, s) => t + roomsTotal(s.rooms), 0)
@@ -412,7 +447,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
     levels: outlinesBy.filter(o => o.length > 0).length,
     slopePct: terrain.stats.meanSlopePct,
     // "Outside the house" is outside every level's outline: a split level's own slab is under the house too.
-    earth: earth && earth.platforms.length ? earthNumbers(plan, earth.prep, earth.result, b, all.map(site), settings.battleAxe ? undefined : front) : null,
+    earth: earthOf(checked, earth),
     walls,
     implied,
     groundOutline,
@@ -427,5 +462,7 @@ export function measure({ plan, survey, terrain, earth, trees = [], sun = null, 
       battleAxe: settings.battleAxe,
       natural: dem ? undefined : p => terrain.grid.sample(p[0], p[1]),
     }),
+    ...(checked !== earth && earth?.prep.platforms.some(p => !isPieceId(p.id) && plan.areas.some(a => a.id === p.id && areaKind(a) === 'driveway')) ? { drivesLeftOut: true } : {}),
+    ...(checked !== earth && earth?.prep.platforms.some(p => isPieceId(p.id)) ? { piecesLeftOut: true } : {}),
   }
 }

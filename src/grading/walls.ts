@@ -64,7 +64,8 @@ export function planWallSuggestions(plan: Plan, survey: Pick<Survey, 'origin' | 
 const inputs = (survey: Pick<Survey, 'boundary'>, earth: Earth) => ({
   prep: earth.prep,
   boundary: survey.boundary,
-  barriers: earth.strips.map(s => [s.a, s.b] as [Vec2, Vec2]),
+  // A pool's shell only holds its own hole: retaining walls are what stop a batter.
+  barriers: earth.strips.filter(s => !s.shell).map(s => [s.a, s.b] as [Vec2, Vec2]),
   sources: earth.prep.platforms.flatMap(p => (p.id && (isPadId(p.id) || p.id.startsWith('slab:') || p.id.startsWith('grade:')) ? [p.id] : [])),
   family,
   label,
@@ -121,7 +122,7 @@ export function stepWalls(earth: Earth | null): WallSuggestion[] {
     const b = r3(s.b)
     const mid: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
     const dir = lineDir(a, b)
-    if (earth.strips.some(w => apart(dir, lineDir(w.a, w.b)) < 25 && toLine(mid, w.a, w.b) < STEP_HELD)) continue
+    if (earth.strips.some(w => !w.shell && apart(dir, lineDir(w.a, w.b)) < 25 && toLine(mid, w.a, w.b) < STEP_HELD)) continue
     const height = s.high - s.low
     const length = Math.hypot(b[0] - a[0], b[1] - a[1])
     value.push({

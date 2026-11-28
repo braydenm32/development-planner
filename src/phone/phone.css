@@ -548,7 +548,9 @@ body:has(.app-shell.phone) {
   grid-auto-columns: 44px;
   align-content: start;
   direction: rtl;
-  height: calc(100% - 58px - 52px - 3 * var(--gap) - var(--peek-h, 0px) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
+  /* Above whatever sits at the foot: the key numbers line, or an open panel's sheet (up to half the canvas), so the
+     buttons wrap into another column rather than run under it. */
+  height: calc(100% - 58px - max(52px + var(--peek-h, 0px), min(var(--sheet-h, 0px), 50%)) - 3 * var(--gap) - var(--section-strip-h, 0px) - var(--sun-clear, 0px));
   min-height: 44px;
   pointer-events: none;
 }
@@ -1458,4 +1460,119 @@ body:has(.app-shell.phone) {
 .app-shell.phone .plan-hint.phone-empty :is(.plan-hint-go, .plan-hint-link) {
   min-height: 44px;
   font-size: 15px;
+}
+
+/* What was tapped on the plan, as one line along the bottom (src/phone/SelectionPeek.tsx): the
+   plan stays in view; the line opens the full card. */
+.app-shell.phone .shell-main.has-sel-peek {
+  --peek-h: 62px;
+}
+
+.app-shell.phone .selection-peek {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 60px;
+  padding: 6px 8px 6px 6px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  background: var(--panel);
+  box-shadow: 0 -8px 28px -10px rgba(0, 0, 0, 0.2);
+}
+
+.app-shell.phone .selection-peek-open {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+}
+
+.app-shell.phone .selection-peek-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.app-shell.phone .selection-peek-text > * {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-shell.phone .selection-peek-text > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.app-shell.phone .selection-peek-more {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-shell.phone .selection-peek > button:not(.selection-peek-open) {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* A tab's panel on a phone: one tap to every key number from its head (PH-25). */
+.app-shell .panel-numbers {
+  flex: none;
+  align-self: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* View's Measure (src/phone/tapMeasure.tsx): under the level chip, clear of the view buttons. */
+.app-shell.phone .tap-measure-card {
+  top: 116px;
+  right: 66px;
+  left: var(--gap);
+  justify-content: flex-start;
+  max-width: none;
+  transform: none;
+  font-size: 14px;
+}
+
+.tap-measure .tap-measure-ring {
+  fill: none;
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+
+/* A piece in the furniture list is pressed and held to drag it by touch (src/phone/holdDrag.ts): no callout or text selection. */
+@media (pointer: coarse) {
+  .furniture-items button {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }

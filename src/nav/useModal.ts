@@ -3,6 +3,7 @@
 // opened it (or somewhere sensible if that control has gone).
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
+import { useBackCloses } from './backCloses'
 
 const STOPS = 'a[href], button, input, select, textarea, summary, [tabindex]'
 
@@ -70,17 +71,20 @@ export interface ModalOptions {
   focus?: 'auto' | 'none'
   /** Where focus goes as it closes, when that isn't whatever had focus before (a menu's own button). */
   returnTo?: RefObject<HTMLElement | null>
+  /** On a touch screen, the phone's Back closes it too (PH-20); false where Back should leave the place instead. */
+  back?: boolean
 }
 
 /**
  * While `open`, `box` owns the keyboard. `onClose` runs on Esc; it may do nothing (a sheet that
  * is busy saving), and the key still goes no further.
  */
-export function useModal(box: RefObject<HTMLElement | null>, open: boolean, onClose: () => void, { focus = 'auto', returnTo }: ModalOptions = {}) {
+export function useModal(box: RefObject<HTMLElement | null>, open: boolean, onClose: () => void, { focus = 'auto', returnTo, back = true }: ModalOptions = {}) {
   const close = useRef(onClose)
   useLayoutEffect(() => {
     close.current = onClose
   })
+  useBackCloses(open, () => close.current(), back)
   useEffect(() => {
     if (!open) return
     const startBox = box.current

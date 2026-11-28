@@ -19,8 +19,10 @@ import { DaPackTab, PlansTab, PrintTab, SendTab } from './tabs/ShareTabs'
 import { SiteFeaturesTab } from './tabs/SiteFeaturesTab'
 import { Site3dTab, SiteBlockTab } from './tabs/SiteTabs'
 import { SectionsTab } from '../sections/SectionsTab'
+import { FinishesTab } from '../finishes/FinishesPanel'
 import { SiteSunTab } from '../sun/SunTab'
 import { MapTab } from '../map/MapTab'
+import { StarterHousesSection } from '../starters/StarterCards'
 
 /** Each tab's panel, by `area/tab`. */
 export const TAB_PANELS: Record<string, ComponentType> = {
@@ -34,6 +36,7 @@ export const TAB_PANELS: Record<string, ComponentType> = {
   'design/walls': WallsTab,
   'design/roofs': RoofsTab,
   'design/furniture': FurnitureTab,
+  'design/finishes': FinishesTab,
   'design/sections': SectionsTab,
   'design/options': OptionsTab,
   'earthworks/place': PlaceTab,
@@ -60,11 +63,13 @@ export const MORE_SECTIONS: Record<string, ComponentType> = {
   bearing: More.BearingSection,
   'survey-warnings': More.SurveyWarningsSection,
   'site-replace': More.ReplaceSurveySection,
+  'trace-plan': More.TracePlanSection,
   'plan-file': More.PlanFileSection,
   'wall-preset': More.WallPresetSection,
   'keyboard-shortcuts': More.KeyboardSection,
   'stair-defaults': More.StairDefaultsSection,
   'flip-plan': FlipPlanSection,
+  'starter-houses': StarterHousesSection,
   origin: More.OriginSection,
   'earthworks-margin': More.MarginSection,
   'slab-bed': More.SlabBedSection,

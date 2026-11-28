@@ -57,6 +57,8 @@ const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} $
 
 const OPENING: Record<string, [string, string]> = { door: ['door', 'doors'], window: ['window', 'windows'], opening: ['opening', 'openings'], garage: ['garage door', 'garage doors'] }
 
+/** Leaves a wall's finish out when comparing the rest of it. */
+const noFinish = (k: string, v: unknown) => (k === 'finish' ? undefined : v)
 const DESIGN: Pick<StepName, 'area' | 'tab' | 'also'> = { area: 'design', tab: 'plan', also: ['earthworks'] }
 const PLACE: Pick<StepName, 'area' | 'tab' | 'also'> = { area: 'earthworks', tab: 'place', also: ['design'] }
 
@@ -129,6 +131,9 @@ export function namePlanStep(a: Plan, b: Plan): StepName {
     const moved = openings.changed.every(([x, y]) => x.offset !== y.offset && x.width === y.width && x.height === y.height)
     return { what: `${moved ? 'move' : 'change'} ${count(openings.changed.length, noun[0], noun[1])}`, ...DESIGN }
   }
+  // A wall's own finish (src/finishes), set on its card, and nothing else about it.
+  if (walls.changed.length && walls.changed.every(([x, y]) => differ(x.finish, y.finish) && JSON.stringify(x, noFinish) === JSON.stringify(y, noFinish)))
+    return { what: walls.changed.length === 1 ? 'change wall finish' : 'change wall finishes', ...DESIGN }
   if (walls.changed.length) {
     const moved = walls.changed.some(([x, y]) => differ(x.a, y.a) || differ(x.b, y.b))
     const ws = walls.changed.map(c => c[1])
@@ -158,6 +163,7 @@ export function namePlanStep(a: Plan, b: Plan): StepName {
   if (differ(a.da, b.da)) return { what: 'change DA pack revision', area: 'approvals', tab: 'da-pack' }
   if (differ(a.location, b.location)) return { what: 'change where the block is', area: 'site', tab: 'sun' }
   if (differ(a.sketchNames, b.sketchNames)) return { what: 'name sketch colour', ...DESIGN }
+  if (differ(a.finishes, b.finishes)) return { what: 'change finishes', area: 'design', tab: 'finishes' }
   if (differ(a.name, b.name)) return { what: 'rename project', ...DESIGN }
   return { what: 'change to the plan', ...DESIGN }
 }
@@ -173,6 +179,10 @@ export function nameSiteStep(a: SiteData, b: SiteData): StepName {
   if (f.removed.length && !f.added.length) return { what: f.removed.length === 1 ? `delete ${noun(f.removed)}` : `delete ${f.removed.length} site features`, ...FEATURES }
   if (o.added.length) return { what: 'add drawing', ...FEATURES }
   if (o.removed.length) return { what: 'remove drawing', ...FEATURES }
+  // Views from photos live in Site › 3D (src/photoview).
+  const ph = diff(a.photos, b.photos)
+  if (ph.added.length || ph.removed.length || ph.changed.length)
+    return { what: ph.added.length ? 'add photo' : ph.removed.length ? 'remove photo' : 'change view from a photo', area: 'site', tab: '3d' }
   if (f.changed.length) {
     const [x, y] = f.changed[0]
     const what = !!x.remove !== !!y.remove ? (y.remove ? `mark ${noun([y])} for removal` : `keep ${noun([y])}`) : differ(x.geom, y.geom) ? `move ${noun([y])}` : `change ${noun([y])}`

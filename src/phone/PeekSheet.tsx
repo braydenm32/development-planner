@@ -9,7 +9,7 @@ import type { SiteStats } from '../lib/terrain'
 import { Icon } from '../nav/icons'
 import { shortMoney } from '../costs/format'
 import { m2, netText } from '../shell/format'
-import { checksName, floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
+import { checksName, checksShortName, floorsLabel, floorsText, type ChecksHeadline, type CostHeadline } from '../shell/headline'
 import type { KeyNumbers } from '../shell/useKeyNumbers'
 import { peekRelease, type PeekSize } from './peekSize'
 
@@ -141,7 +141,8 @@ export function PeekSheet({ numbers: n, stats, title, slim = false, onOpen, onSi
         </span>
         {verdict && (
           <span className={`peek-verdict w-${verdict.word}`}>
-            {verdict.name} <b>{verdict.verdict.head[0].text}</b>
+            {/* The plain word, as the card's tile and the strip say it; the letters are in the tile's tip. */}
+            {checksShortName(verdict.name)} <b>{verdict.verdict.head[0].text}</b>
           </span>
         )}
         {cost?.ready && (

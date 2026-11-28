@@ -132,7 +132,20 @@ export function startCloud(): Promise<void> {
         set({ phase: 'signed-in', user: was })
         if (was.deleteAfter) set({ sheet: 'deleting' })
         else await begin(was)
-      } else set({ phase: 'unavailable' })
+      } else {
+        set({ phase: 'unavailable' })
+        // Offline at the start with no one signed in here: once back online, find out again,
+        // so sign-in and share links come back without a reload.
+        if (isOffline(e) && typeof window !== 'undefined')
+          window.addEventListener(
+            'online',
+            () => {
+              starting = null
+              void startCloud()
+            },
+            { once: true },
+          )
+      }
       return
     }
     if (!health) return void set({ phase: 'unavailable' })

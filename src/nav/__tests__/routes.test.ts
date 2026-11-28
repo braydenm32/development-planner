@@ -256,7 +256,7 @@ describe('the menu', () => {
     expect(AREAS.map(a => a.id)).toEqual(['site', 'design', 'earthworks', 'approvals', 'costs', 'share'])
     expect(AREAS.map(a => tabIds(a))).toEqual([
       ['block', 'features', 'map', '3d', 'sun', MORE],
-      ['plan', 'floors', 'rooms', 'walls', 'roofs', 'furniture', 'sections', 'options', MORE],
+      ['plan', 'floors', 'rooms', 'walls', 'roofs', 'furniture', 'finishes', 'sections', 'options', MORE],
       ['place', 'cut-fill', 'retaining-walls', 'driveway', MORE],
       ['checks', 'basix', 'stormwater', 'da-pack'],
       ['estimate', 'materials', 'quotes', MORE],
@@ -277,6 +277,7 @@ describe('the menu', () => {
       'Open an example',
       'Where it’s saved',
       'Sign in and cloud saves',
+      'Install Contour & Gable',
       'Project name',
       'Survey file name',
       'Download a backup (project file)',
@@ -926,7 +927,8 @@ describe('⌘K search', () => {
     for (const q of ['stairs', 'staircase', 'steps']) expect(first(q), q).toBe('command:tool-stair')
     expect(first('print')).toBe('tab:share/plans')
     for (const q of ['rotate', 'turn']) expect(first(q), q).toBe('tab:earthworks/place')
-    expect(first('template')).toBe('command:open-example')
+    // The starter houses are the templates now; the finished example is still found by its own words.
+    for (const q of ['template', 'starter', 'floor plan ideas']) expect(first(q), q).toBe('more:starter-houses')
     expect(first('save')).toBe('command:save-state')
     for (const q of ['level', 'basement', 'second floor', 'upstairs']) expect(first(q), q).toBe('tab:design/floors')
     for (const q of ['background', 'background image', 'blueprint']) expect(first(q), q).toBe('tab:site/features')

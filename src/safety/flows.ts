@@ -51,7 +51,7 @@ export function setOpenSite(site: Site | null) {
 const plan = () => usePlan.getState().plan
 
 /** The open project's site: the one the app built, or built here from its survey. */
-function currentSite(): Site | null {
+export function currentSite(): Site | null {
   if (openSite) return openSite
   const survey = projectsNow().opened?.survey
   if (!survey) return null

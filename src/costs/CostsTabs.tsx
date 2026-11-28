@@ -192,7 +192,7 @@ function EstimateBody({ d }: { d: Loaded }) {
         <BridgeTable e={e} />
       </div>
       <div className="ce-foot">
-        <p className="muted">Starting rates are rough NSW {RATES_AS_AT.slice(-4)} figures from public guides. A quote replaces the estimate on its line.</p>
+        <p className="muted">Starting rates are rough NSW {RATES_AS_AT.slice(-4)} figures. Add a quote and it replaces the estimate on its line.</p>
         <button className="secondary" onClick={download}>
           <Icon name="download" size={15} /> Download CSV
         </button>
@@ -1008,7 +1008,7 @@ export function AboutCostsSection() {
       <h3>Not included</h3>
       <p className="small">The land and stamp duty, water and sewer contributions, contributions the app has no figure for, heating and cooling, window coverings, furniture, a pool, and anything not drawn.</p>
       <h3>Sources</h3>
-      <p className="small">Starting rates are rough figures for NSW as at {RATES_AS_AT}, GST included. Where a public guide gave a range, the rate sits inside it; the rest are plainly rough, and say so in Rates.</p>
+      <p className="small">Starting rates are rough figures for NSW as at {RATES_AS_AT}, GST included. Where a public guide gave a range, Rates names it and the rate sits in or near it. Fixed prices such as fees and the owner-builder permit are as published. The rest say plainly that they are rough, and most were raised by a quarter late that month because estimates came in well under what one-off houses cost. Replace them with quotes as you get them.</p>
       <ul className="costs-sources">
         {SOURCES.map(s => (
           <li key={s.url}>

@@ -107,6 +107,16 @@ describe('may a shortcut fire?', () => {
   })
 })
 
+describe('while walking through in 3D', () => {
+  it('lets no other plain key fire, only Esc and the Ctrl or ⌘ keys; typing still types', () => {
+    const walking = { ...CALM, walking: true }
+    for (const k of ['w', 'r', '?', '0', 'ArrowUp', 'Delete', '+']) expect(shortcutAllowed(key(k, body), walking)).toBe(false)
+    expect(shortcutAllowed(key('Escape', body), walking)).toBe(true)
+    expect(shortcutAllowed(key('z', body, true), walking)).toBe(true)
+    expect(shortcutAllowed(key('w', text), walking)).toBe(false)
+  })
+})
+
 describe('the Single-key shortcuts setting', () => {
   it('is on until turned off, and the rule reads it', () => {
     expect(singleKeysOn()).toBe(true)

@@ -18,7 +18,11 @@ import { projectsNow } from '../projects/session'
 import { openFile, startSketch } from '../safety/flows'
 import { useSafety } from '../safety/store'
 import { SurveyorRequest } from '../safety/SurveyorRequest'
-import { readSketchSize, ROUGH_SIZE, SKETCH_FIELDS, sketchProblems, type SketchField, type StreetSide } from './sketch'
+import { startFromHouse } from '../starters/flow'
+import { StarterCards } from '../starters/StarterCards'
+import { FallArt, FallPicker } from './FallPicker'
+import { FALL_NOTE } from './fallWords'
+import { fallNumbers, FLAT, readSketchSize, ROUGH_SIZE, SKETCH_FIELDS, sketchProblems, type FallChoice, type SketchField, type StreetSide } from './sketch'
 import '../shell/fonts.css'
 import './start.css'
 import './what.css'
@@ -85,37 +89,6 @@ function AddressArt() {
   )
 }
 
-function SketchArt({ street }: { street: StreetSide }) {
-  // The block drawn north up, with the street on the side picked and the fall towards it.
-  const w = 330
-  const h = 150
-  const along = street === 'N' || street === 'S'
-  const bw = along ? 76 : 104
-  const bh = along ? 96 : 72
-  const x = w / 2 - bw / 2
-  const y = h / 2 - bh / 2
-  const st =
-    street === 'N'
-      ? { d: `M${x - 16} ${y - 8}H${x + bw + 16}`, tx: w / 2, ty: y - 13, a: 'middle' as const }
-      : street === 'S'
-        ? { d: `M${x - 16} ${y + bh + 8}H${x + bw + 16}`, tx: w / 2, ty: y + bh + 21, a: 'middle' as const }
-        : street === 'W'
-          ? { d: `M${x - 8} ${y - 14}V${y + bh + 14}`, tx: x - 14, ty: h / 2 + 4, a: 'end' as const }
-          : { d: `M${x + bw + 8} ${y - 14}V${y + bh + 14}`, tx: x + bw + 14, ty: h / 2 + 4, a: 'start' as const }
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" aria-hidden="true">
-      <rect x={x} y={y} width={bw} height={bh} fill="#ffffff" stroke="#16181b" strokeWidth="1.4" strokeDasharray="5 3" />
-      <path d={st.d} stroke="#16181b" strokeWidth="6" opacity=".18" />
-      <text x={st.tx} y={st.ty} textAnchor={st.a} fontSize="11" fill="#6b7077">
-        street
-      </text>
-      <text x={w / 2} y={h / 2 + 4} textAnchor="middle" fontSize="11" fill="#6b7077">
-        {along ? 'width × depth' : 'depth × width'}
-      </text>
-    </svg>
-  )
-}
-
 export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   const touch = useTouch()
   const busy = useSafety(s => s.busy)
@@ -129,7 +102,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
   const boxes = useRef<Partial<Record<SketchField, HTMLInputElement | null>>>({})
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
-  const [fall, setFall] = useState('')
+  const [fall, setFall] = useState<FallChoice>(FLAT)
   const [street, setStreet] = useState<StreetSide>('S')
   // What to call the project (optional): a sketch has no file or address to take a name from.
   const [name, setName] = useState('')
@@ -155,7 +128,8 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
 
   const sketch = () => {
     setSketchError(null)
-    const bad = sketchProblems(width, depth, fall)
+    const { fall: f, cross } = fallNumbers(fall)
+    const bad = sketchProblems(width, depth, f, cross)
     setProblems(bad)
     const first = SKETCH_FIELDS.find(f => bad[f])
     if (first) {
@@ -163,8 +137,15 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
       boxes.current[first]?.focus()
       return
     }
-    const block = readSketchSize(width, depth, fall, street)
+    const block = readSketchSize(width, depth, f, street, cross)
     startSketch(block, into, name).catch((e: unknown) => setSketchError((e as Error)?.message || 'The sketch block couldn’t be made.'))
+  }
+
+  // A starter house goes on a sketch block: the one typed above when it reads, else the rough sheet.
+  const fromHouse = (id: string) => {
+    const { fall: f, cross } = fallNumbers(fall)
+    const typed = Object.keys(sketchProblems(width, depth, f, cross)).length ? undefined : readSketchSize(width, depth, f, street, cross)
+    startFromHouse(id, { block: typed, into, name }).catch((e: unknown) => setSketchError((e as Error)?.message || 'The house couldn’t be put on a block.'))
   }
 
   /** What marks a number box as wrong and ties it to its reason; typing in it again clears the mark. */
@@ -266,7 +247,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
 
           <section className="st-card" aria-labelledby="st-sketch">
             <div className="st-art">
-              <SketchArt street={street} />
+              <FallArt street={street} fall={fall} />
             </div>
             <h2 id="st-sketch">Sketch without a survey</h2>
             <p>A flat or gently sloping block from a few numbers. Replace it with the survey when it comes.</p>
@@ -299,32 +280,30 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
                   <span>m</span>
                 </label>
               </div>
-              <div className="st-row2">
-                <div>
-                  <label className="st-label" htmlFor="st-fall">
-                    Rough fall <span className="st-opt">(optional)</span>
-                  </label>
-                  <label className={`st-field${problems.fall ? ' bad' : ''}`}>
-                    <input id="st-fall" inputMode="decimal" placeholder="Flat" value={fall} {...box('fall', setFall)} title="How much higher the back of the block is than the street (m). Negative if it falls away from the street." />
-                    <span>m</span>
-                  </label>
-                </div>
-                <div>
-                  <span className="st-label" id="st-street">
-                    Street side
-                  </span>
-                  <div className="st-seg" role="radiogroup" aria-labelledby="st-street">
-                    {SIDES.map(s => (
-                      <button key={s.id} type="button" role="radio" aria-checked={street === s.id} aria-label={s.label} className={street === s.id ? 'on' : ''} onClick={() => setStreet(s.id)}>
-                        {s.id}
-                      </button>
-                    ))}
-                  </div>
+              <div>
+                <span className="st-label" id="st-street">
+                  Street side
+                </span>
+                <div className="st-seg" role="radiogroup" aria-labelledby="st-street">
+                  {SIDES.map(s => (
+                    <button key={s.id} type="button" role="radio" aria-checked={street === s.id} aria-label={s.label} className={street === s.id ? 'on' : ''} onClick={() => setStreet(s.id)}>
+                      {s.id}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <p className="st-note">
-                Rough fall is how much higher the back of the block is than the street, in metres. Type a minus (−2) if it falls away from the street.
-              </p>
+              <FallPicker
+                id="st-fall"
+                look="st"
+                value={fall}
+                onChange={c => {
+                  setFall(c)
+                  if (problems.fall || problems.cross) setProblems(p => ({ ...p, fall: undefined, cross: undefined }))
+                }}
+                problems={problems}
+                boxRef={(f, el) => void (boxes.current[f] = el)}
+              />
+              <p className="st-note">{FALL_NOTE}</p>
               <p className="st-note">
                 Not sure yet? Leave the size empty for a {ROUGH_SIZE.width} × {ROUGH_SIZE.depth} m sheet; you can change it under Site › Block.
               </p>
@@ -361,6 +340,7 @@ export function StartScreen({ into, onCancel, cancelLabel }: Props) {
             <AddressStart into={into} />
           </section>
         </div>
+        <StarterCards onPick={fromHouse} title="Or start from a house" note="A made-up starter plan to change as you like. It goes on a sketch block (the size, fall and street side above, if you’ve typed them); add the survey when it comes." />
       </main>
       <LegalFooter />
 

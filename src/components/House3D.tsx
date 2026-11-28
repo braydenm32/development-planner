@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { drapePolygon } from '../lib/drape'
 import { pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
-import { buildingOutline, planarFaces, postGrid, sliceAlong, wallPieces, wallPolygons } from '../plan/geometry'
+import { buildingOutline, planarFaces, postGrid, sliceAlong, wallPolygons } from '../plan/geometry'
 import {
   areaKind,
   DECK_DEPTH,
@@ -21,6 +21,7 @@ import {
   type Plan,
 } from '../plan/model'
 import { furnitureSolids } from '../plan/furniture'
+import { levelsOf, pieceShape } from '../plan/groundPieces'
 import { garagePanelFootprint } from '../plan/garageDoor'
 import { levelBuildsAs } from '../plan/floorTypes'
 import { openWallOutlines, pierOutlines } from '../plan/platforms'
@@ -28,6 +29,12 @@ import { houseCaps, retainingProfile, retainingSolid } from '../plan/retaining'
 import { roofGeometry } from '../plan/roof'
 import { stairArrivesAt, stairLayout } from '../plan/stairs'
 import { roofEavesRL, wallTopRL } from '../plan/roofline'
+import { OpeningDetail3D } from './OpeningDetail3D'
+import { Floors3D } from '../finishes/Floors3D'
+import { useHouseMaterials, useWallMaterials } from '../finishes/materials'
+import { insideTest, metreUVs } from '../finishes/surfaces'
+import { finishPieces, OutsideWalls } from '../finishes/wallFaces'
+import { band, houseUpper } from '../finishes/model'
 
 interface Props {
   plan: Plan
@@ -39,6 +46,8 @@ interface Props {
   showFurniture?: boolean
   /** Finished ground level, for posts and anything laid on the ground. */
   ground: Heightfield
+  /** The ground as surveyed, which a pool or tank's levels follow (src/plan/groundPieces.ts); `ground` when missing. */
+  natural?: Heightfield
 }
 
 /** Extrude a site-frame polygon between two scene heights. */
@@ -53,11 +62,12 @@ function prism(pts: Vec2[], y0: number, y1: number, holes: Vec2[][] = []): THREE
   return g.index ? g.toNonIndexed() : g
 }
 
-export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurniture = true, ground }: Props) {
+export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurniture = true, ground, natural }: Props) {
   const geoms = useMemo(() => {
     const pl = plan.placement
     const site = (p: Vec2) => toSite(p, pl, origin)
-    const ext: THREE.BufferGeometry[] = []
+    // Outside walls by finish (src/finishes/wallFaces.ts): one mesh per finish in use.
+    const ext = new OutsideWalls(plan)
     const int: THREE.BufferGeometry[] = []
     const slabs: THREE.BufferGeometry[] = []
     const glass: THREE.BufferGeometry[] = []
@@ -69,6 +79,7 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
     const stairs: THREE.BufferGeometry[] = []
     const retaining: THREE.BufferGeometry[] = []
     const furniture: THREE.BufferGeometry[] = []
+    const water: THREE.BufferGeometry[] = []
     const draped = { concrete: [] as number[], garden: [] as number[] }
     const shown = (id: string) => !showLevels || showLevels.has(id)
     const levels = sortedLevels(plan)
@@ -107,12 +118,13 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
         // An outside wall under a roof whose eaves sit above the ceiling rises to meet it.
         const height = wallTopRL(plan, w) - floorRL(plan, level.id)
         // Pieces are measured along the centreline; mitred ends reach past 0 and len.
-        for (const piece of wallPieces(len, height, openings)) {
+        for (const piece of finishPieces(plan, w, len, height, openings)) {
           const s0 = piece.s0 <= 1e-6 ? -1e3 : piece.s0
           const s1 = piece.s1 >= len - 1e-6 ? 1e3 : piece.s1
           const part = sliceAlong(poly, w.a, d, s0, s1)
           const g = prism(part.map(site), floorY + piece.z0, floorY + piece.z1)
-          if (g) (w.kind === 'external' ? ext : int).push(g)
+          if (g && piece.band) ext.add(piece.band, g)
+          else if (g) int.push(g)
         }
         for (const o of openings.filter(x => x.kind === 'window')) {
           const n: Vec2 = [-d[1] * 0.01, d[0] * 0.01]
@@ -189,6 +201,18 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
 
       if (showFurniture) {
         for (const f of plan.furniture.filter(x => x.level === level.id)) {
+          // A pool or tank in the ground or on its base stands at its own levels, not the floor's.
+          const lv = levelsOf(plan, f, origin, natural ?? ground)
+          if (lv) {
+            const shape = pieceShape(f, lv)
+            for (const s of shape.solids) {
+              const g = prism(s.pts.map(site), s.z0 - refZ, s.z1 - refZ)
+              if (g) furniture.push(g)
+            }
+            const w = shape.water && prism(shape.water.pts.map(site), shape.water.z - 0.02 - refZ, shape.water.z - refZ)
+            if (w) water.push(w)
+            continue
+          }
           for (const s of furnitureSolids(f)) {
             const g = prism(s.pts.map(site), floorY + s.z0, floorY + s.z1)
             if (g) furniture.push(g)
@@ -212,7 +236,8 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
           const g = new THREE.BufferGeometry()
           g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
           g.setIndex(rg.mesh.tris)
-          roofs.push(g.toNonIndexed())
+          // A gable end is drawn in the finish of the wall below it.
+          roofs.push(ext.takeGables(r, rg.mesh, g.toNonIndexed()))
           g.dispose()
         }
       }
@@ -257,102 +282,110 @@ export function House3D({ plan, origin, refZ, showLevels, showRoof, showFurnitur
       return m
     }
     return {
-      ext: merge(ext),
-      int: merge(int),
+      // Finishes (src/finishes): UVs in metres, and the outside walls' room-facing faces apart.
+      ext: ext.build(insideTest(plan, origin, refZ)),
+      int: metreUVs(merge(int)),
       slabs: merge(slabs),
       glass: merge(glass),
       garageDoors: merge(garageDoors),
       concrete: merge(concrete),
       timber: merge(timber),
       posts: merge(posts),
-      roofs: merge(roofs),
+      roofs: metreUVs(merge(roofs)),
       stairs: merge(stairs),
       retaining: merge(retaining),
       furniture: merge(furniture),
+      water: merge(water),
       driveway: drapedGeom(draped.concrete),
       garden: drapedGeom(draped.garden),
     }
-  }, [plan, origin, refZ, showLevels, showRoof, showFurniture, ground])
+  }, [plan, origin, refZ, showLevels, showRoof, showFurniture, ground, natural])
 
   useEffect(
     () => () => {
-      for (const g of Object.values(geoms)) g?.dispose()
+      const { ext, ...rest } = geoms
+      ext.forEach(m => m.geometry.dispose())
+      for (const g of Object.values(rest)) g?.dispose()
     },
     [geoms],
   )
+  const finish = useHouseMaterials(plan.finishes)
+  const houseKey = band(houseUpper(plan.finishes)).key
+  const wallMats = useWallMaterials(geoms.ext.map(m => m.key), finish, houseKey)
 
   return (
     <group>
       {geoms.slabs && (
-        <mesh geometry={geoms.slabs} castShadow receiveShadow>
+        <mesh name="floor structure" geometry={geoms.slabs} castShadow receiveShadow>
           <meshStandardMaterial color="#bdb6aa" roughness={0.9} />
         </mesh>
       )}
       {geoms.concrete && (
-        <mesh geometry={geoms.concrete} castShadow receiveShadow>
+        <mesh name="concrete slabs" geometry={geoms.concrete} castShadow receiveShadow>
           <meshStandardMaterial color="#c4c2bc" roughness={0.95} />
         </mesh>
       )}
       {geoms.driveway && (
-        <mesh geometry={geoms.driveway} receiveShadow>
+        <mesh name="driveway" geometry={geoms.driveway} receiveShadow>
           <meshStandardMaterial color="#b3b1ab" roughness={0.95} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
         </mesh>
       )}
       {geoms.garden && (
-        <mesh geometry={geoms.garden} receiveShadow>
+        <mesh name="garden" geometry={geoms.garden} receiveShadow>
           <meshStandardMaterial color="#7fa36a" roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
       )}
       {geoms.timber && (
-        <mesh geometry={geoms.timber} castShadow receiveShadow>
+        <mesh name="decks" geometry={geoms.timber} castShadow receiveShadow>
           <meshStandardMaterial color="#a77b52" roughness={0.85} />
         </mesh>
       )}
       {geoms.posts && (
-        <mesh geometry={geoms.posts} castShadow receiveShadow>
+        <mesh name="posts" geometry={geoms.posts} castShadow receiveShadow>
           <meshStandardMaterial color="#8f8a82" roughness={0.9} />
         </mesh>
       )}
       {geoms.retaining && (
-        <mesh geometry={geoms.retaining} castShadow receiveShadow>
+        <mesh name="retaining walls" geometry={geoms.retaining} castShadow receiveShadow>
           <meshStandardMaterial color="#a89f90" roughness={0.95} />
         </mesh>
       )}
       {geoms.stairs && (
-        <mesh geometry={geoms.stairs} castShadow receiveShadow>
+        <mesh name="stairs" geometry={geoms.stairs} castShadow receiveShadow>
           <meshStandardMaterial color="#c9b79c" roughness={0.85} />
         </mesh>
       )}
-      {geoms.ext && (
-        <mesh geometry={geoms.ext} castShadow receiveShadow>
-          <meshStandardMaterial color="#f1ede6" roughness={0.85} />
-        </mesh>
-      )}
+      {geoms.ext.map(m => (
+        <mesh key={m.key} name={m.name} geometry={m.geometry} material={wallMats.get(m.key) ?? finish.outsideWalls} castShadow receiveShadow />
+      ))}
       {geoms.int && (
-        <mesh geometry={geoms.int} castShadow receiveShadow>
-          <meshStandardMaterial color="#ddd5c8" roughness={0.9} />
-        </mesh>
+        <mesh name="inside walls" geometry={geoms.int} material={finish.insideWalls} castShadow receiveShadow />
       )}
       {geoms.furniture && (
-        <mesh geometry={geoms.furniture} castShadow receiveShadow>
+        <mesh name="furniture" geometry={geoms.furniture} castShadow receiveShadow>
           <meshStandardMaterial color="#9aa5b1" roughness={0.9} />
         </mesh>
       )}
+      {geoms.water && (
+        <mesh name="pool water" geometry={geoms.water} receiveShadow>
+          <meshStandardMaterial color="#5aa9d6" roughness={0.15} metalness={0.1} transparent opacity={0.8} />
+        </mesh>
+      )}
       {geoms.garageDoors && (
-        <mesh geometry={geoms.garageDoors} castShadow receiveShadow>
+        <mesh name="garage doors" geometry={geoms.garageDoors} castShadow receiveShadow>
           <meshStandardMaterial color="#a7adb4" roughness={0.6} metalness={0.2} />
         </mesh>
       )}
       {geoms.glass && (
-        <mesh geometry={geoms.glass}>
+        <mesh name="window glass" geometry={geoms.glass}>
           <meshStandardMaterial color="#8fb7d6" roughness={0.1} metalness={0.1} transparent opacity={0.55} />
         </mesh>
       )}
+      <OpeningDetail3D plan={plan} origin={origin} refZ={refZ} showLevels={showLevels} />
       {geoms.roofs && (
-        <mesh geometry={geoms.roofs} castShadow receiveShadow>
-          <meshStandardMaterial color="#5d646d" roughness={0.7} metalness={0.15} />
-        </mesh>
+        <mesh name="roof" geometry={geoms.roofs} material={finish.roof} castShadow receiveShadow />
       )}
+      <Floors3D plan={plan} origin={origin} refZ={refZ} showLevels={showLevels} />
     </group>
   )
 }

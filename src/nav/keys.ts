@@ -149,9 +149,15 @@ export interface KeyScene {
   tabbing: boolean
   /** The single-key shortcuts setting. */
   singleKeys: boolean
+  /** Walk-through is on: plain keys are its own (src/walk asks with this off). */
+  walking?: boolean
 }
 
-const sceneNow = (): KeyScene => ({ overlay: overlayOpen(), tabbing, singleKeys: singleKeysOn() })
+// Walk-through in 3D (src/walk) has the plain keys while it is on: arrows and W A S D walk, so no other single-key shortcut fires.
+let walking = false
+export const takeKeys = (on: boolean) => void (walking = on)
+
+const sceneNow = (): KeyScene => ({ overlay: overlayOpen(), tabbing, singleKeys: singleKeysOn(), walking })
 
 /**
  * May a shortcut take this key? Every window-level key handler asks this first, so they agree:
@@ -163,7 +169,8 @@ const sceneNow = (): KeyScene => ({ overlay: overlayOpen(), tabbing, singleKeys:
  * - Ctrl/⌘ keys (Undo, Copy, Cut…) work from a dropdown, tick box, radio or button;
  * - plain keys never fire from a dropdown, tick box, radio or slider, nor from a button or link
  *   reached with Tab outside the plan (Esc aside: it always puts down what is in hand);
- * - single characters (W, 0, ?) only while the Single-key shortcuts setting is on (WCAG 2.1.4).
+ * - single characters (W, 0, ?) only while the Single-key shortcuts setting is on (WCAG 2.1.4);
+ * - no plain key while walking through in 3D, Esc aside: they walk (src/walk).
  */
 export function shortcutAllowed(e: KeyPress, scene: KeyScene = sceneNow()): boolean {
   if (scene.overlay) return false
@@ -171,6 +178,7 @@ export function shortcutAllowed(e: KeyPress, scene: KeyScene = sceneNow()): bool
   const mod = e.ctrlKey || e.metaKey
   if (textEntry(el)) return mod && /^[zy]$/i.test(e.key) && el?.dataset?.settled !== undefined
   if (mod) return true
+  if (scene.walking && e.key !== 'Escape') return false
   if (el?.closest?.(OWNS_KEYS)) return false
   if (el && el.tagName && choiceField(el)) return false
   if (e.key === 'Escape') return true

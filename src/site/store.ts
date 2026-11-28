@@ -4,10 +4,11 @@ import { parseDxf } from '../lib/dxf'
 import { centroidOf, pointInPolygon, type Vec2 } from '../lib/geom'
 import type { Heightfield } from '../lib/terrain'
 import { isFeatureRole, type LayerRole } from '../lib/survey'
-import { applyAffine, compose, type Affine } from './align'
+import { applyAffine, compose, rotationOf, type Affine } from './align'
 import { featuresFromDxf } from './fromDxf'
 import { FEATURE_TYPES, geomPoints, mapGeom, normalizeFeature, toLocal, type EdgeKind, type FeatureType, type GeometryKind, type PavingKind, type ServiceKind, type SiteFeature } from './model'
 import type { VectorPage } from './pdfVector'
+import { normalizePhotoViews, type PhotoView } from '../photoview/model'
 
 /** A drawing (a PDF page or a picture) laid over the plan. Its picture is kept in IndexedDB, not here. */
 export interface Overlay {
@@ -52,6 +53,8 @@ export interface SiteData {
   hidden: FeatureType[]
   /** A second DXF with more features, beside the survey's own. */
   extraDxf: { fileName: string; roles: Record<string, LayerRole> } | null
+  /** Views from photos taken on the block (src/photoview); their pictures are in SiteFiles.drawings by id. Missing in older projects: none. */
+  photos?: PhotoView[]
 }
 
 export const emptySiteData = (): SiteData => ({ version: 1, features: [], edits: {}, overlays: [], hidden: [], extraDxf: null })
@@ -194,6 +197,7 @@ export function normalizeSiteData(raw: unknown): SiteData {
     overlays: overlays.map(o => ({ ...o, added: Array.isArray(o.added) ? o.added : [], opacity: Number.isFinite(o.opacity) ? o.opacity : 0.6 })),
     hidden: Array.isArray(d.hidden) ? d.hidden.filter(t => FEATURE_TYPES.some(x => x.type === t)) : [],
     extraDxf: d.extraDxf && typeof d.extraDxf.fileName === 'string' ? { fileName: d.extraDxf.fileName, roles: d.extraDxf.roles ?? {} } : null,
+    ...(Array.isArray(d.photos) && d.photos.length ? { photos: normalizePhotoViews(d.photos) } : {}),
   }
 }
 
@@ -218,7 +222,7 @@ export function normalizeSiteFiles(raw: unknown): SiteFiles {
 
 /** Drawing files no overlay uses: once the undo history is gone, nothing can bring their drawings back. */
 export function unusedDrawings(data: SiteData, files: SiteFiles): string[] {
-  const ids = new Set(data.overlays.map(o => o.id))
+  const ids = new Set([...data.overlays.map(o => o.id), ...(data.photos ?? []).map(p => p.id)])
   return Object.keys(files.drawings).filter(id => !ids.has(id))
 }
 
@@ -375,6 +379,7 @@ export function siteDataOffBlock(d: SiteData, boundary: Vec2[], origin: Vec2): b
   const points: Vec2[][] = [
     ...d.features.map(f => geomPoints(f.geom)),
     ...d.overlays.map(o => [applyAffine(o.transform, [o.width / 2, o.height / 2])]),
+    ...(d.photos ?? []).flatMap(p => (p.at ? [[p.at]] : [])),
   ]
   if (!points.length) return false
   const c = centroidOf(boundary)
@@ -393,11 +398,13 @@ export function siteDataOffBlock(d: SiteData, boundary: Vec2[], origin: Vec2): b
  * time, so they aren't moved here.
  */
 export function moveSiteData(d: SiteData, m: Affine): SiteData {
-  if (!d.features.length && !d.overlays.length) return d
+  if (!d.features.length && !d.overlays.length && !d.photos?.length) return d
   return {
     ...d,
     features: d.features.map(f => ({ ...f, geom: mapGeom(f.geom, p => applyAffine(m, p)) })),
     overlays: d.overlays.map(o => ({ ...o, transform: compose(m, o.transform) })),
+    // A photo's spot moves with the block, and its heading turns with it.
+    ...(d.photos ? { photos: d.photos.map(p => ({ ...p, at: p.at && applyAffine(m, p.at), heading: (((p.heading - rotationOf(m)) % 360) + 360) % 360 })) } : {}),
   }
 }
 
@@ -413,9 +420,9 @@ export interface ProjectSite {
 
 /** A project file's site part from a project's data and files; nothing when there are no site features. */
 export function projectSite(data: SiteData, files: SiteFiles): ProjectSite | undefined {
-  if (!data.features.length && !Object.keys(data.edits).length && !data.overlays.length && !data.extraDxf && !data.hidden.length) return undefined
+  if (!data.features.length && !Object.keys(data.edits).length && !data.overlays.length && !data.extraDxf && !data.hidden.length && !data.photos?.length) return undefined
   const drawings: Record<string, DrawingFile> = {}
-  for (const o of data.overlays) if (o.include && files.drawings[o.id]) drawings[o.id] = files.drawings[o.id]
+  for (const o of [...data.overlays, ...(data.photos ?? [])]) if (o.include && files.drawings[o.id]) drawings[o.id] = files.drawings[o.id]
   return {
     data,
     extraDxfText: data.extraDxf && files.extraDxfText ? files.extraDxfText : undefined,

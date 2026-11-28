@@ -1,5 +1,5 @@
 // The exports that aren't PDF or 3D print: the DXF for a surveyor, pictures of the plan and the 3D
-// view, and the door and window schedule. What the buttons in Share › Export and ⌘K call.
+// view, the door and window schedule, and the 3D model (.glb or OBJ). What the buttons in Share › Export and ⌘K call.
 
 import { saveFile } from '../lib/download'
 import type { Survey } from '../lib/survey'
@@ -45,6 +45,23 @@ export const scheduleRows = (plan: Plan) => doorWindowSchedule(plan)
 
 export function saveScheduleCsv(plan: Plan): void {
   saveFile(`${fileSafe(projectTitle(plan))}-doors-windows.csv`, scheduleCsv(doorWindowSchedule(plan)), 'text/csv')
+}
+
+export type ModelFormat = 'glb' | 'obj'
+
+/** The 3D model's file name: a .glb, or a ZIP holding the .obj with its .mtl. */
+export const modelFileName = (plan: Plan, format: ModelFormat): string => `${fileSafe(projectTitle(plan))}-3d-model${format === 'glb' ? '.glb' : '-obj.zip'}`
+
+/**
+ * Save the whole model for Blender, SketchUp or a renderer. Its code (and three's exporters) loads
+ * only now, so the app's first download stays the size it was. Returns the file's name.
+ */
+export async function saveModel(i: ExportInput & { format: ModelFormat; ground?: boolean; furniture?: boolean }): Promise<string> {
+  const m = await import('./model3d')
+  const name = modelFileName(i.plan, i.format)
+  if (i.format === 'glb') saveFile(name, await m.modelGlb(i), 'model/gltf-binary')
+  else saveFile(name, await m.modelObjZip(i, `${fileSafe(projectTitle(i.plan))}-3d-model`), 'application/zip')
+  return name
 }
 
 /** Save a picture of the plan or the 3D view, whichever is open. Returns a sentence to show when it can't. */

@@ -6,13 +6,15 @@ import type { Vec2 } from '../lib/geom'
 import { askName } from '../components/nameFocus'
 import { copySelected, cutSelected, deleteSelected, duplicateSelected, hasCopied, pasteCopied, selectAllOnLevel } from '../plan/editActions'
 import { copySelection } from '../plan/editing'
-import { normDeg } from '../plan/furniture'
+import { isHanded, mirrorFurniture, normDeg } from '../plan/furniture'
 import { isRetaining, type Plan } from '../plan/model'
 import { setWallKind, updateFurniture, updateOpening, updateStair } from '../plan/ops'
 import { openingStyle } from '../plan/openingStyles'
 import { usePlan, type Selection, type Tool } from '../plan/store'
 import { editWallLength } from './dimStore'
 import { useSnapping } from './snapping'
+import { walkThrough } from '../walk/start'
+import { editWallFinishes } from '../finishes/model'
 
 export interface MenuItem {
   id: string
@@ -79,6 +81,8 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
       // As its card's Kind does: the Wall tool's own thickness for that kind, when it's set to it.
       own.push({ id: 'kind', label: `Make it an ${kind} wall`, run: () => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined)) })
     }
+    // Its own finish is set on its card; here it can go back to the house's, as the card's "Same as the house" does.
+    if (w.kind === 'external' && w.finish) own.push({ id: 'house-finish', label: 'Use the house finish', run: () => st.commit(p => editWallFinishes(p, [w.id], () => undefined)) })
   } else if (s.type === 'opening') {
     const o = plan.openings.find(x => x.id === s.id)
     if (!o) return []
@@ -90,9 +94,11 @@ export function menuItems({ plan, sels, tool, at }: MenuScene): MenuItem[] {
     }
   } else if (s.type === 'room') {
     own.push({ id: 'rename', label: 'Rename', run: () => askName(s.id) })
+    own.push({ id: 'walk', label: 'Walk through from here', run: () => walkThrough(s.id) })
   } else if (s.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === s.id)
     if (f) own.push({ id: 'turn', label: 'Turn 90°', keys: 'Q', run: () => st.commit(p => updateFurniture(p, f.id, { rotation: normDeg(f.rotation - 90) })) })
+    if (f && isHanded(f)) own.push({ id: 'mirror', label: 'Mirror left to right', keys: 'H', run: () => st.commit(p => mirrorFurniture(p, f.id)) })
   } else if (s.type === 'stair') {
     const stair = plan.stairs.find(x => x.id === s.id)
     if (stair) own.push({ id: 'turn', label: 'Rotate 90°', run: () => st.commit(p => updateStair(p, stair.id, { angle: (stair.angle + 90) % 360 })) })

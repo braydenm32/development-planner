@@ -52,3 +52,10 @@
   display: grid;
   gap: 8px;
 }
+
+/* Windows and glass doors, which add to the total, set apart from the facades above them. */
+.basix-facades .basix-split {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-top: 4px;
+}

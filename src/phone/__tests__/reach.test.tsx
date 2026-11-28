@@ -12,7 +12,7 @@ import { checksHeadline, checksName } from '../../shell/headline'
 import { OverviewSheet } from '../../shell/OverviewSheet'
 import { SummaryStrip } from '../../shell/SummaryStrip'
 import { PeekSheet } from '../PeekSheet'
-import { arriveAt, inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows, PHONE_NUMBERS, tapsToNumbers, type Screen } from '../reach'
+import { arriveAt, inspectorShows, panelLocked, panelReads, panelStartsHidden, peekShows, PHONE_NUMBERS, tabTapped, tapsToNumbers, wasTapped, type Screen } from '../reach'
 import { earthOf, house, loadBlock, numbersOf, shellData, words } from './block'
 
 const appRoutes = everyRoute().filter((r): r is AppRoute => r.kind === 'app')
@@ -48,16 +48,38 @@ describe('two taps to every number on a phone', () => {
     for (const r of appRoutes) expect(tapsToNumbers({ phone: true, loaded: true, canvas: canvasOf(r), inspector: false, panel: false, toolCard: false, overview: false })).toBe(1)
   })
 
-  it('leans on Site in the bottom bar opening the 3D view, where nothing covers the peek', () => {
+  it('leans on Site in the bottom bar opening its panel on the 3D view, one tap from the numbers (PH-25)', () => {
     // From every route, as the bottom bar links it.
     for (const r of appRoutes) {
       const to = tabRoute(r, 'site', areaById('site')!.defaultTab)
       expect(canvasOf(to)).toBe('3d')
     }
-    for (const selected of bools) expect(peekShows(arriveAt('site', selected))).toBe(true)
+    // A tap on Site opens Site's panel (what was asked for), whose Key numbers button opens the Overview.
+    for (const selected of bools) {
+      const there = arriveAt('site', selected)
+      expect(there.panel).toBe(true)
+      expect(there.inspector).toBe(false)
+      expect(tapsToNumbers(there)).toBe(1)
+    }
+    // Arriving any other way (Back, a link, search), the 3D view's panel still starts folded as a pill.
     expect(panelStartsHidden(true, '3d')).toBe(true)
     expect(panelStartsHidden(false, '3d')).toBe(false)
     expect(panelStartsHidden(true, 'plan')).toBe(false)
+  })
+
+  it('is one tap from a tab’s panel alone, by its Key numbers button (PH-25)', () => {
+    for (const canvas of ['plan', '3d', 'print'] as const) expect(tapsToNumbers({ phone: true, loaded: true, canvas, inspector: false, panel: true, toolCard: false, overview: false })).toBe(1)
+    // Under the selection's sheet it's two: close the sheet, then the button.
+    expect(tapsToNumbers({ phone: true, loaded: true, canvas: 'plan', inspector: true, panel: true, toolCard: false, overview: false })).toBe(2)
+  })
+
+  it('opens a tab’s panel only for the tab that was tapped, and only for that one navigation (PH-25)', async () => {
+    tabTapped('site/sun')
+    expect(wasTapped('site/sun')).toBe(true)
+    expect(wasTapped('site/block')).toBe(false)
+    await new Promise(r => setTimeout(r, 5))
+    // A later Back to the tab isn't a tap.
+    expect(wasTapped('site/sun')).toBe(false)
   })
 
   it('only shows the peek on a phone', () => {
@@ -158,6 +180,16 @@ describe('the numbers it reaches', () => {
         expect(text, where).toContain(name)
         expect(text, where).not.toMatch(/Complying development \(CDC\) checks|Development application \(DA\) checks/)
       }
+    }
+  })
+
+  it('the one-line Key numbers says the checks’ plain name, never the bare letters', () => {
+    for (const pathway of ['cdc', 'da'] as const) {
+      const verdict = checksHeadline(pathway, [])
+      const html = renderToStaticMarkup(<PeekSheet numbers={n} stats={terrain.stats} title="Key numbers" onOpen={() => {}} verdict={verdict} slim />)
+      const line = words(html.match(/<span class="peek-verdict[^>]*>(.*?)<\/span>/)![1])
+      expect(line).toMatch(pathway === 'cdc' ? /^Fast-track checks / : /^Council checks /)
+      expect(line).not.toMatch(/\b(CDC|DA)\b/)
     }
   })
 

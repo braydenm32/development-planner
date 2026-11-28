@@ -56,6 +56,11 @@ export interface Platform {
    * under the upper slab.
    */
   pad?: boolean
+  /**
+   * Its sides go straight down at its edge, with no margin and no batter: a pool's shell or a tank
+   * holds them. Only its own footprint is levelled.
+   */
+  sheer?: boolean
 }
 
 /**
@@ -381,7 +386,7 @@ export function prepareEarthworks(
     }
     // The platform's edge lies about half a cell past its outermost node.
     const margin = pf.margin ?? opts.margin
-    for (let k = 0; k < dist.length; k++) dist[k] = dist[k] === 0 ? 0 : Math.max(0, (dist[k] - 0.5) * cell - margin)
+    for (let k = 0; k < dist.length; k++) dist[k] = dist[k] === 0 ? 0 : pf.sheer ? Infinity : Math.max(0, (dist[k] - 0.5) * cell - margin)
     const out: PreparedPlatform = {
       id: pf.id,
       level: pf.level,
@@ -592,8 +597,16 @@ function volumes(prep: PreparedEarthworks, shift: number): { cut: number; fill: 
  * without them. The difference from the whole is what those platforms add.
  */
 export function volumesWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): { cut: number; fill: number } {
+  return volumes(prepWithout(prep, drop), 0)
+}
+
+/**
+ * The prepared earthworks with the platforms `drop` picks left out, without preparing the rest
+ * again. Exact for platforms that give way to all the others (a driveway): the rest never read them.
+ */
+export function prepWithout(prep: PreparedEarthworks, drop: (p: PreparedPlatform) => boolean): PreparedEarthworks {
   const platforms = prep.platforms.filter(p => !drop(p))
-  return volumes({ ...prep, platforms, anySoft: platforms.some(p => p.rank > 0), padAt: padOwners(platforms) }, 0)
+  return { ...prep, platforms, anySoft: platforms.some(p => p.rank > 0), padAt: padOwners(platforms) }
 }
 
 export function evaluateEarthworks(prep: PreparedEarthworks, shift = 0): EarthworksResult {

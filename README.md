@@ -14,22 +14,28 @@ A floor planner draws a house on a flat page. Contour & Gable draws it on the bl
 
 The app has six areas down the left (along the bottom on a phone):
 
-- **Site**: the block (**Block**), what is already on it (**Features**: trees, easements, fences, services, and PDF or picture drawings to line up and trace over), the NSW **Map** with what the planning maps say, the **3D** view's settings, and the **Sun** study.
+- **Site**: the block (**Block**), what is already on it (**Features**: trees, easements, fences, services, and PDF or picture drawings to line up and trace over; **Design › More › Trace a plan picture** leads there), the NSW **Map** with what the planning maps say, the **3D** view's settings, and the **Sun** study.
 - **Design**: the house. **Plan** is the drawing on its own; **Levels**, **Rooms & areas**, **Walls & doors** (lists you can work from with the keyboard), **Roofs**, **Furniture**, **Sections** (section lines and the four elevations) and **Options** (named versions of the design, compared side by side).
 - **Earthworks**: **Place** the house on the block, **Cut & fill** (with a grading brush and suggested retaining walls), **Retaining walls** and the **Driveway**.
 - **Approvals**: the planning **Checks** for a CDC or a DA as you draw, the **BASIX** checklist, the **Stormwater** concept and the **DA pack**.
 - **Costs**: an **Estimate** from the design's own quantities, the **Materials** it's built from, and **Quotes** that replace a line's estimate.
-- **Share**: **Plans (PDF)**, **Export** (DXF, pictures, a door and window schedule), **Send** (a view-only link or the project file) and **3D print**.
+- **Share**: **Plans (PDF)**, **Export** (DXF, pictures, a door and window schedule, the 3D model), **Send** (a view-only link or the project file) and **3D print**.
 
-Each area has its tabs across the top and a **More** tab for its rarer settings; the tab's panel floats over the plan or the 3D view, and the arrow at its top tucks it away. The **2D | 3D** switch in the top bar swaps the plan for the 3D view in any area. The key numbers sit on one line under the tabs, with **Overview** for the rest, and **Check everything** in the top bar walks the project as six steps (Block, Levels & rooms, Roof, Ground & walls, Checks, Costs & share). Search (Ctrl+K or ⌘K) finds any area, tab, setting or command, and **Help › Getting started guide** walks through the lot. The address keeps where you are, so Back, Forward and reload land in the same place. On a phone a project opens in **View**, for showing people; **Edit** brings back the tools.
+Each area has its tabs across the top and a **More** tab for its rarer settings; the tab's panel floats over the plan or the 3D view, and the arrow at its top tucks it away. On a computer, the panel's dock button (or search for "dock") sets the panels beside the canvas instead, with the drawing in the space left; drag the docked panel's edge to make it wider. The **2D | 3D** switch in the top bar swaps the plan for the 3D view in any area. The key numbers sit on one line under the tabs, with **Overview** for the rest, and **Check everything** in the top bar walks the project as six steps (Block, Levels & rooms, Roof, Ground & walls, Checks, Costs & share). Search (Ctrl+K or ⌘K) finds any area, tab, setting or command, and **Help › Getting started guide** walks through the lot. The address keeps where you are, so Back, Forward and reload land in the same place. On a phone a project opens in **View**, for showing people; **Edit** brings back the tools. There, a tap on the plan shows what it is on one line (tap it for the full card), the ruler button measures with two taps, and Android's Back closes whatever sheet is open before it leaves the place.
+
+**Walk through** in the 3D view's bar (or on a room's card and right-click menu) puts you inside the house at eye height: drag to look round, walk with the arrow keys or W A S D (Q and E turn; on a touch screen, the arrow pad), or click the floor to walk there. Walls stop you and doorways let you through; **Go up** and **Go down** change level, and Esc puts the camera back where it was.
+
+**From a photo** in the 3D view's bar (or Site › 3D, or search for "photomontage" or "outlook") draws the new house over a photo you took on or near the block. Add the photo (or take one on a phone), press where you stood on the small plan and drag the way you faced; the camera stands there at eye height, or above a level's floor to see what a future window or deck looks out on. Line it up by dragging, with typed values and fine steps, or by clicking a point in the photo and the same point on the model. **Picture** then saves the photo with the house on it. The lens angle and the time come from the photo's details; its location is used only as a rough first guess when the block is placed on the map, and the photo is saved again without it. Photos stay with the project like drawings: in the project file only when ticked, never in a share link.
 
 ## Starting a project
 
 The start screen offers two ways in, plus a third for a block with no survey yet:
 
 - **Import a survey**: an ASCII DXF, a LandXML file (`.xml`), or spot levels in a CSV or text file (easting, northing, level; the app asks which column is which when it can't tell). A DWG needs saving as an ASCII DXF first, and the app says what to ask your surveyor for when a file has no ground in it.
-- **Sketch without a survey**: a flat or gently sloping block of the size you give, to plan on now and swap for the survey later (**Site › More › Replace survey** keeps the plan).
+- **Sketch without a survey**: a flat or gently sloping block of the size you give, to plan on now and swap for the survey later (**Site › More › Replace survey** keeps the plan). Say which way the ground falls (to the street, to the back, to the left or right, or two ways at once) and by how much.
 - **Start from the address**: find the lot on the NSW map and use the state's ground levels (the 5 m elevation model, roughly ±0.9 m) with the lot as the boundary. Good for a first look, not for earthworks; the app keeps saying so until a survey replaces it.
+
+Or **start from a house**: seven made-up starter plans (a studio, a compact two-bedroom, a narrow-block home, three- and four-bedroom single storeys, a split level and a two-storey) go in the middle of the block facing the street, as ordinary plan data to move and change. They're on the start screen, in Getting started and under **Design › More › Start from a house**; a plan with a house drawn asks whether to replace it or add the starter beside it.
 
 From a DXF the importer reads:
 
@@ -49,9 +55,9 @@ A PDF survey or site plan can't be read for levels, but **Site › Features** la
 | Tool | Key | What it does |
 | --- | --- | --- |
 | Select | V | Select and edit. Drag a wall to move it (walls joined to it stretch, and walls that butt into it follow), drag its end handles to reshape, drag doors and windows along their wall, Delete to remove. |
-| Wall | W | Click each corner. Snaps to wall ends, along walls, square and 45° angles, and lines up with other corners. Type a length in mm and press Enter (`3000<45` sets the angle too). The length and bearing of the wall you're drawing, and the total of the run, show by the pointer. Shift keeps it square to the house; Alt (Option on a Mac) turns snapping off. Walls that close round a space make a room of it ("Room 1"), in the same undo step. **Rectangle room** (Shift+W, or the switch on the tool's card) draws four walls and their room in one go: drag from one corner to the opposite one, click each, or click a corner and type `4000x3000` (width x depth in mm) and press Enter. |
+| Wall | W | Click each corner. Snaps to wall ends, along walls, square and 45° angles, and lines up with other corners. Type a length in mm and press Enter (`3000<45` sets the angle too). The length and bearing of the wall you're drawing, and the total of the run, show by the pointer. Shift keeps it square to the house; Alt (Option on a Mac) turns snapping off. Walls that close round a space make a room of it ("Room 1"), in the same undo step. **Rectangle room** (Shift+W, or the switch on the tool's card) draws four walls and their room in one go: drag from one corner to the opposite one, click each, or click a corner and type `4000x3000` (width x depth in mm) and press Enter. **Draw by** on the card picks the wall's centre (the default), its outside face or its inside face: with a face, the corners clicked and lengths typed are that face (a rectangle room's size is then overall, or the clear room size), the wall goes to one side of it (an arrow shows which for a first straight wall; H flips it), and walls are still kept by their centrelines. |
 | Retaining wall | T | A wall in the yard that holds back earth: click its start and each corner, then click the side the earth is on. It asks how high the earth behind it is, and shows what it changes in cut and fill. An amber flag marks a wall holding back more than 600 mm, which needs an engineer. |
-| Door / Window / Wall opening / Garage door | D / N / O / G | Click on a wall. The distance to each end of the wall shows before you click. A wall opening is a plain gap such as an archway; a garage door has no swing and starts 4.8 m wide. Pick the kind (hinged, sliding, bifold, awning and so on) on the tool's card. |
+| Door / Window / Wall opening / Garage door | D / N / O / G | Click on a wall. The distance to each end of the wall shows before you click. A wall opening is a plain gap such as an archway; a garage door has no swing and starts 4.8 m wide. Pick the kind (hinged, sliding, bifold, awning and so on) on the tool's card. The 3D view and the elevations draw each kind too: frames, leaves, glass and sills in 3D, hinge triangles and slide arrows on the elevations. |
 | Room | R | Click a room to name it and pick its type (rooms make themselves when walls close round a space; with Select, click a room's floor to pick it, and double-click to type its name). A closed space with no room yet gets one. The room's area is measured on the inside faces of its walls and updates as the walls change. |
 | Outdoor area | A | Outline a concrete slab, driveway, deck or garden without walls. Each side's length shows as you draw, with the running total, and you can type a length in mm and press Enter for an exact side, as with walls. Pick the kind first, or change it afterwards. |
 | Roof | F | Click inside the walls to roof that outline, or click corners to draw your own (with lengths and typed sides, as for areas). A selected roof shows the length of each eave. |
@@ -64,13 +70,15 @@ A PDF survey or site plan can't be read for levels, but **Site › Features** la
 | Section line | X | Two clicks across the plan draw a section, square to the house unless you hold Alt. **Design › Sections** shows it, with the four elevations. |
 | Grading brush | B | In **Earthworks › Cut & fill**: paint ground to cut or fill to a level you type or pick from a contour ([ and ] change its size). |
 
+With Wall, Retaining wall, Measure, Stair, Sketch and a section line you can also press, drag and release to draw from one point to the other (with a finger, one finger draws and two move and zoom the plan); a click without moving works as before.
+
 Press **?** for every keyboard shortcut. The **live section** under the plan (in Design and Earthworks) is a cut through the house and the ground that follows the plan as you pan and zoom; drag a level band in it to move that floor up or down.
 
 **Top of view** (under **Site › More**) turns the plan and the 3D view so north, east, south, west or any bearing is at the top, or keeps the plan square to the house; **North up** in the view bar does the same in one click.
 
 **Ground vs this floor** (in the plan's key, on by default) shows how the floor you're drawing sits on the slope before you go to 3D: blue where the floor is above the natural ground (fill, or piers) and orange where it's below (cut), a shade darker every 0.5 m, with a bold line where the ground meets the floor. The tint keeps to within 4 m of the house and whatever you're drawing, and fades out past that; on an empty plan it covers the whole block to help you choose where to start. The top left says which level you're drawing on and its floor RL; the dashed lines are the walls of the level below. Point anywhere on the block to read the ground level there against the floor, and while you draw or drag walls, slabs and decks each corner shows how far the floor is above (+) or below (−) the ground, in metres. A selected room shows the range of ground under it. Upper levels work the same way, with a lighter tint.
 
-Undo and redo with Ctrl+Z / Ctrl+Shift+Z: one order across the plan, the site features and the costs, so the latest change anywhere is what goes; the buttons name the step ("Undo: move wall"), and a step taken back on another screen is said in a note with **Show**. Each level has its own walls; a new level starts with a copy of the external walls below. **Design › Rooms & areas** shows room areas and the floor area to the outside of the walls; **Earthworks › Place** shows the ground levels under the house and the distances to each boundary.
+Undo and redo with Ctrl+Z / Ctrl+Shift+Z: one order across the plan, the site features and the costs, so the latest change anywhere is what goes; the buttons name the step ("Undo: move wall"), and a step taken back on another screen is said in a note with **Show**. All three histories survive a reload, in the same order. Each level has its own walls; a new level starts with a copy of the external walls below. **Design › Rooms & areas** shows room areas and the floor area to the outside of the walls; **Earthworks › Place** shows the ground levels under the house and the distances to each boundary.
 
 Plans save automatically in the browser. **Design › More › House plan file** exports or imports the house plan on its own as JSON; the project file (below) holds everything.
 
@@ -83,17 +91,21 @@ Keep several projects in the one browser: **All projects…** (in the project me
 The **Furniture** tool (U) places furniture and fittings in common Australian sizes, drawn as simple architectural symbols:
 
 - **Bedroom**: single, king single, double, queen and king beds, bedside table, wardrobe.
-- **Living**: 2- and 3-seat sofas, armchair, coffee table, TV unit.
+- **Living**: 2- and 3-seat sofas, corner sofa, armchair, coffee table, TV unit.
 - **Dining**: tables for 4, 6 and 8, drawn with their chairs.
-- **Kitchen**: a 600 deep bench run, island bench, 900 wide fridge space, cooktop and oven, sink, dishwasher.
+- **Kitchen**: a 600 deep bench run, an L-shaped bench run with a return, pantry cupboard, island bench, 900 wide fridge space, cooktop and oven, sink, dishwasher.
 - **Laundry**: washing machine, dryer, laundry tub.
 - **Bathroom**: toilet, vanity basin, 900 × 900 shower, 1700 bath.
-- **Study**: desk and desk chair.
-- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ.
+- **Study**: desk, L-shaped corner desk and desk chair.
+- **Garage and outdoor**: a 4.9 × 1.9 m car, outdoor table for 4, BBQ, 5000 L rainwater tank, 7 × 3.5 m swimming pool. Outside the house on the lowest level, the pool and tank **Sit** in the ground (dug straight down from the ground to their depth below the top edge, which follows the ground at the highest corner or takes a typed RL) or above ground on a level base (the mean ground under it, or a typed RL). A new pool starts in the ground and a tank above it; one from an older project stays as drawn until you pick. Their cut and fill is in the volumes, 3D, sections and costs, but not in the earthworks checks.
 
-Pieces that stand against a wall snap their back flush to the wall face when you bring them close, turn to face into the room, and slide into a corner when the side wall is close too; tables, chairs, the island and the car stay where you put them. Drag a piece to move it, drag its round handle to turn it (it snaps to square, then 5° steps), or type the angle in its card. Width, depth and height are there too; changing the depth keeps the back against its wall. Delete removes it, and undo works as usual.
+Handed pieces (the corner sofa, the L-shaped bench and desk, the bath and the pool) can be mirrored left to right: **Mirror** on the piece's card, the right-click menu, or H.
+
+Pieces that stand against a wall snap their back flush to the wall face when you bring them close, turn to face into the room, and slide into a corner when the side wall is close too; tables, chairs, the island and the car stay where you put them. Drag a piece to move it, drag its round handle to turn it (it snaps to square, then 5° steps), or type the angle in its card. Width, depth and height are there too; changing the depth keeps the back against its wall. Delete removes it, and undo works as usual. On a phone or tablet, press and hold a piece in the list, then drag it onto the plan; a plain tap still picks it.
 
 Furniture shows in the 3D view (turn it off under **Site › 3D**), on the PDF floor plans in thin lines (turn it off under **PDF plans**), and is left out of the 3D print unless you tick **Include furniture**.
+
+**Design › Finishes** (or **Finishes** on the 3D view's bar) sets how the house looks in 3D: the outside walls plain, brick, rendered or weatherboard, the roof plain, metal sheeting or tiles, each in a colour from a short palette or any colour, the inside wall colour, and timber, tiles, carpet or concrete floors by kind of room. They change only the picture, not the drawings, numbers, costs or 3D print. A **Lower part of the walls** puts a second finish round the bottom of the house (a brick base under weatherboard, say), and an outside wall's card gives that wall its own finish or two finishes with the height where they change (the elevations show that line).
 
 ## Roofs
 
@@ -128,7 +140,7 @@ Volumes are bank measure, so allow extra for spoil bulking when ordering trucks.
 
 **Approvals › Checks** runs the design against the planning rules as you draw: the Housing Code for a complying development certificate (CDC), or a council's LEP and DCP for a development application (DA), for the councils covered so far. Each row says what it measured, the clause and how sure the research is, and **Go to fix** takes you to where it's changed; a red pin on the plan marks where a check fails. Setbacks, height, site coverage, landscaped area, cut and fill, retaining walls, tree protection zones, the driveway's crossing, winter sun to the neighbours and what the planning maps say about zoning, heritage, bushfire, flood and landslide are among them. A check that needs something not drawn yet says **Not drawn yet** rather than passing.
 
-**BASIX** gathers what the official BASIX tool will ask for from the plan (window areas by facade, living areas, roof area, the tank) and your answers, as a checklist to download. **Stormwater** sizes the roof catchment and the tank and says whether the block drains to the street. The **DA pack** is a PDF a town planner or designer can start a DA from: a cover checklist, site plan, floor plans, elevations and sections, shadow diagrams for 21 June, a cut and fill plan, the stormwater concept and a table of the planning controls. It is a concept pack, never ready to lodge.
+**BASIX** gathers what the official BASIX tool will ask for from the plan (window and glass door areas by facade, living areas, roof area, the tank; a door's card has a Glass door tick, on by default for sliding, bifold and double doors) and your answers, as a checklist to download. **Stormwater** sizes the roof catchment and the tank and says whether the block drains to the street. The **DA pack** is a PDF a town planner or designer can start a DA from: a cover checklist, site plan, floor plans, elevations and sections, shadow diagrams for 21 June, a cut and fill plan, the stormwater concept and a table of the planning controls. It is a concept pack, never ready to lodge.
 
 ## Costs
 
@@ -150,7 +162,7 @@ Parts key together so they sit square but lift off to look inside: the lowest fl
 
 **Plans (PDF).** A3 or A4 sheets with a title block, scale bar and north arrow (turned to match **Top of view**): a site plan with contours, boundary lengths, distances from the house to each boundary and the key numbers (site area, footprint, coverage, floor level, cut and fill); a floor plan for each level with wall lengths, overall dimensions, doors, windows, stairs, furniture and room areas; a roof plan; and, where there are any, sections and elevations, a shadow diagram for 21 June and the site features. Scales are chosen from the usual architectural ones so the drawing fits the sheet. The project's name (in the project menu) goes on the title block.
 
-**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV.
+**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV. **Download 3D model** saves the whole model as the 3D view shows it (ground, each level's walls, floors, roofs and stairs, outdoor areas, furniture) as a `.glb` for Blender, renderers or SketchUp, or as OBJ with its `.mtl` in a ZIP: real metres, Y up, the origin at the middle of the block, each part named and grouped by level.
 
 **Send.** **Download project file** saves the survey and the plan as one `.project.json`. Whoever you send it to opens it on the start screen (or with **Open a project file**) and sees exactly what you see. It holds the survey, so only send it to people you'd send the survey to.
 
@@ -161,6 +173,14 @@ Parts key together so they sit square but lift off to look inside: the lowest fl
 1. Contour vertices and spot levels are triangulated (Delaunay TIN).
 2. The TIN is sampled onto a regular grid (0.25 m on a typical house block) with two light smoothing passes, which removes the flat "terraces" a contour-only TIN produces.
 3. The grid is trimmed exactly to the lot boundary and closed with side walls and a base, giving a watertight solid that later becomes the printable terrain base.
+
+## Working offline
+
+Once Contour & Gable has been opened in a browser, it opens and works with no connection: drawing, the checks, costs, 3D, PDF plans, exports, 3D print files and saving on this device. The top bar says **Offline** meanwhile; sign-in, cloud saves, share links, comments and the NSW map say they need a connection, and come back when it does. Where the browser offers it (Chrome, Edge), **Project menu › Install Contour & Gable** adds it as an app; on an iPhone or iPad use **Share › Add to Home Screen**.
+
+How it works: a hand-written service worker (`src/offline/sw.ts`, built as `sw.js` by `scripts/offlinePlugin.ts` with the list of every built file) keeps each version's files in a cache of its own. The page loads from the network first, so a deploy is picked up straight away, and from the cache when offline; the Worker API and other sites are never touched. A new version installs in the background and the app shows **A new version is ready · Reload**; it takes over only when someone chooses Reload, after their work is saved. It is built for both deployments (GitHub Pages under `/development-planner/`, Cloudflare at `/`) and never runs in `npm run dev` or the tests.
+
+**Kill switch**: if the service worker ever misbehaves on the live site, set `SERVICE_WORKER_OFF = true` in `src/offline/killSwitch.ts` and push to main. That build's `sw.js` deletes the app's caches and unregisters itself the next time a browser checks for an update (each page load, and hourly), and the app stops registering one; open pages carry on and nothing reloads by itself. Set it back to `false` to turn offline working on again.
 
 ## Development
 

@@ -1,0 +1,103 @@
+/* Design › Finishes (src/finishes/FinishesPanel.tsx). */
+.finishes h3 {
+  margin: 14px 0 6px;
+}
+
+.segmented.finish-kinds {
+  flex-wrap: wrap;
+  box-shadow: none;
+}
+
+.segmented.finish-kinds button {
+  flex: 1 1 auto;
+  min-height: 32px;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+.finish-colours {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 8px;
+}
+
+.finish-colours .swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.finish-colours .swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.finish-colours .swatch.on {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The custom colour: a native picker under a plus, filled with the colour once it's picked. */
+.finish-colours .swatch.custom {
+  display: inline-flex;
+  overflow: hidden;
+  background: var(--panel, #fff);
+}
+
+.finish-colours .swatch.custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.finish-colours .swatch.custom span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.finish-colours .swatch.custom:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.app-shell.phone .finish-colours .swatch {
+  width: 36px;
+  height: 36px;
+}
+
+/* The Finishes button on the 3D bar, beside Show (the bar's own buttons are phone-only otherwise). */
+.app-shell .preset-bar .finishes-button {
+  display: inline-flex;
+  flex: none;
+  height: 34px;
+}
+
+/* The house-wide lower part, and a wall's own finish on its card (WallFinishField). */
+.finishes .finish-lower {
+  margin-top: 14px;
+}
+
+.wall-finish-part {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.wall-finish-part .finish-colours {
+  margin-top: 0;
+}

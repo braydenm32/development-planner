@@ -240,3 +240,136 @@ describe('Undo and Redo after a reload', () => {
     expect(blurred).toBe(1)
   })
 })
+
+/**
+ * The app as a fresh page load sees it, with the site features' and the costs' records started.
+ * With `id`, that project opens first, as at start-up: the site features and costs are read after it.
+ */
+async function loadAll(id?: string) {
+  const app = await load()
+  if (id) await app.actions.open(id)
+  const { startSiteRecords } = await import('../../site/persist')
+  const { startCostRecords, flushCosts } = await import('../../costs/persist')
+  const { useSiteStore } = await import('../../site/store')
+  const { useCosts } = await import('../../costs/store')
+  const { undoTarget } = await import('../../shell/undoTarget')
+  startSiteRecords()
+  startCostRecords()
+  // Let the records read at start-up come in.
+  await new Promise(r => setTimeout(r, 50))
+  const site = () => useSiteStore.getState()
+  const costs = () => useCosts.getState()
+  const tree = (id: string) =>
+    site().commit(d => ({ ...d, features: [...d.features, { id, type: 'tree' as const, geom: { kind: 'point' as const, at: [1, 2] as [number, number] }, source: 'trace' as const }] }))
+  const margin = (v: number) => costs().commit(d => ({ ...d, margin: v }))
+  const settleAll = async () => {
+    // The site features' own save waits 400 ms.
+    await new Promise(r => setTimeout(r, 500))
+    await flushCosts()
+    await app.settle()
+  }
+  return { ...app, site, costs, tree, margin, undoTarget, settleAll }
+}
+
+describe('Site and Costs Undo after a reload', () => {
+  it('keeps the one order across the plan, the site features and the costs', async () => {
+    let app = await loadAll()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    await new Promise(r => setTimeout(r, 50))
+    app.st().commit(dropWall)
+    app.tree('t1')
+    app.margin(0.25)
+    app.st().commit(dropWall)
+    // Undo the last plan step: Redo has it.
+    app.undoTarget('undo').undo()
+    expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 1)
+    await app.settleAll()
+
+    // A reload: the project opens as the page starts, before the site features and costs are read.
+    app = await loadAll(id)
+    expect(app.site().past).toHaveLength(1)
+    expect(app.costs().past).toHaveLength(1)
+    expect(app.undoTarget('redo').kind).toBe('plan')
+    expect(app.undoTarget('undo').kind).toBe('costs')
+    app.undoTarget('undo').undo()
+    expect(app.costs().data.margin).toBe(0.2)
+    expect(app.undoTarget('undo').kind).toBe('site')
+    app.undoTarget('undo').undo()
+    expect(app.site().data.features).toHaveLength(0)
+    expect(app.undoTarget('undo').kind).toBe('plan')
+    app.undoTarget('undo').undo()
+    expect(app.st().plan!.walls).toEqual(garageFloor().walls)
+    // And Redo brings them back in the same order.
+    expect(app.undoTarget('redo').kind).toBe('plan')
+    app.undoTarget('redo').redo()
+    expect(app.undoTarget('redo').kind).toBe('site')
+    app.undoTarget('redo').redo()
+    expect(app.site().data.features.map(f => f.id)).toEqual(['t1'])
+    app.undoTarget('redo').redo()
+    expect(app.costs().data.margin).toBe(0.25)
+    app.undoTarget('redo').redo()
+    expect(app.st().plan!.walls).toHaveLength(garageFloor().walls.length - 2)
+  })
+
+  it('keeps Site Redo, and opening another project starts afresh', async () => {
+    let app = await loadAll()
+    const a = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    await new Promise(r => setTimeout(r, 50))
+    app.tree('t1')
+    app.tree('t2')
+    app.undoTarget('undo').undo()
+    await app.settleAll()
+
+    const b = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    expect(app.site().past).toHaveLength(0)
+    expect(app.undoTarget('undo').kind).toBeNull()
+    app.margin(0.3)
+    await app.settleAll()
+
+    app = await loadAll(b.id)
+    expect(app.site().past).toHaveLength(0)
+    expect(app.costs().past).toHaveLength(1)
+    // Opening A (the page already running) puts A's back, and only A's.
+    await app.actions.open(a.id)
+    expect(app.costs().past).toHaveLength(0)
+    expect(app.site().past).toHaveLength(1)
+    expect(app.site().future).toHaveLength(1)
+    expect(app.undoTarget('redo').kind).toBe('site')
+    app.undoTarget('redo').redo()
+    expect(app.site().data.features.map(f => f.id)).toEqual(['t1', 't2'])
+  })
+
+  it('opens a history saved before the site and costs steps were kept', async () => {
+    let app = await loadAll()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    await new Promise(r => setTimeout(r, 50))
+    app.st().commit(dropWall)
+    app.tree('t1')
+    await app.settleAll()
+    // What an older app wrote: the plan's steps only.
+    const saved = (await app.actions.read(id))!.history as Record<string, unknown>
+    expect(saved.site).toBeDefined()
+    const old = { version: 1, past: saved.past, present: saved.present, future: saved.future }
+    const write = app.session.registerRecordKind('history', () => {})
+    await write(old, id)
+    await app.actions.flush()
+
+    app = await loadAll(id)
+    expect(app.st().past).toHaveLength(1)
+    expect(app.site().past).toHaveLength(0)
+    expect(app.undoTarget('undo').kind).toBe('plan')
+    app.undoTarget('undo').undo()
+    expect(app.st().plan!.walls).toEqual(garageFloor().walls)
+  })
+
+  it('keeps the last hundred costs steps', async () => {
+    const app = await loadAll()
+    const { id } = await app.actions.create({ survey: survey(), plan: garageFloor() })
+    for (let i = 0; i < 130; i++) app.margin(i / 1000)
+    await app.settleAll()
+    const saved = (await app.actions.read(id))!.history as { costs: { past: { margin: number }[]; present: { margin: number } }; order: { done: string[] } }
+    expect(saved.costs.past).toHaveLength(app.history.HISTORY_KEEP)
+    expect(saved.costs.present.margin).toBeCloseTo(0.129, 9)
+    expect(saved.order.done.filter(k => k === 'costs')).toHaveLength(app.history.HISTORY_KEEP)
+  })
+})

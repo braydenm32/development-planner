@@ -1,6 +1,7 @@
 import type { BasixAnswers } from '../basix/model'
 import type { CheckSettings } from '../checks/types'
 import type { DaSettings } from '../da/model'
+import { normalizeFinishes, normalizeWallFinishList, type Finishes, type WallFinishes } from '../finishes/model'
 import type { Stormwater } from '../drainage/model'
 import type { Vec2 } from '../lib/geom'
 import { normalizeGrading, type Grading } from '../grading/model'
@@ -45,6 +46,8 @@ export interface Plan {
   sections?: SectionLine[]
   /** Where the block is, for the sun and shadows; missing means Sydney (see locationOf). */
   location?: SiteLocation
+  /** How the house looks in 3D: cladding, roof, colours, floors (src/finishes). Missing is plain, as before. */
+  finishes?: Finishes
   /**
    * The sketch layer: construction lines, arcs, circles and curves, and the measurements kept on
    * the plan (src/sketch). They change nothing else; drawing snaps to them. Missing in plans saved
@@ -130,6 +133,8 @@ export interface Wall {
   kind: WallKind
   /** Retaining walls: what it holds back. Missing (as in older plans) means its height follows the ground. */
   retain?: Retain
+  /** Outside walls: its own finish in 3D (src/finishes), one or two. Missing follows the house's. */
+  finish?: WallFinishes
 }
 
 /** Finished ground on one side of a retaining wall: an RL, or the house pad (which follows the floor). */
@@ -200,6 +205,11 @@ export interface Opening {
    * plans saved before kinds: a door is then hinged, and a window is drawn as it always was.
    */
   style?: OpeningStyle
+  /**
+   * Doors: it's glass, so it counts towards the BASIX glazing when it's in an outside wall. Missing
+   * goes by its kind (see isGlassDoor in ./openingStyles): sliding, bifold and double doors are glass.
+   */
+  glazed?: boolean
 }
 
 /** How the lowest floor is held up: one of FLOOR_TYPES (slab on ground, bearers and joists on piers, …). */
@@ -369,6 +379,24 @@ export interface Furniture {
   height: number
   /** Shown instead of the catalog name. */
   label?: string
+  /** Mirrored left to right, for a handed piece (a corner sofa, a bath's tap end). Missing in older plans: as drawn. */
+  mirrored?: boolean
+  /**
+   * A pool or tank set in the ground or on a level base of its own (src/plan/groundPieces.ts).
+   * Missing in older plans: it stands at its floor level, as drawn, and moves no earth.
+   */
+  ground?: PieceGround
+}
+
+/** How a pool or tank sits: dug into the ground, or standing on a level base. Levels are RLs. */
+export interface PieceGround {
+  sits: 'above' | 'in'
+  /** Floor to top edge (m). Missing: the piece's usual depth (a pool's 1.5 m, a tank's own height). */
+  depth?: number
+  /** In the ground: the top edge (coping or lid). Missing: follows the ground at its highest corner. */
+  top?: number
+  /** Above ground: the level base it stands on. Missing: the mean ground under it. */
+  base?: number
 }
 
 /** A short text label on the plan, on one level, at a point in the house's frame (m). */
@@ -504,6 +532,8 @@ export function normalizePlan(p: Plan): Plan {
     ...(p.grading !== undefined ? gradingField(p.grading) : {}),
     ...(Array.isArray(p.sketch) ? { sketch: p.sketch.filter(isSketchItem).map(sketchColourField) } : {}),
     ...(p.sketchNames !== undefined ? { sketchNames: sketchNamesOf(p.sketchNames) } : {}),
+    ...(p.finishes !== undefined ? { finishes: normalizeFinishes(p.finishes) } : {}),
+    ...(p.walls ? { walls: normalizeWallFinishList(p.walls) } : {}),
   })))
 }
 

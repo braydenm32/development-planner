@@ -70,7 +70,8 @@ import { RoomGround } from './GroundOverlay'
 import { RoomSun } from '../sun/RoomSun'
 import { isRoomType, ROOM_TYPES, roomCountsAs, roomTypeInfo, setRoomType } from '../plan/roomTypes'
 import { FurniturePicker, FurnitureSelection } from './FurniturePanel'
-import { OpeningKindField, ToolOpeningKind } from './OpeningKind'
+import { PieceGroundFields } from './PieceGroundFields'
+import { GlassDoorField, OpeningKindField, ToolOpeningKind } from './OpeningKind'
 import { rememberOpening } from './openingMemory'
 import { openingName, openingStyle } from '../plan/openingStyles'
 import { RetainingWallPanel } from './RetainingWallPanel'
@@ -87,6 +88,8 @@ import { colourOf } from '../sketch/colours'
 import './roofs-stairs.css'
 import { coveredRoofWords, moveRoofUp, roofCoveredBy, roofEavesRL, wallsUnderRoofline, wallTopRL } from '../plan/roofline'
 import { forTouch } from '../phone/words'
+import { WalkFromHere } from '../walk/WalkPanel'
+import { WallFinishField } from '../finishes/WallFinishField'
 
 const ROOF_TYPES: { id: RoofType; label: string }[] = [
   { id: 'hip', label: 'Hip' },
@@ -401,6 +404,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
             <SketchColours value={shared} onChange={c => colourSketch(lines.map(x => x.id), c)} label="Colour of the selected sketch lines" />
           </div>
         )}
+        <WallFinishField plan={plan} walls={plan.walls.filter(w => all.some(x => x.type === 'wall' && x.id === w.id))} />
         <p className="muted small">Drag one to move them together, or use the arrow keys (Shift for bigger steps). Esc clears the selection.</p>
         <div className="row">
           <button className="secondary" onClick={() => copySelected()}>
@@ -457,6 +461,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           // The Wall tool's own thickness for that kind, when it's set to it: the type the house is being drawn in.
           onChange={kind => st.commit(p => setWallKind(p, w.id, kind, st.wallStyle.kind === kind ? st.wallStyle.thickness : undefined))}
         />
+        <WallFinishField plan={plan} walls={[w]} />
         <div className="row">{del}</div>
       </section>
     )
@@ -540,6 +545,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           />
         ))}
         <p className="muted small">Each is from its edge to {nib ? 'the inside corner at that end of its wall' : 'that end of its wall'}. Both show on the plan beside it.</p>
+        <GlassDoorField plan={plan} opening={o} />
         {o.kind === 'door' && openingStyle(o) !== 'sliding' && (
           <div className="row">
             {/* A pair of doors is hinged at both sides, so only its swing flips. */}
@@ -591,7 +597,10 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
           The room's shape comes from the walls around its label. Drag the label to move it.
           {onNaturalGround(plan, r) && ` ${piersGroundNote(earthworksOf(plan))}`}
         </p>
-        <div className="row">{del}</div>
+        <div className="row">
+          {area !== null && <WalkFromHere room={r.id} />}
+          {del}
+        </div>
       </section>
     )
   }
@@ -667,7 +676,7 @@ export function SelectionPanel({ plan, survey, terrain, earth }: SelectionProps)
 
   if (selection.type === 'furniture') {
     const f = plan.furniture.find(x => x.id === selection.id)
-    return f ? <FurnitureSelection item={f} del={del} /> : null
+    return f ? <FurnitureSelection item={f} del={del} ground={<PieceGroundFields plan={plan} item={f} survey={survey} terrain={terrain} earth={earth} />} /> : null
   }
 
   if (selection.type === 'stair') {
@@ -951,7 +960,7 @@ export function DrivewayGrade({ plan, area: a, survey, terrain, earth }: { plan:
       <p className="muted small">
         {levelled
           ? 'The cut and fill grades the ground under the drive to its levels, level across. These are the natural ground’s grades along it and its tilt across it, before the works.'
-          : `This driveway follows the finished ground. Grades are along it from the garage end to the street end, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on, and so is a tilt across it of more than about 1 in 16 (6%). Give it a level under Levels and the cut and fill levels it across.`}
+          : `This driveway follows the finished ground. Grades are along it from the garage end to the street end, down the middle; steeper than about 1 in 4 (25%) over ${DRIVE_RUN} m, about a car's wheelbase, is hard to drive on; a tilt across it of more than about 1 in 16 (6%) is worth checking with whoever designs the drive. Give it a level under Levels and the cut and fill levels it across.`}
       </p>
     </>
   )

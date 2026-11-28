@@ -7,7 +7,8 @@ import { useRouter } from '../nav/router'
 import { useProjects } from '../projects/session'
 import { replaceSurvey } from '../safety/flows'
 import { pickFile, showToast } from '../safety/store'
-import { chipFit, describeSketch, readSketchSize, SIDE_NAME, sketchSurvey, type SketchBlock, type StreetSide } from './sketch'
+import { FallPicker } from './FallPicker'
+import { chipFit, describeSketch, fallChoiceOf, fallNumbers, FLAT, readSketchSize, SIDE_NAME, sketchSurvey, type FallChoice, type SketchBlock, type StreetSide } from './sketch'
 import './start.css'
 
 /** On the canvas: this block is a sketch, and the survey can come in any time. */
@@ -68,7 +69,7 @@ export function SketchNotice() {
   const [editing, setEditing] = useState(sent)
   const [width, setWidth] = useState(sent && sketch && !sketch.rough ? String(sketch.width) : '')
   const [depth, setDepth] = useState(sent && sketch && !sketch.rough ? String(sketch.depth) : '')
-  const [fall, setFall] = useState(sent && sketch?.fall ? String(sketch.fall) : '')
+  const [fall, setFall] = useState<FallChoice>(sent && sketch ? fallChoiceOf(sketch) : FLAT)
   const [street, setStreet] = useState<StreetSide>(sent && sketch ? sketch.street : 'S')
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
@@ -79,7 +80,7 @@ export function SketchNotice() {
   const edit = () => {
     setWidth(sketch.rough ? '' : String(sketch.width))
     setDepth(sketch.rough ? '' : String(sketch.depth))
-    setFall(sketch.fall ? String(sketch.fall) : '')
+    setFall(fallChoiceOf(sketch))
     setStreet(sketch.street)
     setError(null)
     setEditing(true)
@@ -87,7 +88,8 @@ export function SketchNotice() {
   const apply = () => {
     let block: SketchBlock
     try {
-      block = readSketchSize(width, depth, fall, street)
+      const { fall: f, cross } = fallNumbers(fall)
+      block = readSketchSize(width, depth, f, street, cross)
     } catch (e) {
       setError((e as Error).message)
       return
@@ -116,9 +118,6 @@ export function SketchNotice() {
             Depth <input inputMode="decimal" value={depth} placeholder="m" onChange={e => setDepth(e.target.value)} />
           </label>
           <label>
-            Fall <input inputMode="decimal" value={fall} placeholder="flat" onChange={e => setFall(e.target.value)} />
-          </label>
-          <label>
             Street
             <select value={street} onChange={e => setStreet(e.target.value as StreetSide)}>
               {(['N', 'E', 'S', 'W'] as const).map(s => (
@@ -128,6 +127,9 @@ export function SketchNotice() {
               ))}
             </select>
           </label>
+          <div className="sketch-fall">
+            <FallPicker id="sketch-fall" look="compact" value={fall} onChange={setFall} />
+          </div>
           {error && <p className="sketch-error">{error}</p>}
           <div className="row">
             <button type="submit" className="secondary">

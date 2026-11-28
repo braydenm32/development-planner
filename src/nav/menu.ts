@@ -31,6 +31,8 @@ export type ActionId =
   | 'download-schedule'
   | 'save-picture'
   | 'download-stls'
+  | 'download-glb'
+  | 'download-obj'
   | 'save-project'
   | 'open-file'
   | 'open-project'
@@ -46,7 +48,10 @@ export type ActionId =
   | 'zoom-in'
   | 'zoom-out'
   | 'north-up'
+  | 'dock-panels'
   | 'reset-camera'
+  | 'walk-through'
+  | 'photo-view'
   | 'camera-street'
   | 'camera-above'
   | 'camera-rear'
@@ -273,8 +278,17 @@ export const AREAS: Area[] = [
           'orbit-3d',
           'house-model-3d',
           'furniture-3d',
+          'opening-kinds-3d',
           'terrain-elevation-colours',
           'survey-markers-3d',
+          'walk-through-3d',
+          'photo-view-3d',
+          'photo-view-line-up',
+          'photo-view-point-pairs',
+          'photo-view-show-over',
+          'photo-view-sun',
+          'photo-view-picture',
+          'photo-view-in-file',
         ],
       },
       {
@@ -399,6 +413,8 @@ export const AREAS: Area[] = [
           'double-click-finish',
           'snapping',
           'draw-drag-hint',
+          'wall-draw-by-face',
+          'drag-to-draw',
           'opening-gaps',
           'room-inside-size',
           'measure-face-snap',
@@ -476,8 +492,16 @@ export const AREAS: Area[] = [
         label: 'Furniture',
         icon: 'furniture',
         subtitle: 'Pick a piece, then click on the plan to place it.',
-        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank'],
-        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room'],
+        keywords: ['bed', 'sofa', 'table', 'kitchen', 'catalogue', 'fitout', 'find furniture', 'search furniture', 'drag and drop', 'custom box', 'pantry', 'linen cupboard', 'water tank', 'rainwater tank', 'swimming pool', 'corner sofa', 'in-ground pool', 'above-ground pool', 'pool excavation', 'tank pad', 'bury tank'],
+        features: ['furniture-catalog', 'place-furniture', 'drag-furniture', 'furniture-turn', 'furniture-wall-distances', 'furniture-search', 'furniture-drag-from-list', 'furniture-custom-box', 'furniture-list', 'add-furniture-room', 'furniture-outdoor-fixtures', 'furniture-sits-in-ground'],
+      },
+      {
+        id: 'finishes',
+        label: 'Finishes',
+        icon: 'swatch',
+        subtitle: 'How the house looks in 3D: cladding, roof, colours and floors.',
+        keywords: ['finish', 'finishes', 'material', 'materials', 'texture', 'colour', 'color', 'paint', 'cladding', 'brick', 'render', 'rendered', 'weatherboard', 'roof colour', 'metal roof', 'roof sheeting', 'roof tiles', 'wall colour', 'inside colour', 'floor finish', 'timber floor', 'tiles', 'carpet', 'concrete floor', 'look', 'appearance', 'lower part', 'base course', 'brick base', 'two finishes', 'per wall finish'],
+        features: ['finishes-walls', 'finishes-roof', 'finishes-inside', 'finishes-floors', 'finishes-3d-button', 'finishes-lower-walls', 'finishes-own-walls'],
       },
       {
         id: 'sections',
@@ -509,7 +533,7 @@ export const AREAS: Area[] = [
           'council drawings',
           'stairs in section',
         ],
-        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs'],
+        features: ['sections-tab', 'section-drawing', 'section-flip-delete', 'elevations', 'elevation-height', 'sections-large', 'section-marks-plan', 'section-stairs', 'opening-kinds-elevation'],
       },
       {
         id: 'options',
@@ -525,6 +549,14 @@ export const AREAS: Area[] = [
       icon: 'sliders',
       subtitle: 'The house plan’s own file and tools you rarely need.',
       items: [
+        {
+          // First, where a first-time user sees it: tracing lives with Site › Features › Drawings (CB-27).
+          id: 'trace-plan',
+          label: 'Trace a plan picture',
+          icon: 'layers',
+          keywords: ['trace', 'trace a plan', 'tracing', 'background', 'background image', 'blueprint', 'underlay', 'floor plan picture', 'photo of a plan', 'scan', 'pdf plan', 'existing plan'],
+          features: ['design-trace-plan'],
+        },
         {
           id: 'plan-file',
           label: 'House plan file',
@@ -562,6 +594,14 @@ export const AREAS: Area[] = [
           icon: 'rotate',
           keywords: ['mirror', 'flip', 'mirror image', 'reverse plan', 'handed', 'left to right', 'swap sides', 'garage on the other side', 'flip house'],
           features: ['flip-plan'],
+        },
+        {
+          // Made-up starter plans to put on the block (src/starters).
+          id: 'starter-houses',
+          label: 'Start from a house',
+          icon: 'plan',
+          keywords: ['starter', 'starter house', 'starter plan', 'template', 'templates', 'sample plan', 'floor plan ideas', 'house designs', 'ready made', 'pick a plan', 'two bedroom', 'three bedroom', 'four bedroom', 'granny flat', 'studio', 'narrow block', 'two storey', 'split level'],
+          features: ['starter-houses', 'starter-houses-replace-or-beside'],
         },
       ],
     },
@@ -632,7 +672,7 @@ export const AREAS: Area[] = [
         icon: 'shovel',
         subtitle: 'Levelling the ground under the house.',
         shows: ['cut-fill', 'warnings'],
-        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters'],
+        keywords: ['earthworks', 'cut', 'fill', 'balance', 'batter', 'volume', 'slab', 'pad', 'excavation', 'm3', 'brush', 'grade', 'grading', 'level', 'cut to', 'fill to', 'bench', 'terrace', 'suggested retaining wall', 'retain the edges', 'retain the rest', 'remove these walls', 'no batters', 'pool dig', 'pool excavation'],
         features: [
           'earthworks-cut-batter',
           'earthworks-fill-batter',
@@ -650,6 +690,7 @@ export const AREAS: Area[] = [
           'remove-retained-edges',
           'cut-fill-works-tint',
           'cut-fill-folds',
+          'earthworks-pieces-volumes',
         ],
       },
       {
@@ -821,8 +862,8 @@ export const AREAS: Area[] = [
         label: 'BASIX',
         icon: 'leaf',
         subtitle: 'What the BASIX tool will ask for, gathered from the plan.',
-        keywords: ['basix', 'energy', 'glazing', 'windows', 'window area', 'insulation', 'hot water', 'sustainability', 'thermal', 'orientation', 'north', 'heating', 'cooling', 'lighting', 'pool', 'water target', 'NatHERS', 'certificate', 'csv'],
-        features: ['basix-checklist', 'basix-from-plan', 'basix-answers', 'basix-csv', 'basix-links'],
+        keywords: ['basix', 'energy', 'glazing', 'windows', 'window area', 'insulation', 'hot water', 'sustainability', 'thermal', 'orientation', 'north', 'heating', 'cooling', 'lighting', 'pool', 'water target', 'NatHERS', 'certificate', 'csv', 'glass door', 'glazed door', 'sliding door glazing'],
+        features: ['basix-checklist', 'basix-from-plan', 'basix-answers', 'basix-csv', 'basix-links', 'glass-door-glazing'],
       },
       {
         id: 'stormwater',
@@ -966,9 +1007,9 @@ export const AREAS: Area[] = [
         id: 'export',
         label: 'Export',
         icon: 'download',
-        subtitle: 'A DXF for your surveyor, pictures, and a door and window list.',
-        keywords: ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'picture', 'schedule', 'doors', 'windows', 'door and window schedule', 'csv', 'spreadsheet', 'surveyor', 'engineer'],
-        features: ['download-dxf', 'download-plan-png', 'download-3d-png', 'door-window-schedule', 'download-schedule-csv'],
+        subtitle: 'A DXF for your surveyor, pictures, a door and window list, and the 3D model.',
+        keywords: ['dxf', 'cad', 'autocad', 'export', 'png', 'image', 'screenshot', 'picture', 'schedule', 'doors', 'windows', 'door and window schedule', 'csv', 'spreadsheet', 'surveyor', 'engineer', '3d model', 'model export', 'obj', 'gltf', 'glb'],
+        features: ['download-dxf', 'download-plan-png', 'download-3d-png', 'door-window-schedule', 'download-schedule-csv', 'download-3d-model-glb', 'download-3d-model-obj', 'model-export-ground', 'model-export-furniture'],
       },
       {
         id: 'send',
@@ -1070,8 +1111,8 @@ const TOOL_FEATURES: Partial<Record<Tool, string[]>> = {
   area: ['tool-area', 'new-area-kind'],
   roof: ['tool-roof', 'new-roof-mode'],
   stair: ['tool-stair', 'new-stair-width'],
-  furniture: ['tool-furniture'],
-  measure: ['tool-measure', 'measure-keep', 'measure-chain'],
+  furniture: ['tool-furniture', 'furniture-touch-drag'],
+  measure: ['tool-measure', 'measure-keep', 'measure-chain', 'phone-view-measure'],
   note: ['tool-note', 'note-edit-delete'],
   sketch: ['tool-sketch', 'sketch-turn-into', 'sketch-snap', 'sketch-layer-key', 'sketch-clear', 'sketch-shared-hidden'],
 }
@@ -1080,7 +1121,7 @@ const TOOL_WORDS: Partial<Record<Tool, string[]>> = {
   select: ['pointer', 'pick', 'choose'],
   wall: ['draw walls', 'thickness', 'external', 'internal'],
   retaining: ['retaining wall', 'hold back', 'sleepers', 'block wall', 'earth'],
-  door: ['entry', 'swing', 'sliding door', 'bifold', 'french doors', 'double door'],
+  door: ['entry', 'swing', 'sliding door', 'bifold', 'french doors', 'double door', 'glass door', 'glazed door'],
   window: ['glazing', 'sill', 'awning', 'sliding window', 'double-hung', 'fixed'],
   opening: ['gap', 'archway', 'no door', 'carport', 'doorway'],
   garage: ['garage door', 'roller door', 'panel lift', 'sectional door', 'tilt door', 'overhead door', 'car', 'garage'],
@@ -1140,6 +1181,15 @@ export const HOMES: Home[] = [
         hint: 'While you’re signed in, the chip at the top right says Saved, Saving… or Offline. Tap it for what happened, and Sync now.',
       },
       {
+        // src/offline: the app opens and works with no connection once it has been opened here.
+        id: 'offline-chip',
+        label: 'Working offline',
+        icon: 'cloudOff',
+        keywords: ['offline', 'no internet', 'no connection', 'no signal', 'no wifi', 'without internet', 'on site', 'airplane mode', 'flight mode', 'app', 'new version', 'update', 'reload'],
+        features: ['offline-app', 'offline-indicator', 'offline-update-notice', 'needs-connection'],
+        hint: 'Once you’ve opened Contour & Gable here, it opens and works with no connection: drawing, checks, costs, 3D, the PDF and saving on this device. The top bar says Offline meanwhile; sign-in, cloud saves, share links, comments and the NSW map wait for the connection.',
+      },
+      {
         id: 'undo-toast',
         label: 'Undo a replaced survey or plan',
         icon: 'undo',
@@ -1184,6 +1234,15 @@ export const HOMES: Home[] = [
         features: ['cloud-sign-in', 'cloud-email-sign-in', 'cloud-create-account', 'cloud-recovery-code', 'cloud-add-passkey', 'cloud-email-address', 'cloud-sign-out', 'cloud-delete-account', 'cloud-space', 'create-account-terms-line'],
         action: 'cloud',
         run: 'now',
+      },
+      {
+        // Only where the browser offers it (src/offline/InstallItem.tsx).
+        id: 'install-app',
+        label: 'Install Contour & Gable',
+        icon: 'download',
+        keywords: ['install', 'app', 'install app', 'home screen', 'add to home screen', 'desktop app', 'phone app', 'shortcut', 'icon', 'offline', 'pwa'],
+        features: ['install-app'],
+        hint: 'Where your browser offers it (Chrome or Edge), the project menu has Install Contour & Gable. On an iPhone or iPad, tap Share, then Add to Home Screen. Once opened, it works offline too.',
       },
       { id: 'project-name', label: 'Project name', icon: 'pencil', keywords: ['title', 'rename'], features: ['project-name'] },
       // The survey's file name, with Replace… beside it (the review keeps the plan).
@@ -1334,8 +1393,8 @@ export const HOMES: Home[] = [
         id: 'peek',
         label: 'Key numbers on a phone',
         icon: 'list',
-        keywords: ['showing people', 'peek', 'pull up', 'floor', 'FFL', 'roof height', 'phone', 'taller', 'ground level', 'pin', 'tap the ground'],
-        features: ['peek-sheet', 'phone-sheet-taller', 'phone-plan-ground-pin', 'phone-empty-plan-card'],
+        keywords: ['showing people', 'peek', 'pull up', 'floor', 'FFL', 'roof height', 'phone', 'taller', 'ground level', 'pin', 'tap the ground', 'back button', 'android back', 'close the sheet', 'tapped', 'selection line'],
+        features: ['peek-sheet', 'phone-sheet-taller', 'phone-plan-ground-pin', 'phone-empty-plan-card', 'phone-back-closes', 'phone-tab-opens-panel', 'phone-panel-key-numbers', 'phone-selection-peek'],
         hint: 'On a phone the key numbers sit in a sheet at the bottom of the plan and 3D. Pull it up, or tap it, for every number.',
       },
       { id: 'overview', label: 'Overview of every number', icon: 'list', keywords: ['numbers', 'summary', 'key numbers', 'facts'], features: ['overview-sheet', 'overview-sun'], action: 'overview', run: 'now' },
@@ -1370,8 +1429,21 @@ export const HOMES: Home[] = [
       { id: 'cmd-dxf', label: 'Download DXF for CAD', icon: 'download', keywords: ['dxf', 'cad', 'autocad', 'export', 'surveyor', 'engineer'], features: [], action: 'download-dxf', run: 'offer', at: 'share/export' },
       { id: 'cmd-schedule', label: 'Download door and window schedule', icon: 'download', keywords: ['schedule', 'doors', 'windows', 'csv', 'export'], features: [], action: 'download-schedule', run: 'offer', at: 'share/export' },
       { id: 'cmd-picture', label: 'Save a picture of the plan or 3D view', icon: 'download', keywords: ['png', 'image', 'screenshot', 'export'], features: [], action: 'save-picture', run: 'now' },
+      { id: 'cmd-model', label: 'Save the 3D model (.glb)', icon: 'download', keywords: ['gltf', 'glb', 'model export', '3d model', 'sketchup', 'blender', 'render', 'renderer', 'export'], features: [], action: 'download-glb', run: 'offer', at: 'share/export' },
+      { id: 'cmd-model-obj', label: 'Save the 3D model as OBJ', icon: 'download', keywords: ['obj', 'mtl', 'model export', '3d model', 'sketchup', 'blender', 'render', 'export'], features: [], action: 'download-obj', run: 'offer', at: 'share/export' },
       { id: 'cmd-3mf', label: 'Download 3MF for printing', icon: 'download', keywords: ['3D print', 'model'], features: [], action: 'download-3mf', run: 'offer', at: 'share/3d-print' },
       { id: 'cmd-stl', label: 'Download STL files for printing', icon: 'download', keywords: ['stl', 'zip', 'slicer', '3D print'], features: [], action: 'download-stls', run: 'offer', at: 'share/3d-print' },
+      { id: 'cmd-walk-through', label: 'Walk through the house in 3D', icon: 'walk', keywords: ['walk-through', 'walkthrough', 'eye height', 'inside', 'first person', 'virtual visit', 'stand in a room', 'tour'], features: [], action: 'walk-through', run: 'now', at: 'site/3d' },
+      {
+        id: 'cmd-photo-view',
+        label: 'View from a photo taken on the block',
+        icon: 'photo',
+        keywords: ['photo', 'view', 'photomontage', 'photo montage', 'outlook', 'what will it look like', 'from the street', 'from the neighbour', 'camera match', 'line up a photo'],
+        features: [],
+        action: 'photo-view',
+        run: 'now',
+        at: 'site/3d',
+      },
       { id: 'cmd-reset-camera', label: 'Reset the 3D camera', icon: 'rotate', keywords: ['view', 'orbit', 'home'], features: [], action: 'reset-camera', run: 'now', at: 'site/3d' },
     ],
   },
@@ -1494,6 +1566,16 @@ export const HOMES: Home[] = [
       },
       { id: 'north-up', label: 'North up', icon: 'north', keywords: ['top of view', 'orientation', 'compass', 'square to the house'], features: ['top-of-view'], action: 'north-up', run: 'now' },
       {
+        id: 'dock-panels',
+        label: 'Dock panels beside the plan',
+        icon: 'dock',
+        keywords: ['dock', 'docked panels', 'undock', 'float panels', 'floating panels', 'side panel', 'fixed panel', 'sidebar', 'layout', 'panel layout', 'panels cover the plan', 'panel in the way', 'more room for the drawing', 'panel width', 'wider panel', 'resize panel'],
+        features: ['dock-panels', 'dock-panel-width'],
+        action: 'dock-panels',
+        run: 'now',
+        hint: 'On a computer, the panels sit fixed beside the plan or the 3D view and the drawing takes the space left. The button at the top of a tab’s panel does the same. Drag the docked panel’s edge to make it wider.',
+      },
+      {
         id: 'rect-room',
         label: 'Rectangle room',
         icon: 'room',
@@ -1614,7 +1696,7 @@ export const HOMES: Home[] = [
     label: 'Selection inspector',
     features: [],
     items: [
-      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts'] },
+      { id: 'inspect-wall', at: 'design/plan', hint: 'Click a wall on the plan: its settings open on the right.', label: 'Selected wall', icon: 'wall', keywords: ['length', 'thickness', 'kind', 'wall height', 'earth against wall', 'end that moves', 'keep square', 'wall finish', 'wall cladding', 'two finishes', 'brick base'], features: ['wall-length', 'wall-length-end', 'wall-thickness', 'wall-kind', 'wall-facts', 'wall-own-finish'] },
       {
         id: 'inspect-opening', at: 'design/plan', hint: 'Click a door or window on the plan: its settings open on the right.',
         label: 'Selected door or window',
@@ -1693,6 +1775,7 @@ export const HOMES: Home[] = [
           'surveyor-request',
           'sketch-without-survey',
           'sketch-block-size',
+          'sketch-block-fall-way',
           'start-from-address',
           'start-never-traps',
           'start-what-it-does',
@@ -1876,6 +1959,7 @@ export const HOMES: Home[] = [
       },
       { id: 'kbd-close', label: 'Enter closes an outline', keywords: ['finish area', 'close roof'], features: ['kbd-enter-close'], shortcut: '↵', hint: 'Enter closes the area or roof outline you are drawing.' },
       { id: 'kbd-turn', label: 'Turn furniture', keywords: ['rotate', 'quarter turn'], features: ['kbd-furniture-turn'], shortcut: 'Q', hint: 'Q turns the piece you are placing, or the selected one, a quarter turn; Shift+Q turns it back.' },
+      { id: 'kbd-mirror', label: 'Mirror furniture', keywords: ['flip furniture', 'mirror furniture', 'handed', 'left hand', 'right hand', 'corner sofa'], features: ['furniture-mirror'], shortcut: 'H', hint: 'H mirrors the selected corner sofa, L-shaped bench or desk, bath or pool left to right.' },
     ],
   },
 ]

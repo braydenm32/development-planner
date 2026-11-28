@@ -37,6 +37,8 @@ type SiteGround = State['ground']
 
 /** The element id of Site features' To check list, for links that land on it. */
 export const TO_CHECK_ID = 'site-to-check'
+/** Site › Features › Drawings, for links that lead to it (Design › More › Trace a plan picture). */
+export const DRAWINGS_ID = 'site-drawings'
 
 /** Worked out once for every component that shows them. */
 let cache: { key: unknown[]; out: SiteWarning[] } | null = null

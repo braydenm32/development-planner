@@ -17,10 +17,13 @@ const RULES: [RegExp, string][] = [
   [/\s*Press [A-Z] to [^.]*\./g, ''],
   [/\s*\[ and \] change the brush size; Esc stops\./g, ''],
   [/\s*With the plan in focus, the arrow keys [^.]*\./g, ''],
+  // Walk-through's keys and wheel (src/walk): the pad and a drag do it there.
+  [/\s*Arrow keys or W A S D walk[^.]*\./g, ''],
   // The plan's Select hint: no Delete key or right button under a finger; the selection's panel deletes.
   [/ Delete removes; right-tap for more\./g, ' Its panel has Delete.'],
   [/[;,] or double-tap or press Esc to stop\b/g, ''],
   [/ Esc stops\./g, ''],
+  [/ Esc finishes\./g, ''],
   // Site features: on a phone the panel is the sheet underneath, and Done ends tracing.
   [/, on the left; Esc stops tracing\./g, '; Done stops tracing.'],
   [/, on the left\b/g, ''],

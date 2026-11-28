@@ -72,6 +72,8 @@ const ICONS = {
   cloud: '<path d="M7 18.5h10.3a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-11-1.1A4.4 4.4 0 0 0 7 18.5z"/>',
   cloudOff: '<path d="M7 18.5h10.3a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-11-1.1A4.4 4.4 0 0 0 7 18.5z"/><path d="m4 4 16 16"/>',
   key: '<circle cx="8" cy="15.5" r="3.7"/><path d="M10.7 12.8 19 4.5M15.6 7.9l2.6 2.6M17.6 5.9l2 2"/>',
+  /** Panels docked beside the canvas: a window with a fixed column at its left. */
+  dock: '<rect x="3.5" y="4.5" width="17" height="15" rx="1"/><path d="M9.5 4.5v15"/><path d="M5.5 8h2M5.5 11h2" stroke-width="1.4"/>',
   mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4 6.5 8 6 8-6"/>',
   link: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.3 1.3"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.3-1.3"/>',
   ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/>',
@@ -79,7 +81,12 @@ const ICONS = {
   sketch: '<path d="M3.5 19.5 20.5 6" stroke-dasharray="2.6 2"/><path d="M5 8.5a9 9 0 0 1 11.5 11"/><circle cx="5" cy="19" r="1.6"/>',
   note: '<path d="M4.5 4.5h15v11h-6l-3.5 4v-4h-5.5z"/><path d="M8 9h8M8 12h5"/>',
   map: '<path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+  // A camera: View from a photo in 3D (src/photoview).
+  photo: '<path d="M3.5 8.5h3.8l1.7-2.5h6l1.7 2.5h3.8v10.5h-17z"/><circle cx="12" cy="13.3" r="3.4"/>',
+  // Someone walking: Walk through in 3D.
+  walk: '<circle cx="13.5" cy="4.8" r="1.8"/><path d="m10 21 2.2-5.6 2.6 2.4V21"/><path d="m12.2 15.4 1.2-6.6-3.6 1.6-1.6 3.4"/><path d="m13.4 8.8 1.8 3 3 1.2"/>',
   costs: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3"/>',
+  swatch: '<rect x="3.5" y="3.5" width="7" height="17" rx="1.5"/><path d="m10.5 7.5 4-3.2 4.6 5.6-8.6 7"/><path d="M10.5 20.5H20v-7h-5"/><circle cx="7" cy="16.5" r="1" fill="currentColor" stroke="none"/>',
 }
 
 export type IconName = keyof typeof ICONS

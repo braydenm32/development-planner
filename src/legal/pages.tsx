@@ -220,7 +220,7 @@ export function Accuracy() {
       </S>
       <S id="costs" title="Costs">
         <p><b>Good for:</b> a rough budget and comparing choices, line by line, in NSW dollars including GST.</p>
-        <p><b>Limits:</b> starting rates are rough NSW figures from public guides, set in November 2026, and prices move. The estimate shows a likely range of 20% either way, and the real cost can fall outside it. A quote you type in replaces a line’s estimate. It doesn’t include land, finance, furniture, landscaping beyond what you’ve drawn, or anything you haven’t drawn, and fees and allowances are rough. Get quotes from builders and trades before you commit.</p>
+        <p><b>Limits:</b> starting rates are rough NSW figures set in November 2026, not quotes, and prices move. The estimate shows a likely range of 20% either way, and the real cost can fall outside it. A quote you type in replaces a line’s estimate. It doesn’t include land, finance, furniture, landscaping beyond what you’ve drawn, or anything you haven’t drawn, and fees and allowances are rough. Get quotes from builders and trades before you commit.</p>
       </S>
       <S id="prints" title="3D prints">
         <p><b>Good for:</b> a model of the block and house to look at, hold and discuss.</p>

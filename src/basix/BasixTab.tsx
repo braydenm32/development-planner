@@ -58,10 +58,15 @@ function Basix({ d }: { d: Loaded }) {
               {r.id === 'glazing' ? (
                 <dl className="stats basix-facades">
                   {FACADES.map(f => (
-                    <FacadeRow key={f} name={FACADE_NAMES[f]} area={facts.windows[f]} />
+                    <FacadeRow key={f} name={FACADE_NAMES[f]} area={facts.glass[f]} />
                   ))}
-                  <dt className="strong">All windows</dt>
-                  <dd className="strong">{m2(facts.windowTotal)}</dd>
+                  {/* Windows and glass doors apart, adding to the total the facades add to. */}
+                  <dt className="basix-split">Windows</dt>
+                  <dd className="basix-split">{m2(facts.windowTotal)}</dd>
+                  <dt>Glass doors</dt>
+                  <dd>{m2(facts.doorTotal)}</dd>
+                  <dt className="strong">All glass</dt>
+                  <dd className="strong">{m2(facts.glassTotal)}</dd>
                   {facts.glazingRatio !== null && (
                     <>
                       <dt>Glazing to floor area</dt>
@@ -83,7 +88,7 @@ function Basix({ d }: { d: Loaded }) {
           ))}
       </ul>
       <p className="muted small">
-        Windows count where they sit on an outside wall; give a room the Living, Kitchen or Dining type and its orientation shows. Roof and tank come from{' '}
+        Windows and glass doors count where they sit on an outside wall: sliding, bifold and double doors are glass unless you untick Glass door on the door’s card, and any other door counts once you tick it. Give a room the Living, Kitchen or Dining type and its orientation shows. Roof and tank come from{' '}
         <button className="link" onClick={() => navigate({ kind: 'app', area: 'approvals', tab: 'stormwater', view: 'plan' })}>
           Approvals › Stormwater
         </button>
@@ -157,7 +162,7 @@ function LivingRow({ room, main }: { room: string; main: string | null }) {
   return (
     <>
       <dt>{room}</dt>
-      <dd>{main ? `mostly ${main.toLowerCase()}` : 'no outside windows yet'}</dd>
+      <dd>{main ? `mostly ${main.toLowerCase()}` : 'no outside windows or glass doors yet'}</dd>
     </>
   )
 }

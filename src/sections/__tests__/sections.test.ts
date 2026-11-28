@@ -297,6 +297,17 @@ describe('elevations', () => {
     for (const i of [1, 2, 3]) expect(ops(i)).toHaveLength(0)
   })
 
+  it('says what kind each door or window is and which side its hinge is on, without moving it', () => {
+    const o = { id: 'dr', wall: 'n', kind: 'door' as const, offset: 5, width: 0.82, height: 2.04, sill: 0, flipHinge: false, flipSwing: false }
+    const one = (x: typeof o & { style?: 'bifold' }) => elevationDrawing('north', { plan: box({ openings: [x] }), survey, terrain }).shapes.flatMap(s => (s.kind === 'wall' ? s.openings : []))[0]
+    const plain = one(o)
+    const flipped = one({ ...o, flipHinge: true })
+    expect(plain.style).toBe('hinged')
+    expect([plain.hinge, flipped.hinge].sort()).toEqual(['left', 'right'])
+    expect(flipped.box).toEqual(plain.box)
+    expect(one({ ...o, style: 'bifold' }).style).toBe('bifold')
+  })
+
   it('draws the natural and finished ground along the face', () => {
     const d = elevationDrawing('north', { plan: sample, survey, terrain, finished: finishedOf(sample) })
     expect(d.natural.length).toBeGreaterThan(0)

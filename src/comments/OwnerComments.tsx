@@ -5,6 +5,7 @@
 // (./PlanComments.tsx).
 
 import { Icon } from '../nav/icons'
+import { NeedsConnection } from '../offline/NeedsConnection'
 import { navigate, useRouter } from '../nav/router'
 import { usePlan } from '../plan/store'
 import { levelById, sortedLevels } from '../plan/model'
@@ -109,6 +110,7 @@ export function CommentsSection({ projectId }: { projectId: string }) {
         {fresh > 0 && <b className="cm-new">{fresh} new</b>}
       </h3>
       <p className="sl-line muted">Pinned on the plan by people with a link. Resolve one once you’ve dealt with it.</p>
+      <NeedsConnection>New comments, Resolve and Delete wait for it.</NeedsConnection>
       {problem && (
         <p className="sl-problem" role="alert">
           {problem}
