@@ -51,6 +51,9 @@ export const reveal = (path: string) => invoke<void>('reveal', { path })
 
 export const openDefault = (path: string) => invoke<void>('open_default', { path })
 
+/** Open a web page (https only) in the computer's browser. */
+export const openUrl = (url: string) => invoke<void>('open_url', { url })
+
 export const findSlicers = () => invoke<Slicer[]>('find_slicers')
 
 export const openWith = (app: string, file: string) => invoke<void>('open_with', { app, file })

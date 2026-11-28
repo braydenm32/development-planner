@@ -3,6 +3,7 @@
 // their session like the rest of the cloud API, with the X-BHP header on every change.
 
 import { CloudError, CSRF_HEADER, OfflineError } from '../cloud/api'
+import { apiBase, signedInWith } from '../cloud/endpoint'
 import { SHARE_HEADER, type ShareLink } from '../share-links/api'
 import type { CommentCounts, CommentMode, OwnerComment, Spot, ViewerComment } from './model'
 
@@ -27,7 +28,7 @@ export interface CommentsApi {
 }
 
 export function createCommentsApi(opts: { base?: string; fetch?: typeof fetch } = {}): CommentsApi {
-  const base = opts.base ?? `${import.meta.env?.BASE_URL ?? '/'}api/`
+  const base = opts.base ?? apiBase()
   const doFetch = opts.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init))
 
   /** `viewer` carries the link's token (and this browser's, if it has one) instead of the session. */
@@ -40,9 +41,11 @@ export function createCommentsApi(opts: { base?: string; fetch?: typeof fetch } 
       headers[SHARE_HEADER] = viewer.token
       if (viewer.commenter) headers[COMMENTER_HEADER] = viewer.commenter
     }
+    const who = signedInWith()
+    if (!viewer) Object.assign(headers, who.headers)
     let res: Response
     try {
-      res = await doFetch(base + path, { ...init, method, headers, credentials: viewer ? 'omit' : 'same-origin', cache: 'no-store', referrerPolicy: 'no-referrer' })
+      res = await doFetch(base + path, { ...init, method, headers, credentials: viewer ? 'omit' : who.credentials, cache: 'no-store', referrerPolicy: 'no-referrer' })
     } catch {
       throw new OfflineError()
     }

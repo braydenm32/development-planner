@@ -18,7 +18,7 @@ import { accountGone, limitAuth, signedIn } from './auth'
 import { emailOn, sendCode, SendError, type CodePurpose } from './email'
 import type { Env, WaitUntil } from './env'
 import { HttpError, json, readJson, sameSecret, sha256Hex } from './http'
-import { clientIp, LIVE_ACCOUNT, rateLimit, requireUser, sessionInsert, type User } from './session'
+import { clientIp, fromApp, LIVE_ACCOUNT, rateLimit, requireUser, sessionInsert, type User } from './session'
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -218,7 +218,8 @@ export async function emailSigninVerify(env: Env, req: Request, now: number): Pr
   if (user.deleteAfter !== null && user.deleteAfter <= now) throw accountGone()
   const session = await sessionInsert(env, user.id, now)
   await session.stmt.run()
-  return signedIn(user, session.token)
+  // The desktop app keeps the token itself: a cookie set from another origin never comes back.
+  return signedIn(user, session.token, fromApp(req) ? { token: session.token } : {})
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@
 
 import { purgeAccounts } from './account'
 import { handleApi } from './api'
+import { tidyAppLinks } from './appLink'
 import { tidyComments } from './comments'
 import { tidyEmailCodes } from './emailAuth'
 import type { Env, WaitUntil } from './env'
@@ -21,6 +22,6 @@ export default {
   /** The cron trigger (wrangler.toml): deletes, for good, accounts whose 30 days are up, comments on links turned off, and email codes that ran out. */
   async scheduled(_controller: unknown, env: Env, ctx: WaitUntil): Promise<void> {
     const now = Date.now()
-    ctx.waitUntil(Promise.all([purgeAccounts(env, now), tidyComments(env, now), tidyEmailCodes(env, now)]))
+    ctx.waitUntil(Promise.all([purgeAccounts(env, now), tidyComments(env, now), tidyEmailCodes(env, now), tidyAppLinks(env, now)]))
   },
 }

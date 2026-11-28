@@ -11,6 +11,8 @@ import { edited } from '../projects/format'
 import type { ProjectMeta } from '../projects/types'
 import type { Account } from './api'
 import { codeDigits, couldBeEmail } from './emailCode'
+import { isDesktop } from '../desktop/bridge'
+import { CLOUD_ORIGIN } from './endpoint'
 import { passkeysWork } from './passkeys'
 import { cloudActions, startCloud, useCloud, type SignInReason } from './state'
 import { chipLook, longDate, megabytes, projects } from './words'
@@ -23,7 +25,9 @@ export function CloudLayer() {
   const sheet = useCloud(s => s.sheet)
   // Is there a cloud here, and who is signed in? Nothing else is sent before he signs in.
   useEffect(() => void startCloud(), [])
-  if (sheet === 'sign-in') return <SignInSheet />
+  if (sheet === 'sign-in') return isDesktop() ? <DesktopSignInSheet /> : <SignInSheet />
+  if (sheet === 'app-link') return <AppLinkSheet />
+  if (sheet === 'app-approve') return <AppApproveSheet />
   if (sheet === 'create') return <CreateSheet />
   if (sheet === 'recover') return <RecoverSheet />
   if (sheet === 'code') return <CodeSheet />
@@ -92,6 +96,128 @@ const REASONS: Record<SignInReason, { title: string; lede: string }> = {
     title: 'Sign in to share a link',
     lede: 'A view-only link opens the copy of this project saved in the cloud, so sharing one needs an account. Sign in, or make one in a minute: there’s no password, just a passkey (Face ID, Touch ID, Windows Hello or your phone).',
   },
+  app: {
+    title: 'Sign in to connect the desktop app',
+    lede: 'The desktop app opened this page so you can sign it in. Sign in here first, with your passkey (Face ID, Touch ID, Windows Hello or your phone); then you’ll be asked to let the app in.',
+  },
+}
+
+/** The website's address, as people say it. */
+const SITE = CLOUD_ORIGIN.replace(/^https:\/\//, '')
+
+/** The desktop app's sign-in: through the browser, where the passkey is; or a code by email. */
+function DesktopSignInSheet() {
+  const busy = useCloud(s => s.busy)
+  const email = useCloud(s => s.email)
+  const reason = useCloud(s => s.reason)
+  const why = reason === 'share' ? REASONS.share : null
+  return (
+    <Sheet title={why?.title ?? 'Sign in to your cloud projects'}>
+      <p>
+        {why ? 'A view-only link opens the copy of this project saved in the cloud, so sharing one needs you signed in. ' : ''}
+        Sign in with the account you use on {SITE}. Your browser opens to check it’s you, with your passkey; then come back here.
+      </p>
+      <ul className="cl-points">
+        <li>The projects you saved on the website open here, and what you change here is saved back.</li>
+        <li>They’re kept on this computer too, and keep working offline.</li>
+      </ul>
+      <Problem />
+      <div className="cl-actions">
+        <button className="cl-btn primary big" data-autofocus disabled={busy} onClick={() => void cloudActions.signInFromBrowser()}>
+          <Icon name="key" size={18} />
+          {busy ? 'Opening your browser…' : 'Sign in with your browser'}
+        </button>
+      </div>
+      {email && (
+        <p className="cl-instead">
+          <button className="cl-link" onClick={() => cloudActions.open('email')} disabled={busy}>
+            <Icon name="mail" size={16} />
+            Email me a code instead
+          </button>
+        </p>
+      )}
+      <p className="cl-alt">
+        <span>No account yet? Make one on {SITE}, then sign in here.</span>
+      </p>
+    </Sheet>
+  )
+}
+
+/** The desktop app, waiting for the browser: the code to check there, and a way to open the page again. */
+function AppLinkSheet() {
+  const link = useCloud(s => s.appLink)
+  const [copied, setCopied] = useState(false)
+  return (
+    <Sheet title={link ? 'Finish signing in in your browser' : 'Sign in to your cloud projects'}>
+      {link ? (
+        <>
+          <p>Your browser has opened {SITE}. Sign in there if it asks, check it shows this code, and choose Let the app in.</p>
+          <p className="cl-code cl-linkcode" aria-label={`Code ${link.code.split('').join(' ')}`}>
+            {link.code}
+          </p>
+          <p className="cl-waiting" role="status">
+            <span className="cl-spinner" aria-hidden="true" />
+            Waiting for your browser…
+          </p>
+          <div className="cl-actions">
+            <button className="cl-btn" onClick={cloudActions.reopenLink}>
+              Open the page again
+            </button>
+            <button
+              className="cl-btn"
+              onClick={() =>
+                void navigator.clipboard?.writeText(link.url).then(
+                  () => setCopied(true),
+                  () => {},
+                )
+              }
+            >
+              {copied ? 'Link copied' : 'Copy the link'}
+            </button>
+          </div>
+          <p className="cl-muted">The link works for ten minutes, in any browser where you’re signed in, on this computer or your phone.</p>
+        </>
+      ) : (
+        <>
+          <Problem />
+          <div className="cl-actions">
+            <button className="cl-btn primary" data-autofocus onClick={() => void cloudActions.signInFromBrowser()}>
+              Start again
+            </button>
+          </div>
+        </>
+      )}
+    </Sheet>
+  )
+}
+
+/** The website, signed in, opened by the desktop app's link: let it in? */
+function AppApproveSheet() {
+  const code = useCloud(s => s.approve)
+  const user = useCloud(s => s.user)
+  const busy = useCloud(s => s.busy)
+  if (!code) return null
+  return (
+    <Sheet title="Let the desktop app in?">
+      <p>
+        The Contour &amp; Gable desktop app is asking to sign in as <b>{user?.name ?? 'you'}</b>. It will open your cloud projects on that computer and save changes back.
+      </p>
+      <p>Check the app shows this code:</p>
+      <p className="cl-code cl-linkcode" aria-label={`Code ${code.split('').join(' ')}`}>
+        {code}
+      </p>
+      <p className="cl-muted">If you didn’t just choose Sign in in the desktop app, or the code is different, choose Don’t.</p>
+      <Problem />
+      <div className="cl-actions pair">
+        <button className="cl-btn primary big" data-autofocus disabled={busy} onClick={() => void cloudActions.approveApp()}>
+          {busy ? 'Letting it in…' : 'Let the app in'}
+        </button>
+        <button className="cl-btn big" disabled={busy} onClick={cloudActions.close}>
+          Don’t
+        </button>
+      </div>
+    </Sheet>
+  )
 }
 
 function SignInSheet() {
@@ -671,10 +797,14 @@ function AccountSheet() {
             ? `${keys.length} passkey${keys.length === 1 ? '' : 's'}${keys.some(k => k.synced) ? ', shared across your devices by your phone or computer' : ''}. Last used ${lastUsed(keys)}.`
             : 'Your passkeys sign you in on each device.'}
         </p>
-        <button className="cl-btn" onClick={() => void cloudActions.addPasskey()} disabled={busy}>
-          <Icon name="key" size={16} />
-          Add a passkey on this device
-        </button>
+        {isDesktop() ? (
+          <p className="cl-muted">Passkeys are added on {SITE}; this app signs in through your browser.</p>
+        ) : (
+          <button className="cl-btn" onClick={() => void cloudActions.addPasskey()} disabled={busy}>
+            <Icon name="key" size={16} />
+            Add a passkey on this device
+          </button>
+        )}
       </section>
 
       {/* Shown where email works; and wherever an address is kept, so it can always be removed. */}

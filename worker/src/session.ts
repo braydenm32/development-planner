@@ -1,5 +1,7 @@
 // Signed-in browsers: a random token in an HttpOnly, Secure, SameSite=Lax cookie, with only its
 // hash kept in D1. Sessions last 30 days from the last visit (refreshed at most once a day).
+// The desktop app (./appLink.ts) holds the same kind of token and sends it as
+// `Authorization: Bearer`; a request from the app never uses a cookie.
 
 import type { Env } from './env'
 import { cookie, HttpError, randomId, sha256Hex } from './http'
@@ -41,9 +43,25 @@ export function sessionCookie(token: string): string {
 
 export const clearedCookie = () => `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
 
+/** The desktop app's addresses (Mac and Linux, then Windows): what its requests say they come from. */
+export const APP_ORIGINS: ReadonlySet<string> = new Set(['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost'])
+
+/** Whether the request comes from the desktop app, which signs in with a token, never a cookie. */
+export const fromApp = (req: Request) => APP_ORIGINS.has(req.headers.get('origin') ?? '')
+
+/** The session token: the app's Bearer token if it sent one (or comes from the app), else the browser's cookie. */
+function sessionToken(req: Request): string | null {
+  const auth = req.headers.get('authorization')
+  if (auth !== null || fromApp(req)) {
+    const m = /^Bearer ([A-Za-z0-9_-]{1,100})$/.exec(auth ?? '')
+    return m ? m[1] : null
+  }
+  return cookie(req, SESSION_COOKIE)
+}
+
 /** Who this request is signed in as, if anyone. */
 export async function readSession(env: Env, req: Request, now: number): Promise<User | null> {
-  const token = cookie(req, SESSION_COOKIE)
+  const token = sessionToken(req)
   if (!token || token.length > 100) return null
   // Now and then, let go of sessions that ran out.
   if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM sessions WHERE expires < ?').bind(now).run()
@@ -69,7 +87,7 @@ export async function requireUser(env: Env, req: Request, now: number): Promise<
 }
 
 export async function endSession(env: Env, req: Request): Promise<void> {
-  const token = cookie(req, SESSION_COOKIE)
+  const token = sessionToken(req)
   if (token && token.length <= 100) await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256Hex(token)).run()
 }
 

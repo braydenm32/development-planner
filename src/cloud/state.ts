@@ -10,6 +10,8 @@ import type { ProjectMeta } from '../projects/types'
 import { showToast } from '../safety/store'
 import { createCloudApi, isOffline, type CloudApi, type CloudUser, type Signup } from './api'
 import { createCloudProjectStore } from './cloudStore'
+import { isDesktop, openUrl } from '../desktop/bridge'
+import { setAppToken } from './endpoint'
 import { makePasskey, passkeyTrouble, passkeysWork, getPasskey } from './passkeys'
 import { createSync, type Sync, type SyncNotice, type SyncState } from './sync'
 import { longDate, noticeText } from './words'
@@ -32,9 +34,13 @@ export type CloudSheet =
   | 'email-nudge'
   /** After signing in by email: add a passkey on this device. */
   | 'passkey-offer'
+  /** The desktop app, waiting for the browser to let it in (it shows the link's code). */
+  | 'app-link'
+  /** The website, signed in: let the desktop app showing this code in? */
+  | 'app-approve'
 
 /** What asked for the sign-in sheet: it leads with that, rather than the cloud in general. */
-export type SignInReason = 'share'
+export type SignInReason = 'share' | 'app'
 
 export interface CloudState {
   phase: CloudPhase
@@ -53,6 +59,10 @@ export interface CloudState {
   reason: SignInReason | null
   /** A recovery code to keep, shown once. */
   code: { value: string; first: boolean } | null
+  /** The desktop app: the sign-in link it is waiting on, with the code to check in the browser. */
+  appLink: { code: string; url: string } | null
+  /** The website: the code of a desktop app waiting to be let in (from the link it opened). */
+  approve: string | null
   /** A passkey step is running. */
   busy: boolean
   /** What went wrong in the open sheet, in plain words. */
@@ -74,6 +84,8 @@ export const useCloud = create<CloudState>(() => ({
   sheet: null,
   reason: null,
   code: null,
+  appLink: null,
+  approve: null,
   busy: false,
   problem: null,
 }))
@@ -149,15 +161,29 @@ export function startCloud(): Promise<void> {
       return
     }
     if (!health) return void set({ phase: 'unavailable' })
-    set({ signup: health.signup, email: health.email })
+    set({ signup: health.signup, email: health.email, approve: takeApproval() })
     const user = await api.session().catch(() => null)
     if (!user) {
       setHint(null)
-      return void set({ phase: 'signed-out' })
+      set({ phase: 'signed-out' })
+      // Opened from the desktop app's link: sign in first, then let it in.
+      if (get().approve) set({ sheet: 'sign-in', reason: 'app', problem: null })
+      return
     }
     await signedIn(user)
   })()
   return starting
+}
+
+/** The desktop app's code in this page's address (?app-link=…), taken out of the address once read. */
+function takeApproval(): string | null {
+  if (typeof location === 'undefined' || isDesktop()) return null
+  const u = new URL(location.href)
+  const code = u.searchParams.get('app-link')
+  if (code === null) return null
+  u.searchParams.delete('app-link')
+  history.replaceState(history.state, '', u)
+  return /^[A-Za-z0-9 -]{8,12}$/.test(code) ? code.toUpperCase() : null
 }
 
 async function refreshLists() {
@@ -207,9 +233,15 @@ async function signedIn(user: CloudUser, opts: { offerUpload?: boolean } = {}) {
     return void set({ sheet: 'deleting' })
   }
   await begin(user)
+  // Opened from the desktop app's link: that first.
+  if (get().approve && !get().sheet) return void set({ sheet: 'app-approve' })
   // Projects made here before signing in: ask before any of them goes up.
   if ((opts.offerUpload ?? true) && get().waiting.length && !get().sheet) set({ sheet: 'upload' })
 }
+
+/** How often the desktop app asks whether the browser has let it in, and for how long (ms). Tests shorten them. */
+export const linkTiming = { every: 2000, for: 10 * 60 * 1000 }
+let linkRun = 0
 
 // ---------------------------------------------------------------------------
 // What the sheets and menus do.
@@ -235,7 +267,8 @@ function signedOutHere() {
   sync?.stop()
   sync = null
   setHint(null)
-  set({ phase: 'signed-out', user: null, sync: IDLE, sheet: null, waiting: [], kept: [], inCloud: [], notices: [] })
+  setAppToken(null)
+  set({ phase: 'signed-out', user: null, sync: IDLE, sheet: null, appLink: null, waiting: [], kept: [], inCloud: [], notices: [] })
 }
 
 export const cloudActions = {
@@ -253,7 +286,9 @@ export const cloudActions = {
   },
   close() {
     const { sheet, code, email } = get()
-    set({ sheet: null, problem: null, reason: null, ...(sheet === 'code' ? { code: null } : {}) })
+    set({ sheet: null, problem: null, reason: null, ...(sheet === 'code' ? { code: null } : {}), ...(sheet === 'app-link' ? { appLink: null } : {}), ...(sheet === 'app-approve' ? { approve: null } : {}) })
+    // Signed in from the desktop app's link, other sheets done: let it in.
+    if (sheet !== 'app-approve' && sheet !== 'sign-in' && get().approve && get().phase === 'signed-in' && !get().user?.deleteAfter) return void set({ sheet: 'app-approve' })
     // A new account, its code kept: once, ask for an email to get back in with (where it works).
     if (sheet === 'code' && code?.first && email) return void set({ sheet: 'email-nudge' })
     // After keeping a code, that ask, or the passkey offer after an email sign-in: offer the upload.
@@ -268,6 +303,56 @@ export const cloudActions = {
     if (!done) return
     set({ sheet: null })
     await signedIn(done.user)
+  },
+
+  /**
+   * The desktop app: sign in through the browser. Opens the website with a code, shows the same
+   * code here, and waits until a signed-in browser lets the app in (worker/src/appLink.ts).
+   */
+  async signInFromBrowser() {
+    const link = await step(() => api.linkStart(), emailTrouble)
+    if (!link) return
+    const run = ++linkRun
+    const until = Date.now() + linkTiming.for
+    set({ sheet: 'app-link', appLink: { code: link.code, url: link.url }, problem: null })
+    void openUrl(link.url).catch(() => undefined)
+    const waiting = () => run === linkRun && get().sheet === 'app-link'
+    while (waiting() && Date.now() < until) {
+      await new Promise(r => setTimeout(r, linkTiming.every))
+      if (!waiting()) return
+      try {
+        const got = await api.linkClaim(link.code, link.secret)
+        if (!got) continue
+        setAppToken(got.token)
+        set({ sheet: null, appLink: null })
+        await signedIn(got.user)
+        showToast({ text: `Signed in as ${got.user.name}. Your cloud projects are on this computer now, and stay up to date.` })
+        return
+      } catch (e) {
+        // Offline for a moment: keep asking.
+        if (isOffline(e)) continue
+        if (waiting()) set({ appLink: null, problem: emailTrouble(e) })
+        return
+      }
+    }
+    if (waiting()) set({ appLink: null, problem: 'That took more than ten minutes, so the sign-in ran out. Start again.' })
+  },
+
+  /** The desktop app: open the sign-in page again (the browser didn't open, or was closed). */
+  reopenLink() {
+    const url = get().appLink?.url
+    if (url) void openUrl(url).catch(() => undefined)
+  },
+
+  /** The website, signed in: let the desktop app showing this code in. */
+  async approveApp() {
+    const code = get().approve
+    if (!code) return
+    const done = await step(async () => (await api.linkApprove(code), true), emailTrouble)
+    if (!done) return
+    set({ sheet: null, approve: null, problem: null })
+    showToast({ text: 'The desktop app is signed in. You can go back to it now.', ms: 15000 })
+    if (get().waiting.length) set({ sheet: 'upload' })
   },
 
   async createAccount(name: string, invite?: string) {
@@ -313,6 +398,8 @@ export const cloudActions = {
   async emailSignIn(email: string, code: string): Promise<boolean> {
     const done = await step(() => api.emailSignIn(email.trim(), code), emailTrouble)
     if (!done) return false
+    // The desktop app is handed its session token (the website's is a cookie).
+    if (isDesktop() && done.token) setAppToken(done.token)
     // Signed in without a passkey here: offer one, so next time is Face ID, not an email.
     const offer = passkeysWork()
     set({ sheet: offer ? 'passkey-offer' : null })

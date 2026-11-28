@@ -7,6 +7,8 @@ import { create } from 'zustand'
 import { CloudError, isOffline } from '../cloud/api'
 import { cloudActions, useCloud } from '../cloud/state'
 import { showToast } from '../safety/store'
+import { webOrigin } from '../cloud/endpoint'
+import { isDesktop } from '../desktop/bridge'
 import { shareUrl } from './address'
 import { onDay } from '../projects/format'
 import { createShareApi, type LinkDays, type ShareApi, type ShareLink } from './api'
@@ -101,7 +103,7 @@ export const shareLinkActions = {
       }
       changes++
       if (get().projectId !== projectId) return false
-      set({ links: sorted([made.link, ...(get().links ?? [])]), fresh: { projectId, linkId: made.link.id, url: shareUrl(made.token) } })
+      set({ links: sorted([made.link, ...(get().links ?? [])]), fresh: { projectId, linkId: made.link.id, url: shareUrl(made.token, webOrigin(), isDesktop() ? '/' : undefined) } })
       return true
     } catch (e) {
       if (get().projectId === projectId) set({ problem: said(e) })
