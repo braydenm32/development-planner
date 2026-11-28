@@ -16,6 +16,7 @@
     "@react-three/fiber": "^9.8.2",
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.0.3",
+    "@tauri-apps/api": "^2.12.5",
     "delaunator": "^5.1.0",
     "idb-keyval": "^6.3.0",
     "manifold-3d": "^3.5.4",
@@ -26,6 +27,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.6",
     "@types/delaunator": "^5.0.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

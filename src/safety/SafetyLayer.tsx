@@ -8,7 +8,7 @@ import type { ProjectThumbnail } from '../projects/types'
 import { importPlanFrom, openFile } from './flows'
 import { LayersSheet } from './LayersSheet'
 import { OtherTabSheet } from '../projects/OtherTab'
-import { chooseInReview, dismissToast, pickedFor, registerPicker, toastSpot, undoToast, useSafety, type Toast } from './store'
+import { chooseInReview, dismissToast, pickedFor, registerPicked, registerPicker, toastSpot, undoToast, useSafety, type PickMode, type Toast } from './store'
 import { sayFileError } from './surveyor'
 import './safety.css'
 
@@ -193,6 +193,13 @@ export function ToastNote({ toast }: { toast: Toast }) {
   )
 }
 
+/** A picked file, opened the way it was picked for: a plan to import, or anything else to open. */
+function openPicked(f: File, mode: PickMode) {
+  const run = mode === 'plan' ? importPlanFrom(f) : openFile(f)
+  run.catch(sayFileError)
+}
+registerPicked(openPicked)
+
 /** The one hidden file input every Open, Replace survey and Import plan shows. */
 function Picker() {
   return (
@@ -206,8 +213,7 @@ function Picker() {
         const f = e.target.files?.[0]
         e.target.value = ''
         if (!f) return
-        const run = pickedFor() === 'plan' ? importPlanFrom(f) : openFile(f)
-        run.catch(sayFileError)
+        openPicked(f, pickedFor())
       }}
     />
   )

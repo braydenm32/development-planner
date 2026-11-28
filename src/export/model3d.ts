@@ -24,9 +24,10 @@ import { DEFAULT_VIEW, type ViewSettings } from '../lib/storage'
 import type { Survey } from '../lib/survey'
 import type { Heightfield, Terrain } from '../lib/terrain'
 import { buildSiteSolid } from '../lib/terrainMesh'
-import { sortedLevels, type Plan } from '../plan/model'
+import { floorRL, sortedLevels, type Plan } from '../plan/model'
 import type { Earth } from '../plan/useEarthworks'
 import { zip } from '../print/export'
+import { daeText, flatten, ifcText, stlBinary } from './modelFormats'
 
 export interface ModelInput {
   plan: Plan
@@ -238,6 +239,40 @@ export async function modelGlb(i: ModelInput): Promise<Uint8Array> {
     scene.add(m.root)
     const glb = (await new GLTFExporter().parseAsync(scene, { binary: true, onlyVisible: true })) as ArrayBuffer
     return new Uint8Array(glb)
+  } finally {
+    m.dispose()
+  }
+}
+
+/** The model as COLLADA (.dae), the file SketchUp Pro imports with its colours. */
+export async function modelDae(i: ModelInput): Promise<string> {
+  const m = await buildModel(i)
+  try {
+    return daeText(flatten(m.root), modelNotes(m.origin))
+  } finally {
+    m.dispose()
+  }
+}
+
+/** The model as IFC 4, for Revit, ArchiCAD, SketchUp Pro and BIM viewers: a storey per level. */
+export async function modelIfc(i: ModelInput & { fileName: string; projectName: string }): Promise<string> {
+  const m = await buildModel(i)
+  try {
+    // Each storey at its finished floor, in the file's own heights (0 is the block's base).
+    const elevations: Record<string, number> = {}
+    for (const l of sortedLevels(i.plan)) elevations[l.name || 'Level'] = floorRL(i.plan, l.id) - m.origin.rl
+    const notes = modelNotes(m.origin).map(l => l.replace('Y is up; north is -Z, east is +X.', 'Z is up; north is +Y, east is +X.'))
+    return ifcText(flatten(m.root), { fileName: i.fileName, projectName: i.projectName, notes, elevations })
+  } finally {
+    m.dispose()
+  }
+}
+
+/** The whole model (not the print parts) as one binary STL in millimetres, Z up. */
+export async function modelStl(i: ModelInput): Promise<Uint8Array> {
+  const m = await buildModel(i)
+  try {
+    return stlBinary(flatten(m.root))
   } finally {
     m.dispose()
   }

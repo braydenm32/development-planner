@@ -162,7 +162,15 @@ Parts key together so they sit square but lift off to look inside: the lowest fl
 
 **Plans (PDF).** A3 or A4 sheets with a title block, scale bar and north arrow (turned to match **Top of view**): a site plan with contours, boundary lengths, distances from the house to each boundary and the key numbers (site area, footprint, coverage, floor level, cut and fill); a floor plan for each level with wall lengths, overall dimensions, doors, windows, stairs, furniture and room areas; a roof plan; and, where there are any, sections and elevations, a shadow diagram for 21 June and the site features. Scales are chosen from the usual architectural ones so the drawing fits the sheet. The project's name (in the project menu) goes on the title block.
 
-**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV. **Download 3D model** saves the whole model as the 3D view shows it (ground, each level's walls, floors, roofs and stairs, outdoor areas, furniture) as a `.glb` for Blender, renderers or SketchUp, or as OBJ with its `.mtl` in a ZIP: real metres, Y up, the origin at the middle of the block, each part named and grouped by level.
+**Export.** A DXF in the survey's coordinates for your surveyor or drafter, a picture of the plan or the 3D view, and the door and window schedule as a CSV. **3D model** saves the whole model as the 3D view shows it (ground, each level's walls, floors, roofs and stairs, outdoor areas, furniture), in real metres with the origin at the middle of the block, each part named and grouped by level, as:
+
+- **.glb** (glTF): Blender, Windows 3D Viewer, web 3D viewers and most renderers.
+- **.dae** (COLLADA): SketchUp Pro (File › Import), 3ds Max, Cinema 4D, with the colours.
+- **.ifc** (IFC 4, BIM): Revit, ArchiCAD, SketchUp Pro and free IFC viewers. Walls, slabs, roofs, stairs, doors, windows and furniture come in as their own IFC kinds, on a storey per level at its floor level; the ground is terrain.
+- **OBJ** with its `.mtl` and textures in a ZIP: nearly every 3D program.
+- **.stl**: one plain mesh in millimetres, no colours, for SketchUp for Web (the free one) and anything else.
+
+The .glb and OBJ are Y up, north −Z; the .dae, .ifc and .stl are Z up, north +Y.
 
 **Send.** **Download project file** saves the survey and the plan as one `.project.json`. Whoever you send it to opens it on the start screen (or with **Open a project file**) and sees exactly what you see. It holds the survey, so only send it to people you'd send the survey to.
 
@@ -181,6 +189,39 @@ Once Contour & Gable has been opened in a browser, it opens and works with no co
 How it works: a hand-written service worker (`src/offline/sw.ts`, built as `sw.js` by `scripts/offlinePlugin.ts` with the list of every built file) keeps each version's files in a cache of its own. The page loads from the network first, so a deploy is picked up straight away, and from the cache when offline; the Worker API and other sites are never touched. A new version installs in the background and the app shows **A new version is ready · Reload**; it takes over only when someone chooses Reload, after their work is saved. It is built for both deployments (GitHub Pages under `/development-planner/`, Cloudflare at `/`) and never runs in `npm run dev` or the tests.
 
 **Kill switch**: if the service worker ever misbehaves on the live site, set `SERVICE_WORKER_OFF = true` in `src/offline/killSwitch.ts` and push to main. That build's `sw.js` deletes the app's caches and unregisters itself the next time a browser checks for an update (each page load, and hourly), and the app stops registering one; open pages carry on and nothing reloads by itself. Set it back to `false` to turn offline working on again.
+
+## Desktop app
+
+The same app in its own window for Windows, Mac and Linux (built with [Tauri](https://tauri.app), in `src-tauri/`), for what a browser can't do:
+
+- **Files go straight into folders**, with no save box: project files into **Documents/Contour and Gable/Projects**, everything else (PDFs, DXFs, 3D models, print files) into **…/Exports**. Change either under **Share › Export › Where files are saved**. The toast says where each file went, with **Show in folder**.
+- **Keep each project's file up to date as I work** (on by default) writes the open project's `.project.json` into the projects folder a few seconds after each change, as well as keeping it in the app. All projects lists the project files in that folder to open with a click.
+- **Open** uses the computer's own file picker, starting in the projects folder, and reads the file straight from disk, however big.
+- **Open in slicer** (Share › 3D print) saves the 3MF into the exports folder and opens it in your slicer in one go. It finds OrcaSlicer, PrusaSlicer, Bambu Studio, ElegooSlicer, Creality Print, UltiMaker Cura, SuperSlicer, Anycubic Slicer Next and FlashPrint where they're usually installed; pick another app, or your computer's own app for 3MF files, from the list beside it.
+
+Cloud saves, sign-in and view-only links stay on the website for now. The desktop app has every file with it, so it needs no service worker.
+
+**Getting it**: the **Desktop app** workflow builds the installers for every pull request that changes the desktop app (in the run's **Artifacts**), and puts them on a draft release for a tag like `desktop-v0.1.0`. The Mac app is signed with a Developer ID and notarised by Apple once these repository secrets are set (**Settings › Secrets and variables › Actions**); until then it's signed ad hoc, and you right-click it and choose **Open** the first time. The Windows installer isn't signed: choose **More info › Run anyway**.
+
+| Secret | What it is |
+| --- | --- |
+| `APPLE_CERTIFICATE` | The **Developer ID Application** certificate with its private key, exported from Keychain Access as a `.p12`, then base64: `base64 -i DeveloperID.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_PASSWORD` | The password you gave the `.p12` when exporting it |
+| `APPLE_SIGNING_IDENTITY` | The certificate's full name, as `security find-identity -v -p codesigning` lists it: `Developer ID Application: Your Name (TEAMID1234)` |
+| `APPLE_ID` | The Apple Account email of the developer account |
+| `APPLE_PASSWORD` | An app-specific password for that account (account.apple.com › Sign-In and Security › App-Specific Passwords), not the account password |
+| `APPLE_TEAM_ID` | The 10-character Team ID (developer.apple.com › Account › Membership details) |
+
+The first three sign the app; the last three notarise it. The Mac job's **Check the Mac signature** step shows what it was signed with and whether Gatekeeper accepts it.
+
+**Building it yourself**: install [Rust](https://rustup.rs) and, on Linux, the [Tauri system libraries](https://tauri.app/start/prerequisites/), then:
+
+```sh
+npm install
+npx tauri dev      # the desktop app on the dev server
+npx tauri build    # installers in src-tauri/target/release/bundle
+cargo test --manifest-path src-tauri/Cargo.toml
+```
 
 ## Development
 

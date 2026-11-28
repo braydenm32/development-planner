@@ -5,7 +5,15 @@ import { cloudActions } from '../cloud/state'
 import { askBalance } from '../grading/balanceAsk'
 import { downloadPlan, startNewPlan } from '../components/planFile'
 import { pdfChoices, save3mf, saveDaPack, savePlansPdf, saveProjectFile, saveStls, toastDownloaded } from '../components/printFiles'
-import { saveDxf, saveModel, savePicture, saveScheduleCsv } from '../export/files'
+import { saveDxf, saveModel, savePicture, saveScheduleCsv, type ModelFormat } from '../export/files'
+
+const MODEL_ACTION: Record<'download-glb' | 'download-obj' | 'download-dae' | 'download-ifc' | 'download-model-stl', ModelFormat> = {
+  'download-glb': 'glb',
+  'download-obj': 'obj',
+  'download-dae': 'dae',
+  'download-ifc': 'ifc',
+  'download-model-stl': 'stl',
+}
 import { openExample } from '../example/open'
 import { startContourPick } from '../flow/store'
 import { showHintsAgain } from '../guide/hints'
@@ -200,7 +208,10 @@ export function runAction(a: ActionId, c: ActionContext): boolean {
       return true
     case 'download-glb':
     case 'download-obj':
-      void saveModel({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, format: a === 'download-glb' ? 'glb' : 'obj' }).then(toastDownloaded, err =>
+    case 'download-dae':
+    case 'download-ifc':
+    case 'download-model-stl':
+      void saveModel({ plan, survey: shell.survey, terrain: shell.terrain, earth: shell.earth, format: MODEL_ACTION[a] }).then(toastDownloaded, err =>
         c.toast((err as Error).message || 'The 3D model could not be made.'),
       )
       return true

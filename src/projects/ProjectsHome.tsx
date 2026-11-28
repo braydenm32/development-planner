@@ -24,6 +24,9 @@ import type { ProjectMeta, ProjectThumbnail } from './types'
 // IBM Plex Sans, self-hosted: the same files the app's frame loads, so there is one copy.
 import '../shell/fonts.css'
 import './projects.css'
+import { isDesktop } from '../desktop/bridge'
+import { FolderProjects } from '../desktop/DesktopPanel'
+import { pickFromDisk } from '../desktop/files'
 
 interface Props {
   /** Inside the app's frame, which brings its own top bar: no logo bar here, the actions sit by the heading. */
@@ -234,6 +237,8 @@ export function ProjectsHome(props: Props) {
   // A project file, a survey or a plan: each opens as a new project (a project file after a
   // light review), and the app goes to it. Undo is on the toast that follows.
   const openFile = (f: File) => act(() => openAnyFile(f, { into: 'new' }))
+  // The desktop app uses the computer's own picker, starting in the projects folder.
+  const chooseFile = () => (isDesktop() ? void pickFromDisk().then(f => f && openFile(f)) : fileInput.current?.click())
 
   /** A card is about to leave the list: focus goes to the one that takes its place (else the page), not the page body. */
   const focusAfter = (id: string) => {
@@ -273,7 +278,7 @@ export function ProjectsHome(props: Props) {
         <span className="ph-long">Open an example</span>
         <span className="ph-short">Example</span>
       </button>
-      <button className="ph-btn" onClick={() => fileInput.current?.click()} title="A project file, a saved plan, or a survey (DXF)">
+      <button className="ph-btn" onClick={chooseFile} title="A project file, a saved plan, or a survey (DXF)">
         <Icon name="file" size={16} />
         <span className="ph-long">Open a file</span>
         <span className="ph-short">Open file</span>
@@ -429,7 +434,7 @@ export function ProjectsHome(props: Props) {
               </p>
               <p className="ph-empty-alt">
                 Someone sent you a project file?{' '}
-                <button className="ph-link" onClick={() => fileInput.current?.click()}>
+                <button className="ph-link" onClick={chooseFile}>
                   Open it
                 </button>
                 {tucked.length > 0 && (
@@ -560,6 +565,7 @@ export function ProjectsHome(props: Props) {
             ))}
           </ul>
         )}
+        <FolderProjects />
       </Main>
       <LegalFooter />
 

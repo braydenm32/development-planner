@@ -1,0 +1,70 @@
+/* The desktop app's own bits: where files go, the slicer, the projects folder list. */
+
+.dk-panel {
+  border: 1px solid var(--line, #e1e4e8);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+}
+
+.dk-panel h3 {
+  margin-top: 0;
+}
+
+.dk-folder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  margin: 8px 0;
+}
+
+.dk-folder-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.dk-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.dk-path {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.dk-slicer {
+  margin-bottom: 6px;
+}
+
+.dk-slicer select {
+  max-width: 220px;
+  max-width: 100%;
+}
+
+.dk-folder-projects {
+  margin: 28px 0 8px;
+}
+
+.dk-folder-projects .dk-h {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+
+.dk-folder-projects ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.dk-folder-projects li {
+  padding: 3px 0;
+}

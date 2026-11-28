@@ -47,21 +47,39 @@ export function saveScheduleCsv(plan: Plan): void {
   saveFile(`${fileSafe(projectTitle(plan))}-doors-windows.csv`, scheduleCsv(doorWindowSchedule(plan)), 'text/csv')
 }
 
-export type ModelFormat = 'glb' | 'obj'
+export type ModelFormat = 'glb' | 'obj' | 'dae' | 'ifc' | 'stl'
 
-/** The 3D model's file name: a .glb, or a ZIP holding the .obj with its .mtl. */
-export const modelFileName = (plan: Plan, format: ModelFormat): string => `${fileSafe(projectTitle(plan))}-3d-model${format === 'glb' ? '.glb' : '-obj.zip'}`
+const MODEL_ENDING: Record<ModelFormat, string> = { glb: '.glb', obj: '-obj.zip', dae: '.dae', ifc: '.ifc', stl: '.stl' }
+
+/** The 3D model's file name: a .glb, .dae, .ifc or .stl, or a ZIP holding the .obj with its .mtl. */
+export const modelFileName = (plan: Plan, format: ModelFormat): string => `${fileSafe(projectTitle(plan))}-3d-model${MODEL_ENDING[format]}`
+
+/** The model file's bytes (or text) and its type, for saving or handing to another program. */
+export async function modelFile(i: ExportInput & { format: ModelFormat; ground?: boolean; furniture?: boolean }): Promise<{ name: string; data: Uint8Array | string; type: string }> {
+  const m = await import('./model3d')
+  const name = modelFileName(i.plan, i.format)
+  switch (i.format) {
+    case 'glb':
+      return { name, data: await m.modelGlb(i), type: 'model/gltf-binary' }
+    case 'obj':
+      return { name, data: await m.modelObjZip(i, `${fileSafe(projectTitle(i.plan))}-3d-model`), type: 'application/zip' }
+    case 'dae':
+      return { name, data: await m.modelDae(i), type: 'model/vnd.collada+xml' }
+    case 'ifc':
+      return { name, data: await m.modelIfc({ ...i, fileName: name, projectName: projectTitle(i.plan) }), type: 'application/x-step' }
+    case 'stl':
+      return { name, data: await m.modelStl(i), type: 'model/stl' }
+  }
+}
 
 /**
  * Save the whole model for Blender, SketchUp or a renderer. Its code (and three's exporters) loads
  * only now, so the app's first download stays the size it was. Returns the file's name.
  */
 export async function saveModel(i: ExportInput & { format: ModelFormat; ground?: boolean; furniture?: boolean }): Promise<string> {
-  const m = await import('./model3d')
-  const name = modelFileName(i.plan, i.format)
-  if (i.format === 'glb') saveFile(name, await m.modelGlb(i), 'model/gltf-binary')
-  else saveFile(name, await m.modelObjZip(i, `${fileSafe(projectTitle(i.plan))}-3d-model`), 'application/zip')
-  return name
+  const f = await modelFile(i)
+  saveFile(f.name, f.data, f.type)
+  return f.name
 }
 
 /** Save a picture of the plan or the 3D view, whichever is open. Returns a sentence to show when it can't. */
